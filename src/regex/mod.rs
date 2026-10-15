@@ -222,16 +222,16 @@ impl Regex {
         }
         if let Some(lit) = &self.literals.pure {
             // A pattern that is just a literal: the leftmost occurrence is the match.
-            return match crate::search::memmem(&haystack[start..], lit) {
+            return match lit.find(&haystack[start..]) {
                 Some(i) => {
-                    caps.groups = vec![Some((start + i, start + i + lit.len()))];
+                    caps.groups = vec![Some((start + i, start + i + lit.needle().len()))];
                     true
                 }
                 None => false,
             };
         }
         if let Some(lit) = &self.literals.required {
-            if crate::search::memmem(&haystack[start..], lit).is_none() {
+            if lit.find(&haystack[start..]).is_none() {
                 return false;
             }
         }
@@ -265,10 +265,10 @@ impl Regex {
     /// has groups. Use this for addresses and `captures_at` for `s`.
     pub fn is_match(&self, haystack: &[u8]) -> bool {
         if let Some(lit) = &self.literals.pure {
-            return crate::search::memmem(haystack, lit).is_some();
+            return lit.find(haystack).is_some();
         }
         if let Some(lit) = &self.literals.required {
-            if crate::search::memmem(haystack, lit).is_none() {
+            if lit.find(haystack).is_none() {
                 return false;
             }
         }

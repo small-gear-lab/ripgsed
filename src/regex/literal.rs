@@ -3,14 +3,15 @@
 
 use super::ast::{Node, Unit};
 use super::charset::ByteSet;
+use crate::search::Finder;
 
 /// What the pattern tells about literal text.
 #[derive(Debug, Clone, Default)]
 pub struct Literals {
     /// The whole pattern is this literal (no groups, assertions, or repetition).
-    pub pure: Option<Vec<u8>>,
+    pub pure: Option<Finder>,
     /// Every match contains this literal.
-    pub required: Option<Vec<u8>>,
+    pub required: Option<Finder>,
 }
 
 impl ByteSet {
@@ -35,12 +36,12 @@ pub fn analyze(node: &Node, ascii_only: bool) -> Literals {
     let mut lits = Literals::default();
     if let Some(bytes) = pure(node, ascii_only) {
         if !bytes.is_empty() {
-            lits.pure = Some(bytes.clone());
-            lits.required = Some(bytes);
+            lits.pure = Some(Finder::new(&bytes));
+            lits.required = Some(Finder::new(&bytes));
             return lits;
         }
     }
-    lits.required = required(node, ascii_only).filter(|l| !l.is_empty());
+    lits.required = required(node, ascii_only).filter(|l| !l.is_empty()).map(|l| Finder::new(&l));
     lits
 }
 
@@ -60,6 +61,23 @@ fn pure(node: &Node, ascii_only: bool) -> Option<Vec<u8>> {
 }
 
 /// The longest literal that every match must contain.
+/// The text of a node that is nothing but literal bytes (groups included).
+fn literal_of(node: &Node, ascii_only: bool) -> Option<Vec<u8>> {
+    match node {
+        Node::Empty => Some(Vec::new()),
+        Node::Unit(_) => single(node, ascii_only).map(|b| vec![b]),
+        Node::Group(_, inner) => literal_of(inner, ascii_only),
+        Node::Concat(children) => {
+            let mut out = Vec::new();
+            for child in children {
+                out.extend(literal_of(child, ascii_only)?);
+            }
+            Some(out)
+        }
+        _ => None,
+    }
+}
+
 fn required(node: &Node, ascii_only: bool) -> Option<Vec<u8>> {
     match node {
         Node::Unit(_) => single(node, ascii_only).map(|b| vec![b]),
@@ -77,8 +95,8 @@ fn required(node: &Node, ascii_only: bool) -> Option<Vec<u8>> {
                 }
             };
             for child in children {
-                if let Some(b) = single(child, ascii_only) {
-                    run.push(b);
+                if let Some(bytes) = literal_of(child, ascii_only) {
+                    run.extend(bytes);
                     continue;
                 }
                 flush(&mut run, &mut best);

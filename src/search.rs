@@ -56,6 +56,40 @@ pub fn memmem(hay: &[u8], needle: &[u8]) -> Option<usize> {
         _ => {}
     }
     let (i1, i2) = rare_pair(needle);
+    memmem_with(hay, needle, i1, i2)
+}
+
+/// A needle prepared for repeated searches (the rare byte pair is chosen once).
+#[derive(Clone, Debug)]
+pub struct Finder {
+    needle: Vec<u8>,
+    i1: usize,
+    i2: usize,
+}
+
+impl Finder {
+    pub fn new(needle: &[u8]) -> Finder {
+        let (i1, i2) = if needle.len() >= 2 { rare_pair(needle) } else { (0, 0) };
+        Finder { needle: needle.to_vec(), i1, i2 }
+    }
+
+    pub fn needle(&self) -> &[u8] {
+        &self.needle
+    }
+
+    #[inline]
+    pub fn find(&self, hay: &[u8]) -> Option<usize> {
+        match self.needle.len() {
+            0 => return Some(0),
+            1 => return memchr(self.needle[0], hay),
+            n if n > hay.len() => return None,
+            _ => {}
+        }
+        memmem_with(hay, &self.needle, self.i1, self.i2)
+    }
+}
+
+fn memmem_with(hay: &[u8], needle: &[u8], i1: usize, i2: usize) -> Option<usize> {
     #[cfg(target_arch = "x86_64")]
     {
         if hay.len() >= needle.len() + 16 {
@@ -69,10 +103,10 @@ pub fn memmem(hay: &[u8], needle: &[u8]) -> Option<usize> {
             };
         }
     }
+    let _ = (i1, i2);
     memmem_scalar(hay, needle, 0)
 }
 
-/// The straightforward search from position `from`; also finishes what the vector loops leave.
 fn memmem_scalar(hay: &[u8], needle: &[u8], from: usize) -> Option<usize> {
     let n = needle.len();
     if hay.len() < n {
