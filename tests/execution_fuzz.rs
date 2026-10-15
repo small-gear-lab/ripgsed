@@ -168,13 +168,13 @@ fn fresh_dir(dir: &Path, files: &[(&str, &[u8])]) {
     }
 }
 
-fn run(program: &Path, args: &[String], stdin: &[u8], cwd: &Path) -> Run {
+fn run(program: &Path, args: &[String], stdin: &[u8], cwd: &Path, locale: &str) -> Run {
     let mut child = Command::new(program)
         .arg0("sed")
         .args(args)
         .current_dir(cwd)
         .env_clear()
-        .env("LC_ALL", "C")
+        .env("LC_ALL", locale)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -274,11 +274,12 @@ fn random_scripts_agree_with_gnu_sed() {
             args.push("f2".into());
         }
 
-        let want = run(&gnu, &args, stdin, &work);
+        let locale = if rng.chance(3) { "C.utf8" } else { "C" };
+        let want = run(&gnu, &args, stdin, &work, locale);
         if want.timed_out {
             continue;
         }
-        let got = run(&ours, &args, stdin, &work_ours);
+        let got = run(&ours, &args, stdin, &work_ours, locale);
         let same = !got.timed_out
             && want.stdout == got.stdout
             && want.stderr == got.stderr
@@ -297,7 +298,7 @@ fn random_scripts_agree_with_gnu_sed() {
                 }
             }
             failures.push(format!(
-                "case {case}: sed {} {:?}\n  input {:?}\n  want status {:?}: {:?} / {:?}\n  got  status {:?}{}: {:?} / {:?}{file_diff}",
+                "case {case} ({locale}): sed {} {:?}\n  input {:?}\n  want status {:?}: {:?} / {:?}\n  got  status {:?}{}: {:?} / {:?}{file_diff}",
                 args[..args.len() - if use_files { 3 } else { 1 }].join(" "),
                 script,
                 String::from_utf8_lossy(&data),
