@@ -269,16 +269,47 @@ impl<'a> Searcher<'a> {
 /// already has a value in the snapshot, restores all registers from the
 /// snapshot (so an empty last iteration does not erase the previous one);
 /// otherwise it records the empty match.
+///
+/// Loops: between two consumed characters a path may come back to a `Split`
+/// whose preferred alternative it already went through; it then takes the
+/// other alternative (so an empty iteration ends the loop instead of
+/// killing the path), and a `Split` whose two alternatives were both taken
+/// ends the path.
+///
+/// Without back-references a table of viable states (those from which the
+/// known match end is reachable) is computed first, backwards, so the walk
+/// never strays; with back-references the walk backtracks, memoizing the
+/// states reached right after consuming input together with the registers
+/// that back-references can read.
 struct Backtracker<'s, 'a> {
     s: &'s Searcher<'a>,
     caps: Vec<usize>,
     snap: Vec<usize>,
-    trail: Vec<(u32, usize)>,
-    stack: Vec<(u32, usize, usize)>,
-    bits: Vec<u64>,
-    bits_base: usize,
-    set: HashSet<Vec<usize>>,
+    trail: Vec<Undo>,
+    stack: Vec<Choice>,
+    stamp: Vec<u64>,
+    seg: u64,
+    next_seg: u64,
+    viable: Vec<u64>,
+    base: usize,
+    memo_bits: Vec<u64>,
+    memo_set: HashSet<Vec<usize>>,
     keyed: Vec<usize>,
+}
+
+#[derive(Clone, Copy)]
+enum Undo {
+    Cap(u32, usize),
+    Snap(u32, usize),
+    Stamp(u32, u64),
+}
+
+#[derive(Clone, Copy)]
+struct Choice {
+    pc: u32,
+    pos: usize,
+    trail: usize,
+    seg: u64,
 }
 
 impl<'s, 'a> Backtracker<'s, 'a> {
@@ -291,9 +322,13 @@ impl<'s, 'a> Backtracker<'s, 'a> {
             snap: vec![NONE; n],
             trail: Vec::new(),
             stack: Vec::new(),
-            bits: Vec::new(),
-            bits_base: 0,
-            set: HashSet::new(),
+            stamp: vec![0; s.prog.insts.len()],
+            seg: 1,
+            next_seg: 2,
+            viable: Vec::new(),
+            base: 0,
+            memo_bits: Vec::new(),
+            memo_set: HashSet::new(),
             keyed,
         }
     }
@@ -301,7 +336,7 @@ impl<'s, 'a> Backtracker<'s, 'a> {
     #[inline]
     fn set_cap(&mut self, i: usize, v: usize) {
         if self.caps[i] != v {
-            self.trail.push((i as u32, self.caps[i]));
+            self.trail.push(Undo::Cap(i as u32, self.caps[i]));
             self.caps[i] = v;
         }
     }
@@ -309,26 +344,103 @@ impl<'s, 'a> Backtracker<'s, 'a> {
     #[inline]
     fn set_snap(&mut self, i: usize, v: usize) {
         if self.snap[i] != v {
-            self.trail.push(((i + self.caps.len()) as u32, self.snap[i]));
+            self.trail.push(Undo::Snap(i as u32, self.snap[i]));
             self.snap[i] = v;
         }
     }
 
+    #[inline]
+    fn mark(&mut self, pc: u32) {
+        let old = self.stamp[pc as usize];
+        if old != self.seg {
+            self.trail.push(Undo::Stamp(pc, old));
+            self.stamp[pc as usize] = self.seg;
+        }
+    }
+
+    #[inline]
+    fn seen(&self, pc: u32) -> bool {
+        self.stamp[pc as usize] == self.seg
+    }
+
     fn undo(&mut self, to: usize) {
-        let n = self.caps.len();
         while self.trail.len() > to {
-            let (i, v) = self.trail.pop().unwrap();
-            let i = i as usize;
-            if i < n {
-                self.caps[i] = v;
-            } else {
-                self.snap[i - n] = v;
+            match self.trail.pop().unwrap() {
+                Undo::Cap(i, v) => self.caps[i as usize] = v,
+                Undo::Snap(i, v) => self.snap[i as usize] = v,
+                Undo::Stamp(pc, v) => self.stamp[pc as usize] = v,
             }
         }
     }
 
-    /// Marks the state visited; false if it was already.
-    fn visit(&mut self, pc: u32, pos: usize) -> bool {
+    fn new_segment(&mut self) {
+        self.seg = self.next_seg;
+        self.next_seg += 1;
+    }
+
+    #[inline]
+    fn is_viable(&self, pc: u32, pos: usize) -> bool {
+        if self.viable.is_empty() {
+            return true;
+        }
+        let m = self.s.prog.insts.len();
+        let k = (pos - self.base) * m + pc as usize;
+        self.viable[k / 64] & (1 << (k % 64)) != 0
+    }
+
+    /// Backward reachability of `(Match, end)` for patterns without
+    /// back-references.
+    fn compute_viable(&mut self, start: usize, end: usize) {
+        let prog = self.s.prog;
+        let m = prog.insts.len();
+        let rows = end - start + 1;
+        self.viable.clear();
+        self.viable.resize((rows * m).div_ceil(64), 0);
+        self.base = start;
+        let preds = &prog.preds;
+        let mut work: Vec<u32> = Vec::new();
+        for pos in (start..=end).rev() {
+            let row = (pos - start) * m;
+            work.clear();
+            for pc in 0..m {
+                let ok = match prog.insts[pc] {
+                    Inst::Match => pos == end,
+                    Inst::Unit(u) => match self.s.unit_len(u, pos) {
+                        Some(l) if pos + l <= end => {
+                            let k = (pos + l - start) * m + pc + 1;
+                            self.viable[k / 64] & (1 << (k % 64)) != 0
+                        }
+                        _ => false,
+                    },
+                    _ => false,
+                };
+                if ok {
+                    let k = row + pc;
+                    self.viable[k / 64] |= 1 << (k % 64);
+                    work.push(pc as u32);
+                }
+            }
+            while let Some(q) = work.pop() {
+                for &p in &preds[q as usize] {
+                    let k = row + p as usize;
+                    if self.viable[k / 64] & (1 << (k % 64)) != 0 {
+                        continue;
+                    }
+                    if let Inst::Assert(a) = prog.insts[p as usize] {
+                        if !self.s.assert_ok(a, pos) {
+                            continue;
+                        }
+                    }
+                    self.viable[k / 64] |= 1 << (k % 64);
+                    work.push(p);
+                }
+            }
+        }
+    }
+
+    /// Marks a state reached right after consuming input; false if it was
+    /// reached before.
+    fn memo(&mut self, pc: u32, pos: usize) -> bool {
         if self.s.prog.has_backrefs {
             let mut key = Vec::with_capacity(3 + 4 * self.keyed.len());
             key.push(pc as usize);
@@ -344,15 +456,14 @@ impl<'s, 'a> Backtracker<'s, 'a> {
                 }
             }
             key.push(bitsv);
-            return self.set.insert(key);
+            return self.memo_set.insert(key);
         }
         let m = self.s.prog.insts.len();
-        let k = (pos - self.bits_base) * m + pc as usize;
-        let (w, b) = (k / 64, k % 64);
-        if self.bits[w] & (1 << b) != 0 {
+        let k = (pos - self.base) * m + pc as usize;
+        if self.memo_bits[k / 64] & (1 << (k % 64)) != 0 {
             return false;
         }
-        self.bits[w] |= 1 << b;
+        self.memo_bits[k / 64] |= 1 << (k % 64);
         true
     }
 
@@ -394,7 +505,7 @@ impl<'s, 'a> Backtracker<'s, 'a> {
 
     /// Runs from `start`. With `target = Some(e)`, returns as soon as the
     /// first path in priority order reaches `Match` at `e`, leaving its
-    /// registers in `caps`. With `None`, explores everything and returns the
+    /// registers in `caps`. With `None`, explores every path and returns the
     /// longest end.
     fn run(&mut self, start: usize, target: Option<usize>) -> Option<usize> {
         let prog = self.s.prog;
@@ -402,35 +513,52 @@ impl<'s, 'a> Backtracker<'s, 'a> {
         self.snap.fill(NONE);
         self.trail.clear();
         self.stack.clear();
-        self.set.clear();
+        self.memo_set.clear();
+        self.viable.clear();
         if !prog.has_backrefs {
             let e = target.expect("only searched with back-references");
+            self.compute_viable(start, e);
             let nbits = (e - start + 1) * prog.insts.len();
-            self.bits.clear();
-            self.bits.resize(nbits.div_ceil(64), 0);
-            self.bits_base = start;
+            self.memo_bits.clear();
+            self.memo_bits.resize(nbits.div_ceil(64), 0);
+            self.base = start;
         }
         let limit = target.unwrap_or(self.s.hay.len());
         let mut best: Option<usize> = None;
-        self.stack.push((0, start, 0));
-        while let Some((pc0, pos0, tl)) = self.stack.pop() {
-            self.undo(tl);
-            let (mut pc, mut pos) = (pc0, pos0);
+        self.new_segment();
+        self.memo(0, start);
+        self.stack.push(Choice { pc: 0, pos: start, trail: 0, seg: self.seg });
+        while let Some(ch) = self.stack.pop() {
+            self.undo(ch.trail);
+            self.seg = ch.seg;
+            let (mut pc, mut pos) = (ch.pc, ch.pos);
             loop {
-                if pos > limit || !self.visit(pc, pos) {
+                if pos > limit || !self.is_viable(pc, pos) {
                     break;
                 }
+                self.mark(pc);
                 match prog.insts[pc as usize] {
                     Inst::Unit(u) => match self.s.unit_len(u, pos) {
                         Some(l) => {
                             pos += l;
                             pc += 1;
+                            self.new_segment();
+                            if !self.memo(pc, pos) {
+                                break;
+                            }
                         }
                         None => break,
                     },
                     Inst::Split(a, b) => {
-                        self.stack.push((b, pos, self.trail.len()));
-                        pc = a;
+                        if self.seen(a) {
+                            if self.seen(b) {
+                                break;
+                            }
+                            pc = b;
+                        } else {
+                            self.stack.push(Choice { pc: b, pos, trail: self.trail.len(), seg: self.seg });
+                            pc = a;
+                        }
                     }
                     Inst::Jmp(a) => pc = a,
                     Inst::Open(g) => {
@@ -469,6 +597,12 @@ impl<'s, 'a> Backtracker<'s, 'a> {
                         Some(l) => {
                             pos += l;
                             pc += 1;
+                            if l > 0 {
+                                self.new_segment();
+                                if !self.memo(pc, pos) {
+                                    break;
+                                }
+                            }
                         }
                         None => break,
                     },

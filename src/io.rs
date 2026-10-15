@@ -1,11 +1,69 @@
 //! Record reading and output. No script syntax handling.
 
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fs::File;
-use std::io::{self, BufRead, BufReader, Write};
+use std::io::{self, BufRead, BufReader, Read, Seek, SeekFrom, Write};
+use std::mem::ManuallyDrop;
+use std::os::fd::FromRawFd;
 use std::rc::Rc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use crate::Fatal;
+
+/// File descriptor 0, which is never closed by this handle.
+struct StdinFile(ManuallyDrop<File>);
+
+impl Read for StdinFile {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        self.0.read(buf)
+    }
+}
+
+impl Seek for StdinFile {
+    fn seek(&mut self, pos: SeekFrom) -> io::Result<u64> {
+        self.0.seek(pos)
+    }
+}
+
+// Standard input is read through one buffered reader shared by the input stream and by
+// `R /dev/stdin` and `r /dev/stdin`, so they see one stream. It reads file descriptor 0
+// directly, so that the file offset can be put back at the end (see `restore_stdin_offset`).
+thread_local! {
+    static STDIN: RefCell<Option<BufReader<StdinFile>>> = const { RefCell::new(None) };
+}
+
+fn with_stdin<T>(f: impl FnOnce(&mut BufReader<StdinFile>) -> T, unbuffered: bool) -> T {
+    STDIN.with(|cell| {
+        let mut slot = cell.borrow_mut();
+        let reader = slot.get_or_insert_with(|| {
+            // SAFETY: descriptor 0 is owned by the process; ManuallyDrop keeps it open.
+            let file = StdinFile(ManuallyDrop::new(unsafe { File::from_raw_fd(0) }));
+            BufReader::with_capacity(if unbuffered { 1 } else { 8192 }, file)
+        });
+        f(reader)
+    })
+}
+
+/// Reads one separator-terminated record from standard input.
+pub fn stdin_record(separator: u8, unbuffered: bool) -> io::Result<Option<Record>> {
+    with_stdin(|r| read_record(r, separator), unbuffered)
+}
+
+/// Puts the file offset of standard input where the last byte sed used ends, as GNU sed
+/// does when it quits early, so that the next process reads what sed left. It does nothing
+/// for pipes and terminals.
+pub fn restore_stdin_offset() {
+    STDIN.with(|cell| {
+        if let Some(reader) = cell.borrow_mut().as_mut() {
+            let _ = reader.seek(SeekFrom::Current(0));
+        }
+    });
+}
+
+/// Set before `main` if file descriptor 1 was closed when the process started (Rust
+/// reopens closed standard descriptors on `/dev/null`).
+pub static STDOUT_WAS_CLOSED: AtomicBool = AtomicBool::new(false);
 
 /// One input record: the body without its terminator, and whether the
 /// terminator was present. A missing final terminator is preserved.
@@ -52,9 +110,14 @@ pub trait RecordSource {
 /// and skipped; reading continues with the next file and `had_open_error` is set
 /// (exit status 2). A missing final terminator ends a record, so it never joins
 /// the first record of the next file.
+enum Source {
+    Reader(Box<dyn BufRead>),
+    Stdin,
+}
+
 pub struct FileInputs {
     names: std::vec::IntoIter<String>,
-    current: Option<(Box<dyn BufRead>, Rc<str>)>,
+    current: Option<(Source, Rc<str>)>,
     /// A record read ahead of time, and whether it starts a new file.
     peeked: Option<Fetched>,
     started_file: bool,
@@ -114,22 +177,30 @@ impl FileInputs {
     fn open_next(&mut self) -> bool {
         for name in self.names.by_ref() {
             if name == "-" && !self.in_place {
-                let reader: Box<dyn BufRead> = if self.unbuffered {
-                    Box::new(BufReader::with_capacity(1, io::stdin()))
-                } else {
-                    Box::new(BufReader::new(io::stdin()))
-                };
-                self.current = Some((reader, Rc::from("-")));
+                self.current = Some((Source::Stdin, Rc::from("-")));
                 self.started_file = false;
                 return true;
             }
             if self.in_place {
                 if self.follow_symlinks {
-                    let is_link = std::fs::symlink_metadata(&name).is_ok_and(|m| m.file_type().is_symlink());
-                    if is_link {
-                        if let Err(e) = std::fs::canonicalize(&name) {
-                            self.fatal = Some(Fatal::new(format!("couldn't readlink {}: {}", name, strerror(&e)), 4));
-                            return false;
+                    // Follow the chain one link at a time, as GNU sed does; a link that cannot be
+                    // read (a missing target, for example) stops the run.
+                    let mut current = std::path::PathBuf::from(&name);
+                    for _ in 0..40 {
+                        match std::fs::read_link(&current) {
+                            Ok(target) => {
+                                current = if target.is_absolute() {
+                                    target
+                                } else {
+                                    current.parent().unwrap_or_else(|| std::path::Path::new("")).join(target)
+                                };
+                            }
+                            Err(e) if e.raw_os_error() == Some(22) => break,
+                            Err(e) => {
+                                let shown = current.display().to_string();
+                                self.fatal = Some(Fatal::new(format!("couldn't readlink {}: {}", shown, strerror(&e)), 4));
+                                return false;
+                            }
                         }
                     }
                 }
@@ -142,7 +213,7 @@ impl FileInputs {
             }
             match File::open(&name) {
                 Ok(f) => {
-                    self.current = Some((Box::new(BufReader::new(f)), Rc::from(name.as_str())));
+                    self.current = Some((Source::Reader(Box::new(BufReader::new(f))), Rc::from(name.as_str())));
                     self.started_file = false;
                     return true;
                 }
@@ -163,8 +234,12 @@ impl FileInputs {
                     None => Ok(()),
                 };
             }
-            let (reader, name) = self.current.as_mut().unwrap();
-            match read_record(reader, self.separator) {
+            let (source, name) = self.current.as_mut().unwrap();
+            let read = match source {
+                Source::Reader(reader) => read_record(reader, self.separator),
+                Source::Stdin => stdin_record(self.separator, self.unbuffered),
+            };
+            match read {
                 Ok(Some(record)) => {
                     let new_file = !self.started_file;
                     self.started_file = true;
@@ -467,11 +542,17 @@ unsafe extern "C" {
     fn fcntl(fd: i32, cmd: i32, ...) -> i32;
 }
 
-/// Whether file descriptor 1 is still open (Rust ignores writes to a closed stdout).
+/// Whether file descriptor 1 was open when the process started (Rust ignores writes to a
+/// closed stdout, so this is checked before `main`).
 fn stdout_is_open() -> bool {
+    !STDOUT_WAS_CLOSED.load(Ordering::Relaxed)
+}
+
+/// Whether `fd` is a closed descriptor.
+pub fn fd_is_closed(fd: i32) -> bool {
     const F_GETFD: i32 = 1;
     // SAFETY: F_GETFD only queries the descriptor flags.
-    unsafe { fcntl(1, F_GETFD) != -1 }
+    unsafe { fcntl(fd, F_GETFD) == -1 }
 }
 
 fn flush_error(name: &str, e: &io::Error) -> Fatal {

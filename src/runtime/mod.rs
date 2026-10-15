@@ -151,6 +151,11 @@ pub fn run<S: RecordSource + ?Sized>(
 }
 
 impl<S: RecordSource + ?Sized> Machine<'_, S> {
+    /// POSIXLY_CORRECT or --posix, unless the script used `v`.
+    fn posixly_correct(&self) -> bool {
+        self.options.posixly_correct && !self.script.extensions
+    }
+
     fn quiet(&self) -> bool {
         self.options.quiet || self.script.quiet
     }
@@ -661,7 +666,7 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
     /// not) and stops; with `-s` the end of a file only ends the cycle, and sed goes on
     /// with the next file.
     fn no_next_line(&mut self, always_print: bool) -> Result<Flow, Fatal> {
-        let print = always_print || !self.options.posixly_correct;
+        let print = always_print || !self.posixly_correct();
         if print {
             self.debug_write(b"END-OF-CYCLE:\n")?;
         }
@@ -677,6 +682,17 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
     /// One line of the file named by an `R` command; the file stays open between calls.
     fn read_one_line(&mut self, name: &[u8]) -> Result<Option<Vec<u8>>, Fatal> {
         use std::io::BufRead;
+        if name == b"/dev/stdin" {
+            let record = crate::io::stdin_record(self.options.separator, self.options.unbuffered)
+                .map_err(|e| Fatal::new(format!("read error on /dev/stdin: {}", crate::io::strerror(&e)), 4))?;
+            return Ok(record.map(|r| {
+                let mut line = r.body;
+                if r.terminated {
+                    line.push(self.options.separator);
+                }
+                line
+            }));
+        }
         let reader = self.read_files.entry(name.to_vec()).or_insert_with(|| {
             let path = String::from_utf8_lossy(name).into_owned();
             std::fs::File::open(path).ok().map(std::io::BufReader::new)

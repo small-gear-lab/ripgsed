@@ -15,6 +15,8 @@ pub struct Script {
     pub commands: Vec<Command>,
     /// `#n` on the first line of the script: behaves like `-n`.
     pub quiet: bool,
+    /// The `v` command appeared: GNU extensions stay on even under POSIXLY_CORRECT.
+    pub extensions: bool,
 }
 
 #[derive(Debug)]

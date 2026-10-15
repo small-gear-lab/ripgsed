@@ -32,6 +32,8 @@ pub struct Program {
     pub has_backrefs: bool,
     /// Bytes that can start a match, when no match can be empty.
     pub first_bytes: Option<ByteSet>,
+    /// Epsilon predecessors of every instruction (for backward reachability).
+    pub preds: Vec<Vec<u32>>,
 }
 
 /// Programs larger than this are refused, as an exhausted regcomp would.
@@ -42,7 +44,21 @@ pub fn compile(node: &Node, ngroups: usize, referenced: Vec<bool>) -> Result<Pro
     c.emit(node, false)?;
     c.insts.push(Inst::Match);
     let has_backrefs = referenced.iter().any(|&r| r);
-    let mut prog = Program { insts: c.insts, units: c.units, ngroups, referenced, has_backrefs, first_bytes: None };
+    let mut preds = vec![Vec::new(); c.insts.len()];
+    for (pc, inst) in c.insts.iter().enumerate() {
+        let pc32 = pc as u32;
+        match *inst {
+            Inst::Split(a, b) => {
+                preds[a as usize].push(pc32);
+                preds[b as usize].push(pc32);
+            }
+            Inst::Jmp(a) => preds[a as usize].push(pc32),
+            Inst::Open(_) | Inst::Close(..) | Inst::Assert(_) => preds[pc + 1].push(pc32),
+            Inst::Unit(_) | Inst::Backref(_) | Inst::Match => {}
+        }
+    }
+    let mut prog =
+        Program { insts: c.insts, units: c.units, ngroups, referenced, has_backrefs, first_bytes: None, preds };
     prog.first_bytes = first_bytes(&prog);
     Ok(prog)
 }

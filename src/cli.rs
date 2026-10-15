@@ -346,6 +346,7 @@ extern "C" fn save_inherited_sigpipe() {
         signal(SIGPIPE, old);
         INHERITED_SIGPIPE.store(old, std::sync::atomic::Ordering::Relaxed);
     }
+    crate::io::STDOUT_WAS_CLOSED.store(crate::io::fd_is_closed(1), std::sync::atomic::Ordering::Relaxed);
 }
 
 #[used]
@@ -400,6 +401,7 @@ pub fn main() -> i32 {
 
     let result = runtime::run(&script, options, &mut inputs, &mut outputs)
         .and_then(|code| outputs.flush_all().map(|()| code));
+    crate::io::restore_stdin_offset();
     match result {
         Ok(_) if inputs.had_edit_error || inputs.had_read_error => EXIT_PANIC,
         Ok(_) if inputs.had_open_error => EXIT_BAD_INPUT,

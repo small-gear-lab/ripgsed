@@ -446,6 +446,7 @@ cmd-018-q-pending-r-R
 cmd-018-q-quiet
 cmd-018-q-regex-address
 cmd-018-q-semicolon-brace
+cmd-018-q-stdin-rest-unread
 cmd-018-q-z
 cmd-019-Q-basic
 cmd-019-Q-empty-input
@@ -499,6 +500,7 @@ cmd-021-R-address
 cmd-021-R-basic
 cmd-021-R-brace-closing
 cmd-021-R-dev-stdin
+cmd-021-R-dev-stdin-input-too
 cmd-021-R-directory
 cmd-021-R-empty-file
 cmd-021-R-empty-input
@@ -913,6 +915,7 @@ env-001-posixly-correct-n-in-multiple-files
 env-001-posixly-correct-option-order
 env-001-posixly-correct-other-behavior
 env-002-v-and-posix-option
+env-002-v-command-overrides-posixly-correct
 env-002-v-version-checks
 esc-001-escaped-escape
 esc-001-in-bracket
@@ -994,7 +997,9 @@ ext-005-q-prints-pattern-space-Q-does-not
 ext-005-q-with-pending-N-and-hold
 ext-006-broken-pipe
 ext-006-broken-pipe-sigpipe-ignored
+ext-006-closed-stdout
 ext-006-pipe-reader-exits-early
+ext-006-w-dev-stdout-closed
 ext-006-write-error-dev-full
 inv-001-no-script-given
 inv-001-script-as-first-operand
@@ -1073,6 +1078,7 @@ iof-007-unreadable-permission
 iof-008-special-files-as-input
 iof-008-symlink-input-and-inplace
 loc-001-c-bracket-and-classes-bytes
+loc-001-c-case-conversion-ascii-only
 loc-001-c-dot-is-one-byte
 loc-001-c-invalid-bytes-and-z
 loc-001-c-l-command-and-y
@@ -1086,6 +1092,7 @@ loc-003-invalid-utf8-dot
 loc-003-invalid-utf8-passthrough
 loc-003-invalid-utf8-z-command
 loc-003-truncated-and-overlong-sequences
+loc-004-utf8-case-conversion
 loc-004-utf8-case-insensitive-match
 loc-005-c-locale-classes-ascii-only
 loc-005-collation-order-codepoint
@@ -1094,9 +1101,17 @@ loc-005-utf8-collation-order-codepoint
 loc-005-utf8-word-boundaries-and-shorthand
 loc-006-lang-only-utf8
 loc-006-lang-utf8-with-empty-lc-all
+loc-006-lc-all-c-explicit
+loc-006-lc-all-overrides-lang
+loc-006-lc-all-overrides-lc-ctype
 loc-006-lc-all-utf8
+loc-006-lc-collate-only-keeps-bytes
 loc-006-lc-ctype-over-lang-utf8
+loc-006-lc-ctype-overrides-lang
 loc-006-lc-ctype-utf8-with-empty-lc-all
+loc-006-lc-messages-only-keeps-bytes
+loc-006-no-locale-variables
+loc-006-posix-locale-name
 loc-006-utf8-spelling-with-dash
 opt-001-version-status
 opt-002-help-invalid-option
@@ -1221,6 +1236,7 @@ opt-013-binary-short
 opt-013-binary-stdin-nul
 opt-014-follow-symlinks-abbrev
 opt-014-follow-symlinks-basic
+opt-014-follow-symlinks-chain-and-broken
 opt-014-follow-symlinks-no-in-place
 opt-014-follow-symlinks-subdir
 opt-014-follow-symlinks-with-star-suffix
@@ -1259,6 +1275,8 @@ opt-018-unbuffered-long
 opt-018-unbuffered-n-and-d-commands
 opt-018-unbuffered-pipe-chain
 opt-018-unbuffered-short
+opt-018-unbuffered-stdin-q-subshell
+opt-018-unbuffered-stdin-reads-only-what-it-needs
 opt-018-unbuffered-with-w-file
 opt-019-null-data-N-G-H
 opt-019-null-data-N-with-newlines
@@ -1524,6 +1542,8 @@ sub-006-no-propagate-across-g
 sub-006-u-before-empty-group
 sub-006-u-then-L
 sub-006-upper-U
+sub-006-utf8
+sub-006-utf8-c-locale-bytes
 sub-006-utf8-lower
 sub-007-g-anchor
 sub-007-g-basic
@@ -1651,11 +1671,14 @@ syn-013-hash-n-not-first-line
 syn-013-hash-n-variants-not-enabled
 syn-013-hash-n-with-multiple-sources
 syn-014-brace-errors-in-file
+syn-014-braces-errors
 syn-014-braces-grouping
 syn-014-braces-nesting
 syn-015-negation-basic
+syn-015-negation-errors
 syn-015-negation-spaces-and-repeats
 syn-016-error-position-second-e
 syn-016-extra-characters
+syn-016-misc-command-errors
 syn-016-unknown-and-missing-commands
 syn-016-y-command-errors

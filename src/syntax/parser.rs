@@ -109,7 +109,11 @@ impl Parser {
     }
 
     fn options(&self) -> ParseOptions {
-        self.span_at(self.pos.saturating_sub(1)).options
+        let mut options = self.span_at(self.pos.saturating_sub(1)).options;
+        if self.script.extensions {
+            options.posixly_correct = false;
+        }
+        options
     }
 
     fn error_at(&self, pos: usize, message: &str) -> SyntaxError {
@@ -476,6 +480,9 @@ impl Parser {
                 Kind::BlockStart(0)
             }
             b'}' => {
+                if self.blocks.is_empty() {
+                    return Err(self.error("unexpected `}'"));
+                }
                 if selector.is_some() {
                     return Err(self.error("`}' doesn't want any addresses"));
                 }
@@ -584,6 +591,8 @@ impl Parser {
             b'v' => {
                 let label = self.read_label();
                 self.check_version(&label)?;
+                // `v` turns the GNU extensions on even when POSIXLY_CORRECT is set.
+                self.script.extensions = true;
                 Kind::Version
             }
             other => {
@@ -889,6 +898,7 @@ impl Parser {
                             }));
                         }
                         b'n' => literal.push(b'\n'),
+                        b'c' if i >= text.len() => literal.extend_from_slice(b"\\c"),
                         other => literal.push(other),
                     }
                 }

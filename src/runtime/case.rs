@@ -57,23 +57,38 @@ fn push(out: &mut Vec<u8>, text: &[u8], mode: &mut Mode, next: &mut Mode, locale
         };
         let ch = &text[i..i + len];
         let how = if *next != Mode::None { std::mem::replace(next, Mode::None) } else { *mode };
-        convert(out, ch, how);
+        convert(out, ch, how, locale);
         i += len;
     }
 }
 
-fn convert(out: &mut Vec<u8>, ch: &[u8], how: Mode) {
+fn convert(out: &mut Vec<u8>, ch: &[u8], how: Mode, locale: Locale) {
     if ch.len() == 1 {
+        let b = ch[0];
         out.push(match how {
-            Mode::Upper => ch[0].to_ascii_uppercase(),
-            Mode::Lower => ch[0].to_ascii_lowercase(),
-            Mode::None => ch[0],
+            Mode::None => b,
+            // In the C locale GNU sed turns a byte it cannot convert into 0xFF.
+            _ if b >= 0x80 && locale == Locale::C => 0xff,
+            Mode::Upper => b.to_ascii_uppercase(),
+            Mode::Lower => b.to_ascii_lowercase(),
         });
         return;
     }
-    match (std::str::from_utf8(ch), how) {
-        (Ok(s), Mode::Upper) => out.extend(s.to_uppercase().bytes()),
-        (Ok(s), Mode::Lower) => out.extend(s.to_lowercase().bytes()),
-        _ => out.extend_from_slice(ch),
+    // One character maps to one character (like towupper): `ß` stays `ß`, not `SS`.
+    let converted = std::str::from_utf8(ch).ok().and_then(|s| {
+        let c = s.chars().next()?;
+        let mut mapped: Vec<char> = match how {
+            Mode::Upper => c.to_uppercase().collect(),
+            Mode::Lower => c.to_lowercase().collect(),
+            Mode::None => vec![c],
+        };
+        if mapped.len() == 1 { mapped.pop() } else { Some(c) }
+    });
+    match converted {
+        Some(c) => {
+            let mut buf = [0u8; 4];
+            out.extend_from_slice(c.encode_utf8(&mut buf).as_bytes());
+        }
+        None => out.extend_from_slice(ch),
     }
 }

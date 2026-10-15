@@ -472,7 +472,6 @@ impl<'a> Parser<'a> {
                 negated,
                 ranges,
                 classes,
-                no_newline: negated && self.multiline,
                 ..CharSet::default()
             }));
         }
@@ -484,10 +483,9 @@ impl<'a> Parser<'a> {
             }
         }
         if negated {
+            // Unlike a negated bracket expression, \W and \S still match a
+            // newline in M mode.
             set.negate();
-            if self.multiline {
-                set.remove(b'\n');
-            }
         }
         Unit::Byte(set)
     }
