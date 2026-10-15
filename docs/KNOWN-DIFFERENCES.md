@@ -30,6 +30,14 @@ These are cases where glibc's matcher gives a result that disagrees with the lef
 
 The first is a back-reference to a group inside a repetition where something before the repetition can be empty, and the copy rule is not enough: with `a?` taking one `a` the value is seen for every length of the group, with the `a?` empty only for the shortest. In the second, `\1` matched through one path and the groups are reported from another. The third is a group that contains a loop of a group that can be empty, to which GNU sed's answers are no match or garbage. A group of fixed width (`(ab)+\1`) behaves as specified. Captures under stacked quantifiers (`((b?)+*|c){1}`) and `\B` after a repetition that does not start the pattern can also differ. The matrix entries are RGX-009 and RGX-012 in `compat/sed.tsv`.
 
+## UTF-8 cases of the C library that are not reproduced
+
+- A byte sequence that is structured like a UTF-8 character but is not one (a surrogate such as `ED A0 80`, or a code point above U+10FFFF such as `F4 90 80 80`) is one character for glibc in some places (`.*`, `\W`, `[^a]`, `\b`) and not in others. ripgsed treats it as invalid bytes everywhere.
+- With the `I` flag, glibc matches a pattern character against the input in one direction only: `s/В/X/I` does not match `U+1C80` although both fold to the same capital, and `[µ]` matches `Μ` and `μ`. ripgsed folds literals by the capital letter in both directions and brackets by the two cases of each character.
+- A text of `a`, `i`, or `c` that ends in `\c` takes the newline GNU sed appends as its control character (`a x\c` writes `xJ`).
+- A range that starts with an invalid collating symbol and ends with a class (`[[.space.]-[:alpha:]]`) reports `Invalid collation character`, GNU sed `Invalid range end`.
+- Reading a directory that a symbolic link points to with `--follow-symlinks` names the target in the read error; GNU sed 4.9 built from the release tarball names the link, the packaged one the target (ripgsed names the target).
+
 ## Reporting the glibc cases upstream
 
 The back-reference and `\B` cases above reproduce with plain `regcomp`/`regexec` (`REG_EXTENDED`), without sed:

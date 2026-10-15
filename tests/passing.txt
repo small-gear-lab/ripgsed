@@ -164,6 +164,7 @@ adr-014-zero-r-header
 adr-014-zero-r-missing-file
 adr-014-zero-r-multi-files
 adr-014-zero-r-no-final-newline
+adr-014-zero-r-runs-at-first-line
 adr-014-zero-r-stdin
 adr-014-zero-r-vs-one-r
 adr-014-zero-r-with-autoprint-off
@@ -224,6 +225,7 @@ adr-018-last-line-start
 adr-018-start-after-end-numbers
 adr-019-invalid-address-forms
 adr-020-q-Q-one-address-only
+adr-021-blanks-between-regexp-and-flags
 cmd-001-a-continuation-multiline
 cmd-001-a-empty-input
 cmd-001-a-empty-text-after-blanks
@@ -279,6 +281,7 @@ cmd-005-D-with-newline-restart
 cmd-006-e-command
 cmd-006-e-command-empty-output
 cmd-006-e-command-spaces-semicolon
+cmd-006-e-command-text-is-read-like-a-i-c
 cmd-006-e-execute-pattern-space
 cmd-006-e-failing-command
 cmd-006-e-ordering
@@ -444,6 +447,7 @@ cmd-018-q-error-extra
 cmd-018-q-error-two-addr
 cmd-018-q-exit-code
 cmd-018-q-exit-code-256
+cmd-018-q-exit-code-wraps-like-int
 cmd-018-q-first-no-input-left
 cmd-018-q-in-place
 cmd-018-q-in-place-s
@@ -488,6 +492,7 @@ cmd-020-r-empty-file
 cmd-020-r-empty-input
 cmd-020-r-error-no-filename
 cmd-020-r-every-line
+cmd-020-r-file-is-streamed
 cmd-020-r-filename-spaces
 cmd-020-r-filename-to-eol
 cmd-020-r-in-place
@@ -577,6 +582,8 @@ cmd-024-T-missing-label
 cmd-024-T-no-flag-set
 cmd-024-T-reset-new-cycle
 cmd-024-T-resets-on-t
+cmd-024-y-duplicate-source-characters
+cmd-024-y-with-invalid-multibyte-text
 cmd-025-v-address
 cmd-025-v-after-other-commands
 cmd-025-v-bad-version-string
@@ -766,6 +773,7 @@ cmd-039-l-wrapping-precedence
 cmd-040-q-Q-pending-output-and-unread-input
 cmd-041-r-R-details
 cmd-042-equals-and-text-with-z-s-i
+cmd-045-text-ending-in-backslash-is-raw
 cyc-001-autoprint-basic
 cyc-001-crlf-kept
 cyc-001-delete-skips-autoprint
@@ -1112,6 +1120,7 @@ iof-008-directory-as-input
 iof-008-special-files-as-input
 iof-008-symlink-input-and-inplace
 iof-009-directory-operands-and-targets
+iof-011-script-argument-not-utf8
 loc-001-c-bracket-and-classes-bytes
 loc-001-c-case-conversion-ascii-only
 loc-001-c-dot-is-one-byte
@@ -1180,12 +1189,27 @@ opt-004-debug-19
 opt-004-debug-20
 opt-004-debug-21
 opt-004-debug-22
+opt-004-debug-command-listing
+opt-004-debug-e-command-trace
 opt-004-debug-extended-regex
 opt-004-debug-in-place
+opt-004-debug-in-place-without-files
+opt-004-debug-pattern-space-escapes
+opt-004-debug-pattern-space-escapes-utf8
+opt-004-debug-regexp-listing
+opt-004-debug-regexp-listing-utf8
+opt-004-debug-replacement-listing
+opt-004-debug-s-flags-order
+opt-004-debug-s-flags-trace-order
 opt-004-debug-script-file
 opt-004-debug-stdin
+opt-004-debug-trace-d-and-n-end-of-cycle
+opt-004-debug-unterminated-last-line
 opt-004-debug-with-n-and-s
+opt-004-debug-y-listing
+opt-004-debug-y-listing-utf8
 opt-004-debug-z
+opt-004-debug-zero-r
 opt-005-expression-and-script-file
 opt-005-expression-empty
 opt-005-expression-error-position
@@ -1209,6 +1233,7 @@ opt-007-in-place-F-command
 opt-007-in-place-basic
 opt-007-in-place-broken-symlink
 opt-007-in-place-directory-operand
+opt-007-in-place-drops-setuid-and-setgid
 opt-007-in-place-empty-file
 opt-007-in-place-fatal-error-keeps-file
 opt-007-in-place-hard-link-detached
@@ -1277,10 +1302,13 @@ opt-013-binary-stdin-nul
 opt-014-follow-symlinks-abbrev
 opt-014-follow-symlinks-basic
 opt-014-follow-symlinks-chain-and-broken
+opt-014-follow-symlinks-loops-and-limit
 opt-014-follow-symlinks-no-in-place
+opt-014-follow-symlinks-read-errors
 opt-014-follow-symlinks-subdir
 opt-014-follow-symlinks-with-star-suffix
 opt-014-follow-symlinks-with-suffix
+opt-014-follow-symlinks-without-in-place-file-name
 opt-014-follow-symlinks-without-option
 opt-015-extended-after-script-and-operands
 opt-015-extended-back-references
@@ -1566,6 +1594,9 @@ rgx-038-utf8-class-tables
 rgx-039-not-word-boundary-after-repetition
 rgx-040-backref-to-repeated-group
 rgx-041-backref-to-group-with-empty-iteration
+rgx-042-word-boundary-next-to-invalid-bytes
+rgx-043-bracket-class-followed-by-escape
+rgx-043-range-end-is-a-class-or-equivalence
 sub-001-delim-ampersand
 sub-001-delim-caret-in-brackets
 sub-001-delim-comma-letter
@@ -1603,6 +1634,8 @@ sub-005-multiline-in-braces
 sub-005-multiline-n-command
 sub-005-multiline-replacement
 sub-005-multiline-with-ampersand
+sub-006-case-conversion-length-changing-and-invalid
+sub-006-case-conversion-single-character-mappings
 sub-006-conversion-with-digits-punct
 sub-006-end-E
 sub-006-first-l
@@ -1780,3 +1813,9 @@ syn-024-y-command-details
 syn-025-removed-command-L
 syn-026-bracket-scanning-by-sed
 syn-027-s-command-across-e
+syn-028-newline-after-address
+syn-029-error-messages-keep-raw-bytes
+syn-029-multibyte-delimiter-in-c-locale
+syn-029-multibyte-delimiter-in-utf8
+syn-030-label-terminators
+syn-031-posix-zero-address-and-trailing-backslash
