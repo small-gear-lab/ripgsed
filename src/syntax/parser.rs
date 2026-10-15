@@ -263,7 +263,7 @@ impl Parser {
                 let delim = if ch == b'\\' {
                     match self.next() {
                         Some(d) => d,
-                        None => return Err(self.error("unexpected `,'")),
+                        None => return Err(self.error("unterminated address regex")),
                     }
                 } else {
                     b'/'
@@ -675,6 +675,9 @@ impl Parser {
     /// A label runs to whitespace, `;` or `}`; leading whitespace is skipped.
     fn read_label(&mut self) -> Vec<u8> {
         self.skip_blanks();
+        if self.peek() == Some(b'#') {
+            return Vec::new();
+        }
         let start = self.pos;
         while self.peek().is_some_and(|b| !b.is_ascii_whitespace() && b != b';' && b != b'}') {
             self.pos += 1;
@@ -783,7 +786,8 @@ impl Parser {
         // Flags.
         let mut global = false;
         let mut occurrence = 0usize;
-        let mut print = 0u8;
+        let mut print_before = false;
+        let mut print_after = false;
         let mut eval = false;
         let mut write = None;
         let (mut icase, mut multiline) = (false, false);
@@ -807,10 +811,11 @@ impl Parser {
                     eval = true;
                 }
                 Some(b'p') => {
-                    if print > 0 && !eval {
+                    let seen = if eval { &mut print_after } else { &mut print_before };
+                    if *seen {
                         return Err(self.error("multiple `p' options to `s' command"));
                     }
-                    print += 1;
+                    *seen = true;
                 }
                 Some(b'g') => {
                     if global {
@@ -850,7 +855,8 @@ impl Parser {
             replacement,
             global,
             occurrence,
-            print,
+            print_before,
+            print_after,
             eval,
             write,
         })))
@@ -898,7 +904,7 @@ impl Parser {
                             }));
                         }
                         b'n' => literal.push(b'\n'),
-                        b'c' if i >= text.len() => literal.extend_from_slice(b"\\c"),
+                        b'c' if i >= text.len() => literal.push(b'\\'),
                         other => literal.push(other),
                     }
                 }
@@ -1078,9 +1084,14 @@ fn normalize_escapes_for(text: &[u8], posixly_correct: bool, replacement: bool) 
                 }
             }
             b'c' if i + 2 < text.len() => {
-                let x = text[i + 2].to_ascii_uppercase();
+                let mut x = text[i + 2];
+                let mut used = 3;
+                if x == b'\\' && text.get(i + 3) == Some(&b'\\') {
+                    used = 4;
+                }
+                x = x.to_ascii_uppercase();
                 out.push(x ^ 0x40);
-                i += 3;
+                i += used;
             }
             _ => {
                 out.push(b);

@@ -121,8 +121,10 @@ pub struct Substitute {
     pub global: bool,
     /// Replace only from the Nth match on.
     pub occurrence: usize,
-    /// Number of `p` flags (GNU prints before and after `e` when it appears on both sides).
-    pub print: u8,
+    /// `p` written before the `e` flag (or without one): print before evaluating.
+    pub print_before: bool,
+    /// `p` written after the `e` flag: print after evaluating.
+    pub print_after: bool,
     pub eval: bool,
     pub write: Option<Vec<u8>>,
 }

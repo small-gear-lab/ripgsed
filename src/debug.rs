@@ -69,7 +69,7 @@ fn addr_text(addr: &Addr, out: &mut Vec<u8>) {
 /// `/regexp/` with its flags.
 fn pattern_text(p: &Pattern, out: &mut Vec<u8>) {
     out.push(b'/');
-    out.extend_from_slice(&p.source);
+    push_regex_source(&p.source, out);
     out.push(b'/');
     if p.icase {
         out.push(b'I');
@@ -176,7 +176,7 @@ fn file_command(out: &mut Vec<u8>, letter: u8, name: &[u8]) {
 
 fn substitute_text(sub: &Substitute, out: &mut Vec<u8>) {
     out.extend_from_slice(b"s/");
-    out.extend_from_slice(&sub.pattern.source);
+    push_regex_source(&sub.pattern.source, out);
     out.push(b'/');
     for part in &sub.replacement {
         match part {
@@ -206,7 +206,7 @@ fn substitute_text(sub: &Substitute, out: &mut Vec<u8>) {
     if sub.global {
         out.push(b'g');
     }
-    if sub.print > 0 {
+    if sub.print_before || sub.print_after {
         out.push(b'p');
     }
     if sub.pattern.icase {
@@ -221,6 +221,16 @@ fn substitute_text(sub: &Substitute, out: &mut Vec<u8>) {
     if let Some(name) = &sub.write {
         out.push(b'w');
         out.extend_from_slice(name);
+    }
+}
+
+/// The regexp as the listing shows it: every backslash doubled.
+fn push_regex_source(source: &[u8], out: &mut Vec<u8>) {
+    for &b in source {
+        if b == b'\\' {
+            out.push(b'\\');
+        }
+        out.push(b);
     }
 }
 

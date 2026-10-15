@@ -226,7 +226,9 @@ impl FileInputs {
         false
     }
 
-    fn fill(&mut self) -> Result<(), Fatal> {
+    /// Reads ahead one record. A read error stops the run, unless `lookahead` is set: GNU sed
+    /// does not notice an error while it only looks for the end of the input.
+    fn fill(&mut self, lookahead: bool) -> Result<(), Fatal> {
         while self.peeked.is_none() {
             if self.current.is_none() && !self.open_next() {
                 return match self.fatal.take() {
@@ -247,9 +249,11 @@ impl FileInputs {
                 }
                 Ok(None) => self.current = None,
                 Err(e) => {
-                    eprintln!("{}: read error on {}: {}", self.program, name, strerror(&e));
-                    self.had_read_error = true;
-                    self.current = None;
+                    if lookahead {
+                        self.current = None;
+                        continue;
+                    }
+                    return Err(Fatal::new(format!("read error on {}: {}", name, strerror(&e)), 4));
                 }
             }
         }
@@ -259,12 +263,12 @@ impl FileInputs {
 
 impl RecordSource for FileInputs {
     fn next_record(&mut self) -> Result<Option<Fetched>, Fatal> {
-        self.fill()?;
+        self.fill(false)?;
         Ok(self.peeked.take())
     }
 
     fn is_last(&mut self, separate: bool) -> Result<bool, Fatal> {
-        self.fill()?;
+        self.fill(true)?;
         Ok(match &self.peeked {
             None => true,
             Some(next) => separate && next.new_file,
@@ -321,7 +325,7 @@ pub fn strerror(e: &io::Error) -> String {
 /// When a record without a terminator is written and more output follows on
 /// the same stream, the missing terminator is added first, as GNU sed does.
 pub struct Output {
-    inner: Box<dyn Write>,
+    inner: Rc<RefCell<Box<dyn Write>>>,
     separator: u8,
     missing_separator: bool,
     pub name: String,
@@ -329,12 +333,23 @@ pub struct Output {
 
 impl Output {
     pub fn new(inner: Box<dyn Write>, separator: u8, name: &str) -> Self {
-        Output { inner, separator, missing_separator: false, name: name.to_string() }
+        Output { inner: Rc::new(RefCell::new(inner)), separator, missing_separator: false, name: name.to_string() }
+    }
+
+    /// Another output onto the same stream with its own missing-newline state, like
+    /// `w /dev/stdout` next to the normal output.
+    pub fn alias(&self) -> Output {
+        Output {
+            inner: self.inner.clone(),
+            separator: self.separator,
+            missing_separator: false,
+            name: self.name.clone(),
+        }
     }
 
     fn fix_missing(&mut self) -> io::Result<()> {
         if self.missing_separator {
-            self.inner.write_all(&[self.separator])?;
+            self.inner.borrow_mut().write_all(&[self.separator])?;
             self.missing_separator = false;
         }
         Ok(())
@@ -342,9 +357,9 @@ impl Output {
 
     pub fn write_record(&mut self, body: &[u8], terminated: bool) -> io::Result<()> {
         self.fix_missing()?;
-        self.inner.write_all(body)?;
+        self.inner.borrow_mut().write_all(body)?;
         if terminated {
-            self.inner.write_all(&[self.separator])?;
+            self.inner.borrow_mut().write_all(&[self.separator])?;
         } else {
             self.missing_separator = true;
         }
@@ -355,11 +370,11 @@ impl Output {
     /// restoring a missing terminator.
     pub fn write_raw(&mut self, bytes: &[u8]) -> io::Result<()> {
         self.fix_missing()?;
-        self.inner.write_all(bytes)
+        self.inner.borrow_mut().write_all(bytes)
     }
 
     pub fn flush(&mut self) -> io::Result<()> {
-        self.inner.flush()
+        self.inner.borrow_mut().flush()
     }
 }
 
@@ -369,6 +384,8 @@ impl Output {
 pub struct Outputs {
     /// The real standard output (`w /dev/stdout` always writes here).
     pub stdout: Output,
+    /// `w /dev/stdout`: the same stream, with its own missing-newline state.
+    stdout_alias: Output,
     stderr: Option<Output>,
     files: HashMap<Vec<u8>, Output>,
     separator: u8,
@@ -387,8 +404,10 @@ struct InPlaceFile {
 
 impl Outputs {
     pub fn new(stdout: Box<dyn Write>, separator: u8) -> Self {
+        let stdout = Output::new(stdout, separator, "stdout");
         Outputs {
-            stdout: Output::new(stdout, separator, "stdout"),
+            stdout_alias: stdout.alias(),
+            stdout,
             stderr: None,
             files: HashMap::new(),
             separator,
@@ -509,7 +528,7 @@ impl Outputs {
     /// The output a `w`-style file name stands for.
     pub fn get(&mut self, name: &[u8]) -> &mut Output {
         match name {
-            b"/dev/stdout" => &mut self.stdout,
+            b"/dev/stdout" => &mut self.stdout_alias,
             b"/dev/stderr" => self.stderr.as_mut().expect("opened before use"),
             _ => self.files.get_mut(name).expect("opened before use"),
         }

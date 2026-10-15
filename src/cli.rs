@@ -321,9 +321,6 @@ fn read_script_file(name: &str) -> io::Result<Vec<u8>> {
             Err(e) => return Err(e),
         }
     }
-    if bytes.last() == Some(&b'\n') {
-        bytes.pop();
-    }
     Ok(bytes)
 }
 
@@ -407,8 +404,9 @@ pub fn main() -> i32 {
         Ok(_) if inputs.had_open_error => EXIT_BAD_INPUT,
         Ok(code) => code,
         Err(Fatal { message, status }) => {
-            let _ = outputs.flush_all();
+            // GNU sed reports first, then flushes what it had written.
             eprintln!("{program}: {message}");
+            let _ = outputs.flush_all();
             status
         }
     }

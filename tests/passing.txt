@@ -929,6 +929,8 @@ esc-002-ctrl-basic
 esc-002-ctrl-in-regexp
 esc-002-ctrl-in-y
 esc-002-ctrl-lower-upper-same
+esc-002-ctrl-missing-char
+esc-002-ctrl-special-chars
 esc-002-ctrl-text-commands
 esc-003-decimal
 esc-003-hex
@@ -975,8 +977,10 @@ ext-002-error-stops-before-output
 ext-002-invalid-command
 ext-002-posix-extension-errors
 ext-002-regex-errors
+ext-002-syntax-errors
 ext-002-unknown-command-message
 ext-002-unknown-option-and-usage
+ext-003-directory-as-input
 ext-003-missing-input-continues
 ext-003-missing-input-stderr-message
 ext-003-missing-input-with-q-and-dollar
@@ -1052,6 +1056,7 @@ iof-001-long-line-substitute
 iof-001-many-lines-and-long-line-l
 iof-002-invalid-utf8-in-c-locale
 iof-002-no-final-newline-files
+iof-002-no-final-newline-inplace-and-w
 iof-002-no-final-newline-stdin
 iof-002-nul-bytes
 iof-002-nul-data-z-option
@@ -1075,6 +1080,7 @@ iof-006-sandbox-rejects-e-r-w
 iof-007-missing-file-with-q-and-i
 iof-007-missing-input-file
 iof-007-unreadable-permission
+iof-008-directory-as-input
 iof-008-special-files-as-input
 iof-008-symlink-input-and-inplace
 loc-001-c-bracket-and-classes-bytes
@@ -1132,6 +1138,7 @@ opt-004-debug-07
 opt-004-debug-08
 opt-004-debug-09
 opt-004-debug-10
+opt-004-debug-11
 opt-004-debug-12
 opt-004-debug-13
 opt-004-debug-14
@@ -1248,6 +1255,7 @@ opt-015-extended-both-E-and-r
 opt-015-extended-errors
 opt-015-extended-in-address-and-flags
 opt-015-extended-long
+opt-015-extended-script-in-file-and-e
 opt-015-extended-short-E
 opt-015-extended-short-r
 opt-015-extended-vs-basic-meaning
@@ -1568,6 +1576,7 @@ sub-009-gN-one
 sub-010-p-no-match
 sub-010-p-twice-error
 sub-010-p-with-address
+sub-010-p-with-e-order
 sub-010-p-with-g
 sub-010-p-with-n
 sub-010-p-with-number
@@ -1614,6 +1623,7 @@ sub-015-empty-reuse-from-address
 sub-015-empty-reuse-groups
 sub-015-empty-reuse-last-executed
 sub-015-empty-reuse-no-previous
+sub-015-empty-reuse-replacement-group-count
 sub-015-empty-reuse-with-g-number
 sub-016-empty-line
 sub-016-empty-match-after-nonempty
@@ -1663,7 +1673,9 @@ syn-009-w-special-names-and-multiple-outputs
 syn-010-e-command-to-end-of-line
 syn-010-e-in-block-and-with-spaces
 syn-010-e-in-script-file
+syn-011-s-e-flag
 syn-011-s-w-flag-rest-of-line
+syn-012-comment-errors
 syn-012-comments
 syn-013-hash-n-crlf-and-eof
 syn-013-hash-n-first-line
@@ -1677,6 +1689,7 @@ syn-014-braces-nesting
 syn-015-negation-basic
 syn-015-negation-errors
 syn-015-negation-spaces-and-repeats
+syn-016-address-errors
 syn-016-error-position-second-e
 syn-016-extra-characters
 syn-016-misc-command-errors

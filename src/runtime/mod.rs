@@ -754,6 +754,18 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
 
     fn substitute(&mut self, sub: &Substitute) -> Result<(), Fatal> {
         let re = self.resolve(&sub.pattern)?;
+        if sub.pattern.regex.is_none() {
+            for part in &sub.replacement {
+                if let ReplacementPart::Group(g) = part {
+                    if *g > re.group_count() {
+                        return Err(Fatal::new(
+                            format!("-e expression #1, char 0: invalid reference \\{g} on `s' command's RHS"),
+                            1,
+                        ));
+                    }
+                }
+            }
+        }
         let locale = self.options.locale;
         let mut caps = Captures::default();
         let mut result = Vec::with_capacity(self.pattern.len());
@@ -803,10 +815,13 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
         result.extend_from_slice(&self.pattern[copied..]);
         self.pattern = result;
         self.substituted = true;
+        if sub.print_before {
+            self.print_pattern()?;
+        }
         if sub.eval {
             self.execute_command(&[])?;
         }
-        for _ in 0..sub.print.min(1) {
+        if sub.print_after {
             self.print_pattern()?;
         }
         if let Some(name) = &sub.write {
