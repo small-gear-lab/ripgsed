@@ -78,6 +78,8 @@ pub struct Syntax {
     pub icase: bool,
     /// The `M` flag: `^` and `$` also match at embedded newlines.
     pub multiline: bool,
+    /// `-z`: records end at NUL, not at a newline, which changes what `M` means (probe GNU sed).
+    pub null_data: bool,
     pub locale: Locale,
 }
 

@@ -37,6 +37,8 @@ pub struct ParseOptions {
     pub posix: bool,
     pub posixly_correct: bool,
     pub sandbox: bool,
+    /// `-z`: the record separator is NUL.
+    pub null_data: bool,
     pub locale: Locale,
 }
 
@@ -312,6 +314,7 @@ impl Parser {
             posixly_correct: o.posixly_correct,
             icase,
             multiline,
+            null_data: o.null_data,
             locale: o.locale,
         };
         match Regex::compile(&normalize_escapes(text, o.posixly_correct), &syntax) {

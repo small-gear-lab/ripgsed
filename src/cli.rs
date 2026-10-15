@@ -150,7 +150,10 @@ impl State {
             Opt::Quiet => self.options.quiet = true,
             Opt::ExtendedRegexp => self.parse_base.extended = true,
             Opt::Separate => self.options.separate = true,
-            Opt::NullData => self.options.separator = 0,
+            Opt::NullData => {
+                self.options.separator = 0;
+                self.parse_base.null_data = true;
+            }
             Opt::Unbuffered => self.options.unbuffered = true,
             Opt::FollowSymlinks => self.options.follow_symlinks = true,
             Opt::Sandbox => self.parse_base.sandbox = true,

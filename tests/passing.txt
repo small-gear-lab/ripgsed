@@ -1114,7 +1114,6 @@ loc-005-c-locale-classes-ascii-only
 loc-005-collation-order-codepoint
 loc-005-utf8-character-classes
 loc-005-utf8-collation-order-codepoint
-loc-005-utf8-word-boundaries-and-shorthand
 loc-006-lang-only-utf8
 loc-006-lang-utf8-with-empty-lc-all
 loc-006-lc-all-c-explicit
@@ -1449,7 +1448,6 @@ rgx-020-extension-word-boundary-empty-regexp-global
 rgx-020-extension-word-boundary-ere
 rgx-020-extension-word-boundary-multiline
 rgx-020-extension-word-boundary-positions
-rgx-020-extension-word-boundary-utf8
 rgx-021-extension-space-all-whitespace-chars
 rgx-021-extension-space-case-insensitive
 rgx-021-extension-space-chars
@@ -1656,6 +1654,7 @@ sub-016-empty-match-boundary
 sub-016-empty-match-multiline-mode
 sub-016-empty-match-optional
 sub-016-empty-match-start-only
+sub-016-empty-match-utf8
 sub-016-empty-match-with-number
 sub-017-bre-ere-differences
 sub-017-empty-replacement

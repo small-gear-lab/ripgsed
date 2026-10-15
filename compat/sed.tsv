@@ -98,7 +98,7 @@ SUB-012	s-command	flag e	verified	The s Command
 SUB-013	s-command	flag I or i	verified	The s Command	case-insensitive
 SUB-014	s-command	flag M or m	verified	The s Command	multi-line mode: ^ and $ at line boundaries, . does not match newline
 SUB-015	s-command	empty regexp reuses the last regexp	verified	The s Command	flags may not be given with an empty regexp
-SUB-016	s-command	matching empty strings with g	partial	The s Command	advance rules after an empty match
+SUB-016	s-command	matching empty strings with g	verified	The s Command	advance rules after an empty match
 SUB-017	s-command	special replacement cases	verified	The s Command	unmatched group in the replacement is empty
 ADR-001	address	N (line number)	verified	Addresses	
 ADR-002	address	$ (last line)	verified	Addresses	last line of the last file, or of each file with -s or -i
@@ -137,7 +137,7 @@ RGX-016	regex	bracket expressions: [.ch.] collating symbols and [=a=] equivalenc
 RGX-017	regex	bracket expressions: [:digit:] outside brackets is an error	verified	sed regular expressions	'character class syntax is [[:space:]], not [:space:]'
 RGX-018	regex	bracket expressions: \n \t and other escapes inside lists	verified	sed regular expressions	not recognized when POSIXLY_CORRECT is set
 RGX-019	regex	extension \w \W	verified	sed regular expressions	
-RGX-020	regex	extension \b \B	verified	sed regular expressions	
+RGX-020	regex	extension \b \B	partial	sed regular expressions	
 RGX-021	regex	extension \s \S	verified	sed regular expressions	
 RGX-022	regex	extension \< \>	verified	sed regular expressions	
 RGX-023	regex	extension \` \'	verified	sed regular expressions	buffer start and end, unlike ^ and $ in M mode
@@ -154,7 +154,7 @@ LOC-001	locale	C locale: byte-wise processing	partial	Locale Considerations	firs
 LOC-002	locale	UTF-8 and other multibyte locales: character-wise . and bracket expressions	partial	Locale Considerations	
 LOC-003	locale	invalid multibyte sequences in input	verified	Locale Considerations	may not match . or .*; z command clears them
 LOC-004	locale	case conversion \U \L \u \l with multibyte characters	verified	Locale Considerations	
-LOC-005	locale	character classes and collation in other locales	verified	Locale Considerations	
+LOC-005	locale	character classes and collation in other locales	partial	Locale Considerations	
 LOC-006	locale	LC_ALL, LC_CTYPE, LC_COLLATE, LANG selection	verified	Locale Considerations	
 CYC-001	cycle	read a line, strip the newline, run the script, auto-print, next cycle	verified	Execution Cycle	
 CYC-002	cycle	missing final newline preserved on output	verified	Execution Cycle	a newline is added only when more output follows on the same stream

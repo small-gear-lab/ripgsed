@@ -809,7 +809,7 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                 if start >= self.pattern.len() {
                     break;
                 }
-                pos = start + char_len_in(&self.pattern, start, locale);
+                pos = start + 1;
                 previous_end = None;
                 continue;
             }
@@ -831,7 +831,7 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                 if start >= self.pattern.len() {
                     break;
                 }
-                pos = start + char_len_in(&self.pattern, start, locale);
+                pos = start + 1;
             } else {
                 pos = end;
             }
@@ -892,13 +892,6 @@ fn char_len(bytes: &[u8]) -> usize {
         _ => return 1,
     };
     if bytes.len() >= want && std::str::from_utf8(&bytes[..want]).is_ok() { want } else { 1 }
-}
-
-fn char_len_in(bytes: &[u8], at: usize, locale: Locale) -> usize {
-    match locale {
-        Locale::C => 1,
-        Locale::Utf8 => char_len(&bytes[at..]),
-    }
 }
 
 #[allow(dead_code)]
