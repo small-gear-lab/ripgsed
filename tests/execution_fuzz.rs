@@ -35,11 +35,13 @@ impl Rng {
 const REGEXES_BRE: &[&str] = &[
     "a", "b", "ab", "a*", "a\\+", "a\\?", "[ab]", "[^a]", "[a-c]*", ".", ".*", "^a", "b$", "^$", "\\(a\\)", "\\(a*\\)b",
     "\\(a\\|b\\)\\1", "a\\{2\\}", "a\\{1,\\}", "[[:digit:]]", "[[:alpha:]]\\+", "\\bb", "\\<a", "x\\|y", "\\(.\\)\\1", " ",
-    "[0-9]\\+", "\\w\\+", "\\s", "a.b", "[ab]*c", "\\n", "^\\(.*\\)$",
+    "[0-9]\\+", "\\w\\+", "\\s", "a.b", "[ab]*c", "\\n", "^\\(.*\\)$", "\\(a\\|ab\\)\\(c\\|bcd\\)\\?", "[[:upper:]]",
+    "[^[:space:]]*", "\\`a", "c\\'", "a\\{0,1\\}b", "\\(b*\\)*", "\\(ab\\)*\\1", "[]a]", "[a-]", "\\Bb", "a\\b", "é", ".\\{2\\}",
 ];
 const REGEXES_ERE: &[&str] = &[
     "a", "ab", "a*", "a+", "a?", "[ab]", "[^a]", ".*", "^a", "b$", "(a)", "(a|b)\\1", "a{2}", "a{1,}", "(a*)b", "x|y",
-    "(.)\\1", "[[:digit:]]+", "\\w+", "(a|ab)(c|bcd)?", "^(.*)$", "()", "a|", "[ab]+c?",
+    "(.)\\1", "[[:digit:]]+", "\\w+", "(a|ab)(c|bcd)?", "^(.*)$", "()", "a|", "[ab]+c?", "(a*)*", "(a|b)*c", "((a)|(b))+", "a{0}b", "a{,2}",
+    "(ab|a)(bc|c)?", "\\<a", "b\\>", "x*", "(^|b)a", "a($|b)", "[[:alnum:]_]+", ".{2,3}",
 ];
 const REPLACEMENTS: &[&str] = &["X", "&", "[&]", "\\1", "<\\1>", "", "\\n", "\\U&", "\\L&", "\\u&", "a&b", "\\&", "\\\\"];
 const TEXTS: &[&str] = &["hello", "x y", "", "a\\tb", "  spaced", "end"];
@@ -94,7 +96,7 @@ fn command(rng: &mut Rng, extended: bool, depth: usize) -> String {
         12 => "=".into(),
         13 => "l".into(),
         14 | 15 | 16 => {
-            let flags = rng.pick(&["", "g", "p", "2", "gp", "I", "2g", "w /dev/null"]);
+            let flags = rng.pick(&["", "g", "p", "2", "gp", "I", "2g", "w /dev/null", "M", "Ig", "3", "gI"]);
             format!("s/{}/{}/{}", regex(rng, extended), rng.pick(REPLACEMENTS), flags)
         }
         17 => "y/abc/xyz/".into(),
@@ -224,6 +226,12 @@ fn random_scripts_agree_with_gnu_sed() {
         }
         if rng.chance(8) {
             args.push("-s".into());
+        }
+        if rng.chance(12) {
+            args.push("-z".into());
+        }
+        if rng.chance(25) {
+            args.push("--posix".into());
         }
         args.push("--".into());
         args.push(script.clone());

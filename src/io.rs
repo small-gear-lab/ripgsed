@@ -349,6 +349,11 @@ impl Output {
         }
     }
 
+    /// Ends a line that was written without its terminator, if there is one (`q` does this).
+    pub fn finish_line(&mut self) -> io::Result<()> {
+        self.fix_missing()
+    }
+
     fn fix_missing(&mut self) -> io::Result<()> {
         if self.missing_separator {
             self.inner.borrow_mut().write_all(&[self.separator])?;

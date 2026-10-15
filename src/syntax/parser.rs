@@ -472,6 +472,12 @@ impl Parser {
         if self.options().posix && matches!(ch, b'F' | b'e' | b'Q' | b'T' | b'z' | b'v' | b'W' | b'R') {
             return Err(self.error(&format!("unknown command: `{}'", ch as char)));
         }
+        if self.options().posix
+            && matches!(selector, Some(Selector::Range(..)))
+            && matches!(ch, b'=' | b'a' | b'i' | b'r' | b'l')
+        {
+            return Err(self.error("command only uses one address"));
+        }
         if self.options().sandbox && matches!(ch, b'e' | b'r' | b'R' | b'w' | b'W') {
             return Err(self.error("e/r/w commands disabled in sandbox mode"));
         }
@@ -569,7 +575,11 @@ impl Parser {
                     return Err(self.error("command only uses one address"));
                 }
                 self.skip_blanks();
-                let code = if self.peek().is_some_and(|b| b.is_ascii_digit()) { self.read_number() as i32 } else { 0 };
+                let code = if !self.options().posix && self.peek().is_some_and(|b| b.is_ascii_digit()) {
+                    self.read_number() as i32
+                } else {
+                    0
+                };
                 self.end_of_command()?;
                 if ch == b'q' { Kind::Quit(code) } else { Kind::QuitSilent(code) }
             }
@@ -916,13 +926,13 @@ impl Parser {
                     match n {
                         b'0'..=b'9' => {
                             let g = (n - b'0') as usize;
-                            if g > 0 && groups.is_some_and(|c| g > c) {
+                            if g > 0 && !self.options().posix && groups.is_some_and(|c| g > c) {
                                 return Err(self.error(&format!("invalid reference \\{g} on `s' command's RHS")));
                             }
                             flush(&mut parts, &mut literal);
                             parts.push(ReplacementPart::Group(g));
                         }
-                        b'L' | b'U' | b'l' | b'u' | b'E' => {
+                        b'L' | b'U' | b'l' | b'u' | b'E' if !self.options().posix => {
                             flush(&mut parts, &mut literal);
                             parts.push(ReplacementPart::Case(match n {
                                 b'L' => CaseConversion::Lower,

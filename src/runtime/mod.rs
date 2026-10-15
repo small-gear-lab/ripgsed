@@ -61,7 +61,7 @@ enum Flow {
     /// `D` with a newline: restart without reading a new line.
     Restart,
     /// Stop: print the pattern space if asked, flush appends, exit.
-    Quit { code: i32, print: bool },
+    Quit { code: i32, print: bool, finish_line: bool },
     /// `Q`: stop immediately.
     QuitNow { code: i32 },
 }
@@ -251,11 +251,14 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                     restart = true;
                     continue;
                 }
-                Flow::Quit { code, print } => {
+                Flow::Quit { code, print, finish_line } => {
                     if print {
                         self.autoprint()?;
                     }
                     self.flush_pending()?;
+                    if finish_line {
+                        self.out.main().finish_line().map_err(|e| write_error("stdout", &e))?;
+                    }
                     return Ok(code);
                 }
                 Flow::QuitNow { code } => return Ok(code),
@@ -466,13 +469,13 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                         state = RangeState::Active { until: Some(line + n), overshoot: true };
                     }
                     Addr2::Multiple(n) => {
-                        // It ends at the first later line that is a multiple of N; `,~0` is a
-                        // single line.
+                        // It ends at the next multiple of N after this line (a line past it, if
+                        // that one was skipped, still belongs to the range); `,~0` is a single line.
                         if *n == 0 {
                             self.ranges[index] = Self::ended(a1);
                             return Ok(true);
                         }
-                        state = RangeState::Active { until: None, overshoot: false };
+                        state = RangeState::Active { until: Some((line / n + 1) * n), overshoot: true };
                     }
                     Addr2::Step { .. } => state = RangeState::Active { until: None, overshoot: false },
                     Addr2::Last => {
@@ -502,7 +505,6 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
             (None, Addr2::Last) => self.is_last()?,
             (None, Addr2::Regex(p)) => self.regex_matches(p)?,
             (None, Addr2::Line(n)) => line >= *n,
-            (None, Addr2::Multiple(n)) => *n != 0 && line % *n == 0,
             (None, Addr2::Step { first, step }) => {
                 line >= *first && if *step == 0 { line == *first } else { (line - *first) % *step == 0 }
             }
@@ -596,7 +598,7 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                     }
                     self.autoprint()?;
                     if !self.read_line(false)? {
-                        return Ok(Flow::Quit { code: 0, print: false });
+                        return Ok(Flow::Quit { code: 0, print: false, finish_line: false });
                     }
                 }
                 Kind::NextAppend => {
@@ -604,7 +606,7 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                         return self.no_next_line(false);
                     }
                     if !self.read_line(true)? {
-                        return Ok(Flow::Quit { code: 0, print: true });
+                        return Ok(Flow::Quit { code: 0, print: true, finish_line: false });
                     }
                 }
                 Kind::Print => self.print_pattern()?,
@@ -645,10 +647,7 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                     let text = list::list(&self.pattern, width, self.options.separator);
                     self.write_raw(&text)?;
                 }
-                Kind::Quit(code) => {
-                    self.terminated = true;
-                    return Ok(Flow::Quit { code: *code, print: true });
-                }
+                Kind::Quit(code) => return Ok(Flow::Quit { code: *code, print: true, finish_line: true }),
                 Kind::QuitSilent(code) => return Ok(Flow::QuitNow { code: *code }),
                 Kind::FileName => {
                     let mut text = self.file_name.as_bytes().to_vec();
@@ -699,7 +698,7 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
             self.debug_write(b"END-OF-CYCLE:\n")?;
         }
         if self.input.is_last(false)? {
-            return Ok(Flow::Quit { code: 0, print });
+            return Ok(Flow::Quit { code: 0, print, finish_line: false });
         }
         if print {
             self.autoprint()?;

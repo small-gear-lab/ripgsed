@@ -344,6 +344,10 @@ struct Backtracker<'s, 'a> {
     seg: u64,
     next_seg: u64,
     viable: Vec<u64>,
+    free_a: Vec<u64>,
+    free_b: Vec<u64>,
+    /// Keep to paths with no assertion after the last character.
+    halt_free: bool,
     base: usize,
     memo_bits: Vec<u64>,
     memo_set: HashSet<Vec<usize>>,
@@ -367,6 +371,8 @@ struct Choice {
     seg: u64,
     /// The path must consume the newline at `pos` next (see `assert_check`).
     nl: bool,
+    /// An assertion was checked since the last consumed character.
+    c: bool,
 }
 
 impl<'s, 'a> Backtracker<'s, 'a> {
@@ -383,6 +389,9 @@ impl<'s, 'a> Backtracker<'s, 'a> {
             seg: 1,
             next_seg: 2,
             viable: Vec::new(),
+            free_a: Vec::new(),
+            free_b: Vec::new(),
+            halt_free: false,
             base: 0,
             memo_bits: Vec::new(),
             memo_set: HashSet::new(),
@@ -437,66 +446,125 @@ impl<'s, 'a> Backtracker<'s, 'a> {
     }
 
     #[inline]
-    fn is_viable(&self, pc: u32, pos: usize) -> bool {
+    fn bit(t: &[u64], k: usize) -> bool {
+        t[k / 64] & (1 << (k % 64)) != 0
+    }
+
+    #[inline]
+    fn set_bit(t: &mut [u64], k: usize) {
+        t[k / 64] |= 1 << (k % 64);
+    }
+
+    /// Whether the walk may be in this state. `c` tells that an assertion
+    /// was checked since the last consumed character.
+    #[inline]
+    fn is_viable(&self, pc: u32, pos: usize, c: bool) -> bool {
         if self.viable.is_empty() {
             return true;
         }
         let m = self.s.prog.insts.len();
         let k = (pos - self.base) * m + pc as usize;
-        self.viable[k / 64] & (1 << (k % 64)) != 0
+        if !self.halt_free {
+            return Self::bit(&self.viable, k);
+        }
+        Self::bit(&self.free_a, k) || (!c && Self::bit(&self.free_b, k))
     }
 
     /// Backward reachability of `(Match, end)` for patterns without
     /// back-references.
+    ///
+    /// GNU sed prefers a path that reaches the end without checking an
+    /// assertion after its last character: `(ab|a)(\b|b)` on `ab` gives `a`
+    /// and `b`. So besides the plain table (`viable`) two more are computed:
+    /// `free_a`, states that reach the end through at least one more
+    /// character with no assertion after the last one, and `free_b`, states
+    /// at the end that reach `Match` without any assertion. When such a path
+    /// exists from the start, the walk keeps to them.
     fn compute_viable(&mut self, start: usize, end: usize) {
         let prog = self.s.prog;
         let m = prog.insts.len();
         let rows = end - start + 1;
-        self.viable.clear();
-        self.viable.resize((rows * m).div_ceil(64), 0);
+        let words = (rows * m).div_ceil(64);
+        for t in [&mut self.viable, &mut self.free_a, &mut self.free_b] {
+            t.clear();
+            t.resize(words, 0);
+        }
         self.base = start;
         let preds = &prog.preds;
         let mut work: Vec<u32> = Vec::new();
+        let strict = self.strict;
+        let s = self.s;
+        let assert_passes = |a: Assert, pos: usize| match s.assert_check(a, pos, start) {
+            Check::Pass => true,
+            Check::NeedNewline => pos != end && !strict,
+            Check::Fail => false,
+        };
         for pos in (start..=end).rev() {
             let row = (pos - start) * m;
-            work.clear();
-            for pc in 0..m {
-                let ok = match prog.insts[pc] {
-                    Inst::Match => pos == end,
-                    Inst::Unit(u) => match self.s.unit_len(u, pos) {
-                        Some(l) if pos + l <= end => {
-                            let k = (pos + l - start) * m + pc + 1;
-                            self.viable[k / 64] & (1 << (k % 64)) != 0
+            // free_b: pure epsilon paths to Match without assertions.
+            if pos == end {
+                work.clear();
+                for pc in 0..m {
+                    if matches!(prog.insts[pc], Inst::Match) {
+                        Self::set_bit(&mut self.free_b, row + pc);
+                        work.push(pc as u32);
+                    }
+                }
+                while let Some(q) = work.pop() {
+                    for &p in &preds[q as usize] {
+                        let k = row + p as usize;
+                        if Self::bit(&self.free_b, k) || matches!(prog.insts[p as usize], Inst::Assert(_)) {
+                            continue;
                         }
-                        _ => false,
-                    },
-                    _ => false,
-                };
-                if ok {
-                    let k = row + pc;
-                    self.viable[k / 64] |= 1 << (k % 64);
-                    work.push(pc as u32);
+                        Self::set_bit(&mut self.free_b, k);
+                        work.push(p);
+                    }
                 }
             }
-            while let Some(q) = work.pop() {
-                for &p in &preds[q as usize] {
-                    let k = row + p as usize;
-                    if self.viable[k / 64] & (1 << (k % 64)) != 0 {
-                        continue;
+            for (table, free) in [(0, false), (1, true)] {
+                work.clear();
+                for pc in 0..m {
+                    let ok = match prog.insts[pc] {
+                        Inst::Match => !free && pos == end,
+                        Inst::Unit(u) => match s.unit_len(u, pos) {
+                            Some(l) if pos + l <= end => {
+                                let k = (pos + l - start) * m + pc + 1;
+                                if free {
+                                    Self::bit(&self.free_a, k) || Self::bit(&self.free_b, k)
+                                } else {
+                                    Self::bit(&self.viable, k)
+                                }
+                            }
+                            _ => false,
+                        },
+                        _ => false,
+                    };
+                    if ok {
+                        let t = if table == 0 { &mut self.viable } else { &mut self.free_a };
+                        Self::set_bit(t, row + pc);
+                        work.push(pc as u32);
                     }
-                    if let Inst::Assert(a) = prog.insts[p as usize] {
-                        match self.s.assert_check(a, pos, start) {
-                            Check::Pass => {}
-                            // The newline is consumed next unless the match ends here.
-                            Check::NeedNewline if pos != end && !self.strict => {}
-                            _ => continue,
+                }
+                while let Some(q) = work.pop() {
+                    for &p in &preds[q as usize] {
+                        let k = row + p as usize;
+                        let t = if table == 0 { &self.viable } else { &self.free_a };
+                        if Self::bit(t, k) {
+                            continue;
                         }
+                        if let Inst::Assert(a) = prog.insts[p as usize] {
+                            if !assert_passes(a, pos) {
+                                continue;
+                            }
+                        }
+                        let t = if table == 0 { &mut self.viable } else { &mut self.free_a };
+                        Self::set_bit(t, k);
+                        work.push(p);
                     }
-                    self.viable[k / 64] |= 1 << (k % 64);
-                    work.push(p);
                 }
             }
         }
+        self.halt_free = Self::bit(&self.free_a, 0) || Self::bit(&self.free_b, 0);
     }
 
     /// Marks a state reached right after consuming input; false if it was
@@ -588,13 +656,13 @@ impl<'s, 'a> Backtracker<'s, 'a> {
         let mut best: Option<usize> = None;
         self.new_segment();
         self.memo(0, start);
-        self.stack.push(Choice { pc: 0, pos: start, trail: 0, seg: self.seg, nl: false });
+        self.stack.push(Choice { pc: 0, pos: start, trail: 0, seg: self.seg, nl: false, c: false });
         while let Some(ch) = self.stack.pop() {
             self.undo(ch.trail);
             self.seg = ch.seg;
-            let (mut pc, mut pos, mut nl) = (ch.pc, ch.pos, ch.nl);
+            let (mut pc, mut pos, mut nl, mut c) = (ch.pc, ch.pos, ch.nl, ch.c);
             loop {
-                if pos > limit || !self.is_viable(pc, pos) {
+                if pos > limit || !self.is_viable(pc, pos, c) {
                     break;
                 }
                 self.mark(pc);
@@ -604,6 +672,7 @@ impl<'s, 'a> Backtracker<'s, 'a> {
                             pos += l;
                             pc += 1;
                             nl = false;
+                            c = false;
                             self.new_segment();
                             if !self.memo(pc, pos) {
                                 break;
@@ -618,7 +687,7 @@ impl<'s, 'a> Backtracker<'s, 'a> {
                             }
                             pc = b;
                         } else {
-                            self.stack.push(Choice { pc: b, pos, trail: self.trail.len(), seg: self.seg, nl });
+                            self.stack.push(Choice { pc: b, pos, trail: self.trail.len(), seg: self.seg, nl, c });
                             pc = a;
                         }
                     }
@@ -655,6 +724,7 @@ impl<'s, 'a> Backtracker<'s, 'a> {
                             Check::NeedNewline if !self.strict => nl = true,
                             Check::NeedNewline | Check::Fail => break,
                         }
+                        c = true;
                         pc += 1;
                     }
                     Inst::Backref(g) => match self.backref_len(g as usize, pos) {
@@ -663,6 +733,7 @@ impl<'s, 'a> Backtracker<'s, 'a> {
                             pc += 1;
                             if l > 0 {
                                 nl = false;
+                                c = false;
                                 self.new_segment();
                                 if !self.memo(pc, pos) {
                                     break;
