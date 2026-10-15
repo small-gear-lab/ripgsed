@@ -61,6 +61,11 @@ pub struct FileInputs {
     separator: u8,
     program: String,
     pub had_open_error: bool,
+    /// `-i`: only regular files can be edited; anything else is an error (exit status 4).
+    in_place: bool,
+    pub had_edit_error: bool,
+    /// `-u`: read standard input without read-ahead.
+    unbuffered: bool,
 }
 
 impl FileInputs {
@@ -77,15 +82,48 @@ impl FileInputs {
             separator,
             program: program.to_string(),
             had_open_error: false,
+            in_place: false,
+            had_edit_error: false,
+            unbuffered: false,
         }
+    }
+
+    pub fn in_place(mut self, yes: bool) -> Self {
+        self.in_place = yes;
+        self
+    }
+
+    pub fn unbuffered(mut self, yes: bool) -> Self {
+        self.unbuffered = yes;
+        self
     }
 
     fn open_next(&mut self) -> bool {
         for name in self.names.by_ref() {
+            if name == "-" && self.in_place {
+                eprintln!("{}: couldn't edit -: not a regular file", self.program);
+                self.had_edit_error = true;
+                continue;
+            }
             if name == "-" {
-                self.current = Some((Box::new(BufReader::new(io::stdin())), Rc::from("-")));
+                let reader: Box<dyn BufRead> = if self.unbuffered {
+                    Box::new(BufReader::with_capacity(1, io::stdin()))
+                } else {
+                    Box::new(BufReader::new(io::stdin()))
+                };
+                self.current = Some((reader, Rc::from("-")));
                 self.started_file = false;
                 return true;
+            }
+            if self.in_place {
+                match std::fs::metadata(&name) {
+                    Ok(m) if !m.is_file() => {
+                        eprintln!("{}: couldn't edit {}: not a regular file", self.program, name);
+                        self.had_edit_error = true;
+                        continue;
+                    }
+                    _ => {}
+                }
             }
             match File::open(&name) {
                 Ok(f) => {
@@ -235,15 +273,117 @@ impl Output {
 /// files named by `w`, `W`, and `s///w` (created or truncated before the first
 /// input line is read, and shared by all commands that name the same file).
 pub struct Outputs {
+    /// The real standard output (`w /dev/stdout` always writes here).
     pub stdout: Output,
     stderr: Option<Output>,
     files: HashMap<Vec<u8>, Output>,
     separator: u8,
+    in_place: Option<InPlaceFile>,
+    /// Flush after every record (`-u`).
+    pub unbuffered: bool,
+}
+
+/// The file being edited in place: output goes to a temporary file that
+/// replaces the original when the file is finished.
+struct InPlaceFile {
+    output: Output,
+    original: std::path::PathBuf,
+    temp: std::path::PathBuf,
 }
 
 impl Outputs {
     pub fn new(stdout: Box<dyn Write>, separator: u8) -> Self {
-        Outputs { stdout: Output::new(stdout, separator, "stdout"), stderr: None, files: HashMap::new(), separator }
+        Outputs {
+            stdout: Output::new(stdout, separator, "stdout"),
+            stderr: None,
+            files: HashMap::new(),
+            separator,
+            in_place: None,
+            unbuffered: false,
+        }
+    }
+
+    /// Where the script's normal output goes: the file being edited in place, or standard output.
+    pub fn main(&mut self) -> &mut Output {
+        match self.in_place.as_mut() {
+            Some(f) => &mut f.output,
+            None => &mut self.stdout,
+        }
+    }
+
+    pub fn is_in_place(&self) -> bool {
+        self.in_place.is_some()
+    }
+
+    /// Starts editing `path` in place: creates the temporary file next to it.
+    pub fn begin_in_place(&mut self, path: &str, follow_symlinks: bool) -> Result<(), Fatal> {
+        use std::os::unix::fs::OpenOptionsExt;
+        let mut original = std::path::PathBuf::from(path);
+        if follow_symlinks {
+            if let Ok(resolved) = std::fs::canonicalize(&original) {
+                original = resolved;
+            }
+        }
+        let dir = match original.parent() {
+            Some(d) if !d.as_os_str().is_empty() => d.to_path_buf(),
+            _ => std::path::PathBuf::from("."),
+        };
+        let pid = std::process::id();
+        for attempt in 0..1000u32 {
+            let nanos = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.subsec_nanos())
+                .unwrap_or(0);
+            let mut n = (u64::from(pid) << 32) ^ u64::from(nanos) ^ (u64::from(attempt) << 8);
+            let alphabet = b"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            let mut name = String::from("sed");
+            for _ in 0..6 {
+                name.push(alphabet[(n % 62) as usize] as char);
+                n /= 62;
+                n ^= n << 7;
+            }
+            let temp = dir.join(name);
+            match std::fs::OpenOptions::new().write(true).create_new(true).mode(0o600).open(&temp) {
+                Ok(file) => {
+                    let output = Output::new(Box::new(io::BufWriter::new(file)), self.separator, path);
+                    self.in_place = Some(InPlaceFile { output, original, temp });
+                    return Ok(());
+                }
+                Err(e) if e.kind() == io::ErrorKind::AlreadyExists => continue,
+                Err(e) => {
+                    return Err(Fatal::new(format!("couldn't open temporary file {}: {}", temp.display(), strerror(&e)), 4));
+                }
+            }
+        }
+        Err(Fatal::new("couldn't open temporary file", 4))
+    }
+
+    /// Finishes the file being edited: flushes the temporary file, keeps a backup
+    /// when `backup_suffix` is given, and moves the temporary file over the original.
+    pub fn finish_in_place(&mut self, backup_suffix: Option<&str>) -> Result<(), Fatal> {
+        let Some(mut file) = self.in_place.take() else { return Ok(()) };
+        file.output.flush().map_err(|e| write_error(&file.output.name, &e))?;
+        drop(file.output);
+        if let Ok(meta) = std::fs::metadata(&file.original) {
+            let _ = std::fs::set_permissions(&file.temp, meta.permissions());
+        }
+        let rename_error = |name: &std::path::Path, e: io::Error| {
+            Fatal::new(format!("cannot rename {}: {}", name.display(), strerror(&e)), 4)
+        };
+        if let Some(suffix) = backup_suffix.filter(|s| !s.is_empty()) {
+            let base = file.original.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+            let backup_name = if suffix.contains('*') { suffix.replace('*', &base) } else { format!("{base}{suffix}") };
+            let backup = if backup_name.starts_with('/') {
+                std::path::PathBuf::from(backup_name)
+            } else {
+                file.original.parent().unwrap_or_else(|| std::path::Path::new("")).join(backup_name)
+            };
+            if let Err(e) = std::fs::rename(&file.original, &backup) {
+                let _ = std::fs::remove_file(&file.temp);
+                return Err(rename_error(&file.original, e));
+            }
+        }
+        std::fs::rename(&file.temp, &file.original).map_err(|e| rename_error(&file.temp, e))
     }
 
     /// Opens (truncating) the file named `name`, unless it is `/dev/stdout` or `/dev/stderr`.
@@ -283,6 +423,9 @@ impl Outputs {
 
     pub fn flush_all(&mut self) -> Result<(), Fatal> {
         let mut result = self.stdout.flush().map_err(|e| write_error("stdout", &e));
+        if let Some(f) = self.in_place.as_mut() {
+            let _ = f.output.flush();
+        }
         if let Some(s) = self.stderr.as_mut() {
             let _ = s.flush();
         }

@@ -2,7 +2,7 @@
 
 use std::io::{self, BufWriter};
 
-use crate::io::{write_error, FileInputs, Outputs};
+use crate::io::{strerror, FileInputs, Outputs};
 use crate::regex::Locale;
 use crate::runtime::{self, Options};
 use crate::syntax::{parse, Chunk, ChunkSource, ParseOptions};
@@ -10,11 +10,11 @@ use crate::Fatal;
 
 const EXIT_BAD_USAGE: i32 = 1;
 const EXIT_BAD_INPUT: i32 = 2;
+const EXIT_PANIC: i32 = 4;
 
 /// What the command line asked for.
 struct Invocation {
     options: Options,
-    parse_base: ParseOptions,
     chunks: Vec<(Chunk, ParseOptions)>,
     files: Vec<String>,
 }
@@ -36,21 +36,177 @@ fn locale_from_env() -> Locale {
     if value.contains("utf-8") || value.contains("utf8") { Locale::Utf8 } else { Locale::C }
 }
 
-fn usage(program: &str) {
-    eprintln!("Usage: {program} [OPTION]... {{script-only-if-no-other-script}} [input-file]...");
+fn usage_line(program: &str) -> String {
+    format!("Usage: {program} [OPTION]... {{script-only-if-no-other-script}} [input-file]...")
 }
 
-fn parse_args(args: Vec<String>, program: &str) -> Result<Invocation, i32> {
+/// How a long option takes its argument.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Arg {
+    No,
+    Required,
+    Optional,
+}
+
+/// The option an argument stands for, whether it was written long or short.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+enum Opt {
+    Binary,
+    Debug,
+    Expression,
+    File,
+    FollowSymlinks,
+    Help,
+    InPlace,
+    LineLength,
+    NullData,
+    Posix,
+    Quiet,
+    ExtendedRegexp,
+    Sandbox,
+    Separate,
+    Unbuffered,
+    Version,
+}
+
+const LONG_OPTIONS: &[(&str, Arg, Opt)] = &[
+    ("binary", Arg::No, Opt::Binary),
+    ("debug", Arg::No, Opt::Debug),
+    ("expression", Arg::Required, Opt::Expression),
+    ("file", Arg::Required, Opt::File),
+    ("follow-symlinks", Arg::No, Opt::FollowSymlinks),
+    ("help", Arg::No, Opt::Help),
+    ("in-place", Arg::Optional, Opt::InPlace),
+    ("line-length", Arg::Required, Opt::LineLength),
+    ("null-data", Arg::No, Opt::NullData),
+    ("zero-terminated", Arg::No, Opt::NullData),
+    ("posix", Arg::No, Opt::Posix),
+    ("quiet", Arg::No, Opt::Quiet),
+    ("regexp-extended", Arg::No, Opt::ExtendedRegexp),
+    ("sandbox", Arg::No, Opt::Sandbox),
+    ("separate", Arg::No, Opt::Separate),
+    ("silent", Arg::No, Opt::Quiet),
+    ("unbuffered", Arg::No, Opt::Unbuffered),
+    ("version", Arg::No, Opt::Version),
+];
+
+/// Short options: the letter, whether it takes an argument, and the option.
+const SHORT_OPTIONS: &[(char, Arg, Opt)] = &[
+    ('b', Arg::No, Opt::Binary),
+    ('E', Arg::No, Opt::ExtendedRegexp),
+    ('e', Arg::Required, Opt::Expression),
+    ('f', Arg::Required, Opt::File),
+    ('i', Arg::Optional, Opt::InPlace),
+    ('l', Arg::Required, Opt::LineLength),
+    ('n', Arg::No, Opt::Quiet),
+    ('r', Arg::No, Opt::ExtendedRegexp),
+    ('s', Arg::No, Opt::Separate),
+    ('u', Arg::No, Opt::Unbuffered),
+    ('z', Arg::No, Opt::NullData),
+];
+
+/// Resolves `--name`, accepting an unambiguous prefix as getopt_long does.
+fn find_long(name: &str, program: &str) -> Result<(&'static str, Arg, Opt), String> {
+    if let Some(&(n, a, o)) = LONG_OPTIONS.iter().find(|(n, ..)| *n == name) {
+        return Ok((n, a, o));
+    }
+    let candidates: Vec<_> = LONG_OPTIONS.iter().filter(|(n, ..)| n.starts_with(name)).collect();
+    match candidates.as_slice() {
+        [] => Err(format!("{program}: unrecognized option '--{name}'")),
+        [(n, a, o)] => Ok((n, *a, *o)),
+        many => {
+            // Several spellings of the same option are not ambiguous.
+            if many.iter().all(|(_, _, o)| *o == many[0].2) {
+                return Ok((many[0].0, many[0].1, many[0].2));
+            }
+            let list: Vec<String> = many.iter().map(|(n, ..)| format!("'--{n}'")).collect();
+            Err(format!("{program}: option '--{name}' is ambiguous; possibilities: {}", list.join(" ")))
+        }
+    }
+}
+
+/// `atoi`: the leading digits of `text`, or 0.
+fn atoi(text: &str) -> usize {
+    let t = text.trim_start();
+    let digits: String = t.chars().take_while(|c| c.is_ascii_digit()).collect();
+    digits.parse().unwrap_or(0)
+}
+
+struct State {
+    options: Options,
+    parse_base: ParseOptions,
+    chunks: Vec<(Chunk, ParseOptions)>,
+    expressions: usize,
+    posix_mode: bool,
+    help: bool,
+    version: bool,
+}
+
+impl State {
+    fn apply(&mut self, opt: Opt, value: Option<String>, program: &str) -> Result<(), i32> {
+        match opt {
+            Opt::Binary | Opt::Debug => {}
+            Opt::Quiet => self.options.quiet = true,
+            Opt::ExtendedRegexp => self.parse_base.extended = true,
+            Opt::Separate => self.options.separate = true,
+            Opt::NullData => self.options.separator = 0,
+            Opt::Unbuffered => self.options.unbuffered = true,
+            Opt::FollowSymlinks => self.options.follow_symlinks = true,
+            Opt::Sandbox => self.parse_base.sandbox = true,
+            Opt::Posix => {
+                self.parse_base.posix = true;
+                self.options.posixly_correct = true;
+                self.posix_mode = true;
+            }
+            Opt::Help => self.help = true,
+            Opt::Version => self.version = true,
+            Opt::LineLength => self.options.line_length = atoi(&value.unwrap_or_default()),
+            Opt::InPlace => {
+                self.options.in_place = Some(value.unwrap_or_default());
+                self.options.separate = true;
+            }
+            Opt::Expression => {
+                self.expressions += 1;
+                let text = value.unwrap_or_default().into_bytes();
+                self.chunks.push((Chunk { source: ChunkSource::Expression(self.expressions), text }, self.parse_base));
+            }
+            Opt::File => {
+                let name = value.unwrap_or_default();
+                match read_script_file(&name) {
+                    Ok(text) => self.chunks.push((Chunk { source: ChunkSource::File(name), text }, self.parse_base)),
+                    Err(e) => {
+                        eprintln!("{program}: couldn't open file {name}: {}", strerror(&e));
+                        return Err(EXIT_PANIC);
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
+fn parse_args(args: Vec<String>, program: &str) -> Result<Result<Invocation, ()>, i32> {
     let posixly_correct = std::env::var_os("POSIXLY_CORRECT").is_some();
     let locale = locale_from_env();
-    let mut options = Options { posixly_correct, locale, ..Options::default() };
-    let mut parse_base = ParseOptions { posixly_correct, locale, ..ParseOptions::default() };
-    let mut chunks: Vec<(Chunk, ParseOptions)> = Vec::new();
+    let mut state = State {
+        options: Options { posixly_correct, locale, ..Options::default() },
+        parse_base: ParseOptions { posixly_correct, locale, ..ParseOptions::default() },
+        chunks: Vec::new(),
+        expressions: 0,
+        posix_mode: false,
+        help: false,
+        version: false,
+    };
     let mut operands: Vec<String> = Vec::new();
-    let mut expressions = 0usize;
-
     let mut it = args.into_iter();
     let mut options_done = false;
+
+    let usage_error = |message: String| -> i32 {
+        eprintln!("{message}");
+        eprintln!("{}", usage_line(program));
+        EXIT_BAD_USAGE
+    };
+
     while let Some(arg) = it.next() {
         if options_done || arg == "-" || !arg.starts_with('-') {
             if posixly_correct {
@@ -59,112 +215,91 @@ fn parse_args(args: Vec<String>, program: &str) -> Result<Invocation, i32> {
             operands.push(arg);
             continue;
         }
-        let take_value = |name: &str, it: &mut std::vec::IntoIter<String>| -> Result<String, i32> {
-            it.next().ok_or_else(|| {
-                eprintln!("{program}: option requires an argument -- '{name}'");
-                usage(program);
-                EXIT_BAD_USAGE
-            })
-        };
-        match arg.as_str() {
-            "--" => options_done = true,
-            "-n" | "--quiet" | "--silent" => options.quiet = true,
-            "-E" | "-r" | "--regexp-extended" => parse_base.extended = true,
-            "-s" | "--separate" => options.separate = true,
-            "-z" | "--null-data" | "--zero-terminated" => options.separator = 0,
-            "--posix" => {
-                parse_base.posix = true;
-                options.posixly_correct = true;
-            }
-            "--sandbox" => parse_base.sandbox = true,
-            "-e" | "--expression" => {
-                let script = take_value("e", &mut it)?;
-                expressions += 1;
-                chunks.push((Chunk { source: ChunkSource::Expression(expressions), text: script.into_bytes() }, parse_base));
-            }
-            "-f" | "--file" => {
-                let name = take_value("f", &mut it)?;
-                match read_script_file(&name) {
-                    Ok(text) => chunks.push((Chunk { source: ChunkSource::File(name), text }, parse_base)),
-                    Err(e) => {
-                        eprintln!("{program}: couldn't open file {name}: {}", crate::io::strerror(&e));
-                        return Err(EXIT_BAD_USAGE.max(4));
-                    }
+        if arg == "--" {
+            options_done = true;
+            continue;
+        }
+        if let Some(long) = arg.strip_prefix("--") {
+            let (name, inline) = match long.split_once('=') {
+                Some((n, v)) => (n, Some(v.to_string())),
+                None => (long, None),
+            };
+            let (full, kind, opt) = find_long(name, program).map_err(&usage_error)?;
+            let value = match (kind, inline) {
+                (Arg::No, Some(_)) => {
+                    return Err(usage_error(format!("{program}: option '--{full}' doesn't allow an argument")));
                 }
-            }
-            _ if arg.starts_with("--expression=") => {
-                expressions += 1;
-                chunks.push((
-                    Chunk { source: ChunkSource::Expression(expressions), text: arg.as_bytes()["--expression=".len()..].to_vec() },
-                    parse_base,
-                ));
-            }
-            _ if arg.starts_with("--file=") => {
-                let name = arg["--file=".len()..].to_string();
-                match read_script_file(&name) {
-                    Ok(text) => chunks.push((Chunk { source: ChunkSource::File(name), text }, parse_base)),
-                    Err(e) => {
-                        eprintln!("{program}: couldn't open file {name}: {}", crate::io::strerror(&e));
-                        return Err(4);
-                    }
-                }
-            }
-            _ if arg.starts_with("--") => {
-                eprintln!("{program}: unrecognized option '{arg}'");
-                usage(program);
-                return Err(EXIT_BAD_USAGE);
-            }
-            _ => {
-                // Bundled short options such as -ne or -n.
-                let mut chars = arg[1..].chars();
-                while let Some(c) = chars.next() {
-                    match c {
-                        'n' => options.quiet = true,
-                        'E' | 'r' => parse_base.extended = true,
-                        's' => options.separate = true,
-                        'z' => options.separator = 0,
-                        'e' | 'f' => {
-                            let rest: String = chars.by_ref().collect();
-                            let value = if rest.is_empty() { take_value(&c.to_string(), &mut it)? } else { rest };
-                            if c == 'e' {
-                                expressions += 1;
-                                chunks.push((
-                                    Chunk { source: ChunkSource::Expression(expressions), text: value.into_bytes() },
-                                    parse_base,
-                                ));
-                            } else {
-                                match read_script_file(&value) {
-                                    Ok(text) => chunks.push((Chunk { source: ChunkSource::File(value), text }, parse_base)),
-                                    Err(e) => {
-                                        eprintln!("{program}: couldn't open file {value}: {}", crate::io::strerror(&e));
-                                        return Err(4);
-                                    }
-                                }
-                            }
+                (Arg::Required, None) => match it.next() {
+                    Some(v) => Some(v),
+                    None => return Err(usage_error(format!("{program}: option '--{full}' requires an argument"))),
+                },
+                (_, v) => v,
+            };
+            state.apply(opt, value, program)?;
+            continue;
+        }
+        // Short options, possibly bundled: -ne 'p', -i.bak, -l5.
+        let letters: Vec<char> = arg[1..].chars().collect();
+        let mut i = 0;
+        while i < letters.len() {
+            let c = letters[i];
+            i += 1;
+            let Some(&(_, kind, opt)) = SHORT_OPTIONS.iter().find(|(l, ..)| *l == c) else {
+                return Err(usage_error(format!("{program}: invalid option -- '{c}'")));
+            };
+            let value = match kind {
+                Arg::No => None,
+                Arg::Optional | Arg::Required => {
+                    let rest: String = letters[i..].iter().collect();
+                    i = letters.len();
+                    if !rest.is_empty() {
+                        Some(rest)
+                    } else if kind == Arg::Required {
+                        match it.next() {
+                            Some(v) => Some(v),
+                            None => return Err(usage_error(format!("{program}: option requires an argument -- '{c}'"))),
                         }
-                        other => {
-                            eprintln!("{program}: invalid option -- '{other}'");
-                            usage(program);
-                            return Err(EXIT_BAD_USAGE);
-                        }
+                    } else {
+                        None
                     }
                 }
-            }
+            };
+            state.apply(opt, value, program)?;
         }
     }
 
-    if chunks.is_empty() {
+    if state.help || state.version {
+        let name = program;
+        if state.version {
+            println!("{}", version_text(name));
+        } else {
+            println!("{}", usage_line(name));
+        }
+        return Ok(Err(()));
+    }
+    let _ = state.posix_mode;
+
+    if state.chunks.is_empty() {
         if operands.is_empty() {
-            usage(program);
+            eprintln!("{}", usage_line(program));
             return Err(EXIT_BAD_USAGE);
         }
-        expressions += 1;
-        chunks.push((
-            Chunk { source: ChunkSource::Expression(expressions), text: operands.remove(0).into_bytes() },
-            parse_base,
-        ));
+        state.expressions += 1;
+        let text = operands.remove(0).into_bytes();
+        state.chunks.push((Chunk { source: ChunkSource::Expression(state.expressions), text }, state.parse_base));
     }
-    Ok(Invocation { options, parse_base, chunks, files: operands })
+    Ok(Ok(Invocation { options: state.options, chunks: state.chunks, files: operands }))
+}
+
+/// The version text names this project; it is the one deliberate difference
+/// from GNU sed (see docs/DESIGN.md).
+fn version_text(program: &str) -> String {
+    let version = env!("CARGO_PKG_VERSION");
+    if program == "ripgsed" {
+        format!("ripgsed {version}")
+    } else {
+        format!("{program} (ripgsed) {version}\nBehavior target: GNU sed 4.9 (not yet fully compatible)")
+    }
 }
 
 fn read_script_file(name: &str) -> io::Result<Vec<u8>> {
@@ -186,28 +321,36 @@ pub fn main() -> i32 {
     let program = program_name();
     let args: Vec<String> = std::env::args().skip(1).collect();
     let invocation = match parse_args(args, &program) {
-        Ok(i) => i,
+        Ok(Ok(i)) => i,
+        Ok(Err(())) => return 0,
         Err(code) => return code,
     };
-    let _ = invocation.parse_base;
 
     let script = match parse(&invocation.chunks) {
         Ok(s) => s,
         Err(e) => {
             eprintln!("{program}: {e}");
-            return EXIT_BAD_USAGE;
+            return e.status;
         }
     };
 
     let options = invocation.options;
-    let mut inputs = FileInputs::new(invocation.files, options.separator, &program);
+    if options.in_place.is_some() && invocation.files.is_empty() {
+        eprintln!("{program}: no input files");
+        return EXIT_PANIC;
+    }
+    let mut inputs = FileInputs::new(invocation.files, options.separator, &program)
+        .in_place(options.in_place.is_some())
+        .unbuffered(options.unbuffered);
     let stdout = io::stdout().lock();
     let mut outputs = Outputs::new(Box::new(BufWriter::new(stdout)), options.separator);
+    outputs.unbuffered = options.unbuffered;
 
     let result = runtime::run(&script, options, &mut inputs, &mut outputs, &program)
         .and_then(|code| outputs.flush_all().map(|()| code));
     match result {
-        Ok(code) if code == 0 && inputs.had_open_error => EXIT_BAD_INPUT,
+        Ok(0) if inputs.had_edit_error => EXIT_PANIC,
+        Ok(0) if inputs.had_open_error => EXIT_BAD_INPUT,
         Ok(code) => code,
         Err(Fatal { message, status }) => {
             let _ = outputs.flush_all();
@@ -215,9 +358,4 @@ pub fn main() -> i32 {
             status
         }
     }
-}
-
-#[allow(dead_code)]
-fn unused(e: &io::Error) -> Fatal {
-    write_error("stdout", e)
 }

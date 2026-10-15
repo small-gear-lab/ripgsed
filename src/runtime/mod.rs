@@ -14,7 +14,7 @@ use crate::syntax::{Addr, Addr2, BranchWhen, Kind, Pattern, ReplacementPart, Scr
 use crate::Fatal;
 
 /// Options that change how a script runs.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct Options {
     /// `-n`: do not print the pattern space at the end of each cycle.
     pub quiet: bool,
@@ -26,6 +26,10 @@ pub struct Options {
     /// Default wrap width of the `l` command (`-l N`).
     pub line_length: usize,
     pub locale: Locale,
+    /// `-i[SUFFIX]`: edit files in place; the suffix names the backup (empty: no backup).
+    pub in_place: Option<String>,
+    pub follow_symlinks: bool,
+    pub unbuffered: bool,
 }
 
 impl Default for Options {
@@ -37,6 +41,9 @@ impl Default for Options {
             posixly_correct: false,
             line_length: 70,
             locale: Locale::C,
+            in_place: None,
+            follow_symlinks: false,
+            unbuffered: false,
         }
     }
 }
@@ -144,6 +151,10 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
         let Some(Fetched { record, new_file, file_name }) = self.input.next_record()? else {
             return Ok(false);
         };
+        if new_file && self.options.in_place.is_some() {
+            self.out.finish_in_place(self.options.in_place.as_deref())?;
+            self.out.begin_in_place(&file_name, self.options.follow_symlinks)?;
+        }
         if new_file && self.options.separate {
             self.line = 0;
             for r in self.ranges.iter_mut() {
@@ -168,6 +179,14 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
     }
 
     fn cycles(&mut self) -> Result<i32, Fatal> {
+        let result = self.cycles_inner();
+        let finished = self.out.finish_in_place(self.options.in_place.as_deref());
+        let code = result?;
+        finished?;
+        Ok(code)
+    }
+
+    fn cycles_inner(&mut self) -> Result<i32, Fatal> {
         let mut restart = false;
         loop {
             if !restart {
@@ -196,6 +215,9 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                 Flow::QuitNow { code } => return Ok(code),
             }
             self.flush_pending()?;
+            if self.options.unbuffered {
+                self.out.main().flush().ok();
+            }
         }
         self.flush_pending()?;
         Ok(self.quit_status.unwrap_or(0))
@@ -210,11 +232,11 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
 
     fn print_pattern(&mut self) -> Result<(), Fatal> {
         let (pattern, terminated) = (&self.pattern, self.terminated);
-        self.out.stdout.write_record(pattern, terminated).map_err(|e| write_error("stdout", &e))
+        self.out.main().write_record(pattern, terminated).map_err(|e| write_error("stdout", &e))
     }
 
     fn write_raw(&mut self, bytes: &[u8]) -> Result<(), Fatal> {
-        self.out.stdout.write_raw(bytes).map_err(|e| write_error("stdout", &e))
+        self.out.main().write_raw(bytes).map_err(|e| write_error("stdout", &e))
     }
 
     fn flush_pending(&mut self) -> Result<(), Fatal> {
@@ -452,7 +474,7 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                 Kind::PrintFirst => {
                     let end = self.pattern.iter().position(|&b| b == self.options.separator).unwrap_or(self.pattern.len());
                     let first = self.pattern[..end].to_vec();
-                    self.out.stdout.write_record(&first, true).map_err(|e| write_error("stdout", &e))?;
+                    self.out.main().write_record(&first, true).map_err(|e| write_error("stdout", &e))?;
                 }
                 Kind::Get => {
                     self.pattern = self.hold.clone();
@@ -552,7 +574,7 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
     /// `e command`: runs it and writes its output now. `e`: runs the pattern space
     /// as a command and replaces the pattern space with the output.
     fn execute_command(&mut self, command: &[u8]) -> Result<(), Fatal> {
-        self.out.stdout.flush().ok();
+        self.out.main().flush().ok();
         if command.is_empty() {
             let output = run_shell(&self.pattern);
             let mut output = output;
