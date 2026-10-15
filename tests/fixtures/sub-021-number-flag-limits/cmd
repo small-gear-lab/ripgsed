@@ -1,0 +1,29 @@
+printf 'aaa\n' | sed 's/a/X/65535' 2>&1; echo $?
+printf 'aaa\n' | sed 's/a/X/65536' 2>&1; echo $?
+printf 'aaa\n' | sed 's/a/X/4294967295' 2>&1; echo $?
+printf 'aaa\n' | sed 's/a/X/4294967296' 2>&1; echo $?
+printf 'aaa\n' | sed 's/a/X/18446744073709551615' 2>&1; echo $?
+printf 'aaa\n' | sed 's/a/X/18446744073709551616' 2>&1; echo $?
+printf 'aaa\n' | sed 's/a/X/99999999999999999999' 2>&1; echo $?
+printf 'aaa\n' | sed 's/a/X/99999999999999999999g' 2>&1; echo $?
+printf 'aaa\n' | sed 's/a/X/0' 2>&1; echo $?
+printf 'aaa\n' | sed 's/a/X/00' 2>&1; echo $?
+printf 'aaa\n' | sed 's/a/X/0g' 2>&1; echo $?
+printf 'aaa\n' | sed 's/a/X/g0' 2>&1; echo $?
+printf 'aaa\n' | sed 's/a/X/01' 2>&1; echo $?
+printf 'aaa\n' | sed 's/a/X/002' 2>&1; echo $?
+printf 'aaa\n' | sed 's/a/X/2 3' 2>&1; echo $?
+printf 'aaa\n' | sed 's/a/X/2p3' 2>&1; echo $?
+printf 'aaa\n' | sed 's/a/X/-1' 2>&1; echo $?
+printf 'aaa\n' | sed 's/a/X/1p2' 2>&1; echo $?
+printf 'aaa\n' | sed 's/a/X/2g' 2>&1; echo $?
+printf 'aaa\n' | sed 's/a/X/g2' 2>&1; echo $?
+printf 'aaa\n' | sed 's/a/X/18446744073709551617' 2>&1; echo $?
+printf 'aaa\n' | sed 's/a/X/18446744073709551618' 2>&1; echo $?
+printf '1\n2\n3\n' | sed -n '18446744073709551617p' 2>&1; echo $?
+printf '1\n2\n3\n' | sed -n '99999999999999999999p' 2>&1; echo $?
+printf '1\n2\n3\n' | sed -n '1,18446744073709551618p' 2>&1; echo $?
+printf '1\n2\n3\n' | sed -n '2,+18446744073709551616p' 2>&1; echo $?
+printf '1\n2\n3\n' | sed 'q18446744073709551617' 2>&1; echo $?
+printf '1\n2\n3\n' | sed 'q99999999999999999999' 2>&1; echo $?
+printf '1\n2\n3\n' | sed -n 'l18446744073709551617' 2>&1; echo $?

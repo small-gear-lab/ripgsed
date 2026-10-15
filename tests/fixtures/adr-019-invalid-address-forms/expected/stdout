@@ -1,0 +1,227 @@
+== +2,4p
+sed: -e expression #1, char 2: invalid usage of +N or ~N as first address
+1
+== +2p
+sed: -e expression #1, char 2: invalid usage of +N or ~N as first address
+1
+== ~2p
+sed: -e expression #1, char 2: invalid usage of +N or ~N as first address
+1
+== +2~2p
+sed: -e expression #1, char 2: invalid usage of +N or ~N as first address
+1
+== 0,~2p
+sed: -e expression #1, char 5: invalid usage of line address 0
+1
+== 0~0p
+sed: -e expression #1, char 4: invalid usage of line address 0
+1
+== 0~1p
+one
+two
+three
+0
+== 0~2p
+two
+0
+== 0~3p
+three
+0
+== 1~0p
+one
+0
+== 2~0p
+two
+0
+== 2~-1p
+sed: -e expression #1, char 3: unknown command: `-'
+1
+== 2~p
+two
+0
+== 2,~p
+two
+0
+== 2,+p
+two
+0
+== 2,~0p
+two
+0
+== 2,+0p
+two
+0
+== 0p
+sed: -e expression #1, char 2: invalid usage of line address 0
+1
+== 0,2p
+sed: -e expression #1, char 4: invalid usage of line address 0
+1
+== 0,/o/p
+one
+0
+== 0,+2p
+sed: -e expression #1, char 5: invalid usage of line address 0
+1
+== 0,~2p
+sed: -e expression #1, char 5: invalid usage of line address 0
+1
+== 1,0p
+one
+0
+== 2,0p
+two
+0
+== 00p
+sed: -e expression #1, char 3: invalid usage of line address 0
+1
+== 0~0~1p
+sed: -e expression #1, char 4: invalid usage of line address 0
+1
+== 1~2~3p
+sed: -e expression #1, char 4: unknown command: `~'
+1
+== $~2p
+sed: -e expression #1, char 2: unknown command: `~'
+1
+== 2,$p
+two
+three
+0
+== $,2p
+three
+0
+== 2~1p
+two
+three
+0
+== 2~2,4p
+two
+three
+0
+== 2,4~2p
+two
+three
+0
+== 4,~2p
+0
+== 2,+1~2p
+sed: -e expression #1, char 5: unknown command: `~'
+1
+== /o/,+p
+one
+two
+0
+== /o/,~p
+one
+two
+0
+== /o/~2p
+sed: -e expression #1, char 4: unknown command: `~'
+1
+== 2~2!p
+one
+three
+0
+== +p
+one
+two
+three
+0
+== ~p
+one
+two
+three
+0
+== 0,/x/,/y/p
+sed: -e expression #1, char 6: unknown command: `,'
+1
+== 2,-1p
+sed: -e expression #1, char 3: unexpected `,'
+1
+== 2~+1p
+sed: -e expression #1, char 3: unknown command: `+'
+1
+== 2,+-1p
+sed: -e expression #1, char 4: unknown command: `-'
+1
+== 1 ,2p
+one
+two
+0
+== 1, 2p
+one
+two
+0
+== 1 , 2p
+one
+two
+0
+== 1~ 2p
+one
+three
+0
+== 1 ~2p
+one
+three
+0
+== 2, +1p
+two
+three
+0
+== 2,+ 1p
+two
+three
+0
+== 2,~ 2p
+two
+three
+0
+== posix? 1 ~ 2p
+sed: -e expression #1, char 3: unknown command: `~'
+1
+== posix? 0 ~ 2p
+sed: -e expression #1, char 3: invalid usage of line address 0
+1
+== posix? 0 ~ 0p
+sed: -e expression #1, char 3: invalid usage of line address 0
+1
+== posix? 1 ~p
+sed: -e expression #1, char 3: unknown command: `~'
+1
+== posix? 2 , ~ 2p
+sed: -e expression #1, char 5: unexpected `,'
+1
+== posix? 2 , + 1p
+sed: -e expression #1, char 5: unexpected `,'
+1
+== posix? $ ,2p
+three
+0
+== posix? + 0p
+sed: -e expression #1, char 1: unknown command: `+'
+1
+== posix? ~ 0p
+sed: -e expression #1, char 1: unknown command: `~'
+1
+== posix? + 2p
+sed: -e expression #1, char 1: unknown command: `+'
+1
+== posix? ~ 3p
+sed: -e expression #1, char 1: unknown command: `~'
+1
+== posix? +0,2p
+sed: -e expression #1, char 1: unknown command: `+'
+1
+== posix? +!p
+sed: -e expression #1, char 1: unknown command: `+'
+1
+== posix? +,3p
+sed: -e expression #1, char 1: unknown command: `+'
+1
+== posix? 1,+p
+sed: -e expression #1, char 3: unexpected `,'
+1
+== posix? 2,+!p
+sed: -e expression #1, char 3: unexpected `,'
+1

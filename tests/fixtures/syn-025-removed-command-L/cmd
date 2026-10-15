@@ -1,0 +1,10 @@
+sed L a.txt 2>&1; echo $?
+sed '1L' a.txt 2>&1; echo $?
+sed -n '2{L}' a.txt 2>&1; echo $?
+sed 'L 5' a.txt 2>&1; echo $?
+sed --posix L a.txt 2>&1; echo $?
+sed k a.txt 2>&1; echo $?
+sed 'U' a.txt 2>&1; echo $?
+sed 'M' a.txt 2>&1; echo $?
+sed 'E' a.txt 2>&1; echo $?
+sed -n 'p;L' a.txt 2>&1; echo $?

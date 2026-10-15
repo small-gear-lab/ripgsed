@@ -232,7 +232,8 @@ impl Parser {
     fn read_number(&mut self) -> u64 {
         let mut n: u64 = 0;
         while let Some(b @ b'0'..=b'9') = self.peek() {
-            n = n.saturating_mul(10).saturating_add(u64::from(b - b'0'));
+            // GNU sed lets a number that does not fit wrap around.
+            n = n.wrapping_mul(10).wrapping_add(u64::from(b - b'0'));
             self.pos += 1;
         }
         n
@@ -244,25 +245,37 @@ impl Parser {
         match ch {
             b'0'..=b'9' => {
                 let n = self.read_number();
+                // Blanks may stand before and after the `~` of `first~step`.
+                let blanks_start = self.pos;
+                if !self.options().posix {
+                    self.skip_blanks();
+                }
                 if self.peek() == Some(b'~') && !self.options().posix {
                     self.pos += 1;
+                    self.skip_blanks();
                     let step = self.read_number();
                     if n == 0 && step == 0 {
                         self.zero_address = true;
                     }
                     return Ok(Some(AddrParsed::Step { first: n, step }));
                 }
+                self.pos = blanks_start;
                 Ok(Some(AddrParsed::Line(n)))
             }
             b'+' | b'~' if !first && !self.options().posix => {
                 self.pos += 1;
+                self.skip_blanks();
                 let n = self.read_number();
                 Ok(Some(if ch == b'+' { AddrParsed::Plus(n) } else { AddrParsed::Multiple(n) }))
             }
             b'+' | b'~' if first && !self.options().posix => {
                 self.pos += 1;
-                self.read_number();
-                Err(self.error("invalid usage of +N or ~N as first address"))
+                self.skip_blanks();
+                if self.read_number() != 0 {
+                    return Err(self.error("invalid usage of +N or ~N as first address"));
+                }
+                // `+0` and `~0` (or a bare sign) as the first address select every line.
+                Ok(Some(AddrParsed::Step { first: 0, step: 1 }))
             }
             b'$' => {
                 self.pos += 1;
@@ -577,6 +590,12 @@ impl Parser {
                 };
                 self.end_of_command()?;
                 Kind::List(width)
+            }
+            b'L' if !self.options().posix => {
+                self.skip_blanks();
+                let width = if self.peek().is_some_and(|b| b.is_ascii_digit()) { Some(self.read_number() as usize) } else { None };
+                self.end_of_command()?;
+                Kind::Removed(width)
             }
             b'q' | b'Q' => {
                 if matches!(selector, Some(Selector::Range(..))) {

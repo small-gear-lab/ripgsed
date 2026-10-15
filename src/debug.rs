@@ -124,6 +124,12 @@ fn kind_text(kind: &Kind, out: &mut Vec<u8>) {
                 out.extend_from_slice(format!(" {w}").as_bytes());
             }
         }
+        Kind::Removed(width) => {
+            simple(out, "L");
+            if let Some(w) = width {
+                out.extend_from_slice(format!(" {w}").as_bytes());
+            }
+        }
         Kind::Quit(code) => exit_command(out, b'q', *code),
         Kind::QuitSilent(code) => exit_command(out, b'Q', *code),
         Kind::FileName => simple(out, "F"),

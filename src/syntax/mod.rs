@@ -93,6 +93,8 @@ pub enum Kind {
     Zap,
     LineNumber,
     List(Option<usize>),
+    /// `L`: parsed like `l N` but fails when it runs ("INTERNAL ERROR: Bad cmd L").
+    Removed(Option<usize>),
     Quit(i32),
     QuitSilent(i32),
     FileName,

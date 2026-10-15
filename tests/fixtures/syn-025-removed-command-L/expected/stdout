@@ -1,0 +1,21 @@
+sed: INTERNAL ERROR: Bad cmd L
+4
+sed: INTERNAL ERROR: Bad cmd L
+4
+sed: INTERNAL ERROR: Bad cmd L
+4
+sed: INTERNAL ERROR: Bad cmd L
+4
+sed: -e expression #1, char 1: unknown command: `L'
+1
+sed: -e expression #1, char 1: unknown command: `k'
+1
+sed: -e expression #1, char 1: unknown command: `U'
+1
+sed: -e expression #1, char 1: unknown command: `M'
+1
+sed: -e expression #1, char 1: unknown command: `E'
+1
+sed: INTERNAL ERROR: Bad cmd L
+one
+4

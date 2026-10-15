@@ -78,6 +78,7 @@ fn command_local(command: &Command) -> Result<(), Reason> {
             Err(Reason::Construct("a file command"))
         }
         Kind::Execute(_) => Err(Reason::Construct("e")),
+        Kind::Removed(_) => Err(Reason::Construct("L")),
     }
 }
 

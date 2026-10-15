@@ -1,0 +1,63 @@
+aaa
+0
+aaa
+0
+aaa
+0
+aaa
+0
+aaa
+0
+sed: -e expression #1, char 26: number option to `s' command may not be zero
+1
+aaa
+0
+aaa
+0
+sed: -e expression #1, char 7: number option to `s' command may not be zero
+1
+sed: -e expression #1, char 8: number option to `s' command may not be zero
+1
+sed: -e expression #1, char 7: number option to `s' command may not be zero
+1
+sed: -e expression #1, char 8: number option to `s' command may not be zero
+1
+Xaa
+0
+aXa
+0
+sed: -e expression #1, char 9: multiple number options to `s' command
+1
+sed: -e expression #1, char 9: multiple number options to `s' command
+1
+sed: -e expression #1, char 7: unknown option to `s'
+1
+sed: -e expression #1, char 9: multiple number options to `s' command
+1
+aXX
+0
+aXX
+0
+Xaa
+0
+aXa
+0
+1
+0
+0
+1
+2
+0
+2
+0
+1
+1
+1
+255
+\
+1$
+\
+2$
+\
+3$
+0
