@@ -4,5 +4,6 @@
 
 pub mod cli;
 pub mod io;
+pub mod regex;
 pub mod runtime;
 pub mod syntax;

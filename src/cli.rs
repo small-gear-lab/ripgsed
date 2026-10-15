@@ -47,7 +47,7 @@ fn parse_args(args: Vec<String>, program: &str) -> Result<Invocation, i32> {
                 }
             },
             _ if arg.starts_with("--expression=") => {
-                chunks.push(arg["--expression=".len()..].as_bytes().to_vec());
+                chunks.push(arg.as_bytes()["--expression=".len()..].to_vec());
             }
             _ => {
                 eprintln!("{program}: unsupported option '{arg}'");
