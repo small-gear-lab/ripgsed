@@ -1,0 +1,1 @@
+sed -n '4p' a.txt b.txt; echo --; sed -n '4p' a.txt - < b.txt

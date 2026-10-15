@@ -1,0 +1,1 @@
+sed -n '1p;4p;$p' a.txt b.txt

@@ -1,0 +1,1 @@
+sed -n -i '2p' a.txt; cat a.txt

@@ -1,0 +1,1 @@
+sed -n '$p' a.txt b.txt c.txt

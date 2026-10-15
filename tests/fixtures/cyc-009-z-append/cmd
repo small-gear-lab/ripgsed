@@ -1,0 +1,2 @@
+sed -z '1a\
+APP' | od -c

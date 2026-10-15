@@ -1,0 +1,1 @@
+sed -i '1q' a.txt b.txt; cat a.txt; echo --; cat b.txt

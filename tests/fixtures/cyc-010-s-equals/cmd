@@ -1,0 +1,1 @@
+sed -s -n '$=' a.txt b.txt; sed -n '$=' a.txt b.txt

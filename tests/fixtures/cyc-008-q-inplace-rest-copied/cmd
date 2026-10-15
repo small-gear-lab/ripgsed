@@ -1,0 +1,1 @@
+sed -i '2q' a.txt; cat a.txt

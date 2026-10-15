@@ -1,0 +1,1 @@
+sed -e '0r header.txt' -e 's/l/L/' a.txt

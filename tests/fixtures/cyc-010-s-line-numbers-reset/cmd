@@ -1,0 +1,1 @@
+sed -s -n '1p;3p' a.txt b.txt

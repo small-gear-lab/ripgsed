@@ -1,0 +1,3 @@
+cat > in.tmp; trap 'rm -f in.tmp' EXIT
+sed() { command sed "$@" < in.tmp; }
+sed '0,/a/s/a/FIRST/'; echo --; sed '1,/a/s/a/FIRST/'

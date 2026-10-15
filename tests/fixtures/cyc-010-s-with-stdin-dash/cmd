@@ -1,0 +1,1 @@
+sed -s -n '1p;$p' a.txt - < stdin_copy

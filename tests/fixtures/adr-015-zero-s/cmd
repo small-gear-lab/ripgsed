@@ -1,0 +1,1 @@
+sed '0s/a/b/'; echo "status=$?"

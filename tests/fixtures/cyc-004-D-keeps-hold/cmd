@@ -1,0 +1,3 @@
+cat > in.tmp; trap 'rm -f in.tmp' EXIT
+sed() { command sed "$@" < in.tmp; }
+sed -n '1h;$!N;P;D'; echo --; sed -n '1h;$!N;P;x;p;x;D'

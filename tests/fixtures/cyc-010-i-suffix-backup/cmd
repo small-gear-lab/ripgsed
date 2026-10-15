@@ -1,0 +1,1 @@
+sed -i.bak '$d' a.txt b.txt; cat a.txt b.txt a.txt.bak b.txt.bak

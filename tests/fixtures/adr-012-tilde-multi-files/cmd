@@ -1,0 +1,1 @@
+sed -n '3,~4p' a.txt b.txt; echo --; sed -s -n '3,~4p' a.txt b.txt

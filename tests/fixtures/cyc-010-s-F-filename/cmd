@@ -1,0 +1,1 @@
+sed -s -n '1F;$F' a.txt b.txt

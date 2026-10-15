@@ -1,0 +1,1 @@
+sed '0r nonexistent.txt' a.txt; echo "status=$?"

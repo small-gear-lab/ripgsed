@@ -1,0 +1,1 @@
+sed -n '20~3p'; echo "status=$?"

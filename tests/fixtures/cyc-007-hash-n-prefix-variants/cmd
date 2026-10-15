@@ -1,0 +1,7 @@
+cat > in.tmp; trap 'rm -f in.tmp' EXIT
+sed() { command sed "$@" < in.tmp; }
+for first in '#nx' '#n x' '# n' '#N' ' #n' '#n;2p'; do
+  echo "== $first"
+  sed "$first
+2p"
+done

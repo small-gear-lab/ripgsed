@@ -1,0 +1,5 @@
+cat > in.tmp; trap 'rm -f in.tmp' EXIT
+sed() { command sed "$@" < in.tmp; }
+sed '#n comment
+2p'; echo --; sed '#no
+2p'

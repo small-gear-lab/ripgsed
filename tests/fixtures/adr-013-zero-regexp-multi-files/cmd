@@ -1,0 +1,1 @@
+sed -n '0,/a/p' a.txt b.txt; echo --; sed -s -n '0,/a/p' a.txt b.txt

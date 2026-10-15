@@ -1,0 +1,1 @@
+sed '0r header.txt' a.txt b.txt; echo --; sed -s '0r header.txt' a.txt b.txt

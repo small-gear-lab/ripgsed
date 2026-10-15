@@ -1,0 +1,1 @@
+sed -s -n '$p;1p' empty.txt a.txt

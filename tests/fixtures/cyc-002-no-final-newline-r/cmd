@@ -1,0 +1,1 @@
+sed 'r b.txt' a.txt

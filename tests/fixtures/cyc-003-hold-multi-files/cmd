@@ -1,0 +1,1 @@
+sed -n 'H;${x;p}' a.txt b.txt; echo --; sed -s -n 'H;${x;p}' a.txt b.txt

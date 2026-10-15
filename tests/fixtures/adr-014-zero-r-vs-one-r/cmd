@@ -1,0 +1,1 @@
+sed '1r header.txt' a.txt; echo --; sed '0r header.txt' a.txt

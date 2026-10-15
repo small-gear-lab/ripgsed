@@ -1,0 +1,2 @@
+sed '2a\
+after2'

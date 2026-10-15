@@ -1,0 +1,1 @@
+sed -z 's/a/A/' | od -c

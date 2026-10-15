@@ -1,0 +1,1 @@
+printf 'H1\nH2\n' > h.txt; sed '0r h.txt'

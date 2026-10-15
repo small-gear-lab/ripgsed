@@ -1,0 +1,1 @@
+sed '0r header.txt' empty.txt; echo "status=$?"

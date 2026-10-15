@@ -1,0 +1,1 @@
+sed -i '2,+1d' a.txt b.txt; cat a.txt; echo --; cat b.txt

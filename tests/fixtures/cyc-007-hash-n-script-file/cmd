@@ -1,0 +1,3 @@
+cat > in.tmp; trap 'rm -f in.tmp' EXIT
+sed() { command sed "$@" < in.tmp; }
+printf '#n\n2p\n' > s.sed; sed -f s.sed; echo --; printf '#n\n3p\n' > s2.sed; sed -f s2.sed

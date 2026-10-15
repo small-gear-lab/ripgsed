@@ -1,0 +1,3 @@
+sed -n '2a\
+A
+N;P;D' ; echo --

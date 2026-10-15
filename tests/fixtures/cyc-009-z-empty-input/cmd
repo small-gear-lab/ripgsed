@@ -1,0 +1,1 @@
+sed -z 's/a/b/' | od -c; echo "status=$?"

@@ -1,0 +1,1 @@
+sed '2d;2s/x/y/;3s/3/three/'

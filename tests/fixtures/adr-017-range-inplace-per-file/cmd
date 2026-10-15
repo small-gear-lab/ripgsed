@@ -1,0 +1,1 @@
+sed -i '2,/x/s/^/>/' a.txt b.txt; cat a.txt b.txt

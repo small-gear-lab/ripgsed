@@ -1,0 +1,1 @@
+sed -s '$s/$/ <last/' a.txt b.txt

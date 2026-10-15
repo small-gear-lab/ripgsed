@@ -1,0 +1,1 @@
+sed -n 'y/abc/ABC/;/ABC/p;/abc/p'

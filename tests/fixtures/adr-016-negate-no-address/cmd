@@ -1,0 +1,3 @@
+cat > in.tmp; trap 'rm -f in.tmp' EXIT
+sed() { command sed "$@" < in.tmp; }
+sed -n '!p'; echo "status=$?"; sed '!d'; echo "status=$?"

@@ -1,0 +1,3 @@
+cat > in.tmp; trap 'rm -f in.tmp' EXIT
+sed() { command sed "$@" < in.tmp; }
+sed -z 's/^/>/g;s/$/</' | od -c; sed -z 's/^/>/Mg;s/$/</Mg' | od -c

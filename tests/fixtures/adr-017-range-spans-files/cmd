@@ -1,0 +1,1 @@
+sed -n '2,5p' a.txt b.txt
