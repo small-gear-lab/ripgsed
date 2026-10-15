@@ -9,11 +9,11 @@
 //!   back-references, also the longest end. It memoizes visited states, so
 //!   it never takes exponential time.
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use super::ast::{Assert, Unit};
 use super::charset::{decode_utf8, decode_utf8_before, is_word_byte, is_word_char, simple_upper};
-use super::compile::{Inst, Program};
+use super::compile::{GroupCopy, Inst, Program};
 
 const NONE: usize = usize::MAX;
 
@@ -519,7 +519,18 @@ struct Backtracker<'s, 'a> {
     strict: bool,
     /// The match is too long for the bit tables (see `run`).
     big: bool,
+    /// For the current start: the instructions reached at each position by a walk of the program
+    /// that ignores back-references (see `copy_ok`), once needed.
+    reach: Option<Vec<u64>>,
+    /// The positions at which a copy of a group, entered at a position, can close (see `copy_ok`),
+    /// by the closing instruction and the entry position.
+    body_closes: HashMap<(u32, usize), Vec<usize>>,
 }
+
+/// `copy_ok` looks at matches that are not longer than this many bytes, and at groups with at
+/// most this many copies.
+const COPY_SPAN_LIMIT: usize = 256;
+const MAX_COPIES: usize = 16;
 
 #[derive(Clone, Copy, Debug)]
 enum Undo {
@@ -554,7 +565,9 @@ impl Drop for Backtracker<'_, '_> {
 
 impl<'s, 'a> Backtracker<'s, 'a> {
     fn new(s: &'s Searcher<'a>, strict: bool) -> Self {
-        let n = 2 * (s.prog.ngroups + 1);
+        // Two registers per group, then two more per group: whether it was last closed in a
+        // middle copy of a bounded repetition (`Inst::Close`) and which instruction closed it.
+        let n = 4 * (s.prog.ngroups + 1);
         let keyed = (1..=s.prog.ngroups).filter(|&g| s.prog.referenced[g]).collect();
         let (mut caps, mut snap, mut stamp, mut trail, mut stack) = {
             let mut sc = s.scratch.borrow_mut();
@@ -593,6 +606,8 @@ impl<'s, 'a> Backtracker<'s, 'a> {
             keyed,
             strict,
             big: false,
+            reach: None,
+            body_closes: HashMap::new(),
         }
     }
 
@@ -770,12 +785,16 @@ impl<'s, 'a> Backtracker<'s, 'a> {
             return self.memo_set.insert(vec![pc as usize, pos]);
         }
         if self.s.prog.has_backrefs {
-            let mut key = Vec::with_capacity(3 + 4 * self.keyed.len());
+            let mut key = Vec::with_capacity(3 + 8 * self.keyed.len());
             key.push(pc as usize);
             key.push(pos);
             for &g in &self.keyed {
                 key.extend_from_slice(&self.caps[2 * g..2 * g + 2]);
                 key.extend_from_slice(&self.snap[2 * g..2 * g + 2]);
+                key.push(self.caps[self.mid_slot(g)]);
+                key.push(self.snap[self.mid_slot(g)]);
+                key.push(self.caps[self.closer_slot(g)]);
+                key.push(self.snap[self.closer_slot(g)]);
             }
             let mut bitsv = 0usize;
             for g in 1..=self.s.prog.ngroups.min(63) {
@@ -795,9 +814,144 @@ impl<'s, 'a> Backtracker<'s, 'a> {
         true
     }
 
+    /// The register of group `g` that tells whether it was last closed in a middle copy of a
+    /// bounded repetition.
+    #[inline]
+    fn mid_slot(&self, g: usize) -> usize {
+        2 * (self.s.prog.ngroups + 1) + g
+    }
+
+    /// Whether the value of group `g` may be used by a back-reference.
+    ///
+    /// GNU sed does not find every match that back-references allow when the group is repeated
+    /// and its copies are told apart only by position: if another copy of the group could also
+    /// end where the group did, the value is not usable when that copy is an earlier one that
+    /// starts no later, or a later one that starts later. Exceptions: for a group whose body
+    /// cannot be empty, an optional copy is not hindered by a mandatory one that starts where it
+    /// does; for one whose body can be empty, a mandatory copy is not hindered by an optional one.
+    /// The copies are those of the program (a repetition `{m,n}` is expanded to `m` mandatory and
+    /// `n - m` optional copies; `+` and `*` end in one looping copy). Where a copy could start is
+    /// found by walking the program from the start of the match, ignoring back-references.
+    fn copy_ok(&mut self, g: usize, start: usize) -> bool {
+        let prog = self.s.prog;
+        let copies = &prog.copies[g];
+        if copies.is_empty() || copies.len() > MAX_COPIES {
+            return true;
+        }
+        let (s, e, closer) = (self.caps[2 * g], self.caps[2 * g + 1], self.caps[self.closer_slot(g)]);
+        if s == NONE || e == NONE || closer == NONE || e > start + COPY_SPAN_LIMIT {
+            return true;
+        }
+        let words = prog.insts.len().div_ceil(64);
+        if self.reach.is_none() {
+            let limit = (start + COPY_SPAN_LIMIT).min(self.s.hay.len());
+            self.reach = Some(self.simulate(start, start, limit, 0, None, words));
+        }
+        let closer = closer as u32;
+        let mandatory = |q: u32| copies.iter().find(|c| c.close == q).is_none_or(|c| c.mandatory);
+        let nullable = copies[0].nullable;
+        for c in copies {
+            if c.close == closer {
+                continue;
+            }
+            for open_pos in start..=e {
+                let row = (open_pos - start) * words;
+                let reach = self.reach.as_ref().unwrap();
+                if reach[row + c.open as usize / 64] & (1 << (c.open % 64)) == 0 {
+                    continue;
+                }
+                if !self.closes_at(c, open_pos, e) {
+                    continue;
+                }
+                let conflict = if c.close < closer {
+                    open_pos < s || (open_pos == s && !(!nullable && mandatory(c.close) && !mandatory(closer)))
+                } else {
+                    open_pos > s && !(nullable && mandatory(closer) && !mandatory(c.close))
+                };
+                if conflict {
+                    return false;
+                }
+            }
+        }
+        true
+    }
+
+    /// Whether the copy `c` of a group, entered at `open_pos`, can close at `e`.
+    fn closes_at(&mut self, c: &GroupCopy, open_pos: usize, e: usize) -> bool {
+        if !self.body_closes.contains_key(&(c.close, open_pos)) {
+            let words = self.s.prog.insts.len().div_ceil(64);
+            let limit = (open_pos + COPY_SPAN_LIMIT).min(self.s.hay.len());
+            let table = self.simulate(open_pos, open_pos, limit, c.open, Some(c.close), words);
+            let closes: Vec<usize> = (0..=limit - open_pos)
+                .filter(|&p| table[p * words + c.close as usize / 64] & (1 << (c.close % 64)) != 0)
+                .map(|p| open_pos + p)
+                .collect();
+            self.body_closes.insert((c.close, open_pos), closes);
+        }
+        self.body_closes[&(c.close, open_pos)].binary_search(&e).is_ok()
+    }
+
+    /// Which instructions can be reached from `entry` at `from`, at each position up to `limit`
+    /// (row `p - from`, one bit per instruction). Back-references and `Match` lead nowhere, and
+    /// a path does not go past `stop`.
+    fn simulate(&self, start: usize, from: usize, limit: usize, entry: u32, stop: Option<u32>, words: usize) -> Vec<u64> {
+        let s = self.s;
+        let prog = s.prog;
+        let rows = limit - from + 1;
+        let mut table = vec![0u64; rows * words];
+        let mut seeds: Vec<Vec<u32>> = vec![Vec::new(); rows];
+        seeds[0].push(entry);
+        let mut stack: Vec<u32> = Vec::new();
+        for p in 0..rows {
+            stack.clear();
+            stack.append(&mut seeds[p]);
+            let row = p * words;
+            while let Some(pc) = stack.pop() {
+                let (w, b) = (row + pc as usize / 64, 1u64 << (pc % 64));
+                if table[w] & b != 0 {
+                    continue;
+                }
+                table[w] |= b;
+                match prog.insts[pc as usize] {
+                    Inst::Split(a, b) => {
+                        stack.push(b);
+                        stack.push(a);
+                    }
+                    Inst::Jmp(a) => stack.push(a),
+                    Inst::Open(_) => stack.push(pc + 1),
+                    Inst::Close(..) => {
+                        if stop != Some(pc) {
+                            stack.push(pc + 1);
+                        }
+                    }
+                    Inst::Assert(a) => {
+                        if s.assert_check(a, from + p, start) != Check::Fail {
+                            stack.push(pc + 1);
+                        }
+                    }
+                    Inst::Unit(u) => {
+                        if let Some(l) = s.unit_len(u, from + p) {
+                            if p + l < rows {
+                                seeds[p + l].push(pc + 1);
+                            }
+                        }
+                    }
+                    Inst::Backref(_) | Inst::Match => {}
+                }
+            }
+        }
+        table
+    }
+
+    /// The register that holds the instruction that closed group `g` last.
+    #[inline]
+    fn closer_slot(&self, g: usize) -> usize {
+        3 * (self.s.prog.ngroups + 1) + g
+    }
+
     fn backref_len(&self, g: usize, pos: usize) -> Option<usize> {
         let (a, b) = (self.caps[2 * g], self.caps[2 * g + 1]);
-        if a == NONE || b == NONE {
+        if a == NONE || b == NONE || self.caps[self.mid_slot(g)] == 1 {
             return None;
         }
         let hay = self.s.hay;
@@ -844,6 +998,7 @@ impl<'s, 'a> Backtracker<'s, 'a> {
         self.memo_set.clear();
         self.viable.clear();
         self.big = false;
+        self.reach = None;
         if !prog.has_backrefs {
             let e = target.expect("only searched with back-references");
             let nbits = (e - start + 1) * prog.insts.len();
@@ -903,8 +1058,9 @@ impl<'s, 'a> Backtracker<'s, 'a> {
                         self.set_cap(2 * g + 1, NONE);
                         pc += 1;
                     }
-                    Inst::Close(g, opt) => {
+                    Inst::Close(g, opt, mid) => {
                         let g = g as usize;
+                        let slot = self.mid_slot(g);
                         if self.caps[2 * g] == pos {
                             if opt && self.snap[2 * g] != NONE {
                                 for i in 0..self.caps.len() {
@@ -913,9 +1069,13 @@ impl<'s, 'a> Backtracker<'s, 'a> {
                                 }
                             } else {
                                 self.set_cap(2 * g + 1, pos);
+                                self.set_cap(slot, mid as usize);
+                                self.set_cap(self.closer_slot(g), pc as usize);
                             }
                         } else {
                             self.set_cap(2 * g + 1, pos);
+                            self.set_cap(slot, mid as usize);
+                            self.set_cap(self.closer_slot(g), pc as usize);
                             for i in 0..self.caps.len() {
                                 let v = self.caps[i];
                                 self.set_snap(i, v);
@@ -932,6 +1092,7 @@ impl<'s, 'a> Backtracker<'s, 'a> {
                         c = true;
                         pc += 1;
                     }
+                    Inst::Backref(g) if !self.copy_ok(g as usize, start) => break,
                     Inst::Backref(g) => match self.backref_len(g as usize, pos) {
                         Some(l) => {
                             pos += l;

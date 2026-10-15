@@ -108,6 +108,28 @@ fn backreferences() {
 }
 
 #[test]
+fn backreference_to_repeated_group() {
+    let e = syn(true);
+    // A bounded repetition `{m,n}` is seen by a back-reference only after `m` or `n` iterations.
+    assert_eq!(sub_g("(a){1,3}\\1", "aaa", &e), "<aa>[a]a");
+    assert_eq!(sub_g("(a){1,3}\\1", "aaaa", &e), "<aaaa>[a]");
+    assert_eq!(sub_g("(a){0,2}\\1", "aa", &e), "aa");
+    assert_eq!(sub_g("(a){0,2}\\1", "aaa", &e), "<aaa>[a]");
+    // A copy of the group is not seen where another copy could also end.
+    assert_eq!(sub_g("(a+)+\\1", "aaaa", &e), "<aa>[a]<aa>[a]");
+    assert_eq!(sub_g("(a+)+\\1b", "aaab", &e), "a<aab>[a]");
+    assert_eq!(sub_g("(a|aa){2}\\1", "aaa", &e), "aaa");
+    assert_eq!(sub_g("(a|aa){2}\\1", "aaaa", &e), "<aaaa>[a]");
+    assert_eq!(sub_g("(a|b|ab){2}\\1", "aabab", &e), "<aabab>[ab]");
+    assert_eq!(sub_g("(a|b|ab){2,}\\1", "aabab", &e), "aabab");
+    assert_eq!(sub_g("a?(a|b){2}\\1", "aabb", &e), "<aabb>[b]");
+    // The same for a group that can be empty.
+    assert_eq!(sub_g("(a*)+\\1", "aaaa", &e), "<aaaa>[aa]");
+    assert_eq!(sub_g("(a*)+\\1", "aaa", &e), "<aa>[a]a<>[]");
+    assert_eq!(sub_g("(a*){2}\\1", "aaaaaa", &e), "aaaaaa");
+}
+
+#[test]
 fn compile_errors() {
     let b = syn(false);
     let e = syn(true);

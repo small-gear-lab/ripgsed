@@ -13,9 +13,11 @@ pub enum Inst {
     Split(u32, u32),
     Jmp(u32),
     Open(u32),
-    /// Close a group. The flag marks a group that is the whole body of an
-    /// optional repetition (see the capture rules in `exec`).
-    Close(u32, bool),
+    /// Close a group. The first flag marks a group that is the whole body of an
+    /// optional repetition (see the capture rules in `exec`). The second one marks
+    /// a group closed in a middle copy of a bounded repetition `{m,n}`
+    /// (`m < copy < n`): a back-reference does not see such a group.
+    Close(u32, bool, bool),
     Assert(Assert),
     Backref(u32),
     Match,
@@ -40,6 +42,21 @@ pub struct Program {
     pub char_starts: bool,
     /// The instruction index of every unit (units and `Inst::Unit` correspond one to one).
     pub unit_pcs: Vec<u32>,
+    /// For every group a back-reference names that has more than one copy in the program (it
+    /// lies in a repetition that was expanded): its copies, in program order. Empty for every
+    /// other group. See `Backtracker::copy_ok`.
+    pub copies: Vec<Vec<GroupCopy>>,
+}
+
+/// One copy of a group in the program.
+#[derive(Clone, Copy, Debug)]
+pub struct GroupCopy {
+    pub open: u32,
+    pub close: u32,
+    /// The copy is not inside an optional copy of a repetition.
+    pub mandatory: bool,
+    /// The body of the group can match the empty string.
+    pub nullable: bool,
 }
 
 /// Programs larger than this are refused, as an exhausted regcomp would.
@@ -52,8 +69,8 @@ pub fn compile(
     char_starts: bool,
     utf8: bool,
 ) -> Result<Program, CompileError> {
-    let mut c = Compiler { insts: Vec::new(), units: Vec::new() };
-    c.emit(node, false, false)?;
+    let mut c = Compiler { insts: Vec::new(), units: Vec::new(), optional: 0, groups: Vec::new() };
+    c.emit(node, false, false, false)?;
     c.insts.push(Inst::Match);
     let has_backrefs = referenced.iter().any(|&r| r);
     let mut preds = vec![Vec::new(); c.insts.len()];
@@ -88,7 +105,18 @@ pub fn compile(
             unit_pcs[k as usize] = pc as u32;
         }
     }
+    let mut copies = vec![Vec::new(); ngroups + 1];
+    for (g, slot) in copies.iter_mut().enumerate().skip(1) {
+        if !referenced.get(g).copied().unwrap_or(false) {
+            continue;
+        }
+        let list: Vec<GroupCopy> = c.groups.iter().filter(|e| e.0 == g).map(|e| e.1).collect();
+        if list.len() > 1 {
+            *slot = list;
+        }
+    }
     let mut prog = Program {
+        copies,
         insts: c.insts,
         units: c.units,
         ngroups,
@@ -106,6 +134,10 @@ pub fn compile(
 struct Compiler {
     insts: Vec<Inst>,
     units: Vec<Unit>,
+    /// How many optional copies of repetitions enclose the node being emitted.
+    optional: u32,
+    /// Every group emitted: its number and its copy.
+    groups: Vec<(usize, GroupCopy)>,
 }
 
 impl Compiler {
@@ -126,7 +158,7 @@ impl Compiler {
     /// repetition (every copy but the first), where the marks of inner
     /// repetitions are not kept (GNU sed behaves so: in `((a?)*b){2}` the
     /// second copy of group 2 does not restore an earlier iteration).
-    fn emit(&mut self, node: &Node, opt: bool, dup: bool) -> Result<(), CompileError> {
+    fn emit(&mut self, node: &Node, opt: bool, dup: bool, mid: bool) -> Result<(), CompileError> {
         match node {
             Node::Empty => {}
             Node::Unit(u) => {
@@ -141,13 +173,15 @@ impl Compiler {
                 self.push(Inst::Backref(*g as u32))?;
             }
             Node::Group(g, inner) => {
-                self.push(Inst::Open(*g as u32))?;
-                self.emit(inner, false, dup)?;
-                self.push(Inst::Close(*g as u32, opt))?;
+                let open = self.push(Inst::Open(*g as u32))?;
+                self.emit(inner, false, dup, mid)?;
+                let close = self.push(Inst::Close(*g as u32, opt, mid))?;
+                let copy = GroupCopy { open, close, mandatory: self.optional == 0, nullable: can_be_empty(inner) };
+                self.groups.push((*g, copy));
             }
             Node::Concat(items) => {
                 for it in items {
-                    self.emit(it, false, dup)?;
+                    self.emit(it, false, dup, mid)?;
                 }
             }
             Node::Alt(branches) => {
@@ -163,12 +197,12 @@ impl Compiler {
                 for (k, b) in order.iter().enumerate() {
                     if k + 1 < order.len() {
                         let split = self.push(Inst::Split(0, 0))?;
-                        self.emit(b, false, dup)?;
+                        self.emit(b, false, dup, mid)?;
                         jumps.push(self.push(Inst::Jmp(0))?);
                         let next = self.pc();
                         self.insts[split as usize] = Inst::Split(split + 1, next);
                     } else {
-                        self.emit(b, false, dup)?;
+                        self.emit(b, false, dup, mid)?;
                     }
                 }
                 let end = self.pc();
@@ -180,13 +214,15 @@ impl Compiler {
                 let mark = matches!(**body, Node::Group(..)) && !dup;
                 let mut copy = 0u32;
                 for _ in 0..*min {
-                    self.emit(body, false, dup || copy > 0)?;
+                    self.emit(body, false, dup || copy > 0, mid)?;
                     copy += 1;
                 }
                 match max {
                     None => {
                         let l = self.push(Inst::Split(0, 0))?;
-                        self.emit(body, mark, dup || copy > 0)?;
+                        self.optional += 1;
+                        self.emit(body, mark, dup || copy > 0, mid)?;
+                        self.optional -= 1;
                         self.push(Inst::Jmp(l))?;
                         let end = self.pc();
                         self.insts[l as usize] = Inst::Split(l + 1, end);
@@ -197,7 +233,9 @@ impl Compiler {
                         let mut holes = Vec::new();
                         for _ in *min..*max {
                             holes.push(self.push(Inst::Split(0, 0))?);
-                            self.emit(body, mark && (*min > 0 || copy == 0), dup || copy > 0)?;
+                            self.optional += 1;
+                            self.emit(body, mark && (*min > 0 || copy == 0), dup || copy > 0, mid || copy + 1 < *max)?;
+                            self.optional -= 1;
                             copy += 1;
                         }
                         let end = self.pc();
@@ -209,6 +247,18 @@ impl Compiler {
             }
         }
         Ok(())
+    }
+}
+
+/// Whether a node can match the empty string (a back-reference is taken to).
+fn can_be_empty(node: &Node) -> bool {
+    match node {
+        Node::Empty | Node::Assert(_) | Node::Backref(_) => true,
+        Node::Unit(_) => false,
+        Node::Group(_, inner) => can_be_empty(inner),
+        Node::Concat(items) => items.iter().all(can_be_empty),
+        Node::Alt(branches) => branches.iter().any(can_be_empty),
+        Node::Repeat(body, min, _) => *min == 0 || can_be_empty(body),
     }
 }
 

@@ -1563,6 +1563,7 @@ rgx-036-empty-regexp-errors
 rgx-037-locale-dependent-classes
 rgx-038-utf8-class-tables
 rgx-039-not-word-boundary-after-repetition
+rgx-040-backref-to-repeated-group
 sub-001-delim-ampersand
 sub-001-delim-caret-in-brackets
 sub-001-delim-comma-letter

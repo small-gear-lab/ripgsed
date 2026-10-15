@@ -6,17 +6,17 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: ripgsed\n"
+"Project-Id-Version:  ripgsed\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-15 17:20+0900\n"
+"POT-Creation-Date: 2026-10-15 18:11+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language-Team: ja <LL@li.org>\n"
 "Language: ja\n"
+"Language-Team: ja <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=1; plural=0;\n"
 "Generated-By: Babel 2.18.0\n"
 
 #: ../../KNOWN-DIFFERENCES.md:1
@@ -27,8 +27,8 @@ msgstr "GNU sed 4.9 との既知の差分"
 msgid ""
 "ripgsed aims to behave exactly like GNU sed 4.9 (D4 in "
 "[DECISIONS.md](DECISIONS.md)): same output, same error messages in the C "
-"locale, same exit status. This page lists where it does not, and the glibc "
-"behavior it copies even though that behavior looks like a bug."
+"locale, same exit status. This page lists where it does not, and the "
+"glibc behavior it copies even though that behavior looks like a bug."
 msgstr ""
 "ripgsed は GNU sed 4.9 と完全に同じ動作（同じ出力、C "
 "ロケールでの同じエラーメッセージ、同じ終了状態）を目指しています（[DECISIONS.md](DECISIONS.md) の "
@@ -44,8 +44,8 @@ msgid ""
 "usage message and the `sed:` lines of option errors are the same as GNU "
 "sed's."
 msgstr ""
-"`--version` と `--help` は ripgsed 独自の文面を出します。usage の先頭行とオプションエラーの `sed:` の行は "
-"GNU sed と同じです。"
+"`--version` と `--help` は ripgsed 独自の文面を出します。usage の先頭行とオプションエラーの `sed:` "
+"の行は GNU sed と同じです。"
 
 #: ../../KNOWN-DIFFERENCES.md:8
 msgid ""
@@ -55,8 +55,8 @@ msgstr "実装しているロケールは `C` と UTF-8 のみです。その他
 
 #: ../../KNOWN-DIFFERENCES.md:9
 msgid ""
-"Memory use is higher: input is read in blocks of 256 KiB, and parallel runs "
-"keep several blocks in flight."
+"Memory use is higher: input is read in blocks of 256 KiB, and parallel "
+"runs keep several blocks in flight."
 msgstr "メモリ使用量は多めです。入力を 256 KiB のブロック単位で読み、並列実行では複数のブロックを同時に保持します。"
 
 #: ../../KNOWN-DIFFERENCES.md:11
@@ -66,8 +66,8 @@ msgstr "再現している glibc の挙動"
 #: ../../KNOWN-DIFFERENCES.md:13
 msgid ""
 "GNU sed uses the regular expression matcher of the C library. Where that "
-"matcher does something no specification asks for, ripgsed does the same, so "
-"that scripts give the same output:"
+"matcher does something no specification asks for, ripgsed does the same, "
+"so that scripts give the same output:"
 msgstr ""
 "GNU sed は C ライブラリの正規表現マッチャーを使っています。そのマッチャーが仕様にない動きをする場合、スクリプトが同じ出力になるよう "
 "ripgsed も同じ動きをします。"
@@ -76,43 +76,61 @@ msgstr ""
 msgid ""
 "In a pattern that starts with a repetition of a single character (`b*`, "
 "`[ab]*`, `(a*)*`, `a*\\+`) followed by `\\B`, a match that is empty at a "
-"position where the repetition could consume a character is reported after "
-"that character. `echo ab | sed 's/b*\\B/<&>/'` prints `ab<>`, not `a<>b`. It"
-" does not apply at the start of the buffer, and not to `\\b`, `\\<`, or "
-"`\\>`. Fixture: `rgx-039`."
+"position where the repetition could consume a character is reported after"
+" that character. `echo ab | sed 's/b*\\B/<&>/'` prints `ab<>`, not "
+"`a<>b`. It does not apply at the start of the buffer, and not to `\\b`, "
+"`\\<`, or `\\>`. Fixture: `rgx-039`."
 msgstr ""
 "パターンが1文字の繰り返し（`b*`、`[ab]*`、`(a*)*`、`a*\\+`）で始まり、その直後に `\\B` "
 "がある場合、その位置で繰り返しが1文字を消費できるときの空マッチは、その文字の後ろで報告されます。`echo ab | sed "
-"'s/b*\\B/<&>/'` は `a<>b` ではなく `ab<>` を出力します。バッファの先頭では起きず、`\\b`、`\\<`、`\\>` "
-"にも当てはまりません。fixture は `rgx-039` です。"
+"'s/b*\\B/<&>/'` は `a<>b` ではなく `ab<>` "
+"を出力します。バッファの先頭では起きず、`\\b`、`\\<`、`\\>` にも当てはまりません。fixture は `rgx-039` です。"
 
 #: ../../KNOWN-DIFFERENCES.md:16
+#, python-brace-format
+msgid ""
+"A back-reference to a group inside a repetition does not see every value "
+"that POSIX allows. A bounded repetition `X{m,n}` (`?` is `{0,1}`; `+`, "
+"`*`, and `{m,}` are not bounded) is expanded into copies of the group, "
+"and the group is seen only after `m` or after `n` iterations: `echo aaa |"
+" sed -E 's/(a){1,3}\\1/<&>/'` prints `<aa>a`, not `<aaa>`. And the value "
+"of a copy is not seen at a position where another copy of the group could"
+" also end, if that copy is an earlier one that starts no later or a later"
+" one that starts later: `(a+)+\\1` on `aaaa` matches only `aa`, "
+"`(a|aa){2}\\1` does not match `aaa` but matches `aaaa`, and `(a*){2}\\1` "
+"never matches. Two exceptions: when the body of the group cannot be "
+"empty, a copy inside an optional copy of the repetition is not hindered "
+"by a mandatory copy that starts where it does; when it can be empty, a "
+"mandatory copy is not hindered by a later optional one. Where a copy "
+"could start is found by walking the pattern from the start of the match "
+"without looking at back-references, for matches up to 256 bytes and "
+"groups with up to 16 copies. Fixture: `rgx-040`."
+msgstr "繰り返しの中にあるグループへの後方参照は、POSIX が許す値のすべてを見るわけではありません。上限のある繰り返し `X{m,n}`（`?` は `{0,1}` で、`+`、`*`、`{m,}` は上限なしです）はグループのコピーに展開され、グループが見えるのは `m` 回か `n` 回の繰り返しの後だけです。`echo aaa | sed -E 's/(a){1,3}\\1/<&>/'` は `<aaa>` ではなく `<aa>a` を出力します。さらに、あるコピーの値は、同じグループの別のコピーも同じ位置で終われるとき、見えません。ただし、その別のコピーが、より前のコピーで開始が同じか早いもの、またはより後ろのコピーで開始が遅いものである場合です。`aaaa` に対する `(a+)+\\1` は `aa` にしか一致せず、`(a|aa){2}\\1` は `aaa` に一致しませんが `aaaa` には一致し、`(a*){2}\\1` はどこにも一致しません。例外が2つあります。グループの本体が空になれない場合、繰り返しの任意のコピーの中にあるコピーは、開始が同じ必須のコピーに妨げられません。本体が空になれる場合、必須のコピーは、後ろの任意のコピーに妨げられません。コピーがどこから始まりうるかは、マッチの先頭からパターンを後方参照を見ずにたどって求めます。対象は長さ 256 バイトまでのマッチと、コピーが 16 個までのグループです。fixture は `rgx-040` です。"
+
+#: ../../KNOWN-DIFFERENCES.md:17
 msgid ""
 "Character classes (`[[:alpha:]]`, `\\w`, ...) in UTF-8 locales follow "
-"glibc's `C.utf8` tables, which are generated from the C library (`tools/gen-"
-"classes.py`) and so follow its Unicode version, not the one in Rust's "
-"standard library."
+"glibc's `C.utf8` tables, which are generated from the C library (`tools"
+"/gen-classes.py`) and so follow its Unicode version, not the one in "
+"Rust's standard library."
 msgstr ""
 "UTF-8 ロケールの文字クラス（`[[:alpha:]]`、`\\w` など）は glibc の `C.utf8` の表に従います。表は C "
 "ライブラリから生成しており（`tools/gen-classes.py`）、Rust の標準ライブラリではなく glibc の Unicode "
 "バージョンに従います。"
 
-#: ../../KNOWN-DIFFERENCES.md:18
+#: ../../KNOWN-DIFFERENCES.md:19
 msgid "glibc behavior that is not reproduced"
 msgstr "再現していない glibc の挙動"
 
-#: ../../KNOWN-DIFFERENCES.md:20
+#: ../../KNOWN-DIFFERENCES.md:21
 #, python-format
 msgid ""
-"These are cases where glibc's matcher gives a result that disagrees with the"
-" leftmost-longest rule or with the documented meaning of a back-reference. "
-"About 0.2% of random patterns in the differential test "
-"(`tests/regex_differential.rs`) hit one of them; ordinary patterns do not. "
-"ripgsed returns the result the definition gives."
-msgstr ""
-"glibc "
-"のマッチャーが、最左最長の規則や後方参照の定義と食い違う結果を返す場合です。差分テスト（`tests/regex_differential.rs`）のランダムなパターンの約"
-" 0.2% が該当しますが、通常のパターンでは起きません。ripgsed は定義どおりの結果を返します。"
+"These are cases where glibc's matcher gives a result that disagrees with "
+"the leftmost-longest rule or with the documented meaning of a back-"
+"reference. About 0.1% of random patterns in the differential test "
+"(`tests/regex_differential.rs`) hit one of them; ordinary patterns do "
+"not. ripgsed returns the result the definition gives."
+msgstr "glibc のマッチャーが、最左最長の規則や後方参照の定義と食い違う結果を返す場合です。差分テスト（`tests/regex_differential.rs`）のランダムなパターンの約 0.1% が該当しますが、通常のパターンでは起きません。ripgsed は定義どおりの結果を返します。"
 
 #: ../../KNOWN-DIFFERENCES.md
 msgid "pattern (ERE)"
@@ -131,96 +149,120 @@ msgid "ripgsed"
 msgstr "ripgsed"
 
 #: ../../KNOWN-DIFFERENCES.md
-msgid "`(a+)+\\1`"
-msgstr "`(a+)+\\1`"
+#
+msgid "`(a*)*\\1b`"
+msgstr "`(a*)*\\1b`"
 
 #: ../../KNOWN-DIFFERENCES.md
-msgid "`aaaa`"
-msgstr "`aaaa`"
+#
+msgid "`ab`"
+msgstr "`ab`"
 
 #: ../../KNOWN-DIFFERENCES.md
-msgid "match `aa`"
-msgstr "`aa` に一致"
+#
+msgid "match `ab`"
+msgstr "`ab` に一致"
 
 #: ../../KNOWN-DIFFERENCES.md
-msgid "match `aaaa`"
-msgstr "`aaaa` に一致"
+#
+msgid "match `b` (from offset 1)"
+msgstr "`b` に一致（オフセット 1 から）"
 
 #: ../../KNOWN-DIFFERENCES.md
-msgid "`(a+)+\\1b`"
-msgstr "`(a+)+\\1b`"
+#
+msgid "`a?(a+)+\\1`"
+msgstr "`a?(a+)+\\1`"
 
 #: ../../KNOWN-DIFFERENCES.md
-msgid "`aaab`"
-msgstr "`aaab`"
+#
+msgid "`aaaaa`"
+msgstr "`aaaaa`"
 
 #: ../../KNOWN-DIFFERENCES.md
-msgid "match `aab` (from offset 1)"
-msgstr "`aab` に一致（オフセット 1 から）"
+#
+msgid "match `aaaaa`, `\\1` is `aa`"
+msgstr "`aaaaa` に一致、`\\1` は `aa`"
 
 #: ../../KNOWN-DIFFERENCES.md
-msgid "match `aaab`"
-msgstr "`aaab` に一致"
-
-#: ../../KNOWN-DIFFERENCES.md
-msgid "`(a*)+\\1`"
-msgstr "`(a*)+\\1`"
-
-#: ../../KNOWN-DIFFERENCES.md
-msgid "`aaa`"
-msgstr "`aaa`"
-
-#: ../../KNOWN-DIFFERENCES.md
-msgid "match `aaa`"
-msgstr "`aaa` に一致"
+#
+msgid "match `aaa`, `\\1` is `a`"
+msgstr "`aaa` に一致、`\\1` は `a`"
 
 #: ../../KNOWN-DIFFERENCES.md
 #, python-brace-format
-msgid "`(a*){2}\\1`"
-msgstr "`(a*){2}\\1`"
+msgid "`(a?){2}\\1`"
+msgstr "`(a?){2}\\1`"
 
 #: ../../KNOWN-DIFFERENCES.md
-msgid "`aaaaaa`"
-msgstr "`aaaaaa`"
+#
+msgid "`baaa`"
+msgstr "`baaa`"
 
 #: ../../KNOWN-DIFFERENCES.md
 msgid "no match"
 msgstr "一致なし"
 
 #: ../../KNOWN-DIFFERENCES.md
-msgid "match `aaaaaa`"
-msgstr "`aaaaaa` に一致"
+msgid "match `aaa`"
+msgstr "`aaa` に一致"
 
-#: ../../KNOWN-DIFFERENCES.md:29
+#: ../../KNOWN-DIFFERENCES.md
+#
+msgid "`(a?)*\\1`"
+msgstr "`(a?)*\\1`"
+
+#: ../../KNOWN-DIFFERENCES.md
+#
+msgid "`a`"
+msgstr "`a`"
+
+#: ../../KNOWN-DIFFERENCES.md
+#
+msgid "match `a`, `\\1` is `a`"
+msgstr "`a` に一致、`\\1` は `a`"
+
+#: ../../KNOWN-DIFFERENCES.md
+#
+msgid "empty match"
+msgstr "空の一致"
+
+#: ../../KNOWN-DIFFERENCES.md:30
 #, python-brace-format
 msgid ""
-"All four are back-references to a variable-width group inside a repetition. "
-"A fixed-width group (`(ab)+\\1`) and `(a*)*\\1b` behave as specified. "
-"Captures under stacked quantifiers (`((b?)+*|c){1}`) and `\\B` after a "
-"repetition that does not start the pattern can also differ. The matrix "
-"entries are RGX-009 and RGX-012 in `compat/sed.tsv`, and the pending fixture"
-" is `rgx-012-backref-group-in-star-iteration`."
-msgstr ""
-"4つとも、繰り返しの中にある可変幅のグループへの後方参照です。固定幅のグループ（`(ab)+\\1`）と `(a*)*\\1b` "
-"は仕様どおりに動きます。重ねた量指定子の下のキャプチャ（`((b?)+*|c){1}`）や、パターンの先頭でない繰り返しの後ろの `\\B` "
-"でも差が出ることがあります。一覧上の項目は `compat/sed.tsv` の RGX-009 と RGX-012、保留中の fixture は "
-"`rgx-012-backref-group-in-star-iteration` です。"
+"All four are back-references to a group inside a repetition where the "
+"group, or what comes before the repetition, can be empty or vary in "
+"width, and the two rules above are not enough. A group of fixed width "
+"(`(ab)+\\1`) behaves as specified. Captures under stacked quantifiers "
+"(`((b?)+*|c){1}`) and `\\B` after a repetition that does not start the "
+"pattern can also differ. The matrix entries are RGX-009 and RGX-012 in "
+"`compat/sed.tsv`, and the pending fixture is `rgx-012-backref-group-in-"
+"star-iteration`."
+msgstr "4つとも、繰り返しの中にあるグループへの後方参照で、グループまたは繰り返しより前の部分が空になれたり幅が変わったりするため、上の2つの規則では足りないものです。固定幅のグループ（`(ab)+\\1`）は仕様どおりに動きます。重ねた量指定子の下のキャプチャ（`((b?)+*|c){1}`）や、パターンの先頭でない繰り返しの後ろの `\\B` でも差が出ることがあります。一覧上の項目は `compat/sed.tsv` の RGX-009 と RGX-012、保留中の fixture は `rgx-012-backref-group-in-star-iteration` です。"
 
-#: ../../KNOWN-DIFFERENCES.md:31
+#: ../../KNOWN-DIFFERENCES.md:32
 msgid "Reporting the glibc cases upstream"
 msgstr "glibc への報告"
 
-#: ../../KNOWN-DIFFERENCES.md:33
+#: ../../KNOWN-DIFFERENCES.md:34
+#
 msgid ""
-"The four rows above reproduce with plain `regcomp`/`regexec` "
-"(`REG_EXTENDED`), without sed:"
-msgstr "上の4行は、sed を使わず素の `regcomp`/`regexec`（`REG_EXTENDED`）でも再現します。"
+"The back-reference and `\\B` cases above reproduce with plain "
+"`regcomp`/`regexec` (`REG_EXTENDED`), without sed:"
+msgstr "上の後方参照と `\\B` の例は、sed を使わず素の `regcomp`/`regexec`（`REG_EXTENDED`）でも再現します。"
 
-#: ../../KNOWN-DIFFERENCES.md:41
+#: ../../KNOWN-DIFFERENCES.md:42
 msgid ""
-"Observed with glibc 2.43 (Ubuntu 2.43-2ubuntu2.4). A report to the glibc bug"
-" tracker (component `regex`) should say that POSIX asks for the leftmost-"
-"longest match and that `\\B` must hold at the position of the match."
+"Observed with glibc 2.43 (Ubuntu 2.43-2ubuntu2.4). A report to the glibc "
+"bug tracker (component `regex`) should say that POSIX asks for the "
+"leftmost-longest match and that `\\B` must hold at the position of the "
+"match."
 msgstr ""
 "glibc 2.43（Ubuntu 2.43-2ubuntu2.4）で確認しました。glibc のバグトラッカー（コンポーネント "
 "`regex`）への報告では、POSIX が最左最長のマッチを求めていること、`\\B` はマッチの位置で成り立たなければならないことを書きます。"
+
+#~ msgid "`aaaa`"
+#~ msgstr "`aaaa`"
+
+#~ msgid "`(a+)+\\1b`"
+#~ msgstr "`(a+)+\\1b`"
+
