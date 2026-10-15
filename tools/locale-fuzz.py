@@ -47,7 +47,9 @@ def encodable(items, codec):
     return ld.encode_all(items, codec)
 
 
-def gen_pattern(rng, chars, depth=0):
+def gen_pattern(rng, chars):
+    nest = [0]
+
     def atom():
         r = rng.random()
         if r < 0.40:
@@ -60,10 +62,14 @@ def gen_pattern(rng, chars, depth=0):
             return "[" + ("^" if rng.random() < 0.3 else "") + body + "]"
         if r < 0.70:
             return rng.choice(["\\w", "\\W", "\\s", "\\S", "\\b", "\\B", "\\<", "\\>"])
-        if r < 0.76:
+        if r < 0.76 and nest[0] == 0:
+            # (Not inside a group: `\(^a*\)\{1,2\}` with `M` is a quirk of the matcher that is the
+            # same in every locale and is not what this checks.)
             return rng.choice(["^", "$"])
-        if r < 0.88 and depth < 2:
+        if r < 0.88 and nest[0] < 2:
+            nest[0] += 1
             inner = "".join(piece() for _ in range(rng.randint(1, 3)))
+            nest[0] -= 1
             return "\\(" + inner + "\\)"
         return rng.choice(chars)
 

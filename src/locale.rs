@@ -43,6 +43,10 @@ static HIGH_ONLY: AtomicBool = AtomicBool::new(true);
 /// Single bytes of 0x80 or more that `mbrtowc` accepts and the library's matcher does not take for
 /// `.` (0x80 in GBK): they count as invalid bytes.
 static BAD_SINGLE: [AtomicBool; 128] = [const { AtomicBool::new(false) }; 128];
+/// ASCII bytes that are never a byte of a multibyte character but the first (and so are a
+/// character boundary wherever they stand): the places from which a line can be read forward
+/// to find the character before a position.
+static RESYNC: [AtomicBool; 128] = [const { AtomicBool::new(false) }; 128];
 static WORD_HIGH: [AtomicBool; 128] = [const { AtomicBool::new(false) }; 128];
 
 /// Whether an ASCII byte is always a character of its own, so that automata and literal searches
@@ -54,6 +58,12 @@ pub fn ascii_bytes_are_characters() -> bool {
 /// Whether the bytes 0..=127 are the ASCII characters (false for Shift_JIS).
 pub fn ascii_is_identity() -> bool {
     ASCII_IDENT.load(Relaxed)
+}
+
+/// Whether the ASCII byte is a character of its own wherever it stands (see `RESYNC`).
+#[inline]
+pub fn is_resync_byte(b: u8) -> bool {
+    b < 0x80 && RESYNC[b as usize].load(Relaxed)
 }
 
 /// Whether the byte 0x80..=0xff is a word character of a single-byte locale.
@@ -69,7 +79,7 @@ mod sys {
     use std::ffi::{c_char, c_int, CStr};
     use std::hash::{BuildHasherDefault, Hasher};
     
-    use super::{ASCII_IDENT, BAD_SINGLE, HIGH_ONLY, WORD_HIGH};
+    use super::{ASCII_IDENT, BAD_SINGLE, HIGH_ONLY, RESYNC, WORD_HIGH};
     use crate::regex::Locale;
     use std::sync::atomic::Ordering::Relaxed;
 
@@ -190,6 +200,36 @@ mod sys {
                     BAD_SINGLE[(b & 0x7f) as usize].store(true, Relaxed);
                 }
             }
+        }
+        // An ASCII byte that no sequence of up to three bytes ends or continues with is a boundary.
+        let mut trail = [false; 128];
+        for lead in 0x80..=0xffu32 {
+            for second in 0..=0xffu32 {
+                let pair = [lead as u8, second as u8];
+                let mut st = MbState([0; 2]);
+                let mut wc = 0u32;
+                // SAFETY: two readable bytes; `st` is a fresh initial state.
+                let r = unsafe { mbrtowc(&mut wc, pair.as_ptr().cast(), 2, &mut st) };
+                if r == 2 && second < 0x80 {
+                    trail[second as usize] = true;
+                } else if r == usize::MAX - 1 {
+                    // A prefix of a longer character: its third byte may be ASCII.
+                    for third in 0..0x80u32 {
+                        let triple = [lead as u8, second as u8, third as u8];
+                        let mut st = MbState([0; 2]);
+                        let r = unsafe { mbrtowc(&mut wc, triple.as_ptr().cast(), 3, &mut st) };
+                        if r == 3 || r == usize::MAX - 1 {
+                            trail[third as usize] = true;
+                        }
+                    }
+                    if second < 0x80 {
+                        trail[second as usize] = true;
+                    }
+                }
+            }
+        }
+        for b in 0..0x80usize {
+            RESYNC[b].store(!trail[b] && decode_raw(&[b as u8]).is_some_and(|(_, l)| l == 1), Relaxed);
         }
         ASCII_IDENT.store(ident, Relaxed);
         HIGH_ONLY.store(high_only, Relaxed);

@@ -341,7 +341,6 @@ impl Regex {
             mb: self.syntax.locale == Locale::Mb,
             sb: self.syntax.locale == Locale::Sb,
             icase: self.syntax.icase,
-            bhint: std::cell::Cell::new(0),
         };
         match searcher.search(start) {
             Some((_, groups)) => {
@@ -388,7 +387,6 @@ impl Regex {
             mb: self.syntax.locale == Locale::Mb,
             sb: self.syntax.locale == Locale::Sb,
             icase: self.syntax.icase,
-            bhint: std::cell::Cell::new(0),
         };
         searcher.exists()
     }

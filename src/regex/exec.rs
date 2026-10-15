@@ -117,8 +117,6 @@ pub struct Searcher<'a> {
     /// A single-byte locale of the C library (`Locale::Sb`).
     pub sb: bool,
     pub icase: bool,
-    /// A position known to be a character boundary at or before the one asked about (`Mb`).
-    pub bhint: std::cell::Cell<usize>,
 }
 
 impl<'a> Searcher<'a> {
@@ -128,30 +126,51 @@ impl<'a> Searcher<'a> {
         if self.mb { crate::locale::mb_decode(self.hay, pos) } else { decode_utf8(self.hay, pos) }
     }
 
-    /// The character that ends exactly at `pos`, if there is one.
-    fn dec_before(&self, pos: usize) -> Option<(char, usize)> {
-        if !self.mb {
-            return decode_utf8_before(self.hay, pos);
+    /// `Mb`: reads the line forward from a character boundary before `pos` (an ASCII byte that
+    /// can only be a character of its own, within a bounded distance; else the start of the
+    /// line, since a second byte can look like a first byte and a line cannot be read
+    /// backward). Returns whether `pos` is inside a character and, if it is not, the valid
+    /// character that ends at it.
+    fn mb_scan(&self, pos: usize) -> (bool, Option<(char, usize)>) {
+        let hay = self.hay;
+        let mut start = pos.min(hay.len());
+        let floor = start.saturating_sub(4096);
+        loop {
+            if start == 0 {
+                break;
+            }
+            start -= 1;
+            if crate::locale::is_resync_byte(hay[start]) {
+                break;
+            }
+            if start < floor {
+                start = 0;
+                break;
+            }
         }
-        // The set can have second bytes that look like first bytes, so the line is read forward
-        // from a position known to be a boundary.
-        let mut p = if self.bhint.get() < pos { self.bhint.get() } else { 0 };
+        let mut p = start;
         let mut last = None;
         while p < pos {
-            let (step, ch) = match crate::locale::mb_decode(self.hay, p) {
-                Some((c, l)) => (l, Some((c, l))),
-                None => (1, None),
-            };
-            last = Some((p, ch));
-            p += step;
-        }
-        match last {
-            Some((start, ch)) => {
-                self.bhint.set(start);
-                if p == pos { ch } else { None }
+            match crate::locale::mb_decode(hay, p) {
+                Some((c, l)) => {
+                    if p + l > pos {
+                        return (true, None);
+                    }
+                    last = Some((c, l));
+                    p += l;
+                }
+                None => {
+                    last = None;
+                    p += 1;
+                }
             }
-            None => None,
         }
+        (false, last)
+    }
+
+    /// The character that ends exactly at `pos`, if there is one.
+    fn dec_before(&self, pos: usize) -> Option<(char, usize)> {
+        if self.mb { self.mb_scan(pos).1 } else { decode_utf8_before(self.hay, pos) }
     }
 
     fn word_char(&self, c: char) -> bool {
@@ -277,17 +296,7 @@ impl<'a> Searcher<'a> {
             return false;
         }
         if self.mb {
-            // Searches start at boundaries and step by characters, so a position inside a
-            // character is only asked about by the assertions after a byte unit; read the line.
-            let mut p = if self.bhint.get() <= pos { self.bhint.get() } else { 0 };
-            while p < pos {
-                let step = self.dec(p).map_or(1, |(_, l)| l);
-                if p + step > pos {
-                    return true;
-                }
-                p += step;
-            }
-            return false;
+            return self.mb_scan(pos).0;
         }
         (1..=3).any(|back| {
             pos >= back && decode_utf8(self.hay, pos - back).is_some_and(|(_, l)| l > back)
@@ -295,7 +304,8 @@ impl<'a> Searcher<'a> {
     }
 
     fn may_start(&self, pos: usize) -> bool {
-        if self.prog.char_starts && self.inside_char(pos) {
+        // (`Mb`: a search starts at a boundary and steps by characters, so it never asks.)
+        if self.prog.char_starts && !self.mb && self.inside_char(pos) {
             return false;
         }
         match &self.prog.first_bytes {
