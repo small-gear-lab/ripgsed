@@ -1,0 +1,11 @@
+mk() { mkdir -p "$PWD/loc"; localedef -f "$1" -i "$2" "$PWD/loc/$3" > /dev/null 2>&1; }
+export LOCPATH=$PWD/loc LANGUAGE=C
+mk SHIFT_JIS ja_JP ja_JP.SJIS
+export LC_ALL=ja_JP.SJIS
+# in this set 0x5c is the yen sign and 0x7e the overline, and both are single-byte characters
+printf 'a\\b~c\n' | sed 's/[[:punct:]]/X/g'
+printf 'a\\b~c\n' | sed 's/./X/g'
+printf 'a\\b~c\n' | sed 's/\\/X/'
+printf 'a\\b~c\n' | sed 's/~/X/'
+printf 'a\\b~c\n' | sed 'y/\\/X/'
+rm -rf loc

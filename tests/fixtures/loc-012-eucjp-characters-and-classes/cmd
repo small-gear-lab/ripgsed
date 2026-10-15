@@ -1,0 +1,28 @@
+mk() { mkdir -p "$PWD/loc"; localedef -f "$1" -i "$2" "$PWD/loc/$3" > /dev/null 2>&1; }
+export LOCPATH=$PWD/loc LANGUAGE=C
+mk EUC-JP ja_JP ja_JP.eucJP
+export LC_ALL=ja_JP.eucJP
+# a hiragana (2 bytes), a fullwidth letter, a halfwidth katakana (SS2, 2 bytes), a JIS X 0212 character (SS3, 3 bytes)
+A=$(printf '\244\242')
+FW=$(printf '\243\341')
+HK=$(printf '\216\261')
+S3='\217\260\241'
+printf '%s\n' "x${A}${FW}${HK}${S3}y" | sed 's/./[&]/g' | od -An -c
+printf '%s\n' "${A}${A}${FW}" | sed 's/./X/2'
+printf '%s\n' "${A}" | sed 's/x*/-/g' | od -An -c
+printf '%s\n' "${A}${FW}a1_ " | sed 's/[[:alpha:]]/X/g'
+printf '%s\n' "${A}${FW}a1_ " | sed 's/\w/X/g'
+printf '%s\n' "${A}${FW}a1_ " | sed 's/\W/X/g'
+printf '%s\n' "${A}${FW}a1_ " | sed 's/[^a]/X/g'
+printf '%s\n' "${A}${FW}a1_ " | sed 's/[[:upper:]]/X/g'
+printf '%s\n' "${FW}" | sed 's/.*/\U&/' | od -An -c
+printf '%s\n' "${FW}" | sed 's/.*/\u&/' | od -An -c
+printf '%s\n' "${A}${FW}${A}" | sed 's/\(.\)\(.\)\(.\)/\3\2\1/' | od -An -c
+printf '%s\n' "x${A}y" | sed 's/\b/|/g' | od -An -c
+printf '%s\n' "${A}${A}${FW}" | sed 'y/'"${A}${FW}"'/ab/'
+printf '%s\n' "${A}${FW}" | sed -n '/^..$/p;/^.\{1\}$/p'
+printf '%s\n' "${A}${FW}" | sed -n 'l'
+printf '%s\n' "${A}" | sed 's/'"${A}"'/X/;s/X/'"${A}${A}"'/'  | od -An -c
+printf '%s\n' "${A}${FW}" | sed 's/'"${FW}"'*/-/g' | od -An -c
+printf 'ab\n' | sed 's/[b-a]/X/' 2>&1
+rm -rf loc

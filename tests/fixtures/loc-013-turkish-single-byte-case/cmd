@@ -1,0 +1,13 @@
+mk() { mkdir -p "$PWD/loc"; localedef -f "$1" -i "$2" "$PWD/loc/$3" > /dev/null 2>&1; }
+export LOCPATH=$PWD/loc LANGUAGE=C
+# ISO-8859-9: dotless i is 0xfd and dotted capital I is 0xdd; i and I do not go together
+mk ISO-8859-9 tr_TR tr_TR.ISO-8859-9
+export LC_ALL=tr_TR.ISO-8859-9
+DI=$(printf '\375'); DC=$(printf '\335')
+printf '%s\n' "iI${DI}${DC}" | sed 's/.*/\U&/' | od -An -c
+printf '%s\n' "iI${DI}${DC}" | sed 's/.*/\L&/' | od -An -c
+printf '%s\n' "iI${DI}${DC}" | sed 's/i/X/Ig'
+printf '%s\n' "iI${DI}${DC}" | sed 's/I/X/Ig'
+printf '%s\n' "iI${DI}${DC}" | sed 's/[i]/X/Ig'
+printf '%s\n' "iI${DI}${DC}" | sed 's/[[:upper:]]/X/g'
+rm -rf loc

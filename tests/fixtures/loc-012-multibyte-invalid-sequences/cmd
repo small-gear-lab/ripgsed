@@ -1,0 +1,27 @@
+mk() { mkdir -p "$PWD/loc"; localedef -f "$1" -i "$2" "$PWD/loc/$3" > /dev/null 2>&1; }
+export LOCPATH=$PWD/loc LANGUAGE=C
+mk EUC-JP ja_JP ja_JP.eucJP
+mk SHIFT_JIS ja_JP ja_JP.SJIS
+mk BIG5 zh_TW zh_TW.BIG5
+t() { # locale script bytes
+  printf '%s\n' "$3" | LC_ALL=$1 sed "$2" | od -An -c
+}
+L=$(printf '\244'); C=$(printf '\244\242')
+t ja_JP.eucJP 's/./X/g' "${L}a${C}"
+t ja_JP.eucJP 's/.*/X/' "a${L}"
+t ja_JP.eucJP 's/[^a]/X/g' "${L}a${C}"
+t ja_JP.eucJP 's/\W/X/g' "${L}a${C}"
+t ja_JP.eucJP 's/.*/\U&/' "a${L}b"
+t ja_JP.eucJP 's/^.\{2\}$/X/' "${L}${C}"
+L=$(printf '\203'); C=$(printf '\203\100')
+t ja_JP.SJIS 's/./X/g' "${L}a${C}"
+t ja_JP.SJIS 's/.*/X/' "a${L}"
+t ja_JP.SJIS 's/[^a]/X/g' "${L}a${C}"
+L=$(printf '\243'); C=$(printf '\243\133')
+t zh_TW.BIG5 's/./X/g' "${L}a${C}"
+t zh_TW.BIG5 's/.*/X/' "a${L}"
+t zh_TW.BIG5 's/[^a]/X/g' "${L}a${C}"
+# a lead byte cannot delimit a regular expression
+printf 'a\n' | LC_ALL=ja_JP.eucJP sed "s$(printf '\244')a$(printf '\244')b$(printf '\244')" 2>&1
+printf 'a\n' | LC_ALL=ja_JP.eucJP sed "s$(printf '\377')a$(printf '\377')b$(printf '\377')" 2>&1 | od -An -c
+rm -rf loc

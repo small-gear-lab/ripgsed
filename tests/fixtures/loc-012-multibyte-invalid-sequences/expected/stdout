@@ -1,0 +1,14 @@
+ 244   X   X  \n
+   X 244  \n
+ 244   a   X  \n
+ 244   a 244 242  \n
+   A 244   b  \n
+ 244 244 242  \n
+   X   X  \n
+   X 203  \n
+   X   X  \n
+   X   X  \n
+   X 243  \n
+   X   X  \n
+sed: -e expression #1, char 2: delimiter character is not a single-byte character
+   b  \n

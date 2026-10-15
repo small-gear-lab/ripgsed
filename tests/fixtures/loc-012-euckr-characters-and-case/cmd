@@ -1,0 +1,19 @@
+mk() { mkdir -p "$PWD/loc"; localedef -f "$1" -i "$2" "$PWD/loc/$3" > /dev/null 2>&1; }
+export LOCPATH=$PWD/loc LANGUAGE=C
+mk EUC-KR ko_KR ko_KR.eucKR
+export LC_ALL=ko_KR.eucKR
+# HAN and GEUL (hangul syllables), a fullwidth letter and its capital
+H=$(printf '\307\321')
+G=$(printf '\261\333')
+FW=$(printf '\243\341')
+printf '%s\n' "${H}${G}x" | sed 's/./[&]/g' | od -An -c
+printf '%s\n' "${H}${G}x" | sed 's/\w/X/g'
+printf '%s\n' "${H}${G}x" | sed 's/[[:alpha:]]*/<&>/'  | od -An -c
+printf '%s\n' "${FW}${FW}" | sed 's/.*/\U&/' | od -An -c
+printf '%s\n' "${FW}" | sed 's/'"$(printf '\243\301')"'/X/I'
+printf '%s\n' "${H}${G}" | sed 'y/'"${H}${G}"'/'"${G}${H}"'/' | od -An -c
+printf '%s\n' "${H}${G}" | sed 's/'"${H}"'\|'"${G}"'/X/g'
+printf '%s\n' "${H}${G}" | sed 's/\(.\)\(.\)/\2\1/' | od -An -c
+printf '%s\n' "${H}${G}" | sed 's/./&&/g' | od -An -c
+printf '%s\n' "${H}" | sed 's/./&/;s/\(.\)/\1\1/' | od -An -c
+rm -rf loc

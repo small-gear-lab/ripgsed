@@ -1,0 +1,23 @@
+mk() { mkdir -p "$PWD/loc"; localedef -f "$1" -i "$2" "$PWD/loc/$3" > /dev/null 2>&1; }
+export LOCPATH=$PWD/loc LANGUAGE=C
+mk SHIFT_JIS ja_JP ja_JP.SJIS
+export LC_ALL=ja_JP.SJIS
+# hiragana A (0x82 0xa0), SO (0x83 0x5c: the second byte is a backslash), HYO (0x95 0x5c), TA (0x83 0x40: the second byte is @)
+A=$(printf '\202\240')
+SO=$(printf '\203\134')
+HYO=$(printf '\225\134')
+TA=$(printf '\203\100')
+printf '%s\n' "${A}${SO}${HYO}${TA}" | sed 's/./[&]/g' | od -An -c
+printf '%s\n' "${SO}" | sed 's/@/x/;s/\\/x/' | od -An -c
+printf '%s\n' "${TA}" | sed 's/@/x/' | od -An -c
+printf '%s\n' "${SO}a${HYO}" | sed 's/'"${SO}"'/X/' | od -An -c
+printf '%s\n' "${SO}a${HYO}" | sed 's/['"${SO}"']/X/g' | od -An -c
+printf '%s\n' "${SO}a${HYO}" | sed 's/'"${HYO}"'/\&&/' | od -An -c
+printf '%s\n' "${SO}a${HYO}" | sed 'y/'"${SO}"'/'"${A}"'/' | od -An -c
+printf '%s\n' "${SO}a${HYO}" | sed 's/a/\n/' | od -An -c
+printf '%s\n' "${SO}a${HYO}" | sed 's/'"${SO}"'a/X/' | od -An -c
+printf '%s\n' "${SO}${TA}" | sed 's/\w/X/g' | od -An -c
+printf '%s\n' "${SO}a${TA}" | sed 's/\b/|/g' | od -An -c
+printf '%s\n' "${SO}${HYO}" | sed 's/.*/\U&/' | od -An -c
+printf '%s\n' "${A}${SO}" | sed -n 'l'
+rm -rf loc

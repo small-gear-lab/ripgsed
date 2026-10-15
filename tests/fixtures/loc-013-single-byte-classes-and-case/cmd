@@ -1,0 +1,24 @@
+mk() { mkdir -p "$PWD/loc"; localedef -f "$1" -i "$2" "$PWD/loc/$3" > /dev/null 2>&1; }
+export LOCPATH=$PWD/loc LANGUAGE=C
+# a letter with an accent, its capital, sharp s, micro sign, y with diaeresis (no capital in the set), multiplication sign
+mk ISO-8859-1 de_DE de_DE.ISO-8859-1
+export LC_ALL=de_DE.ISO-8859-1
+E=$(printf '\351'); EC=$(printf '\311'); SS=$(printf '\337'); MU=$(printf '\265'); Y=$(printf '\377'); TIMES=$(printf '\327')
+printf '%s\n' "a${E}${EC}${SS}${MU}${Y}${TIMES}1_ " | sed 's/[[:alpha:]]/X/g'
+printf '%s\n' "a${E}${EC}${SS}${MU}${Y}${TIMES}1_ " | sed 's/\w/X/g'
+printf '%s\n' "a${E}${EC}${SS}${MU}${Y}${TIMES}1_ " | sed 's/[[:upper:]]/X/g'
+printf '%s\n' "a${E}${EC}${SS}${MU}${Y}${TIMES}1_ " | sed 's/[[:lower:]]/X/g'
+printf '%s\n' "a${E}${EC}${SS}${MU}${Y}${TIMES}1_ " | sed 's/[[:punct:]]/X/g'
+printf '%s\n' "a${E}${EC}${SS}${MU}${Y}${TIMES}1_ " | sed 's/[^[:alnum:]]/X/g'
+printf '%s\n' "a${E}${EC}${SS}${MU}${Y}${TIMES}1_ " | sed 's/\W/X/g'
+printf '%s\n' "a${E}${EC}${SS}${MU}${Y}${TIMES}1_ " | sed 's/.*/\U&/' | od -An -c
+printf '%s\n' "a${E}${EC}${SS}${MU}${Y}${TIMES}1_ " | sed 's/.*/\L&/' | od -An -c
+printf '%s\n' "a${E}${EC}${SS}${MU}${Y}${TIMES}1_ " | sed 's/.*/\u&/' | od -An -c
+printf '%s\n' "${E}${EC}" | sed 's/'"${E}"'/X/Ig'
+printf '%s\n' "${E}${EC}" | sed 's/['"${EC}"']/X/Ig'
+printf '%s\n' "${E}${EC}${E}" | sed -n '/^\(.\)\(.\)\1$/Ip'
+printf '%s\n' "${E}${EC}" | sed 'y/'"${E}${EC}"'/eE/'
+printf '%s\n' "${E} ${E}x" | sed 's/\b/|/g' | od -An -c
+printf '%s\n' "${E}${EC}" | sed -n 'l'
+printf '%s\n' "${E}${EC}" | sed 's/./[&]/g' | od -An -c
+rm -rf loc

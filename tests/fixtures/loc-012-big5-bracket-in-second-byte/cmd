@@ -1,0 +1,18 @@
+mk() { mkdir -p "$PWD/loc"; localedef -f "$1" -i "$2" "$PWD/loc/$3" > /dev/null 2>&1; }
+export LOCPATH=$PWD/loc LANGUAGE=C
+mk BIG5 zh_TW zh_TW.BIG5
+export LC_ALL=zh_TW.BIG5
+# OMEGA (0xa3 0x5b: the second byte is [), and a character whose second byte is a backslash (0xa5 0x5c)
+O=$(printf '\243\133')
+BS=$(printf '\245\134')
+C=$(printf '\244\244')
+printf '%s\n' "${O}${BS}${C}" | sed 's/./[&]/g' | od -An -c
+printf '%s\n' "${O}${BS}${C}" | sed 's/'"${O}"'/X/' | od -An -c
+printf '%s\n' "${O}${BS}${C}" | sed 's/['"${O}${C}"']/X/g' | od -An -c
+printf '%s\n' "${O}${BS}${C}" | sed -n '/^'"${O}"'/p' | od -An -c
+printf '%s\n' "${O}${BS}${C}" | sed 's/'"${BS}"'/X/' | od -An -c
+printf '%s\n' "${O}${BS}${C}" | sed 's/'"${BS}"'/\n/' | od -An -c
+printf '%s\n' "${O}${BS}${C}" | sed 's/[^'"${O}"']/X/g' | od -An -c
+printf '%s\n' "${O}${BS}${C}" | sed 'y/'"${O}${BS}"'/ab/'
+printf '%s\n' "${O}${BS}${C}" | sed 's/\x40/x/' | od -An -c
+rm -rf loc

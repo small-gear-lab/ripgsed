@@ -1,0 +1,17 @@
+mk() { mkdir -p "$PWD/loc"; localedef -f "$1" -i "$2" "$PWD/loc/$3" > /dev/null 2>&1; }
+export LOCPATH=$PWD/loc LANGUAGE=C
+mk ISO-8859-1 de_DE de_DE.ISO-8859-1
+export LC_ALL=de_DE.ISO-8859-1
+E=$(printf '\351'); EC=$(printf '\311'); AGR=$(printf '\340'); YU=$(printf '\377'); TWO=$(printf '\262')
+printf '%s\n' "abz${E}${EC}${AGR}${YU}AZ${TWO}5" | sed 's/[a-z]/X/g'
+printf '%s\n' "abz${E}${EC}${AGR}${YU}AZ${TWO}5" | sed 's/[A-Z]/X/g'
+printf '%s\n' "abz${E}${EC}${AGR}${YU}AZ${TWO}5" | sed 's/['"${AGR}"'-'"${YU}"']/X/g'
+printf '%s\n' "abz${E}${EC}${AGR}${YU}AZ${TWO}5" | sed 's/[0-9]/X/g'
+printf '%s\n' "abz${E}${EC}${AGR}${YU}AZ${TWO}5" | sed 's/[[:digit:]]/X/g'
+printf '%s\n' "abz${E}${EC}${AGR}${YU}AZ${TWO}5" | sed 's/[0-9[:alpha:]]/X/g'
+printf '%s\n' "3${TWO}" | sed 's/[0-9]/N/g'
+printf '%s\n' "${TWO}" | sed 's/[0-9]/N/g'
+printf '%s\n' "abz${E}${EC}${AGR}${YU}AZ${TWO}5" | sed 's/[[=e=]]/X/g'
+printf '%s\n' "abz" | sed 's/[z-a]/X/' 2>&1
+printf '%s\n' "abz" | sed 's/['"${E}"'-a]/X/' 2>&1
+rm -rf loc
