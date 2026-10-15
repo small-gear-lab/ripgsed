@@ -9,6 +9,7 @@ pub mod io;
 pub mod parallel;
 pub mod regex;
 pub mod runtime;
+pub mod search;
 pub mod stream;
 pub mod syntax;
 

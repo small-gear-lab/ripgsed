@@ -92,6 +92,7 @@ mod ast;
 mod charset;
 mod compile;
 mod exec;
+mod literal;
 mod parse;
 
 use std::fmt;
@@ -179,6 +180,7 @@ pub struct Regex {
     prog: compile::Program,
     syntax: Syntax,
     delim: u8,
+    literals: literal::Literals,
 }
 
 impl Regex {
@@ -194,7 +196,8 @@ impl Regex {
     pub fn compile_with_delimiter(pattern: &[u8], syntax: &Syntax, delim: u8) -> Result<Regex, CompileError> {
         let parsed = parse::parse(pattern, syntax, delim)?;
         let prog = compile::compile(&parsed.node, parsed.ngroups, parsed.referenced, parsed.char_starts, parsed.utf8)?;
-        Ok(Regex { prog, syntax: *syntax, delim })
+        let literals = literal::analyze(&parsed.node, syntax.locale == Locale::Utf8);
+        Ok(Regex { prog, syntax: *syntax, delim, literals })
     }
 
     /// Number of parenthesized subexpressions.
@@ -206,6 +209,24 @@ impl Regex {
     /// `start`. The whole of `haystack` stays visible, so anchors and word
     /// boundaries behave as in the full record. Fills `caps` on a match.
     pub fn captures_at(&self, haystack: &[u8], start: usize, caps: &mut Captures) -> bool {
+        if start > haystack.len() {
+            return false;
+        }
+        if let Some(lit) = &self.literals.pure {
+            // A pattern that is just a literal: the leftmost occurrence is the match.
+            return match crate::search::memmem(&haystack[start..], lit) {
+                Some(i) => {
+                    caps.groups = vec![Some((start + i, start + i + lit.len()))];
+                    true
+                }
+                None => false,
+            };
+        }
+        if let Some(lit) = &self.literals.required {
+            if crate::search::memmem(&haystack[start..], lit).is_none() {
+                return false;
+            }
+        }
         let searcher = exec::Searcher {
             prog: &self.prog,
             hay: haystack,
@@ -231,6 +252,14 @@ impl Regex {
     /// the match may meet a newline the match consumes even when the pattern
     /// has groups. Use this for addresses and `captures_at` for `s`.
     pub fn is_match(&self, haystack: &[u8]) -> bool {
+        if let Some(lit) = &self.literals.pure {
+            return crate::search::memmem(haystack, lit).is_some();
+        }
+        if let Some(lit) = &self.literals.required {
+            if crate::search::memmem(haystack, lit).is_none() {
+                return false;
+            }
+        }
         let searcher = exec::Searcher {
             prog: &self.prog,
             hay: haystack,

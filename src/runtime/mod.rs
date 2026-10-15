@@ -152,7 +152,7 @@ impl RecordSource for ChunkRecords {
             return Ok(None);
         }
         let rest = &self.data[self.pos..];
-        let (body, used, terminated) = match rest.iter().position(|&b| b == self.separator) {
+        let (body, used, terminated) = match crate::search::memchr(self.separator, rest) {
             Some(i) => (rest[..i].to_vec(), i + 1, true),
             None => (rest.to_vec(), rest.len(), false),
         };

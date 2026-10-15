@@ -449,7 +449,11 @@ impl Parser {
         if self.zero_address {
             // GNU sed reports line address 0 after reading the character that follows the address,
             // except for `r`, which accepts it (insert a file before the first line).
-            let is_read = self.peek() == Some(b'r') && matches!(selector, Some(Selector::Single(Addr::Line(0))));
+            let is_read = self.peek() == Some(b'r')
+                && matches!(
+                    selector,
+                    Some(Selector::Single(Addr::Line(0) | Addr::Step { first: 0, step: 0 }))
+                );
             if !is_read {
                 self.next();
                 return Err(self.error("invalid usage of line address 0"));

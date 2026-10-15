@@ -76,7 +76,7 @@ impl<R: Read> ChunkReader<R> {
                 continue;
             }
             // Cut after the last separator, keep the unfinished record for the next read.
-            if let Some(at) = self.carry[old..].iter().rposition(|&b| b == self.separator) {
+            if let Some(at) = crate::search::memrchr(self.separator, &self.carry[old..]) {
                 let cut = old + at + 1;
                 let rest = self.carry.split_off(cut);
                 let data = std::mem::replace(&mut self.carry, rest);
@@ -86,7 +86,7 @@ impl<R: Read> ChunkReader<R> {
     }
 
     fn emit(&mut self, data: Vec<u8>, unterminated_tail: bool) -> Chunk {
-        let mut records = data.iter().filter(|&&b| b == self.separator).count() as u64;
+        let mut records = crate::search::count(self.separator, &data) as u64;
         if unterminated_tail {
             records += 1;
         }

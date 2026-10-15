@@ -30,13 +30,15 @@ awk -v n="$size" 'BEGIN {
     printf "%d %s user=%s id=%d msg=%s %s %s\n", 1700000000 + i, lv[1 + int(rand() * 4)], w[1 + int(rand() * 8)], int(rand() * 100000), w[1 + int(rand() * 8)], w[1 + int(rand() * 8)], w[1 + int(rand() * 8)]
 }' > "$scratch/log.txt"
 # One long line of the same data, and many short lines.
-tr '\n' ' ' < "$scratch/log.txt" | head -c 20000000 > "$scratch/long.txt"; echo >> "$scratch/long.txt"
+head -c 20000000 "$scratch/log.txt" | tr '\n' ' ' > "$scratch/long.txt"; echo >> "$scratch/long.txt"
 awk 'BEGIN { for (i = 1; i <= 2000000; i++) print i }' > "$scratch/nums.txt"
 
-printf '| workload | GNU sed (s) | ripgsed (s) | ratio | GNU RSS | ripgsed RSS |\n|---|---:|---:|---:|---:|---:|\n'
+printf '| workload | GNU sed (s) | ripgsed 1 thread (s) | ratio | ripgsed auto (s) | ratio | GNU RSS | ripgsed RSS |\n|---|---:|---:|---:|---:|---:|---:|---:|\n'
 
-measure() { # program file args... -> "median_seconds rss_mib hash"
+measure() { # program file args... -> "median_seconds rss_mib hash"; JOBS=n forces RIPGSED_JOBS
   local prog=$1 file=$2; shift 2
+  export RIPGSED_JOBS=${JOBS:-}
+  [ -n "$RIPGSED_JOBS" ] || unset RIPGSED_JOBS
   local out=() i t m
   for ((i = 0; i < runs; i++)); do
     /usr/bin/time -f '%e %M' -o "$scratch/t" "$prog" "$@" "$file" > "$scratch/out" 2> /dev/null || true
@@ -47,12 +49,14 @@ measure() { # program file args... -> "median_seconds rss_mib hash"
 
 row() { # name file args...
   local name=$1 file=$2; shift 2
-  read -r gt gr gh <<< "$(measure "$gnu" "$scratch/$file" "$@")"
-  read -r ot or oh <<< "$(measure "$ours" "$scratch/$file" "$@")"
-  local ratio status=""
-  ratio=$(awk -v a="$ot" -v b="$gt" 'BEGIN { if (b > 0) printf "%.2f", a / b; else print "-" }')
-  [ "$gh" = "$oh" ] || status=" MISMATCH"
-  printf '| %s | %s | %s | %s%s | %s MiB | %s MiB |\n' "$name" "$gt" "$ot" "$ratio" "$status" "$gr" "$or"
+  read -r gt gr gh <<< "$(JOBS= measure "$gnu" "$scratch/$file" "$@")"
+  read -r st sr sh <<< "$(JOBS=1 measure "$ours" "$scratch/$file" "$@")"
+  read -r ot or oh <<< "$(JOBS= measure "$ours" "$scratch/$file" "$@")"
+  local r1 r2 status=""
+  r1=$(awk -v a="$st" -v b="$gt" 'BEGIN { if (b > 0) printf "%.2f", a / b; else print "-" }')
+  r2=$(awk -v a="$ot" -v b="$gt" 'BEGIN { if (b > 0) printf "%.2f", a / b; else print "-" }')
+  [ "$gh" = "$sh" ] && [ "$gh" = "$oh" ] || status=" MISMATCH"
+  printf '| %s | %s | %s | %s%s | %s | %s | %s MiB | %s MiB |\n' "$name" "$gt" "$st" "$r1" "$status" "$ot" "$r2" "$gr" "$or"
 }
 
 row 's/literal/X/g'            log.txt 's/alpha/X/g'
