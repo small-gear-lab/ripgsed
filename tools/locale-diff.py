@@ -42,6 +42,9 @@ LITERALS = ["i", "I", "s", "S", "k", "K", "a", "z", "ß", "ǆ", "ǅ", "ς", "σ"
 # Differences that are known and listed in docs/KNOWN-DIFFERENCES.md: reported, but not a failure.
 # A back-reference under `I` after a character whose upper-case form is longer in UTF-8 (`ɐɐ`).
 KNOWN = {"/^\\(.\\)\\1$/I=": "back-reference under I after a letter whose capital is longer"}
+# The same for `C.UTF-8` only, where ripgsed folds a letter under `I` with its own rule
+# (docs/KNOWN-DIFFERENCES.md, "With the `I` flag, glibc matches ... in one direction only").
+KNOWN_C_UTF8 = {"/^[µ]$/I=", "/^[в]$/I=", "/^[В]$/I=", "/^[ᲀ]$/I=", "/^[ς]$/I=", "/^в$/I="}
 # Scripts whose whole output is compared, line by line.
 CONVERSIONS = ["s/.*/\\U&/", "s/.*/\\L&/", "s/.*/\\u&/", "s/.*/\\l&/", "s/\\b/|/g", "s/\\B/|/g"]
 # Patterns that GNU sed refuses (or accepts) depending on the locale: the messages and the
@@ -167,10 +170,10 @@ def main():
                 else:
                     la, lb = og.split(b"\n"), oo.split(b"\n")
                     bad = sum(1 for x, y in zip(la, lb) if x != y) + abs(len(la) - len(lb))
-                known = bad != 0 and label in KNOWN
+                known = bad != 0 and (label in KNOWN or (loc == "C.UTF-8" and label in KNOWN_C_UTF8))
                 failed += bad != 0 and not known
                 if bad or args.verbose:
-                    note = "  (known: " + KNOWN[label] + ")" if known else ""
+                    note = "  (known: " + KNOWN.get(label, "one-direction letter folding of C.UTF-8") + ")" if known else ""
                     print(f"{loc:14} {label:26} {total:11d} {bad:7d} {100.0 * (total - bad) / total:8.4f}{note}", flush=True)
         print("all cases match" if not failed else f"{failed} cases differ", flush=True)
         sys.exit(1 if failed else 0)
