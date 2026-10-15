@@ -1,0 +1,57 @@
+== [x-[:alpha:]]
+sed: -e expression #1, char 19: Invalid range end
+sed: -e expression #1, char 19: Invalid range end
+== [x-[:foo:]]
+sed: -e expression #1, char 17: Invalid range end
+sed: -e expression #1, char 17: Invalid range end
+== [x-[=a=]]
+sed: -e expression #1, char 15: Invalid range end
+sed: -e expression #1, char 15: Invalid range end
+== [x-[=ab=]]
+sed: -e expression #1, char 16: Invalid range end
+sed: -e expression #1, char 16: Invalid range end
+== [x-[.a.]]
+sed: -e expression #1, char 15: Invalid range end
+sed: -e expression #1, char 15: Invalid range end
+== [x-[.zzz.]]
+sed: -e expression #1, char 17: Invalid collation character
+sed: -e expression #1, char 17: Invalid collation character
+== [[:alpha:]-z]
+sed: -e expression #1, char 19: Invalid range end
+sed: -e expression #1, char 19: Invalid range end
+== [[:foo:]-z]
+sed: -e expression #1, char 17: Invalid character class name
+sed: -e expression #1, char 17: Invalid character class name
+== [[=a=]-z]
+sed: -e expression #1, char 15: Invalid range end
+sed: -e expression #1, char 15: Invalid range end
+== [a-[:alpha:]b]
+sed: -e expression #1, char 20: Invalid range end
+sed: -e expression #1, char 20: Invalid range end
+== [a-[:alpha:]
+sed: -e expression #1, char 18: unterminated `s' command
+sed: -e expression #1, char 18: unterminated `s' command
+== [a-[:alpha
+sed: -e expression #1, char 16: unterminated `s' command
+sed: -e expression #1, char 16: unterminated `s' command
+== [a-[=a=
+sed: -e expression #1, char 13: unterminated `s' command
+sed: -e expression #1, char 13: unterminated `s' command
+== [a-[.a.]
+sed: -e expression #1, char 14: unterminated `s' command
+sed: -e expression #1, char 14: unterminated `s' command
+== [[.a.]-[.c.]]
+XXX-x
+XXX-x
+== [[.a.]-c]
+XXX-x
+XXX-x
+== [a-[.c.]]
+XXX-x
+XXX-x
+== [\t-[:foo:][:alpha:]]
+sed: -e expression #1, char 27: Invalid range end
+sed: -e expression #1, char 27: Invalid range end
+== [\n-[=a=]]
+sed: -e expression #1, char 16: Invalid range end
+sed: -e expression #1, char 16: Invalid range end

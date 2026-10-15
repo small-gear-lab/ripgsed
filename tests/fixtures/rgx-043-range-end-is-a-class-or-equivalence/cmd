@@ -1,0 +1,6 @@
+printf 'abc-x\n' > in
+for b in '[x-[:alpha:]]' '[x-[:foo:]]' '[x-[=a=]]' '[x-[=ab=]]' '[x-[.a.]]' '[x-[.zzz.]]' '[[:alpha:]-z]' '[[:foo:]-z]' '[[=a=]-z]' '[a-[:alpha:]b]' '[a-[:alpha:]' '[a-[:alpha' '[a-[=a=' '[a-[.a.]' '[[.a.]-[.c.]]' '[[.a.]-c]' '[a-[.c.]]' '[\t-[:foo:][:alpha:]]' '[\n-[=a=]]'; do
+  printf '== %s\n' "$b"
+  sed "s/$b/X/g" in 2>&1
+  sed -E "s/$b/X/g" in 2>&1
+done

@@ -1,0 +1,7 @@
+printf 'one\ntwo\n' > a.txt
+sed 'r /dev/zero' a.txt | head -c 20 | od -c
+sed -n '1r /dev/zero' a.txt | head -c 12 | od -c
+printf 'partial' > p
+sed 'r p' a.txt
+echo
+sed -n '$!r p' a.txt | od -c

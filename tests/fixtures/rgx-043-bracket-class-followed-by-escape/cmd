@@ -1,0 +1,12 @@
+printf 'ab1\\n x\n' > in
+sed 's/[b[:alpha:]\n]*/<&>/g' in
+sed 's/[[:digit:]\n]/#/g' in
+sed 's/[[.a.]\n]/#/g' in
+sed 's/[[=a=]\n]/#/g' in
+sed 's/[^[:alpha:]\n]/#/g' in
+sed 's/[[:alpha:][:digit:]\t]/#/g' in
+sed 's/[[:alpha:]\\]/#/g' in
+sed -n 'N;s/[^[:alpha:]\n]/#/gp' in
+sed -E 's/[[:alpha:]\n]+/<&>/g' in
+sed 's/[[:alpha:]\x5d]/#/g' in 2>&1
+POSIXLY_CORRECT=1 sed 's/[b[:alpha:]\n]*/<&>/g' in

@@ -1,0 +1,11 @@
+printf '\304\261\n\305\277\n\342\261\245\n\311\220\n\307\205\n\303\237\n\304\261\305\277\342\261\245\311\220\307\205\303\237\303\200\303\251\346\227\245\n' > in
+printf '\303\n\343\201\n' > bad1
+printf 'a\377b\n\303\251\303\n\360\237\n\355\240\200\n' > bad2
+for f in in bad1 bad2; do
+  for s in 's/.*/\U&/' 's/.*/\L&/' 's/.*/\u&/' 's/.*/\l&/' 's/./\U&\E/g' 's/\(.\)/\u\1\L\1/' 's/.\{1,\}/\l&\U/' 's/x*/\U&/g' 's/$/\u/' 's/^/\L/' 's/./&\l\u/g' 's/\w*/\U&/' 's/[^ ]*/\u&/g' 'y/ıſⱥ/abc/'; do
+    printf '== %s %s\n' "$f" "$s"
+    sed "$s" $f | od -c | sed -n 1,3p
+  done
+done
+LC_ALL=C sed 's/.*/\U&/' in bad1 bad2 | od -c | sed -n 1,6p
+LC_ALL=C sed 's/./\u&\L&/g' in bad1 bad2 | od -c | sed -n 1,6p

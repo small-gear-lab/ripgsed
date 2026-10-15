@@ -1101,6 +1101,17 @@ fn normalize_escapes_for(text: &[u8], posixly_correct: bool, replacement: bool, 
                 i += 1;
                 continue;
             }
+            if in_bracket && b == b'[' {
+                // `[:class:]`, `[.symbol.]` and `[=class=]` run to their own end, which is not
+                // the end of the bracket expression.
+                if let Some(&kind @ (b':' | b'.' | b'=')) = text.get(i + 1) {
+                    if let Some(len) = text[i + 2..].windows(2).position(|w| w[0] == kind && w[1] == b']') {
+                        out.extend_from_slice(&text[i..i + 2 + len + 2]);
+                        i += 2 + len + 2;
+                        continue;
+                    }
+                }
+            }
         }
         if b != b'\\' || i + 1 >= text.len() || (in_bracket && posixly_correct) {
             out.push(b);

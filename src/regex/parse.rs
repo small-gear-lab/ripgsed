@@ -554,6 +554,18 @@ impl<'a> Parser<'a> {
                     Elem::Raw(b) => b as u32,
                     _ => return Err(err(E_ERANGE)),
                 };
+                // A class or an equivalence class cannot end a range, whether or not it is valid.
+                if self.at(0) == Some(b'[') {
+                    if let Some(kind @ (b':' | b'=')) = self.at(1) {
+                        let mut k = 2;
+                        while let Some(c) = self.at(k) {
+                            if c == kind && self.at(k + 1) == Some(b']') {
+                                return Err(err(E_ERANGE));
+                            }
+                            k += 1;
+                        }
+                    }
+                }
                 let end = self.parse_elem()?;
                 let hi = match end {
                     Elem::Ch(c) => c,

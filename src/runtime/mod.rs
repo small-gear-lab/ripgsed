@@ -494,20 +494,26 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
         Ok(())
     }
 
-    /// Writes the contents of the file an `r` command names.
+    /// Writes the contents of the file an `r` command names, as it reads them (the file may
+    /// never end, like `/dev/zero`).
     fn write_file(&mut self, name: &[u8]) -> Result<(), Fatal> {
+        use std::io::Read;
         // Even a missing file ends an unterminated last line.
         self.write_raw(&[])?;
-        let path = String::from_utf8_lossy(name).into_owned();
-        match std::fs::read(crate::io::bytes_path(name)) {
-            Ok(bytes) => self.write_raw(&bytes)?,
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
-            Err(e) if e.raw_os_error() == Some(21) => {
-                return Err(Fatal::new(format!("read error on {path}: Is a directory"), 4));
+        let Ok(mut file) = std::fs::File::open(crate::io::bytes_path(name)) else { return Ok(()) };
+        let mut buffer = vec![0u8; 1 << 16];
+        loop {
+            match file.read(&mut buffer) {
+                Ok(0) => return Ok(()),
+                Ok(n) => self.write_raw(&buffer[..n])?,
+                Err(e) if e.kind() == std::io::ErrorKind::Interrupted => {}
+                Err(e) if e.raw_os_error() == Some(21) => {
+                    let path = String::from_utf8_lossy(name).into_owned();
+                    return Err(Fatal::new(format!("read error on {path}: Is a directory"), 4));
+                }
+                Err(_) => return Ok(()),
             }
-            Err(_) => {}
         }
-        Ok(())
     }
 
     // ---- addresses -----------------------------------------------------------------
