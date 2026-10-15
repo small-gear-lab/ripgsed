@@ -670,7 +670,7 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                     return Ok(Flow::Discard);
                 }
                 Kind::Delete => return Ok(Flow::Discard),
-                Kind::DeleteFirst => match self.pattern.iter().position(|&b| b == self.options.separator) {
+                Kind::DeleteFirst => match crate::search::memchr(self.options.separator, &self.pattern) {
                     None => return Ok(Flow::Discard),
                     Some(i) => {
                         self.pattern.drain(..=i);
@@ -696,8 +696,11 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                 }
                 Kind::Print => self.print_pattern()?,
                 Kind::PrintFirst => {
-                    let (first, terminated) = self.first_line();
-                    self.out.main().write_record(&first, terminated).map_err(|e| write_error("stdout", &e))?;
+                    let (end, terminated) = match crate::search::memchr(self.options.separator, &self.pattern) {
+                        Some(end) => (end, true),
+                        None => (self.pattern.len(), self.terminated),
+                    };
+                    self.out.main().write_record(&self.pattern[..end], terminated).map_err(|e| write_error("stdout", &e))?;
                 }
                 Kind::Get => {
                     self.pattern = self.hold.clone();
