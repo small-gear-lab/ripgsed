@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ripgsed\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-16 00:08+0900\n"
+"POT-Creation-Date: 2026-10-16 01:48+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: ja <LL@li.org>\n"
@@ -55,9 +55,18 @@ msgstr ""
 
 #: ../../KNOWN-DIFFERENCES.md:8
 msgid ""
-"Only the `C` locale and UTF-8 locales are implemented. Other multibyte "
-"encodings are read as bytes."
-msgstr "実装しているロケールは `C` と UTF-8 のみです。その他のマルチバイトエンコーディングはバイト列として読みます。"
+"Only byte-wise and UTF-8 character sets are implemented. Every UTF-8 locale "
+"the C library has is followed (the order of ranges, the classes, the case "
+"rules; D11), but a locale with another character set (EUC-JP, Shift_JIS, "
+"GBK, Big5, EUC-KR, ISO-8859-x, KOI8-R, Windows-125x) is read as bytes, as "
+"the `C` locale is: `.` is one byte and the classes hold ASCII only, where "
+"GNU sed reads characters of that set."
+msgstr ""
+"実装しているのはバイト単位の文字集合と UTF-8 だけです。C ライブラリにある UTF-8 "
+"ロケールはすべて追従しますが（範囲の順序、クラス、大文字小文字の規則。D11）、ほかの文字集合（EUC-"
+"JP、Shift_JIS、GBK、Big5、EUC-KR、ISO-8859-x、KOI8-R、Windows-125x）のロケールは、`C` "
+"ロケールと同じようにバイト列として読みます。`.` は 1 バイトで、クラスは ASCII だけです。GNU sed "
+"はその文字集合の文字として読みます。"
 
 #: ../../KNOWN-DIFFERENCES.md:9
 msgid ""
@@ -197,14 +206,19 @@ msgstr ""
 
 #: ../../KNOWN-DIFFERENCES.md:21
 msgid ""
-"Always on, not an option: character classes (`[[:alpha:]]`, `\\w`, ...) in "
-"UTF-8 locales follow glibc's `C.utf8` tables, which are generated from the C"
-" library (`tools/gen-classes.py`) and so follow its Unicode version, not the"
-" one in Rust's standard library."
+"Always on, not an option: in `C.UTF-8` (the locale of the tables below) and "
+"in any other UTF-8 locale, what the classes contain, how letters change case"
+" and how a range orders its ends are the locale's, never the corrected "
+"behavior (D10, D11). In `C.UTF-8` the character classes (`[[:alpha:]]`, "
+"`\\w`, ...) follow glibc's `C.utf8` tables, which are generated from the C "
+"library (`tools/gen-classes.py`) and so follow its Unicode version, not the "
+"one in Rust's standard library."
 msgstr ""
-"常に有効で、オプションではないもの：UTF-8 ロケールの文字クラス（`[[:alpha:]]`、`\\w` など）は glibc の `C.utf8`"
-" の表に従います。表は C ライブラリから生成しており（`tools/gen-classes.py`）、Rust の標準ライブラリではなく glibc "
-"の Unicode バージョンに従います。"
+"常に有効で、オプションではないもの：`C.UTF-8`（以下の表のロケール）でもほかの UTF-8 "
+"ロケールでも、クラスに何が入るか、文字の大文字小文字がどう変わるか、範囲が端をどう並べるかは、ロケールのものであり、修正した挙動にはなりません（D10、D11）。`C.UTF-8`"
+" では、文字クラス（`[[:alpha:]]`、`\\w` など）は glibc の `C.utf8` の表に従います。表は C "
+"ライブラリから生成しており（`tools/gen-classes.py`）、Rust の標準ライブラリではなく glibc の Unicode "
+"バージョンに従います。"
 
 #: ../../KNOWN-DIFFERENCES.md:23
 msgid "glibc behavior that is not reproduced, even with `--glibc-compat`"
@@ -341,13 +355,31 @@ msgid ""
 "one direction only: `s/В/X/I` does not match `U+1C80` although both fold to "
 "the same capital, and `[µ]` matches `Μ` and `μ`. ripgsed folds literals by "
 "the capital letter in both directions and brackets by the two cases of each "
-"character."
+"character. In every other UTF-8 locale a letter or a bracket expression "
+"under `I` is the C library's, with the one rule of GNU sed's own that the "
+"small Cyrillic variants U+1C80..U+1C88 are taken only by themselves (D11), "
+"and this does not occur."
 msgstr ""
 "`I` フラグのとき、glibc はパターンの文字と入力を一方向にだけ照合します。`s/В/X/I` は同じ大文字に畳まれる `U+1C80` "
 "に一致せず、`[µ]` は `Μ` と `μ` に一致します。ripgsed はリテラルを大文字に畳んで双方向に、ブラケットは各文字の 2 "
-"つの大小で照合します。"
+"つの大小で照合します。ほかの UTF-8 ロケールでは、`I` の下の文字やブラケット式は C ライブラリのものです。小さなキリル文字の異体字 "
+"U+1C80..U+1C88 がそれ自身にしか取られないという GNU sed 自身の規則が 1 つあり（D11）、こうしたことは起きません。"
 
 #: ../../KNOWN-DIFFERENCES.md:41
+msgid ""
+"A back-reference under `I` to a group of one letter whose capital is longer "
+"in UTF-8 than the letter does not match the same letter in glibc, and "
+"ripgsed matches it: `echo ɐɐ | sed 's/\\(.\\)\\1/X/I'` prints `ɐɐ` (the `ɐ` "
+"is two bytes, the `Ɐ` three), and in Turkish locales `echo ii | sed "
+"'s/\\(i\\)\\1/X/I'` prints `ii` (`i` is one byte, `İ` two); `ɐⱯ` and `iİ` "
+"match. The match is the one the definition gives."
+msgstr ""
+"`I` の下で、大文字のほうが UTF-8 で長くなる 1 文字のグループへの後方参照は、glibc では同じ文字に一致せず、ripgsed "
+"は一致します。`echo ɐɐ | sed 's/\\(.\\)\\1/X/I'` は `ɐɐ` を出力し（`ɐ` は 2 バイト、`Ɐ` は 3 "
+"バイト）、トルコ語のロケールでは `echo ii | sed 's/\\(i\\)\\1/X/I'` は `ii` を出力します（`i` は 1 "
+"バイト、`İ` は 2 バイト）。`ɐⱯ` と `iİ` は一致します。一致は定義どおりのものです。"
+
+#: ../../KNOWN-DIFFERENCES.md:42
 msgid ""
 "A text of `a`, `i`, or `c` that ends in `\\c` takes the newline GNU sed "
 "appends as its control character (`a x\\c` writes `xJ`)."
@@ -355,7 +387,7 @@ msgstr ""
 "`a`、`i`、`c` のテキストが `\\c` で終わるとき、GNU sed は付け足す改行をその制御文字として取り込みます（`a x\\c` は "
 "`xJ` を書きます）。"
 
-#: ../../KNOWN-DIFFERENCES.md:42
+#: ../../KNOWN-DIFFERENCES.md:43
 msgid ""
 "A range that starts with an invalid collating symbol and ends with a class "
 "(`[[.space.]-[:alpha:]]`) reports `Invalid collation character`, GNU sed "
@@ -364,7 +396,7 @@ msgstr ""
 "無効な照合記号で始まり、クラスで終わる範囲（`[[.space.]-[:alpha:]]`）は、ripgsed では `Invalid "
 "collation character`、GNU sed では `Invalid range end` です。"
 
-#: ../../KNOWN-DIFFERENCES.md:43
+#: ../../KNOWN-DIFFERENCES.md:44
 msgid ""
 "Reading a directory that a symbolic link points to with `--follow-symlinks` "
 "names the target in the read error; GNU sed 4.9 built from the release "
@@ -374,18 +406,18 @@ msgstr ""
 "`--follow-symlinks` でシンボリックリンクの指すディレクトリを読むとき、読み取りエラーには ripgsed "
 "は指す先の名前を出します。GNU sed 4.9 はリリース tarball からビルドしたものがリンクの名前、パッケージ版が指す先の名前を出します。"
 
-#: ../../KNOWN-DIFFERENCES.md:45
+#: ../../KNOWN-DIFFERENCES.md:46
 msgid "Reporting the glibc cases upstream"
 msgstr "glibc への報告"
 
-#: ../../KNOWN-DIFFERENCES.md:47
+#: ../../KNOWN-DIFFERENCES.md:48
 msgid ""
 "The back-reference and `\\B` cases above reproduce with plain "
 "`regcomp`/`regexec` (`REG_EXTENDED`), without sed:"
 msgstr ""
 "上の後方参照と `\\B` の例は、sed を使わず素の `regcomp`/`regexec`（`REG_EXTENDED`）でも再現します。"
 
-#: ../../KNOWN-DIFFERENCES.md:55
+#: ../../KNOWN-DIFFERENCES.md:56
 msgid ""
 "Observed with glibc 2.43 (Ubuntu 2.43-2ubuntu2.4). A report to the glibc bug"
 " tracker (component `regex`) should say that POSIX asks for the leftmost-"
@@ -443,3 +475,8 @@ msgstr ""
 #~ "compat`（または環境変数 `RIPGSED_GLIBC_COMPAT=1`）を付けると、ripgsed "
 #~ "も同じ動きをして、スクリプトが同じ出力になります。付けない場合は、定義どおりの結果（最左最長、後方参照は定義どおり）になります。差分テストと "
 #~ "fixture は GNU sed の結果を保持しているので、このオプションを付けて実行します。"
+
+#~ msgid ""
+#~ "Only the `C` locale and UTF-8 locales are implemented. Other multibyte "
+#~ "encodings are read as bytes."
+#~ msgstr "実装しているロケールは `C` と UTF-8 のみです。その他のマルチバイトエンコーディングはバイト列として読みます。"
