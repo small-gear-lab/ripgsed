@@ -422,7 +422,7 @@ impl DfaSlot {
             return None;
         }
         let compile = |n: &super::ast::Node, utf8: bool| {
-            super::compile::compile(n, prog.ngroups, vec![false; prog.ngroups + 1], prog.char_starts && utf8, utf8).ok()
+            super::compile::compile(n, prog.ngroups, vec![false; prog.ngroups + 1], prog.char_starts && utf8, utf8, false).ok()
         };
         // In UTF-8, characters are spelled out as byte sequences when the pattern allows it; the
         // DFAs then run on bytes and can pass non-ASCII text. Otherwise they stop at the first

@@ -75,6 +75,7 @@ pub fn compile(
     referenced: Vec<bool>,
     char_starts: bool,
     utf8: bool,
+    glibc: bool,
 ) -> Result<Program, CompileError> {
     let has_backrefs = referenced.iter().any(|&r| r);
     let mut c = Compiler {
@@ -84,6 +85,7 @@ pub fn compile(
         groups: Vec::new(),
         loopk: 0,
         backrefs: has_backrefs,
+        glibc,
     };
     c.emit(node, false, false, false)?;
     c.insts.push(Inst::Match);
@@ -125,11 +127,12 @@ pub fn compile(
             continue;
         }
         let list: Vec<GroupCopy> = c.groups.iter().filter(|e| e.0 == g).map(|e| e.1).collect();
-        if list.len() > 1 {
+        if glibc && list.len() > 1 {
             *slot = list;
         }
     }
-    let quirks = copies.iter().any(|l| l.iter().any(|c| c.nullable))
+    let quirks = glibc
+        && copies.iter().any(|l| l.iter().any(|c| c.nullable))
         || c.insts.iter().any(|i| matches!(*i, Inst::Close(g, _, _, lk) if lk != 0 && referenced.get(g as usize) == Some(&true)));
     let mut prog = Program {
         quirks,
@@ -159,6 +162,8 @@ struct Compiler {
     loopk: u8,
     /// The pattern has back-references.
     backrefs: bool,
+    /// Reproduce the C library's quirks: mark groups for them (see `Inst::Close`).
+    glibc: bool,
 }
 
 impl Compiler {
@@ -198,7 +203,7 @@ impl Compiler {
                 let lk = std::mem::take(&mut self.loopk);
                 // Body that is a repetition itself (`(a*)*`): with back-references in the
                 // pattern, glibc reports its empty last iteration as it is.
-                let lk = if lk == 0 || !can_be_empty(inner) { 0 } else if is_loop(inner) { 3 } else { lk };
+                let lk = if !self.glibc || lk == 0 || !can_be_empty(inner) { 0 } else if is_loop(inner) { 3 } else { lk };
                 let opt = opt && !(self.backrefs && lk == 3);
                 self.emit(inner, false, dup, mid)?;
                 let close = self.push(Inst::Close(*g as u32, opt, mid, lk))?;
@@ -262,7 +267,7 @@ impl Compiler {
                         for _ in *min..*max {
                             holes.push(self.push(Inst::Split(0, 0))?);
                             self.optional += 1;
-                            self.emit(body, mark && (*min > 0 || copy == 0), dup || copy > 0, mid || copy + 1 < *max)?;
+                            self.emit(body, mark && (*min > 0 || copy == 0), dup || copy > 0, self.glibc && (mid || copy + 1 < *max))?;
                             self.optional -= 1;
                             copy += 1;
                         }

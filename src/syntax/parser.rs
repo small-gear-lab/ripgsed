@@ -40,6 +40,8 @@ pub struct ParseOptions {
     /// `-z`: the record separator is NUL.
     pub null_data: bool,
     pub locale: Locale,
+    /// `--glibc-compat`: reproduce the quirks of the C library's regex matcher.
+    pub glibc_compat: bool,
 }
 
 /// The version GNU sed targets (D6); `v` compares against it.
@@ -330,6 +332,7 @@ impl Parser {
             multiline,
             null_data: o.null_data,
             locale: o.locale,
+            glibc_compat: o.glibc_compat,
         };
         match Regex::compile(&normalize_escapes(text, o.posixly_correct), &syntax) {
             Ok(re) => Ok(Pattern { regex: Some(Rc::new(re)), source: text.to_vec(), icase, multiline }),

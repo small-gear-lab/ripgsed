@@ -23,7 +23,7 @@ GNU sed の完全互換は、このプロジェクトの最低要件です（[DE
 
 - `unsupported`：通る fixture が一つもない。未対応の構文はコンパイル時エラーで拒否し、近似で済ませることはありません。
 - `partial`：その項目を対象とする fixture の一部が通り、一部が通らない。
-- `verified`：その項目を対象とするすべての fixture が通る。主張だけで `verified` になることはなく、テスト結果から計算されます。
+- `verified`：その項目をカバーする fixture がすべて通る。主張だけで `verified` になることはなく、テスト結果から計算される。fixture は GNU sed 自身の結果（C ライブラリの正規表現マッチャーの癖を含む）を保持しているので、`--glibc-compat`（D10）を付けて実行する。[KNOWN-DIFFERENCES.md](KNOWN-DIFFERENCES.md) を参照。
 
 status 列は手ではなくテストランナー（`RIPGSED_UPDATE_MATRIX=1 cargo test`）が書き換えます。fixture のない項目は状態が変わらず、fixture なしに `verified` にはなれません。`verified` の項目を対象とする fixture は `cargo test` で強制されるので、検証済みの項目が黙って退行することはありません。
 

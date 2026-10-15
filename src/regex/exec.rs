@@ -83,6 +83,8 @@ pub struct Searcher<'a> {
     pub fixed: Option<&'a (usize, Vec<(usize, usize)>)>,
     /// Leading repetitions before a `\B` (see `star_before_not_word_boundary`); 0 for none.
     pub quirk_stars: usize,
+    /// `glibc_compat`: the matcher's quirks are reproduced.
+    pub glibc: bool,
     /// Off in tests that compare the DFA with the simulation.
     pub use_dfa: bool,
     pub prog: &'a Program,
@@ -349,7 +351,7 @@ impl<'a> Searcher<'a> {
             // The registers of a group like `(a*)*` come from the first path that reaches `e`
             // without an empty iteration after a non-empty one, if there is one; the empty
             // iteration only makes the back-reference match (`(a*)*\1b` on `ab`).
-            bt.no_empty = self.prog.has_backrefs;
+            bt.no_empty = self.prog.has_backrefs && self.glibc;
             let found = bt.run(s, Some(e)).is_some() || {
                 bt.no_empty = false;
                 bt.run(s, Some(e)).is_some()

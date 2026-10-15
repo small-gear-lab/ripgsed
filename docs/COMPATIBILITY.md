@@ -23,7 +23,7 @@ Full GNU sed compatibility is the minimum requirement of the project (D4 in [DEC
 
 - `unsupported`: no fixture passes. An unsupported construct is rejected with a compile-time error and is never approximated.
 - `partial`: some of the fixtures covering the item pass and some do not.
-- `verified`: every fixture covering the item passes. Nothing is `verified` by assertion: the status is computed from the test results.
+- `verified`: every fixture covering the item passes. Nothing is `verified` by assertion: the status is computed from the test results. The fixtures run with `--glibc-compat` (D10), because they hold GNU sed's own results, including the quirks of the C library's regular expression matcher; see [KNOWN-DIFFERENCES.md](KNOWN-DIFFERENCES.md).
 
 The status column is rewritten by the test runner (`RIPGSED_UPDATE_MATRIX=1 cargo test`), not by hand. An item with no fixture keeps its status, and an item cannot be `verified` without fixtures. Fixtures covering a `verified` item are enforced by `cargo test`, so a verified item cannot silently regress.
 

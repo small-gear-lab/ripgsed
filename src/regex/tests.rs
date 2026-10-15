@@ -3,7 +3,8 @@
 use super::*;
 
 fn syn(ere: bool) -> Syntax {
-    Syntax { extended: ere, ..Syntax::default() }
+    // The expected values were observed with GNU sed, quirks included.
+    Syntax { extended: ere, glibc_compat: true, ..Syntax::default() }
 }
 
 /// Applies `s/pat/<&>[\1]...[\n]/g` the way GNU sed does and returns the result.
@@ -339,5 +340,29 @@ fn dfa_agrees_with_simulation_in_utf8() {
                 assert_eq!((ra, &a.groups, ea), (rb, &b.groups, eb), "pattern {pat:?} hay {hay:?} start {start}");
             }
         }
+    }
+}
+
+/// Without `glibc_compat` the match is the one the definition gives; with it, the C library's.
+#[test]
+fn glibc_quirks_are_opt_in() {
+    fn span(pat: &str, text: &str, compat: bool) -> Option<(usize, usize)> {
+        let s = Syntax { extended: true, glibc_compat: compat, ..Syntax::default() };
+        let re = Regex::compile(pat.as_bytes(), &s).unwrap();
+        let mut caps = Captures::default();
+        re.captures_at(text.as_bytes(), 0, &mut caps).then(|| caps.whole())
+    }
+    // Back-references to a variable-width group in a repetition: the longest match by default.
+    for (pat, text, definition, glibc) in [
+        ("(a+)+\\1", "aaaa", Some((0, 4)), Some((0, 2))),
+        ("(a+)+\\1b", "aaab", Some((0, 4)), Some((1, 4))),
+        ("(a*)+\\1", "aaa", Some((0, 3)), Some((0, 2))),
+        ("(a*){2}\\1", "aaaaaa", Some((0, 6)), None),
+        ("(ab*){1,9}\\1", "abbbabbabbbbb", Some((0, 10)), Some((4, 10))),
+        // `\B` after a leading repetition: the empty match where `\B` holds, not after the run.
+        ("b*\\B", "ab", Some((1, 1)), Some((2, 2))),
+    ] {
+        assert_eq!(span(pat, text, false), definition, "default: {pat} on {text}");
+        assert_eq!(span(pat, text, true), glibc, "glibc_compat: {pat} on {text}");
     }
 }

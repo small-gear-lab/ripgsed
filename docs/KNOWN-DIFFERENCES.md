@@ -1,6 +1,6 @@
 # Known differences from GNU sed 4.9
 
-ripgsed aims to behave exactly like GNU sed 4.9 (D4 in [DECISIONS.md](DECISIONS.md)): same output, same error messages in the C locale, same exit status. This page lists where it does not, and the glibc behavior it copies even though that behavior looks like a bug.
+ripgsed behaves like GNU sed 4.9: same output, same error messages in the C locale, same exit status (D4 in [DECISIONS.md](DECISIONS.md)). Where GNU sed's behavior is plainly a bug of the C library's regular expression matcher, ripgsed gives the result the definition gives by default, and reproduces the bug only with `--glibc-compat` (D10). The option exists for moving existing GNU sed assets that must keep producing exactly the same output; it is not needed otherwise. This page lists the differences and what the option reproduces.
 
 ## Intentional differences
 
@@ -8,17 +8,17 @@ ripgsed aims to behave exactly like GNU sed 4.9 (D4 in [DECISIONS.md](DECISIONS.
 - Only the `C` locale and UTF-8 locales are implemented. Other multibyte encodings are read as bytes.
 - Memory use is higher: input is read in blocks of 256 KiB, and parallel runs keep several blocks in flight.
 
-## glibc behavior that is reproduced
+## glibc behavior reproduced with `--glibc-compat`
 
-GNU sed uses the regular expression matcher of the C library. Where that matcher does something no specification asks for, ripgsed does the same, so that scripts give the same output:
+GNU sed uses the regular expression matcher of the C library. Where that matcher does something no specification asks for, `--glibc-compat` (or `RIPGSED_GLIBC_COMPAT=1` in the environment) makes ripgsed do the same, so that scripts give the same output. Without it, the match is the one the definition gives (leftmost-longest, back-references as defined). The differential tests and fixtures run with the option, because they hold GNU sed's results:
 
 - In a pattern that starts with a repetition of a single character (`b*`, `[ab]*`, `(a*)*`, `a*\+`) followed by `\B`, a match that is empty at a position where the repetition could consume a character is reported after that character. `echo ab | sed 's/b*\B/<&>/'` prints `ab<>`, not `a<>b`. It does not apply at the start of the buffer, and not to `\b`, `\<`, or `\>`. Fixture: `rgx-039`.
 - A back-reference to a group inside a repetition does not see every value that POSIX allows. A bounded repetition `X{m,n}` (`?` is `{0,1}`; `+`, `*`, and `{m,}` are not bounded) is expanded into copies of the group, and the group is seen only after `m` or after `n` iterations: `echo aaa | sed -E 's/(a){1,3}\1/<&>/'` prints `<aa>a`, not `<aaa>`. And the value of a copy is not seen at a position where another copy of the group could also end, if that copy is an earlier one that starts no later or a later one that starts later: `(a+)+\1` on `aaaa` matches only `aa`, `(a|aa){2}\1` does not match `aaa` but matches `aaaa`, and `(a*){2}\1` never matches. Two exceptions: when the body of the group cannot be empty, a copy inside an optional copy of the repetition is not hindered by a mandatory copy that starts where it does; when it can be empty, a mandatory copy is not hindered by a later optional one. Where a copy could start is found by walking the pattern from the start of the match without looking at back-references, for matches up to 256 bytes and groups with up to 16 copies. Fixture: `rgx-040`.
 - When the group is the whole body of a loop (`*`, `+`, `{m,}`) and can be empty, a last iteration that is empty is seen by a back-reference as an empty group, although the group is reported with the value of the last non-empty iteration: `echo a | sed -E 's/(a?)*\1/<&>[\1]/'` prints `<a>[a]`, and `(a*)*\1b` matches all of `ab`. The copy rule above applies to that empty iteration too, so `(a?)+b\1` matches `aab` entirely but, on `ab`, only the `b`. If the body of the group is itself a repetition (`(a*)*`), the group is reported empty, and among the paths that reach the match end the first one without an empty iteration after a non-empty one gives the registers (`(a*)*\1` prints `<aa>[a]` on `aa`). Fixtures: `rgx-041`, `rgx-012-backref-group-in-star-iteration`.
 - When GNU sed's first attempt of a search fails because the back-reference refuses an empty group at the start of the match, the whole search fails, even if a later position would match: `(a?){2}\1` does not match `baaa` (it matches `aaa`), `(a?){2}\1b` does not match `baaab`. A refused empty group that is not at the start does not do this (`b(a?){2}\1` matches the `baaa` of `bbaaa`). Fixture: `rgx-041`.
-- Character classes (`[[:alpha:]]`, `\w`, ...) in UTF-8 locales follow glibc's `C.utf8` tables, which are generated from the C library (`tools/gen-classes.py`) and so follow its Unicode version, not the one in Rust's standard library.
+- Always on, not an option: character classes (`[[:alpha:]]`, `\w`, ...) in UTF-8 locales follow glibc's `C.utf8` tables, which are generated from the C library (`tools/gen-classes.py`) and so follow its Unicode version, not the one in Rust's standard library.
 
-## glibc behavior that is not reproduced
+## glibc behavior that is not reproduced, even with `--glibc-compat`
 
 These are cases where glibc's matcher gives a result that disagrees with the leftmost-longest rule or with the documented meaning of a back-reference. About 0.06% of random patterns in the differential test (`tests/regex_differential.rs`) hit one of them; ordinary patterns do not. ripgsed returns the result the definition gives.
 

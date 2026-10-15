@@ -56,6 +56,7 @@ enum Opt {
     Expression,
     File,
     FollowSymlinks,
+    GlibcCompat,
     Help,
     InPlace,
     LineLength,
@@ -75,6 +76,7 @@ const LONG_OPTIONS: &[(&str, Arg, Opt)] = &[
     ("expression", Arg::Required, Opt::Expression),
     ("file", Arg::Required, Opt::File),
     ("follow-symlinks", Arg::No, Opt::FollowSymlinks),
+    ("glibc-compat", Arg::No, Opt::GlibcCompat),
     ("help", Arg::No, Opt::Help),
     ("in-place", Arg::Optional, Opt::InPlace),
     ("line-length", Arg::Required, Opt::LineLength),
@@ -157,6 +159,7 @@ impl State {
             Opt::Unbuffered => self.options.unbuffered = true,
             Opt::FollowSymlinks => self.options.follow_symlinks = true,
             Opt::Sandbox => self.parse_base.sandbox = true,
+            Opt::GlibcCompat => self.parse_base.glibc_compat = true,
             Opt::Posix => {
                 self.parse_base.posix = true;
                 self.parse_base.posixly_correct = true;
@@ -200,7 +203,12 @@ fn parse_args(args: Vec<String>, program: &str) -> Result<Result<Invocation, ()>
     }
     let mut state = State {
         options,
-        parse_base: ParseOptions { posixly_correct, locale, ..ParseOptions::default() },
+        parse_base: ParseOptions {
+            posixly_correct,
+            locale,
+            glibc_compat: std::env::var_os("RIPGSED_GLIBC_COMPAT").is_some_and(|v| !v.is_empty() && v != "0"),
+            ..ParseOptions::default()
+        },
         chunks: Vec::new(),
         expressions: 0,
         posix_mode: false,

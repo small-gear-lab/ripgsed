@@ -76,6 +76,8 @@ impl Flags {
             multiline: self.multiline,
             null_data: self.z,
             locale: if self.utf8 { Locale::Utf8 } else { Locale::C },
+            // GNU sed's own results, quirks included.
+            glibc_compat: true,
         }
     }
 }

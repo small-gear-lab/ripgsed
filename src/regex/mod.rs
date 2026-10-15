@@ -132,6 +132,9 @@ pub struct Syntax {
     /// newline the match consumes.
     pub null_data: bool,
     pub locale: Locale,
+    /// Reproduce the quirks of the C library's matcher (see the notes above): off by default,
+    /// where the match is the one the definition gives.
+    pub glibc_compat: bool,
 }
 
 /// A pattern that cannot be compiled. `message` is GNU's text, for example
@@ -211,10 +214,10 @@ impl Regex {
     /// the delimiter from `syntax.null_data`.
     pub fn compile_with_delimiter(pattern: &[u8], syntax: &Syntax, delim: u8) -> Result<Regex, CompileError> {
         let parsed = parse::parse(pattern, syntax, delim)?;
-        let prog = compile::compile(&parsed.node, parsed.ngroups, parsed.referenced, parsed.char_starts, parsed.utf8)?;
+        let prog = compile::compile(&parsed.node, parsed.ngroups, parsed.referenced, parsed.char_starts, parsed.utf8, syntax.glibc_compat)?;
         let prog_has_no_backrefs = !prog.has_backrefs;
         let literals = literal::analyze(&parsed.node, syntax.locale == Locale::Utf8);
-        Ok(Regex { prog, syntax: *syntax, delim, literals, scratch: Default::default(), quirk_stars: star_before_not_word_boundary(&parsed.node), fixed: if prog_has_no_backrefs { dfa::fixed_groups(&parsed.node, parsed.ngroups) } else { None }, node: parsed.node, dfa: Default::default(), use_dfa: true })
+        Ok(Regex { prog, syntax: *syntax, delim, literals, scratch: Default::default(), quirk_stars: if syntax.glibc_compat { star_before_not_word_boundary(&parsed.node) } else { 0 }, fixed: if prog_has_no_backrefs { dfa::fixed_groups(&parsed.node, parsed.ngroups) } else { None }, node: parsed.node, dfa: Default::default(), use_dfa: true })
     }
 
     /// Number of parenthesized subexpressions.
@@ -260,6 +263,7 @@ impl Regex {
             node: &self.node,
             fixed: self.fixed.as_ref(),
             quirk_stars: self.quirk_stars,
+            glibc: self.syntax.glibc_compat,
             use_dfa: self.use_dfa,
             prog: &self.prog,
             hay: haystack,
@@ -299,6 +303,7 @@ impl Regex {
             node: &self.node,
             fixed: self.fixed.as_ref(),
             quirk_stars: self.quirk_stars,
+            glibc: self.syntax.glibc_compat,
             use_dfa: self.use_dfa,
             prog: &self.prog,
             hay: haystack,
