@@ -5,9 +5,15 @@
 //! pending: it is run and reported, but its failure does not fail the test.
 //! A fixture that covers any `partial` or `verified` item must pass.
 //!
+//! `tests/passing.txt` is a ratchet: every fixture listed there must pass, even
+//! if its matrix items are still `unsupported`. Progress is recorded by adding
+//! fixtures to it, and a fixture that passes stops being allowed to regress.
+//!
 //! Environment:
 //! - `RIPGSED_FIXTURES=name1,name2` runs only the named fixtures.
 //! - `RIPGSED_SHOW_PENDING=1` also lists pending fixtures that already pass.
+//! - `RIPGSED_UPDATE_PASSING=1` rewrites `tests/passing.txt` with every fixture
+//!   that passes (only valid for a full run).
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
@@ -204,14 +210,29 @@ enum Verdict {
     Fail(String),
 }
 
-fn evaluate(dir: &Path, scratch: &Path, matrix: &BTreeMap<String, String>) -> Verdict {
+fn load_ratchet() -> BTreeSet<String> {
+    fs::read_to_string(root().join("tests/passing.txt"))
+        .unwrap_or_default()
+        .lines()
+        .map(str::trim)
+        .filter(|l| !l.is_empty() && !l.starts_with('#'))
+        .map(str::to_string)
+        .collect()
+}
+
+fn evaluate(
+    dir: &Path,
+    scratch: &Path,
+    matrix: &BTreeMap<String, String>,
+    ratchet: &BTreeSet<String>,
+) -> Verdict {
     let name = dir.file_name().unwrap().to_string_lossy().to_string();
     let covers = fs::read_to_string(dir.join("covers")).unwrap_or_default();
     let ids: Vec<&str> = covers.split_whitespace().collect();
     if ids.is_empty() {
         return Verdict::Fail(format!("{name}: `covers` is empty"));
     }
-    let mut pending = true;
+    let mut pending = !ratchet.contains(&name);
     for id in &ids {
         match matrix.get(*id).map(String::as_str) {
             None => return Verdict::Fail(format!("{name}: unknown compatibility item {id}")),
@@ -236,6 +257,7 @@ fn fixtures_match_gnu_sed() {
     use std::sync::{Arc, Mutex};
 
     let matrix = Arc::new(load_matrix());
+    let ratchet = Arc::new(load_ratchet());
     let only: Option<Vec<String>> = std::env::var("RIPGSED_FIXTURES")
         .ok()
         .map(|v| v.split(',').map(str::to_string).collect());
@@ -261,14 +283,14 @@ fn fixtures_match_gnu_sed() {
     let workers = std::thread::available_parallelism().map_or(4, |n| n.get());
     let handles: Vec<_> = (0..workers)
         .map(|_| {
-            let (queue, results, matrix, scratch) =
-                (queue.clone(), results.clone(), matrix.clone(), scratch.clone());
+            let (queue, results, matrix, ratchet, scratch) =
+                (queue.clone(), results.clone(), matrix.clone(), ratchet.clone(), scratch.clone());
             std::thread::spawn(move || {
                 loop {
                     let next = queue.lock().unwrap().next();
                     let Some(dir) = next else { break };
                     let name = dir.file_name().unwrap().to_string_lossy().to_string();
-                    let verdict = evaluate(&dir, &scratch, &matrix);
+                    let verdict = evaluate(&dir, &scratch, &matrix, &ratchet);
                     results.lock().unwrap().push((name, verdict));
                 }
             })
@@ -284,11 +306,16 @@ fn fixtures_match_gnu_sed() {
     let (mut passed, mut pending_ok, mut pending_fail) = (0, 0, 0);
     let mut failures = Vec::new();
     let mut promotable = Vec::new();
+    let mut all_passing = Vec::new();
     for (name, verdict) in results {
         match verdict {
-            Verdict::Pass => passed += 1,
+            Verdict::Pass => {
+                passed += 1;
+                all_passing.push(name);
+            }
             Verdict::PendingPass => {
                 pending_ok += 1;
+                all_passing.push(name.clone());
                 promotable.push(name);
             }
             Verdict::PendingFail => pending_fail += 1,
@@ -302,6 +329,15 @@ fn fixtures_match_gnu_sed() {
     );
     if show_pending && !promotable.is_empty() {
         eprintln!("pending fixtures that already pass: {}", promotable.join(", "));
+    }
+    if std::env::var("RIPGSED_UPDATE_PASSING").is_ok_and(|v| v == "1") {
+        assert!(only.is_none(), "RIPGSED_UPDATE_PASSING needs a full run");
+        let mut text = String::from("# Fixtures that must pass. Updated with RIPGSED_UPDATE_PASSING=1 cargo test.\n");
+        for name in &all_passing {
+            text.push_str(name);
+            text.push('\n');
+        }
+        fs::write(root().join("tests/passing.txt"), text).unwrap();
     }
     assert!(failures.is_empty(), "fixture failures:\n{}", failures.join("\n"));
 }
