@@ -188,8 +188,13 @@ impl State {
 fn parse_args(args: Vec<String>, program: &str) -> Result<Result<Invocation, ()>, i32> {
     let posixly_correct = std::env::var_os("POSIXLY_CORRECT").is_some();
     let locale = locale_from_env();
+    // GNU sed takes the default wrap width of `l` from COLS (one less than the terminal width).
+    let mut options = Options { posixly_correct, locale, ..Options::default() };
+    if let Some(cols) = std::env::var("COLS").ok().map(|c| atoi(&c)).filter(|&c| c > 0) {
+        options.line_length = cols - 1;
+    }
     let mut state = State {
-        options: Options { posixly_correct, locale, ..Options::default() },
+        options,
         parse_base: ParseOptions { posixly_correct, locale, ..ParseOptions::default() },
         chunks: Vec::new(),
         expressions: 0,
@@ -329,6 +334,10 @@ pub fn main() -> i32 {
     let script = match parse(&invocation.chunks) {
         Ok(s) => s,
         Err(e) => {
+            // GNU sed has already created the `w` files it read before the error.
+            for name in &e.touched {
+                let _ = std::fs::File::create(String::from_utf8_lossy(name).as_ref());
+            }
             eprintln!("{program}: {e}");
             return e.status;
         }

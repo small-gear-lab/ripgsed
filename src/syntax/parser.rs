@@ -41,7 +41,7 @@ pub struct ParseOptions {
 }
 
 /// The version GNU sed targets (D6); `v` compares against it.
-const TARGET_VERSION: (u32, u32, u32) = (4, 9, 0);
+const TARGET_VERSION: &str = "4.9";
 
 struct Span {
     start: usize,
@@ -62,6 +62,8 @@ struct Parser {
     pending_jumps: Vec<(usize, Vec<u8>, usize)>,
     /// An address used line 0 where it is not allowed; reported after the command character.
     zero_address: bool,
+    /// Names of the `w`/`W`/`s///w` files seen so far.
+    touched: Vec<Vec<u8>>,
 }
 
 /// Parses all chunks. `options_for` gives the options in effect for each chunk,
@@ -86,6 +88,7 @@ pub fn parse(chunks: &[(Chunk, ParseOptions)]) -> std::result::Result<Script, Sy
         labels: HashMap::new(),
         pending_jumps: Vec::new(),
         zero_address: false,
+        touched: Vec::new(),
     };
     parser.detect_quiet_comment();
     parser.program()?;
@@ -119,7 +122,7 @@ impl Parser {
                 Location::File { name: name.clone(), line }
             }
         };
-        SyntaxError { location, message: message.to_string(), status: 1 }
+        SyntaxError { location, message: message.to_string(), status: 1, touched: self.touched.clone() }
     }
 
     fn error(&self, message: &str) -> SyntaxError {
@@ -160,7 +163,7 @@ impl Parser {
 
     /// `#n` as the very first characters of the script forces `-n`.
     fn detect_quiet_comment(&mut self) {
-        if self.src.starts_with(b"#n") && matches!(self.src.get(2), None | Some(b'\n')) {
+        if self.src.starts_with(b"#n") {
             self.script.quiet = true;
         }
     }
@@ -202,6 +205,7 @@ impl Parser {
                         location: Location::Bare,
                         message: format!("can't find label for jump to `{}'", String::from_utf8_lossy(&label)),
                         status: 4,
+                        touched: self.touched.clone(),
                     });
                 }
             }
@@ -229,6 +233,9 @@ impl Parser {
                 if self.peek() == Some(b'~') {
                     self.pos += 1;
                     let step = self.read_number();
+                    if n == 0 && step == 0 {
+                        self.zero_address = true;
+                    }
                     return Ok(Some(AddrParsed::Step { first: n, step }));
                 }
                 Ok(Some(AddrParsed::Line(n)))
@@ -240,6 +247,7 @@ impl Parser {
             }
             b'+' | b'~' => {
                 self.pos += 1;
+                self.read_number();
                 Err(self.error("invalid usage of +N or ~N as first address"))
             }
             b'$' => {
@@ -256,6 +264,9 @@ impl Parser {
                 } else {
                     b'/'
                 };
+                if delim == b'\n' || delim == b'\\' {
+                    return Err(self.error("unterminated address regex"));
+                }
                 let Some(text) = self.read_delimited(delim, true) else {
                     return Err(self.error("unterminated address regex"));
                 };
@@ -310,6 +321,10 @@ impl Parser {
                 return None;
             }
             let ch = self.next()?;
+            if ch == b'\n' {
+                self.pos -= 1;
+                return None;
+            }
             if ch == delim {
                 return Some(out);
             }
@@ -334,9 +349,6 @@ impl Parser {
                 }
                 continue;
             }
-            if ch == b'\n' && regex {
-                return None;
-            }
             out.push(ch);
         }
     }
@@ -353,6 +365,7 @@ impl Parser {
                 self.pos += 1;
                 self.skip_whitespace();
                 let Some(a2) = self.address(false)? else {
+                    self.next();
                     return Err(self.error("unexpected `,'"));
                 };
                 selector = Some(self.range(a1, a2)?);
@@ -361,6 +374,16 @@ impl Parser {
             }
         }
         self.skip_whitespace();
+        if self.zero_address {
+            // GNU sed reports line address 0 after reading the character that follows the address,
+            // except for `r`, which accepts it (insert a file before the first line).
+            let is_read = self.peek() == Some(b'r') && matches!(selector, Some(Selector::Single(Addr::Line(0))));
+            if !is_read {
+                self.next();
+                return Err(self.error("invalid usage of line address 0"));
+            }
+            self.zero_address = false;
+        }
 
         let mut negate = false;
         if self.peek() == Some(b'!') {
@@ -377,9 +400,6 @@ impl Parser {
             return Err(self.error("missing command"));
         };
         let _ = start_of_command;
-        if std::mem::take(&mut self.zero_address) {
-            return Err(self.error("invalid usage of line address 0"));
-        }
 
         let kind = match ch {
             b'#' => {
@@ -456,7 +476,7 @@ impl Parser {
             b'F' => self.simple(Kind::FileName)?,
             b'l' => {
                 self.skip_blanks();
-                let width = if self.peek().is_some_and(|b| b.is_ascii_digit()) {
+                let width = if !self.options().posix && self.peek().is_some_and(|b| b.is_ascii_digit()) {
                     Some(self.read_number() as usize)
                 } else {
                     None
@@ -477,6 +497,9 @@ impl Parser {
                 let name = self.read_filename()?;
                 if self.options().sandbox {
                     return Err(self.error("e/r/w commands disabled in sandbox mode"));
+                }
+                if matches!(ch, b'w' | b'W') {
+                    self.touched.push(name.clone());
                 }
                 match ch {
                     b'r' => Kind::ReadFile(name),
@@ -577,7 +600,7 @@ impl Parser {
             AddrParsed::Regex(p) => Addr2::Regex(p),
             AddrParsed::Plus(n) => Addr2::Plus(n),
             AddrParsed::Multiple(n) => Addr2::Multiple(n),
-            AddrParsed::Step { .. } => return Err(self.error("unknown command: `~'")),
+            AddrParsed::Step { first, step } => Addr2::Step { first, step },
         };
         Ok(Selector::Range(first, second))
     }
@@ -666,10 +689,7 @@ impl Parser {
         if label.is_empty() {
             return Ok(());
         }
-        let text = String::from_utf8_lossy(label);
-        let mut parts = text.split('.').map(|p| p.parse::<u32>().unwrap_or(0));
-        let wanted = (parts.next().unwrap_or(0), parts.next().unwrap_or(0), parts.next().unwrap_or(0));
-        if wanted > TARGET_VERSION {
+        if version_compare(label, TARGET_VERSION.as_bytes()) == std::cmp::Ordering::Greater {
             return Err(self.error("expected newer version of sed"));
         }
         Ok(())
@@ -731,6 +751,7 @@ impl Parser {
                     if self.options().sandbox {
                         return Err(self.error("e/r/w commands disabled in sandbox mode"));
                     }
+                    self.touched.push(name.clone());
                     write = Some(name);
                     break;
                 }
@@ -959,4 +980,35 @@ fn normalize_escapes(text: &[u8], _posixly_correct: bool) -> Vec<u8> {
         }
     }
     out
+}
+
+/// Compares version strings like `strverscmp`: runs of digits compare as numbers,
+/// anything else byte by byte, and a longer string is greater when one is a prefix.
+fn version_compare(a: &[u8], b: &[u8]) -> std::cmp::Ordering {
+    use std::cmp::Ordering;
+    let (mut i, mut j) = (0, 0);
+    while i < a.len() && j < b.len() {
+        if a[i].is_ascii_digit() && b[j].is_ascii_digit() {
+            let (si, sj) = (i, j);
+            while i < a.len() && a[i].is_ascii_digit() {
+                i += 1;
+            }
+            while j < b.len() && b[j].is_ascii_digit() {
+                j += 1;
+            }
+            let da = a[si..i].iter().skip_while(|&&c| c == b'0').copied().collect::<Vec<_>>();
+            let db = b[sj..j].iter().skip_while(|&&c| c == b'0').copied().collect::<Vec<_>>();
+            let order = da.len().cmp(&db.len()).then_with(|| da.cmp(&db));
+            if order != Ordering::Equal {
+                return order;
+            }
+        } else {
+            if a[i] != b[j] {
+                return a[i].cmp(&b[j]);
+            }
+            i += 1;
+            j += 1;
+        }
+    }
+    (a.len() - i).cmp(&(b.len() - j))
 }

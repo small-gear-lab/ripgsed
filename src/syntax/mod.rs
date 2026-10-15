@@ -44,6 +44,8 @@ pub enum Addr2 {
     Line(u64),
     Last,
     Regex(Pattern),
+    /// `addr1,first~step`: ends at the first line from `first` on that is `step` lines apart.
+    Step { first: u64, step: u64 },
     /// `addr1,+N`
     Plus(u64),
     /// `addr1,~N`
@@ -143,6 +145,8 @@ pub struct SyntaxError {
     pub message: String,
     /// Exit status: 1 for syntax errors, 4 for the "serious" errors GNU sed panics on.
     pub status: i32,
+    /// Files named by `w` before the error: GNU sed has already created them.
+    pub touched: Vec<Vec<u8>>,
 }
 
 #[derive(Debug, PartialEq, Eq)]

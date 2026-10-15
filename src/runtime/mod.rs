@@ -166,8 +166,12 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
             self.hold_terminated = true;
             self.read_files.clear();
         }
+        let first_of_stream = new_file && (self.options.separate || self.line == 0);
         self.line += 1;
         self.file_name = file_name;
+        if first_of_stream && !append {
+            self.insert_before_first_line()?;
+        }
         if append {
             self.pattern.push(self.options.separator);
             self.pattern.extend_from_slice(&record.body);
@@ -176,6 +180,17 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
         }
         self.terminated = record.terminated;
         Ok(true)
+    }
+
+    /// `0r file`: the file is written before the first line of the input (of each file with `-s`).
+    fn insert_before_first_line(&mut self) -> Result<(), Fatal> {
+        let script = self.script;
+        for command in &script.commands {
+            if let (Some(Selector::Single(Addr::Line(0))), Kind::ReadFile(name)) = (&command.selector, &command.kind) {
+                self.pending.push(Pending::File(name.clone()));
+            }
+        }
+        self.flush_pending()
     }
 
     fn cycles(&mut self) -> Result<i32, Fatal> {
@@ -249,7 +264,7 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                         Ok(bytes) => self.write_raw(&bytes)?,
                         Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
                         Err(e) if e.raw_os_error() == Some(21) => {
-                            eprintln!("{}: read error on {}: Is a directory", self.program, path);
+                            return Err(Fatal::new(format!("read error on {path}: Is a directory"), 4));
                         }
                         Err(_) => {}
                     }
@@ -344,11 +359,13 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                         state = RangeState::Active { until: Some(line + n) };
                     }
                     Addr2::Multiple(n) => {
-                        if *n == 0 || line % n == 0 {
+                        // The next multiple strictly after this line; `,~0` is a single line.
+                        if *n == 0 {
                             return Ok(true);
                         }
                         state = RangeState::Active { until: Some((line / n + 1) * n) };
                     }
+                    Addr2::Step { .. } => state = RangeState::Active { until: None },
                     Addr2::Last => {
                         if self.is_last()? {
                             return Ok(true);
@@ -374,6 +391,9 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
             (None, Addr2::Last) => self.is_last()?,
             (None, Addr2::Regex(p)) => self.regex_matches(p)?,
             (None, Addr2::Line(n)) => line >= *n,
+            (None, Addr2::Step { first, step }) => {
+                line >= *first && if *step == 0 { line == *first } else { (line - *first) % *step == 0 }
+            }
             (None, _) => false,
         };
         self.ranges[index] = if ends { RangeState::Inactive } else { RangeState::Active { until } };
@@ -400,6 +420,11 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
         let mut pc = 0;
         while pc < script.commands.len() {
             let command = &script.commands[pc];
+            if matches!(command.selector, Some(Selector::Single(Addr::Line(0)))) {
+                // `0r`: handled before the first line, never during a cycle.
+                pc += 1;
+                continue;
+            }
             if !self.selected(pc)? {
                 if let Kind::BlockStart(end) = command.kind {
                     pc = end + 1;
@@ -427,13 +452,17 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                     }
                 }
                 Kind::Append(text) => self.pending.push(Pending::Text(text.clone())),
-                Kind::Insert(text) => self.write_raw(text)?,
+                Kind::Insert(text) => {
+                    let text = self.with_separator(text);
+                    self.write_raw(&text)?;
+                }
                 Kind::Change(text) => {
                     let in_range = matches!(command.selector, Some(Selector::Range(..)))
                         && !command.negate
                         && matches!(self.ranges[pc], RangeState::Active { .. });
                     if !in_range {
-                        self.write_raw(text)?;
+                        let text = self.with_separator(text);
+                        self.write_raw(&text)?;
                     }
                     return Ok(Flow::Discard);
                 }
@@ -472,24 +501,24 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                 }
                 Kind::Print => self.print_pattern()?,
                 Kind::PrintFirst => {
-                    let end = self.pattern.iter().position(|&b| b == self.options.separator).unwrap_or(self.pattern.len());
-                    let first = self.pattern[..end].to_vec();
-                    self.out.main().write_record(&first, true).map_err(|e| write_error("stdout", &e))?;
+                    let (first, terminated) = self.first_line();
+                    self.out.main().write_record(&first, terminated).map_err(|e| write_error("stdout", &e))?;
                 }
                 Kind::Get => {
                     self.pattern = self.hold.clone();
                     self.terminated = self.hold_terminated;
                 }
                 Kind::GetAppend => {
-                    self.pattern.push(b'\n');
+                    self.pattern.push(self.options.separator);
                     self.pattern.extend_from_slice(&self.hold);
+                    self.terminated = self.hold_terminated;
                 }
                 Kind::Hold => {
                     self.hold = self.pattern.clone();
                     self.hold_terminated = self.terminated;
                 }
                 Kind::HoldAppend => {
-                    self.hold.push(b'\n');
+                    self.hold.push(self.options.separator);
                     self.hold.extend_from_slice(&self.pattern);
                     self.hold_terminated = self.terminated;
                 }
@@ -499,12 +528,13 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                 }
                 Kind::Zap => self.pattern.clear(),
                 Kind::LineNumber => {
-                    let text = format!("{}\n", self.line);
-                    self.write_raw(text.as_bytes())?;
+                    let mut text = self.line.to_string().into_bytes();
+                    text.push(self.options.separator);
+                    self.write_raw(&text)?;
                 }
                 Kind::List(width) => {
                     let width = width.unwrap_or(self.options.line_length);
-                    let text = list::list(&self.pattern, width, self.options.locale);
+                    let text = list::list(&self.pattern, width, self.options.separator);
                     self.write_raw(&text)?;
                 }
                 Kind::Quit(code) => {
@@ -513,8 +543,9 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                 }
                 Kind::QuitSilent(code) => return Ok(Flow::QuitNow { code: *code }),
                 Kind::FileName => {
-                    let text = format!("{}\n", self.file_name);
-                    self.write_raw(text.as_bytes())?;
+                    let mut text = self.file_name.as_bytes().to_vec();
+                    text.push(self.options.separator);
+                    self.write_raw(&text)?;
                 }
                 Kind::ReadFile(name) => self.pending.push(Pending::File(name.clone())),
                 Kind::ReadLine(name) => {
@@ -527,9 +558,8 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                     self.out.get(name).write_record(&pattern, terminated).map_err(|e| write_error("file", &e))?;
                 }
                 Kind::WriteFirstLine(name) => {
-                    let end = self.pattern.iter().position(|&b| b == self.options.separator).unwrap_or(self.pattern.len());
-                    let first = self.pattern[..end].to_vec();
-                    self.out.get(name).write_record(&first, true).map_err(|e| write_error("file", &e))?;
+                    let (first, terminated) = self.first_line();
+                    self.out.get(name).write_record(&first, terminated).map_err(|e| write_error("file", &e))?;
                 }
                 Kind::Execute(command) => self.execute_command(command)?,
                 Kind::Translate(pairs) => self.translate(pairs),
@@ -538,6 +568,15 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
             pc += 1;
         }
         Ok(Flow::End)
+    }
+
+    /// The pattern space up to the first separator, and whether it ends with one: a
+    /// pattern space without a separator keeps the missing-newline state of its line.
+    fn first_line(&self) -> (Vec<u8>, bool) {
+        match self.pattern.iter().position(|&b| b == self.options.separator) {
+            Some(end) => (self.pattern[..end].to_vec(), true),
+            None => (self.pattern.clone(), self.terminated),
+        }
     }
 
     /// One line of the file named by an `R` command; the file stays open between calls.
@@ -555,6 +594,16 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
         }
     }
 
+    /// The text of `i` and `c` ends with the record separator (a NUL under `-z`).
+    fn with_separator(&self, text: &[u8]) -> Vec<u8> {
+        let mut out = text.to_vec();
+        if out.last() == Some(&b'\n') {
+            out.pop();
+            out.push(self.options.separator);
+        }
+        out
+    }
+
     fn translate(&mut self, pairs: &[(Vec<u8>, Vec<u8>)]) {
         let mut out = Vec::with_capacity(self.pattern.len());
         let mut i = 0;
@@ -562,7 +611,7 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
         while i < self.pattern.len() {
             let len = if utf8 { char_len(&self.pattern[i..]) } else { 1 };
             let ch = &self.pattern[i..i + len];
-            match pairs.iter().find(|(from, _)| from == ch) {
+            match pairs.iter().rev().find(|(from, _)| from == ch) {
                 Some((_, to)) => out.extend_from_slice(to),
                 None => out.extend_from_slice(ch),
             }
