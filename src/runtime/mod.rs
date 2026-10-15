@@ -1054,6 +1054,8 @@ fn run_shell(command: &[u8]) -> Vec<u8> {
     use std::os::unix::ffi::OsStrExt;
     let output = Process::new("sh")
         .arg("-c")
+        // As the C library starts it, so that a command that begins with `+` or `-` is not an option.
+        .arg("--")
         .arg(std::ffi::OsStr::from_bytes(command))
         .stdin(Stdio::inherit())
         .stderr(Stdio::inherit())

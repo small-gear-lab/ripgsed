@@ -471,7 +471,7 @@ impl Parser {
                     selector,
                     Some(Selector::Single(Addr::Line(0) | Addr::Step { first: 0, step: 0 }))
                 );
-            if !is_read {
+            if !is_read || self.options().posix {
                 self.next();
                 return Err(self.error("invalid usage of line address 0"));
             }
@@ -803,6 +803,7 @@ impl Parser {
                         raw.push(b'\\');
                         raw.push(other);
                     }
+                    None if self.options().posix => return Err(self.error("incomplete command")),
                     None => {
                         // A backslash that ends the script leaves the text as it was written.
                         raw.push(b'\n');

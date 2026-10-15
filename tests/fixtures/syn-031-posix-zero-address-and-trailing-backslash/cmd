@@ -1,0 +1,13 @@
+printf 'q\n' > in
+: > empty
+sed --posix '0r empty' in; echo $?
+sed --posix -n '0,/q/p' in; echo $?
+sed --posix 'a\
+foo(\' in; echo $?
+sed --posix 'a x\' in; echo $?
+sed --posix 'a\
+x\
+y' in; echo $?
+sed 'a\
+foo(\' in; echo $?
+POSIXLY_CORRECT=1 sed '0r empty' in; echo $?
