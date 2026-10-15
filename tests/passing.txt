@@ -905,6 +905,7 @@ cyc-010-s-range-reset
 cyc-010-s-with-stdin-dash
 cyc-010-without-s-continuous
 cycle-no-final-newline
+env-001-gnu-bracket-escapes-baseline
 env-001-gnu-n-at-eof-baseline
 env-001-gnu-option-order-baseline
 env-001-posixly-correct-bracket-escapes
@@ -1233,6 +1234,8 @@ opt-012-posix-accepts-basic
 opt-012-posix-empty-regex-and-flags
 opt-012-posix-n-at-eof
 opt-012-posix-n-at-eof-env-posixly-correct
+opt-012-posix-regex-escapes
+opt-012-posix-rejects-extensions
 opt-012-posix-semicolon-after-brace-and-labels
 opt-012-posix-special-replacement
 opt-012-posix-with-n-quiet-and-in-place
@@ -1417,6 +1420,7 @@ rgx-018-bracket-escape-with-i-and-class
 rgx-018-bracket-escapes-multiple
 rgx-018-bracket-escapes-newline-tab
 rgx-018-bracket-escapes-posix-env
+rgx-018-bracket-escapes-posix-flag
 rgx-018-bracket-other-backslash-letters
 rgx-019-extension-word-boundaries-with-groups-and-backrefs
 rgx-019-extension-word-chars-c-locale
@@ -1474,6 +1478,7 @@ rgx-026-error-regex-too-big
 rgx-026-error-s-flags-regex-related
 rgx-026-error-unterminated-s-and-address
 rgx-027-posix-bre-backrefs-groups-still-work
+rgx-027-posix-bre-bracket-escapes
 rgx-027-posix-bre-buffer-anchors
 rgx-027-posix-bre-double-star-and-intervals
 rgx-027-posix-bre-extensions-letters-literal
@@ -1481,6 +1486,7 @@ rgx-027-posix-bre-plus-question-alt-literal
 rgx-027-posix-bre-vs-gnu-mode-comparison
 rgx-028-posix-ere-anchors-and-stars
 rgx-028-posix-ere-backrefs-and-errors
+rgx-028-posix-ere-bracket-escapes
 rgx-028-posix-ere-extensions-letters
 rgx-028-posix-ere-interval-edge-cases
 rgx-028-posix-ere-plus-question-alt-still-work
@@ -1691,7 +1697,9 @@ syn-015-negation-errors
 syn-015-negation-spaces-and-repeats
 syn-016-address-errors
 syn-016-error-position-second-e
+syn-016-error-positions-in-script-file
 syn-016-extra-characters
 syn-016-misc-command-errors
+syn-016-s-command-errors
 syn-016-unknown-and-missing-commands
 syn-016-y-command-errors

@@ -156,6 +156,7 @@ impl State {
             Opt::Sandbox => self.parse_base.sandbox = true,
             Opt::Posix => {
                 self.parse_base.posix = true;
+                self.parse_base.posixly_correct = true;
                 self.options.posixly_correct = true;
                 self.posix_mode = true;
             }

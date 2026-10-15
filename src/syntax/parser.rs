@@ -55,8 +55,9 @@ struct Parser {
     pos: usize,
     spans: Vec<Span>,
     script: Script,
-    /// Indexes of the open `{` commands.
+    /// Indexes of the open `{` commands, and where each was read.
     blocks: Vec<usize>,
+    block_positions: Vec<usize>,
     labels: HashMap<Vec<u8>, usize>,
     /// Branch commands waiting for their label: (command index, label, error position).
     pending_jumps: Vec<(usize, Vec<u8>, usize)>,
@@ -85,6 +86,7 @@ pub fn parse(chunks: &[(Chunk, ParseOptions)]) -> std::result::Result<Script, Sy
         spans,
         script: Script::default(),
         blocks: Vec::new(),
+        block_positions: Vec::new(),
         labels: HashMap::new(),
         pending_jumps: Vec::new(),
         zero_address: false,
@@ -188,7 +190,8 @@ impl Parser {
     fn finish(mut self) -> Result<Script> {
         if let Some(&open) = self.blocks.last() {
             let _ = open;
-            return Err(self.error_at(0, "unmatched `{'")).map_err(|mut e| {
+            let opened_at = self.block_positions.last().copied().unwrap_or(0);
+            return Err(self.error_at(opened_at, "unmatched `{'")).map_err(|mut e| {
                 // GNU reports an unmatched `{` at char 0 of the expression.
                 if let Location::Expression { position, .. } = &mut e.location {
                     *position = 0;
@@ -249,7 +252,7 @@ impl Parser {
                 let n = self.read_number();
                 Ok(Some(if ch == b'+' { AddrParsed::Plus(n) } else { AddrParsed::Multiple(n) }))
             }
-            b'+' | b'~' => {
+            b'+' | b'~' if first && !self.options().posix => {
                 self.pos += 1;
                 self.read_number();
                 Err(self.error("invalid usage of +N or ~N as first address"))
@@ -477,6 +480,7 @@ impl Parser {
             }
             b'{' => {
                 self.blocks.push(self.script.commands.len());
+                self.block_positions.push(self.pos);
                 Kind::BlockStart(0)
             }
             b'}' => {
@@ -489,6 +493,7 @@ impl Parser {
                 let Some(open) = self.blocks.pop() else {
                     return Err(self.error("unexpected `}'"));
                 };
+                self.block_positions.pop();
                 let end = self.script.commands.len();
                 if let Kind::BlockStart(e) = &mut self.script.commands[open].kind {
                     *e = end;
@@ -773,9 +778,6 @@ impl Parser {
         let Some(delim) = self.next() else {
             return Err(self.error("unterminated `s' command"));
         };
-        if delim == b'\\' {
-            return Err(self.error("unterminated `s' command"));
-        }
         let Some(pattern_text) = self.read_delimited(delim, true) else {
             return Err(self.error("unterminated `s' command"));
         };

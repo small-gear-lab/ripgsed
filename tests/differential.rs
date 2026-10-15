@@ -174,16 +174,35 @@ fn expected(dir: &Path) -> Outcome {
 
 fn show(bytes: &[u8]) -> String {
     let s = String::from_utf8_lossy(bytes);
-    if s.len() > 400 { format!("{:?}…", &s[..400]) } else { format!("{s:?}") }
+    if s.len() > 400 {
+        let mut end = 400;
+        while !s.is_char_boundary(end) {
+            end -= 1;
+        }
+        format!("{:?}…", &s[..end])
+    } else {
+        format!("{s:?}")
+    }
+}
+
+/// The two byte strings around their first difference, for long outputs.
+fn show_pair(want: &[u8], got: &[u8]) -> String {
+    let at = want.iter().zip(got).position(|(a, b)| a != b).unwrap_or(want.len().min(got.len()));
+    if want.len() <= 400 && got.len() <= 400 {
+        return format!("\n    want {}\n    got  {}", show(want), show(got));
+    }
+    let from = at.saturating_sub(120);
+    let window = |b: &[u8]| show(&b[from.min(b.len())..(at + 160).min(b.len())]);
+    format!("\n    first difference at byte {at}\n    want …{}\n    got  …{}", window(want), window(got))
 }
 
 fn compare(want: &Outcome, got: &Outcome) -> Vec<String> {
     let mut diffs = Vec::new();
     if want.stdout != got.stdout {
-        diffs.push(format!("stdout\n    want {}\n    got  {}", show(&want.stdout), show(&got.stdout)));
+        diffs.push(format!("stdout{}", show_pair(&want.stdout, &got.stdout)));
     }
     if want.stderr != got.stderr {
-        diffs.push(format!("stderr\n    want {}\n    got  {}", show(&want.stderr), show(&got.stderr)));
+        diffs.push(format!("stderr{}", show_pair(&want.stderr, &got.stderr)));
     }
     if want.status != got.status {
         diffs.push(format!("status want {} got {}", want.status, got.status));
