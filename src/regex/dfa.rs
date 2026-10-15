@@ -647,7 +647,7 @@ pub fn fixed_groups(node: &super::ast::Node, ngroups: usize) -> Option<(usize, V
 }
 
 /// Whether the pattern can match the empty string (assertions count as empty).
-fn nullable(node: &super::ast::Node) -> bool {
+pub(super) fn nullable(node: &super::ast::Node) -> bool {
     use super::ast::Node;
     match node {
         Node::Empty | Node::Assert(_) | Node::Backref(_) => true,

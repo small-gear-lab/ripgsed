@@ -1,0 +1,1464 @@
+== b*\B
+<>
+a
+b
+<> <>
+a<>a
+ab<>
+a <>
+<b>a
+<b>b<>
+b <>
+<> a
+<> b
+<> <> <>
+a<>a<>a
+a<>ab<>
+a<>a <>
+a<b>a
+a<b>b<>
+ab<> <>
+a a
+a b
+a <> <>
+<b>a<>a
+<b>ab<>
+<b>a <>
+<bb>a
+<bb>b<>
+<b>b<> <>
+b a
+b b
+b <> <>
+<> a<>a
+<> ab<>
+<> a <>
+<> <b>a
+<> <b>b<>
+<> b <>
+<> <> a
+<> <> b
+<> <> <> <>
+a<>a<>a<>a
+a<>a<>ab<>
+a<>a<>a <>
+a<>a<b>a
+a<>a<b>b<>
+a<>ab<> <>
+a<>a a
+a<>a b
+a<>a <> <>
+a<b>a<>a
+a<b>ab<>
+a<b>a <>
+a<bb>a
+a<bb>b<>
+a<b>b<> <>
+ab<> a
+ab<> b
+ab<> <> <>
+a a<>a
+a ab<>
+a a <>
+a <b>a
+a <b>b<>
+a b <>
+a <> a
+a <> b
+a <> <> <>
+<b>a<>a<>a
+<b>a<>ab<>
+<b>a<>a <>
+<b>a<b>a
+<b>a<b>b<>
+<b>ab<> <>
+<b>a a
+<b>a b
+<b>a <> <>
+<bb>a<>a
+<bb>ab<>
+<bb>a <>
+<bbb>a
+<bbb>b<>
+<bb>b<> <>
+<b>b<> a
+<b>b<> b
+<b>b<> <> <>
+b a<>a
+b ab<>
+b a <>
+b <b>a
+b <b>b<>
+b b <>
+b <> a
+b <> b
+b <> <> <>
+<> a<>a<>a
+<> a<>ab<>
+<> a<>a <>
+<> a<b>a
+<> a<b>b<>
+<> ab<> <>
+<> a a
+<> a b
+<> a <> <>
+<> <b>a<>a
+<> <b>ab<>
+<> <b>a <>
+<> <bb>a
+<> <bb>b<>
+<> <b>b<> <>
+<> b a
+<> b b
+<> b <> <>
+<> <> a<>a
+<> <> ab<>
+<> <> a <>
+<> <> <b>a
+<> <> <b>b<>
+<> <> b <>
+<> <> <> a
+<> <> <> b
+<> <> <> <> <>
+== [ab]*\B
+<>
+a
+b
+<> <>
+<a>a<>
+<a>b<>
+a <>
+<b>a<>
+<b>b<>
+b <>
+<> a
+<> b
+<> <> <>
+<aa>a<>
+<aa>b<>
+<a>a<> <>
+<ab>a<>
+<ab>b<>
+<a>b<> <>
+a a
+a b
+a <> <>
+<ba>a<>
+<ba>b<>
+<b>a<> <>
+<bb>a<>
+<bb>b<>
+<b>b<> <>
+b a
+b b
+b <> <>
+<> <a>a<>
+<> <a>b<>
+<> a <>
+<> <b>a<>
+<> <b>b<>
+<> b <>
+<> <> a
+<> <> b
+<> <> <> <>
+<aaa>a<>
+<aaa>b<>
+<aa>a<> <>
+<aab>a<>
+<aab>b<>
+<aa>b<> <>
+<a>a<> a
+<a>a<> b
+<a>a<> <> <>
+<aba>a<>
+<aba>b<>
+<ab>a<> <>
+<abb>a<>
+<abb>b<>
+<ab>b<> <>
+<a>b<> a
+<a>b<> b
+<a>b<> <> <>
+a <a>a<>
+a <a>b<>
+a a <>
+a <b>a<>
+a <b>b<>
+a b <>
+a <> a
+a <> b
+a <> <> <>
+<baa>a<>
+<baa>b<>
+<ba>a<> <>
+<bab>a<>
+<bab>b<>
+<ba>b<> <>
+<b>a<> a
+<b>a<> b
+<b>a<> <> <>
+<bba>a<>
+<bba>b<>
+<bb>a<> <>
+<bbb>a<>
+<bbb>b<>
+<bb>b<> <>
+<b>b<> a
+<b>b<> b
+<b>b<> <> <>
+b <a>a<>
+b <a>b<>
+b a <>
+b <b>a<>
+b <b>b<>
+b b <>
+b <> a
+b <> b
+b <> <> <>
+<> <aa>a<>
+<> <aa>b<>
+<> <a>a<> <>
+<> <ab>a<>
+<> <ab>b<>
+<> <a>b<> <>
+<> a a
+<> a b
+<> a <> <>
+<> <ba>a<>
+<> <ba>b<>
+<> <b>a<> <>
+<> <bb>a<>
+<> <bb>b<>
+<> <b>b<> <>
+<> b a
+<> b b
+<> b <> <>
+<> <> <a>a<>
+<> <> <a>b<>
+<> <> a <>
+<> <> <b>a<>
+<> <> <b>b<>
+<> <> b <>
+<> <> <> a
+<> <> <> b
+<> <> <> <> <>
+==  *\B
+<>
+a
+b
+< >
+a<>a
+a<>b
+a< >
+b<>a
+b<>b
+b< >
+<> a
+<> b
+<  >
+a<>a<>a
+a<>a<>b
+a<>a< >
+a<>b<>a
+a<>b<>b
+a<>b< >
+a a
+a b
+a<  >
+b<>a<>a
+b<>a<>b
+b<>a< >
+b<>b<>a
+b<>b<>b
+b<>b< >
+b a
+b b
+b<  >
+<> a<>a
+<> a<>b
+<> a< >
+<> b<>a
+<> b<>b
+<> b< >
+< > <>a
+< > <>b
+<   >
+a<>a<>a<>a
+a<>a<>a<>b
+a<>a<>a< >
+a<>a<>b<>a
+a<>a<>b<>b
+a<>a<>b< >
+a<>a a
+a<>a b
+a<>a<  >
+a<>b<>a<>a
+a<>b<>a<>b
+a<>b<>a< >
+a<>b<>b<>a
+a<>b<>b<>b
+a<>b<>b< >
+a<>b a
+a<>b b
+a<>b<  >
+a a<>a
+a a<>b
+a a< >
+a b<>a
+a b<>b
+a b< >
+a< > <>a
+a< > <>b
+a<   >
+b<>a<>a<>a
+b<>a<>a<>b
+b<>a<>a< >
+b<>a<>b<>a
+b<>a<>b<>b
+b<>a<>b< >
+b<>a a
+b<>a b
+b<>a<  >
+b<>b<>a<>a
+b<>b<>a<>b
+b<>b<>a< >
+b<>b<>b<>a
+b<>b<>b<>b
+b<>b<>b< >
+b<>b a
+b<>b b
+b<>b<  >
+b a<>a
+b a<>b
+b a< >
+b b<>a
+b b<>b
+b b< >
+b< > <>a
+b< > <>b
+b<   >
+<> a<>a<>a
+<> a<>a<>b
+<> a<>a< >
+<> a<>b<>a
+<> a<>b<>b
+<> a<>b< >
+<> a a
+<> a b
+<> a<  >
+<> b<>a<>a
+<> b<>a<>b
+<> b<>a< >
+<> b<>b<>a
+<> b<>b<>b
+<> b<>b< >
+<> b a
+<> b b
+<> b<  >
+< > <>a<>a
+< > <>a<>b
+< > <>a< >
+< > <>b<>a
+< > <>b<>b
+< > <>b< >
+<  > <>a
+<  > <>b
+<    >
+== b*a*\B
+<>
+a
+b
+<> <>
+<a>a
+<a>b<>
+a <>
+<b>a
+<b>b<>
+b <>
+<> a
+<> b
+<> <> <>
+<aa>a
+<aa>b<>
+<a>a <>
+<a><b>a
+<a><b>b<>
+<a>b<> <>
+a a
+a b
+a <> <>
+<ba>a
+<ba>b<>
+<b>a <>
+<bb>a
+<bb>b<>
+<b>b<> <>
+b a
+b b
+b <> <>
+<> <a>a
+<> <a>b<>
+<> a <>
+<> <b>a
+<> <b>b<>
+<> b <>
+<> <> a
+<> <> b
+<> <> <> <>
+<aaa>a
+<aaa>b<>
+<aa>a <>
+<aa><b>a
+<aa><b>b<>
+<aa>b<> <>
+<a>a a
+<a>a b
+<a>a <> <>
+<a><ba>a
+<a><ba>b<>
+<a><b>a <>
+<a><bb>a
+<a><bb>b<>
+<a><b>b<> <>
+<a>b<> a
+<a>b<> b
+<a>b<> <> <>
+a <a>a
+a <a>b<>
+a a <>
+a <b>a
+a <b>b<>
+a b <>
+a <> a
+a <> b
+a <> <> <>
+<baa>a
+<baa>b<>
+<ba>a <>
+<ba><b>a
+<ba><b>b<>
+<ba>b<> <>
+<b>a a
+<b>a b
+<b>a <> <>
+<bba>a
+<bba>b<>
+<bb>a <>
+<bbb>a
+<bbb>b<>
+<bb>b<> <>
+<b>b<> a
+<b>b<> b
+<b>b<> <> <>
+b <a>a
+b <a>b<>
+b a <>
+b <b>a
+b <b>b<>
+b b <>
+b <> a
+b <> b
+b <> <> <>
+<> <aa>a
+<> <aa>b<>
+<> <a>a <>
+<> <a><b>a
+<> <a><b>b<>
+<> <a>b<> <>
+<> a a
+<> a b
+<> a <> <>
+<> <ba>a
+<> <ba>b<>
+<> <b>a <>
+<> <bb>a
+<> <bb>b<>
+<> <b>b<> <>
+<> b a
+<> b b
+<> b <> <>
+<> <> <a>a
+<> <> <a>b<>
+<> <> a <>
+<> <> <b>a
+<> <> <b>b<>
+<> <> b <>
+<> <> <> a
+<> <> <> b
+<> <> <> <> <>
+== a*\+\B
+<>
+a
+b
+<> <>
+<a>a<>
+<a>b
+a <>
+ba<>
+b<>b
+b <>
+<> a
+<> b
+<> <> <>
+<aa>a<>
+<aa>b
+<a>a<> <>
+<a>ba<>
+<a>b<>b
+<a>b <>
+a a
+a b
+a <> <>
+b<a>a<>
+b<a>b
+ba<> <>
+b<>ba<>
+b<>b<>b
+b<>b <>
+b a
+b b
+b <> <>
+<> <a>a<>
+<> <a>b
+<> a <>
+<> ba<>
+<> b<>b
+<> b <>
+<> <> a
+<> <> b
+<> <> <> <>
+<aaa>a<>
+<aaa>b
+<aa>a<> <>
+<aa>ba<>
+<aa>b<>b
+<aa>b <>
+<a>a<> a
+<a>a<> b
+<a>a<> <> <>
+<a>b<a>a<>
+<a>b<a>b
+<a>ba<> <>
+<a>b<>ba<>
+<a>b<>b<>b
+<a>b<>b <>
+<a>b a
+<a>b b
+<a>b <> <>
+a <a>a<>
+a <a>b
+a a <>
+a ba<>
+a b<>b
+a b <>
+a <> a
+a <> b
+a <> <> <>
+b<aa>a<>
+b<aa>b
+b<a>a<> <>
+b<a>ba<>
+b<a>b<>b
+b<a>b <>
+ba<> a
+ba<> b
+ba<> <> <>
+b<>b<a>a<>
+b<>b<a>b
+b<>ba<> <>
+b<>b<>ba<>
+b<>b<>b<>b
+b<>b<>b <>
+b<>b a
+b<>b b
+b<>b <> <>
+b <a>a<>
+b <a>b
+b a <>
+b ba<>
+b b<>b
+b b <>
+b <> a
+b <> b
+b <> <> <>
+<> <aa>a<>
+<> <aa>b
+<> <a>a<> <>
+<> <a>ba<>
+<> <a>b<>b
+<> <a>b <>
+<> a a
+<> a b
+<> a <> <>
+<> b<a>a<>
+<> b<a>b
+<> ba<> <>
+<> b<>ba<>
+<> b<>b<>b
+<> b<>b <>
+<> b a
+<> b b
+<> b <> <>
+<> <> <a>a<>
+<> <> <a>b
+<> <> a <>
+<> <> ba<>
+<> <> b<>b
+<> <> b <>
+<> <> <> a
+<> <> <> b
+<> <> <> <> <>
+== \(a*\)*\B
+<>
+a
+b
+<> <>
+<a>a<>
+<a>b
+a <>
+ba<>
+b<>b
+b <>
+<> a
+<> b
+<> <> <>
+<aa>a<>
+<aa>b
+<a>a<> <>
+<a>ba<>
+<a>b<>b
+<a>b <>
+a a
+a b
+a <> <>
+b<a>a<>
+b<a>b
+ba<> <>
+b<>ba<>
+b<>b<>b
+b<>b <>
+b a
+b b
+b <> <>
+<> <a>a<>
+<> <a>b
+<> a <>
+<> ba<>
+<> b<>b
+<> b <>
+<> <> a
+<> <> b
+<> <> <> <>
+<aaa>a<>
+<aaa>b
+<aa>a<> <>
+<aa>ba<>
+<aa>b<>b
+<aa>b <>
+<a>a<> a
+<a>a<> b
+<a>a<> <> <>
+<a>b<a>a<>
+<a>b<a>b
+<a>ba<> <>
+<a>b<>ba<>
+<a>b<>b<>b
+<a>b<>b <>
+<a>b a
+<a>b b
+<a>b <> <>
+a <a>a<>
+a <a>b
+a a <>
+a ba<>
+a b<>b
+a b <>
+a <> a
+a <> b
+a <> <> <>
+b<aa>a<>
+b<aa>b
+b<a>a<> <>
+b<a>ba<>
+b<a>b<>b
+b<a>b <>
+ba<> a
+ba<> b
+ba<> <> <>
+b<>b<a>a<>
+b<>b<a>b
+b<>ba<> <>
+b<>b<>ba<>
+b<>b<>b<>b
+b<>b<>b <>
+b<>b a
+b<>b b
+b<>b <> <>
+b <a>a<>
+b <a>b
+b a <>
+b ba<>
+b b<>b
+b b <>
+b <> a
+b <> b
+b <> <> <>
+<> <aa>a<>
+<> <aa>b
+<> <a>a<> <>
+<> <a>ba<>
+<> <a>b<>b
+<> <a>b <>
+<> a a
+<> a b
+<> a <> <>
+<> b<a>a<>
+<> b<a>b
+<> ba<> <>
+<> b<>ba<>
+<> b<>b<>b
+<> b<>b <>
+<> b a
+<> b b
+<> b <> <>
+<> <> <a>a<>
+<> <> <a>b
+<> <> a <>
+<> <> ba<>
+<> <> b<>b
+<> <> b <>
+<> <> <> a
+<> <> <> b
+<> <> <> <> <>
+== \(b*\)\B
+<>
+a
+b
+<> <>
+a<>a
+a<>b
+a <>
+<b>a
+<b>b
+b <>
+<> a
+<> b
+<> <> <>
+a<>a<>a
+a<>a<>b
+a<>a <>
+a<b>a
+a<b>b
+a<>b <>
+a a
+a b
+a <> <>
+<b>a<>a
+<b>a<>b
+<b>a <>
+<bb>a
+<bb>b
+<b>b <>
+b a
+b b
+b <> <>
+<> a<>a
+<> a<>b
+<> a <>
+<> <b>a
+<> <b>b
+<> b <>
+<> <> a
+<> <> b
+<> <> <> <>
+a<>a<>a<>a
+a<>a<>a<>b
+a<>a<>a <>
+a<>a<b>a
+a<>a<b>b
+a<>a<>b <>
+a<>a a
+a<>a b
+a<>a <> <>
+a<b>a<>a
+a<b>a<>b
+a<b>a <>
+a<bb>a
+a<bb>b
+a<b>b <>
+a<>b a
+a<>b b
+a<>b <> <>
+a a<>a
+a a<>b
+a a <>
+a <b>a
+a <b>b
+a b <>
+a <> a
+a <> b
+a <> <> <>
+<b>a<>a<>a
+<b>a<>a<>b
+<b>a<>a <>
+<b>a<b>a
+<b>a<b>b
+<b>a<>b <>
+<b>a a
+<b>a b
+<b>a <> <>
+<bb>a<>a
+<bb>a<>b
+<bb>a <>
+<bbb>a
+<bbb>b
+<bb>b <>
+<b>b a
+<b>b b
+<b>b <> <>
+b a<>a
+b a<>b
+b a <>
+b <b>a
+b <b>b
+b b <>
+b <> a
+b <> b
+b <> <> <>
+<> a<>a<>a
+<> a<>a<>b
+<> a<>a <>
+<> a<b>a
+<> a<b>b
+<> a<>b <>
+<> a a
+<> a b
+<> a <> <>
+<> <b>a<>a
+<> <b>a<>b
+<> <b>a <>
+<> <bb>a
+<> <bb>b
+<> <b>b <>
+<> b a
+<> b b
+<> b <> <>
+<> <> a<>a
+<> <> a<>b
+<> <> a <>
+<> <> <b>a
+<> <> <b>b
+<> <> b <>
+<> <> <> a
+<> <> <> b
+<> <> <> <> <>
+== ab*\B
+
+a
+b
+ 
+<a>a
+<a>b
+a 
+ba
+bb
+b 
+ a
+ b
+  
+<a><a>a
+<a><a>b
+<a>a 
+<ab>a
+<ab>b
+<a>b 
+a a
+a b
+a  
+b<a>a
+b<a>b
+ba 
+bba
+bbb
+bb 
+b a
+b b
+b  
+ <a>a
+ <a>b
+ a 
+ ba
+ bb
+ b 
+  a
+  b
+   
+<a><a><a>a
+<a><a><a>b
+<a><a>a 
+<a><ab>a
+<a><ab>b
+<a><a>b 
+<a>a a
+<a>a b
+<a>a  
+<ab><a>a
+<ab><a>b
+<ab>a 
+<abb>a
+<abb>b
+<ab>b 
+<a>b a
+<a>b b
+<a>b  
+a <a>a
+a <a>b
+a a 
+a ba
+a bb
+a b 
+a  a
+a  b
+a   
+b<a><a>a
+b<a><a>b
+b<a>a 
+b<ab>a
+b<ab>b
+b<a>b 
+ba a
+ba b
+ba  
+bb<a>a
+bb<a>b
+bba 
+bbba
+bbbb
+bbb 
+bb a
+bb b
+bb  
+b <a>a
+b <a>b
+b a 
+b ba
+b bb
+b b 
+b  a
+b  b
+b   
+ <a><a>a
+ <a><a>b
+ <a>a 
+ <ab>a
+ <ab>b
+ <a>b 
+ a a
+ a b
+ a  
+ b<a>a
+ b<a>b
+ ba 
+ bba
+ bbb
+ bb 
+ b a
+ b b
+ b  
+  <a>a
+  <a>b
+  a 
+  ba
+  bb
+  b 
+   a
+   b
+    
+== b\?\B
+<>
+a
+b
+<> <>
+a<>a
+a<>b
+a <>
+<b>a
+<b>b
+b <>
+<> a
+<> b
+<> <> <>
+a<>a<>a
+a<>a<>b
+a<>a <>
+a<b>a
+a<b>b
+a<>b <>
+a a
+a b
+a <> <>
+<b>a<>a
+<b>a<>b
+<b>a <>
+<b><b>a
+<b><b>b
+<b>b <>
+b a
+b b
+b <> <>
+<> a<>a
+<> a<>b
+<> a <>
+<> <b>a
+<> <b>b
+<> b <>
+<> <> a
+<> <> b
+<> <> <> <>
+a<>a<>a<>a
+a<>a<>a<>b
+a<>a<>a <>
+a<>a<b>a
+a<>a<b>b
+a<>a<>b <>
+a<>a a
+a<>a b
+a<>a <> <>
+a<b>a<>a
+a<b>a<>b
+a<b>a <>
+a<b><b>a
+a<b><b>b
+a<b>b <>
+a<>b a
+a<>b b
+a<>b <> <>
+a a<>a
+a a<>b
+a a <>
+a <b>a
+a <b>b
+a b <>
+a <> a
+a <> b
+a <> <> <>
+<b>a<>a<>a
+<b>a<>a<>b
+<b>a<>a <>
+<b>a<b>a
+<b>a<b>b
+<b>a<>b <>
+<b>a a
+<b>a b
+<b>a <> <>
+<b><b>a<>a
+<b><b>a<>b
+<b><b>a <>
+<b><b><b>a
+<b><b><b>b
+<b><b>b <>
+<b>b a
+<b>b b
+<b>b <> <>
+b a<>a
+b a<>b
+b a <>
+b <b>a
+b <b>b
+b b <>
+b <> a
+b <> b
+b <> <> <>
+<> a<>a<>a
+<> a<>a<>b
+<> a<>a <>
+<> a<b>a
+<> a<b>b
+<> a<>b <>
+<> a a
+<> a b
+<> a <> <>
+<> <b>a<>a
+<> <b>a<>b
+<> <b>a <>
+<> <b><b>a
+<> <b><b>b
+<> <b>b <>
+<> b a
+<> b b
+<> b <> <>
+<> <> a<>a
+<> <> a<>b
+<> <> a <>
+<> <> <b>a
+<> <> <b>b
+<> <> b <>
+<> <> <> a
+<> <> <> b
+<> <> <> <> <>
+== b*
+
+<>a<>
+<b>
+ 
+<>aa<>
+<>a<b>
+<>a<> 
+<>ba<>
+<bb>
+<b> 
+ <>a<>
+ <b>
+  
+<>aaa<>
+<>aa<b>
+<>aa<> 
+<>aba<>
+<>a<bb>
+<>a<b> 
+<>a<> <>a<>
+<>a<> <b>
+<>a<>  
+<>baa<>
+<>ba<b>
+<>ba<> 
+<>bba<>
+<bbb>
+<bb> 
+<b> <>a<>
+<b> <b>
+<b>  
+ <>aa<>
+ <>a<b>
+ <>a<> 
+ <>ba<>
+ <bb>
+ <b> 
+  <>a<>
+  <b>
+   
+<>aaaa<>
+<>aaa<b>
+<>aaa<> 
+<>aaba<>
+<>aa<bb>
+<>aa<b> 
+<>aa<> <>a<>
+<>aa<> <b>
+<>aa<>  
+<>abaa<>
+<>aba<b>
+<>aba<> 
+<>abba<>
+<>a<bbb>
+<>a<bb> 
+<>a<b> <>a<>
+<>a<b> <b>
+<>a<b>  
+<>a<> <>aa<>
+<>a<> <>a<b>
+<>a<> <>a<> 
+<>a<> <>ba<>
+<>a<> <bb>
+<>a<> <b> 
+<>a<>  <>a<>
+<>a<>  <b>
+<>a<>   
+<>baaa<>
+<>baa<b>
+<>baa<> 
+<>baba<>
+<>ba<bb>
+<>ba<b> 
+<>ba<> <>a<>
+<>ba<> <b>
+<>ba<>  
+<>bbaa<>
+<>bba<b>
+<>bba<> 
+<>bbba<>
+<bbbb>
+<bbb> 
+<bb> <>a<>
+<bb> <b>
+<bb>  
+<b> <>aa<>
+<b> <>a<b>
+<b> <>a<> 
+<b> <>ba<>
+<b> <bb>
+<b> <b> 
+<b>  <>a<>
+<b>  <b>
+<b>   
+ <>aaa<>
+ <>aa<b>
+ <>aa<> 
+ <>aba<>
+ <>a<bb>
+ <>a<b> 
+ <>a<> <>a<>
+ <>a<> <b>
+ <>a<>  
+ <>baa<>
+ <>ba<b>
+ <>ba<> 
+ <>bba<>
+ <bbb>
+ <bb> 
+ <b> <>a<>
+ <b> <b>
+ <b>  
+  <>aa<>
+  <>a<b>
+  <>a<> 
+  <>ba<>
+  <bb>
+  <b> 
+   <>a<>
+   <b>
+    
+== b*\>
+
+a<>
+<b>
+ 
+aa<>
+a<b>
+a<> 
+ba<>
+<bb>
+<b> 
+ a<>
+ <b>
+  
+aaa<>
+aa<b>
+aa<> 
+aba<>
+a<bb>
+a<b> 
+a<> a<>
+a<> <b>
+a<>  
+baa<>
+ba<b>
+ba<> 
+bba<>
+<bbb>
+<bb> 
+<b> a<>
+<b> <b>
+<b>  
+ aa<>
+ a<b>
+ a<> 
+ ba<>
+ <bb>
+ <b> 
+  a<>
+  <b>
+   
+aaaa<>
+aaa<b>
+aaa<> 
+aaba<>
+aa<bb>
+aa<b> 
+aa<> a<>
+aa<> <b>
+aa<>  
+abaa<>
+aba<b>
+aba<> 
+abba<>
+a<bbb>
+a<bb> 
+a<b> a<>
+a<b> <b>
+a<b>  
+a<> aa<>
+a<> a<b>
+a<> a<> 
+a<> ba<>
+a<> <bb>
+a<> <b> 
+a<>  a<>
+a<>  <b>
+a<>   
+baaa<>
+baa<b>
+baa<> 
+baba<>
+ba<bb>
+ba<b> 
+ba<> a<>
+ba<> <b>
+ba<>  
+bbaa<>
+bba<b>
+bba<> 
+bbba<>
+<bbbb>
+<bbb> 
+<bb> a<>
+<bb> <b>
+<bb>  
+<b> aa<>
+<b> a<b>
+<b> a<> 
+<b> ba<>
+<b> <bb>
+<b> <b> 
+<b>  a<>
+<b>  <b>
+<b>   
+ aaa<>
+ aa<b>
+ aa<> 
+ aba<>
+ a<bb>
+ a<b> 
+ a<> a<>
+ a<> <b>
+ a<>  
+ baa<>
+ ba<b>
+ ba<> 
+ bba<>
+ <bbb>
+ <bb> 
+ <b> a<>
+ <b> <b>
+ <b>  
+  aa<>
+  a<b>
+  a<> 
+  ba<>
+  <bb>
+  <b> 
+   a<>
+   <b>
+    
+== -E
+<>
+a
+b
+<> <>
+a<>a
+ab<>
+a <>
+<b>a
+<b>b<>
+b <>
+<> a
+<> b
+<> <> <>
+a<>a<>a
+a<>ab<>
+a<>a <>
+a<b>a
+a<b>b<>
+ab<> <>
+a a
+a b
+a <> <>
+<b>a<>a
+<b>ab<>
+<b>a <>
+<bb>a
+<bb>b<>
+<b>b<> <>
+b a
+b b
+b <> <>
+<> a<>a
+<> ab<>
+<> a <>
+<> <b>a
+<> <b>b<>
+<> b <>
+<> <> a
+<> <> b
+<> <> <> <>
+a<>a<>a<>a
+a<>a<>ab<>
+a<>a<>a <>
+a<>a<b>a
+a<>a<b>b<>
+a<>ab<> <>
+a<>a a
+a<>a b
+a<>a <> <>
+a<b>a<>a
+a<b>ab<>
+a<b>a <>
+a<bb>a
+a<bb>b<>
+a<b>b<> <>
+ab<> a
+ab<> b
+ab<> <> <>
+a a<>a
+a ab<>
+a a <>
+a <b>a
+a <b>b<>
+a b <>
+a <> a
+a <> b
+a <> <> <>
+<b>a<>a<>a
+<b>a<>ab<>
+<b>a<>a <>
+<b>a<b>a
+<b>a<b>b<>
+<b>ab<> <>
+<b>a a
+<b>a b
+<b>a <> <>
+<bb>a<>a
+<bb>ab<>
+<bb>a <>
+<bbb>a
+<bbb>b<>
+<bb>b<> <>
+<b>b<> a
+<b>b<> b
+<b>b<> <> <>
+b a<>a
+b ab<>
+b a <>
+b <b>a
+b <b>b<>
+b b <>
+b <> a
+b <> b
+b <> <> <>
+<> a<>a<>a
+<> a<>ab<>
+<> a<>a <>
+<> a<b>a
+<> a<b>b<>
+<> ab<> <>
+<> a a
+<> a b
+<> a <> <>
+<> <b>a<>a
+<> <b>ab<>
+<> <b>a <>
+<> <bb>a
+<> <bb>b<>
+<> <b>b<> <>
+<> b a
+<> b b
+<> b <> <>
+<> <> a<>a
+<> <> ab<>
+<> <> a <>
+<> <> <b>a
+<> <> <b>b<>
+<> <> b <>
+<> <> <> a
+<> <> <> b
+<> <> <> <> <>

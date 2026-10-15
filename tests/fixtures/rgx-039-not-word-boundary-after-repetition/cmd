@@ -1,0 +1,14 @@
+cat > in.txt
+echo '== b*\B'; sed 's/b*\B/<&>/g' <in.txt
+echo '== [ab]*\B'; sed 's/[ab]*\B/<&>/g' <in.txt
+echo '==  *\B'; sed 's/ *\B/<&>/g' <in.txt
+echo '== b*a*\B'; sed 's/b*a*\B/<&>/g' <in.txt
+echo '== a*\+\B'; sed 's/a*\+\B/<&>/g' <in.txt
+echo '== \(a*\)*\B'; sed 's/\(a*\)*\B/<&>/g' <in.txt
+echo '== \(b*\)\B'; sed 's/\(b*\)\B/<&>/g' <in.txt
+echo '== ab*\B'; sed 's/ab*\B/<&>/g' <in.txt
+echo '== b\?\B'; sed 's/b\?\B/<&>/g' <in.txt
+echo '== b*\b'; sed 's/b*\b/<&>/g' <in.txt
+echo '== b*\>'; sed 's/b*\>/<&>/g' <in.txt
+echo '== -E'; sed -E 's/b*\B/<&>/g' <in.txt
+rm -f in.txt

@@ -188,6 +188,8 @@ pub struct Regex {
     /// The syntax tree, kept to build the reversed program of the DFA.
     node: ast::Node,
     fixed: Option<(usize, Vec<(usize, usize)>)>,
+    /// See `star_before_not_word_boundary`.
+    quirk_stars: usize,
     dfa: std::cell::RefCell<dfa::DfaSlot>,
     /// Off to test the DFA against the simulation.
     use_dfa: bool,
@@ -208,7 +210,7 @@ impl Regex {
         let prog = compile::compile(&parsed.node, parsed.ngroups, parsed.referenced, parsed.char_starts, parsed.utf8)?;
         let prog_has_no_backrefs = !prog.has_backrefs;
         let literals = literal::analyze(&parsed.node, syntax.locale == Locale::Utf8);
-        Ok(Regex { prog, syntax: *syntax, delim, literals, scratch: Default::default(), fixed: if prog_has_no_backrefs { dfa::fixed_groups(&parsed.node, parsed.ngroups) } else { None }, node: parsed.node, dfa: Default::default(), use_dfa: true })
+        Ok(Regex { prog, syntax: *syntax, delim, literals, scratch: Default::default(), quirk_stars: star_before_not_word_boundary(&parsed.node), fixed: if prog_has_no_backrefs { dfa::fixed_groups(&parsed.node, parsed.ngroups) } else { None }, node: parsed.node, dfa: Default::default(), use_dfa: true })
     }
 
     /// Number of parenthesized subexpressions.
@@ -253,6 +255,7 @@ impl Regex {
             dfa: &self.dfa,
             node: &self.node,
             fixed: self.fixed.as_ref(),
+            quirk_stars: self.quirk_stars,
             use_dfa: self.use_dfa,
             prog: &self.prog,
             hay: haystack,
@@ -291,6 +294,7 @@ impl Regex {
             dfa: &self.dfa,
             node: &self.node,
             fixed: self.fixed.as_ref(),
+            quirk_stars: self.quirk_stars,
             use_dfa: self.use_dfa,
             prog: &self.prog,
             hay: haystack,
@@ -301,6 +305,31 @@ impl Regex {
             icase: self.syntax.icase,
         };
         searcher.exists()
+    }
+}
+
+/// glibc quirk: for a pattern that starts with unbounded repetitions of single characters followed
+/// by `\B` (`b*\B`), a match that is empty at a position where such a run could have been
+/// consumed is reported after the first character of the run. Returns how many leading repetitions there are
+/// (0 when the pattern is not of that form; the units of those repetitions come first).
+fn star_before_not_word_boundary(node: &ast::Node) -> usize {
+    use ast::{Assert, Node};
+    let Node::Concat(items) = node else { return 0 };
+    fn group_star(n: &Node) -> bool {
+        matches!(n, Node::Group(_, inner) if star(inner))
+    }
+    fn star(n: &Node) -> bool {
+        match n {
+            Node::Repeat(inner, 0, None) => matches!(**inner, Node::Unit(_)) || star(inner) || group_star(inner),
+            // `a*\+`: at least one repetition of a star.
+            Node::Repeat(inner, 1, None) => star(inner),
+            _ => false,
+        }
+    }
+    let stars = items.iter().take_while(|n| star(n)).count();
+    match items.get(stars) {
+        Some(Node::Assert(Assert::NotWordBoundary)) if stars > 0 && items[stars + 1..].iter().all(dfa::nullable) => stars,
+        _ => 0,
     }
 }
 

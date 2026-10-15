@@ -81,6 +81,8 @@ pub struct Searcher<'a> {
     pub node: &'a super::ast::Node,
     /// Offsets of the groups of a fixed-width pattern (see `dfa::fixed_groups`).
     pub fixed: Option<&'a (usize, Vec<(usize, usize)>)>,
+    /// Leading repetitions before a `\B` (see `star_before_not_word_boundary`); 0 for none.
+    pub quirk_stars: usize,
     /// Off in tests that compare the DFA with the simulation.
     pub use_dfa: bool,
     pub prog: &'a Program,
@@ -279,6 +281,15 @@ impl<'a> Searcher<'a> {
         }
     }
 
+    /// The empty match glibc reports instead of one at `s` when a leading repetition could consume
+    /// a character there: it is put after that character (see `star_before_not_word_boundary`).
+    fn end_of_star_run(&self, s: usize) -> (usize, usize) {
+        match self.unit_len(0, s).filter(|&l| l > 0) {
+            Some(l) => (s + l, s + l),
+            None => (s, s),
+        }
+    }
+
     /// Finds the leftmost-longest match starting at or after `start`.
     pub fn search(&self, start: usize) -> Option<(usize, Groups)> {
         let len = self.hay.len();
@@ -307,8 +318,14 @@ impl<'a> Searcher<'a> {
                     None => self.longest(from)?,
                 }
             };
+            let shifted = self.quirk_stars > 0 && s == e && s > 0 && self.unit_len(0, s).is_some_and(|l| l > 0);
+            let (s, e) = if shifted { self.end_of_star_run(s) } else { (s, e) };
             let mut groups = vec![None; self.prog.ngroups + 1];
             groups[0] = Some((s, e));
+            if shifted {
+                // The groups, if any, took no part in the match glibc reports.
+                return Some((s, groups));
+            }
             if self.prog.ngroups == 0 {
                 return Some((s, groups));
             }
