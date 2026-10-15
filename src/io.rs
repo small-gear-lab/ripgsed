@@ -478,6 +478,15 @@ impl Outputs {
         Err(Fatal::new("couldn't open temporary file", 4))
     }
 
+    /// Gives up the file being edited after a fatal error: the temporary file is removed and the
+    /// original stays as it was.
+    pub fn abort_in_place(&mut self) {
+        if let Some(file) = self.in_place.take() {
+            drop(file.output);
+            let _ = std::fs::remove_file(&file.temp);
+        }
+    }
+
     /// Finishes the file being edited: flushes the temporary file, keeps a backup
     /// when `backup_suffix` is given, and moves the temporary file over the original.
     pub fn finish_in_place(&mut self, backup_suffix: Option<&str>) -> Result<(), Fatal> {

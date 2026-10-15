@@ -78,7 +78,10 @@ pub struct Syntax {
     pub icase: bool,
     /// The `M` flag: `^` and `$` also match at embedded newlines.
     pub multiline: bool,
-    /// `-z`: records end at NUL, not at a newline, which changes what `M` means (probe GNU sed).
+    /// `-z`: records end at NUL. GNU sed then anchors `^` and `$` of `M` mode
+    /// at NUL bytes (not newlines), `.` and `[^...]` in `M` mode match
+    /// neither NUL nor newline, and `^`/`$` inside a match no longer meet a
+    /// newline the match consumes.
     pub null_data: bool,
     pub locale: Locale,
 }
@@ -140,14 +143,13 @@ pub struct Regex {
 impl Regex {
     /// Compiles `pattern`. Errors carry GNU's message text.
     pub fn compile(pattern: &[u8], syntax: &Syntax) -> Result<Regex, CompileError> {
-        Regex::compile_with_delimiter(pattern, syntax, b'\n')
+        let delim = if syntax.null_data { b'\0' } else { b'\n' };
+        Regex::compile_with_delimiter(pattern, syntax, delim)
     }
 
-    /// Compiles `pattern` for records delimited by `delim`: pass `b'\0'`
-    /// under `sed -z`. GNU sed then anchors `^` and `$` of `M` mode at NUL
-    /// bytes (and `.` and `[^...]` in `M` mode exclude NUL instead of the
-    /// newline), and it no longer lets a `^` or `$` inside a match meet a
-    /// newline the match consumes. `compile` is this with `b'\n'`.
+    /// Compiles `pattern` for records delimited by `delim` (`b'\n'`, or
+    /// `b'\0'` as under `sed -z`; see `Syntax::null_data`). `compile` derives
+    /// the delimiter from `syntax.null_data`.
     pub fn compile_with_delimiter(pattern: &[u8], syntax: &Syntax, delim: u8) -> Result<Regex, CompileError> {
         let parsed = parse::parse(pattern, syntax, delim)?;
         let prog = compile::compile(&parsed.node, parsed.ngroups, parsed.referenced)?;

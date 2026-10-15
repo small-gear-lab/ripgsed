@@ -1,0 +1,1 @@
+printf 'a\nb' | sed -n '2{p;q}' | od -An -c

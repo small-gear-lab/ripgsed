@@ -80,7 +80,7 @@ fn command(rng: &mut Rng, extended: bool, depth: usize) -> String {
     } else {
         String::new()
     };
-    let body = match rng.below(26) {
+    let body = match rng.below(27) {
         0 => "p".into(),
         1 => "d".into(),
         2 => "D".into(),
@@ -110,11 +110,10 @@ fn command(rng: &mut Rng, extended: bool, depth: usize) -> String {
         }
         23 => format!("t{}", rng.pick(&["", " end"])),
         24 => format!("b{}", rng.pick(&["", " end"])),
+        25 => format!("{} {}", rng.pick(&["r", "R", "w", "W"]), rng.pick(&["r.txt", "out1.txt", "out2.txt"])),
         _ => "p".into(),
     };
     // Commands that read the rest of the line must end it with a newline.
-    let needs_newline = body.starts_with("a ") || body.starts_with("i ") || body.starts_with("c ") || body.contains("w /dev/null");
-    let _ = needs_newline;
     format!("{addr}{body}")
 }
 
@@ -145,6 +144,28 @@ struct Run {
     stderr: Vec<u8>,
     status: Option<i32>,
     timed_out: bool,
+}
+
+/// All files under `dir`, with their contents (for comparing what `w` and `-i` leave behind).
+fn tree(dir: &Path) -> std::collections::BTreeMap<String, Vec<u8>> {
+    let mut out = std::collections::BTreeMap::new();
+    if let Ok(entries) = std::fs::read_dir(dir) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_file() {
+                out.insert(entry.file_name().to_string_lossy().into_owned(), std::fs::read(&path).unwrap_or_default());
+            }
+        }
+    }
+    out
+}
+
+fn fresh_dir(dir: &Path, files: &[(&str, &[u8])]) {
+    let _ = std::fs::remove_dir_all(dir);
+    std::fs::create_dir_all(dir).unwrap();
+    for (name, bytes) in files {
+        std::fs::write(dir.join(name), bytes).unwrap();
+    }
 }
 
 fn run(program: &Path, args: &[String], stdin: &[u8], cwd: &Path) -> Run {
@@ -203,6 +224,7 @@ fn random_scripts_agree_with_gnu_sed() {
 
     // Both programs run as `sed`, so that messages carry the same prefix.
     let work = temp_dir("w");
+    let work_ours = temp_dir("o");
     let bin = temp_dir("b");
     let gnu = bin.join("gnu").join("sed");
     let ours = bin.join("ours").join("sed");
@@ -233,19 +255,50 @@ fn random_scripts_agree_with_gnu_sed() {
         if rng.chance(25) {
             args.push("--posix".into());
         }
+        // Sometimes the input is two files (and sometimes edited in place) instead of stdin.
+        let use_files = rng.chance(4);
+        let in_place = use_files && rng.chance(3);
+        if in_place {
+            args.push("-i".into());
+        }
         args.push("--".into());
         args.push(script.clone());
+        let f2 = input(&mut rng);
+        let r_txt = input(&mut rng);
+        let files: [(&str, &[u8]); 3] = [("f1", &data), ("f2", &f2), ("r.txt", &r_txt)];
+        fresh_dir(&work, &files);
+        fresh_dir(&work_ours, &files);
+        let stdin: &[u8] = if use_files { b"" } else { &data };
+        if use_files {
+            args.push("f1".into());
+            args.push("f2".into());
+        }
 
-        let want = run(&gnu, &args, &data, &work);
+        let want = run(&gnu, &args, stdin, &work);
         if want.timed_out {
             continue;
         }
-        let got = run(&ours, &args, &data, &work);
-        let same = !got.timed_out && want.stdout == got.stdout && want.stderr == got.stderr && want.status == got.status;
+        let got = run(&ours, &args, stdin, &work_ours);
+        let same = !got.timed_out
+            && want.stdout == got.stdout
+            && want.stderr == got.stderr
+            && want.status == got.status
+            && tree(&work) == tree(&work_ours);
         if !same {
+            let (tw, tg) = (tree(&work), tree(&work_ours));
+            let mut file_diff = String::new();
+            for name in tw.keys().chain(tg.keys()).collect::<std::collections::BTreeSet<_>>() {
+                if tw.get(name) != tg.get(name) {
+                    file_diff.push_str(&format!(
+                        "\n  file {name}: want {:?} got {:?}",
+                        tw.get(name).map(|b| String::from_utf8_lossy(b).into_owned()),
+                        tg.get(name).map(|b| String::from_utf8_lossy(b).into_owned()),
+                    ));
+                }
+            }
             failures.push(format!(
-                "case {case}: sed {} {:?}\n  input {:?}\n  want status {:?}: {:?} / {:?}\n  got  status {:?}{}: {:?} / {:?}",
-                args[..args.len() - 1].join(" "),
+                "case {case}: sed {} {:?}\n  input {:?}\n  want status {:?}: {:?} / {:?}\n  got  status {:?}{}: {:?} / {:?}{file_diff}",
+                args[..args.len() - if use_files { 3 } else { 1 }].join(" "),
                 script,
                 String::from_utf8_lossy(&data),
                 want.status,
@@ -262,6 +315,7 @@ fn random_scripts_agree_with_gnu_sed() {
         }
     }
     let _ = std::fs::remove_dir_all(&work);
+    let _ = std::fs::remove_dir_all(&work_ours);
     let _ = std::fs::remove_dir_all(&bin);
     assert!(failures.is_empty(), "{} divergences from GNU sed (seed {seed}):\n{}", failures.len(), failures.join("\n"));
 }

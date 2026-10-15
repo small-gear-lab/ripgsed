@@ -1,0 +1,1 @@
+printf 'a\nb\n' > f; sed -i '//p' f; echo $?; cat f; ls

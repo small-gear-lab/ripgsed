@@ -25,7 +25,7 @@ OPT-015	option	-E, -r, --regexp-extended	verified	Command-Line Options
 OPT-016	option	-s, --separate	verified	Command-Line Options	ranges do not span files; line numbers and $ per file; R files rewound
 OPT-017	option	--sandbox	verified	Command-Line Options	rejects e/w/r commands before running
 OPT-018	option	-u, --unbuffered	verified	Command-Line Options	minimal buffering of input and output
-OPT-019	option	-z, --null-data, --zero-terminated	partial	Command-Line Options	NUL as the record separator; N, G, H and others use NUL where the manual says so
+OPT-019	option	-z, --null-data, --zero-terminated	verified	Command-Line Options	NUL as the record separator; N, G, H and others use NUL where the manual says so
 EXT-001	exit-status	exit 0 on success	verified	Exit status	
 EXT-002	exit-status	exit 1 for invalid command, syntax, regex, or an extension used with --posix	verified	Exit status	
 EXT-003	exit-status	exit 2 when an input file cannot be opened; processing continues	verified	Exit status	
@@ -164,7 +164,7 @@ CYC-005	cycle	pending output queue from a, r, R flushed at end of cycle or when 
 CYC-006	cycle	n and N when there is no next line	verified	Execution Cycle	
 CYC-007	cycle	auto-print suppressed by -n and #n	verified	Execution Cycle	
 CYC-008	cycle	q flushes pending output and exits	verified	Execution Cycle	
-CYC-009	cycle	-z changes the record separator for the cycle	partial	Execution Cycle	
+CYC-009	cycle	-z changes the record separator for the cycle	verified	Execution Cycle	
 CYC-010	cycle	-s and -i reset line numbers and ranges per file	verified	Execution Cycle	
 IOF-001	io	lines of any length	verified	Overview	no built-in limit
 IOF-002	io	NUL and arbitrary bytes in input	verified	Overview	

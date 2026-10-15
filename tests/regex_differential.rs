@@ -74,6 +74,7 @@ impl Flags {
             posixly_correct: self.posixly_correct,
             icase: self.icase,
             multiline: self.multiline,
+            null_data: self.z,
             locale: if self.utf8 { Locale::Utf8 } else { Locale::C },
         }
     }

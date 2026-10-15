@@ -410,6 +410,7 @@ pub fn main() -> i32 {
         Err(Fatal { message, status }) => {
             // GNU sed reports first, then flushes what it had written.
             eprintln!("{program}: {message}");
+            outputs.abort_in_place();
             let _ = outputs.flush_all();
             status
         }

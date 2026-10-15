@@ -182,8 +182,8 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
             }
             self.zero_finished.clear();
             // GNU sed also empties the hold space and rewinds the `R` files at each new file.
+            // (only its text: it keeps whether its last line had a terminator).
             self.hold.clear();
-            self.hold_terminated = true;
             self.read_files.clear();
         }
         let first_of_stream = new_file && (self.options.separate || self.line == 0);
@@ -215,11 +215,17 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
     }
 
     fn cycles(&mut self) -> Result<i32, Fatal> {
-        let result = self.cycles_inner();
-        let finished = self.out.finish_in_place(self.options.in_place.as_deref());
-        let code = result?;
-        finished?;
-        Ok(code)
+        match self.cycles_inner() {
+            Ok(code) => {
+                self.out.finish_in_place(self.options.in_place.as_deref())?;
+                Ok(code)
+            }
+            Err(e) => {
+                // A fatal error leaves the file being edited as it was.
+                self.out.abort_in_place();
+                Err(e)
+            }
+        }
     }
 
     fn cycles_inner(&mut self) -> Result<i32, Fatal> {
@@ -350,6 +356,8 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
             match item {
                 Pending::Text(text) => self.write_raw(&text)?,
                 Pending::File(name) => {
+                    // Even a missing file ends an unterminated last line.
+                    self.write_raw(&[])?;
                     let path = String::from_utf8_lossy(&name).into_owned();
                     match std::fs::read(&path) {
                         Ok(bytes) => self.write_raw(&bytes)?,

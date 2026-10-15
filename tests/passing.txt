@@ -436,6 +436,7 @@ cmd-017-P-trailing-newline-ps
 cmd-017-P-z
 cmd-018-q-basic
 cmd-018-q-empty-input
+cmd-018-q-ends-unterminated-line
 cmd-018-q-error-extra
 cmd-018-q-error-two-addr
 cmd-018-q-exit-code
@@ -489,6 +490,7 @@ cmd-020-r-filename-to-eol
 cmd-020-r-in-place
 cmd-020-r-last-q
 cmd-020-r-missing-file
+cmd-020-r-missing-file-ends-last-line
 cmd-020-r-multi-e
 cmd-020-r-multi-files
 cmd-020-r-negated
@@ -622,6 +624,7 @@ cmd-027-W-vs-w
 cmd-028-x-basic
 cmd-028-x-double
 cmd-028-x-empty-input
+cmd-028-x-hold-flag-survives-s-reset
 cmd-028-x-hold-persists-across-files
 cmd-028-x-last-line
 cmd-028-x-multiline
@@ -888,6 +891,7 @@ cyc-008-q-with-range
 cyc-009-z-D-P
 cyc-009-z-G-hold
 cyc-009-z-a-with-newline-text
+cyc-009-z-anchors
 cyc-009-z-append
 cyc-009-z-basic
 cyc-009-z-empty-input
@@ -1189,6 +1193,7 @@ opt-007-in-place-basic
 opt-007-in-place-broken-symlink
 opt-007-in-place-directory-operand
 opt-007-in-place-empty-file
+opt-007-in-place-fatal-error-keeps-file
 opt-007-in-place-hard-link-detached
 opt-007-in-place-l-and-equals-go-to-file
 opt-007-in-place-long
@@ -1300,6 +1305,7 @@ opt-018-unbuffered-with-w-file
 opt-019-null-data-N-G-H
 opt-019-null-data-N-with-newlines
 opt-019-null-data-a-i-c
+opt-019-null-data-anchors-and-regex
 opt-019-null-data-basic
 opt-019-null-data-dollar-and-line-numbers
 opt-019-null-data-empty-input

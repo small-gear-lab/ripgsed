@@ -1,0 +1,1 @@
+printf 'a\nb' | sed 'r nosuch.txt' | od -An -c

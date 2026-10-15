@@ -1,0 +1,1 @@
+printf 'a\n' > f1; printf 'c' > f2; sed -s x f1 f2 | od -An -c
