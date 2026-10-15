@@ -119,6 +119,40 @@ impl<R: Read> ChunkedSource<R> {
         self.next_record_into(Vec::new())
     }
 
+    /// Skips up to `n` records without building them; returns how many there were.
+    pub fn skip_records(&mut self, n: u64) -> io::Result<u64> {
+        let mut done = 0u64;
+        while done < n {
+            if self.pos >= self.chunk.len() {
+                match self.reader.next_chunk()? {
+                    Some(chunk) => {
+                        self.chunk = chunk.data;
+                        self.pos = 0;
+                    }
+                    None => break,
+                }
+                continue;
+            }
+            let rest = &self.chunk[self.pos..];
+            let separators = crate::search::count(self.separator, rest) as u64;
+            let records = separators + u64::from(rest.last() != Some(&self.separator));
+            if records <= n - done {
+                done += records;
+                self.consumed += rest.len() as u64;
+                self.pos = self.chunk.len();
+            } else {
+                let mut off = 0;
+                for _ in 0..n - done {
+                    off += crate::search::memchr(self.separator, &rest[off..]).expect("counted") + 1;
+                }
+                done = n;
+                self.pos += off;
+                self.consumed += off as u64;
+            }
+        }
+        Ok(done)
+    }
+
     /// The next record, stored in `body` (cleared first, its capacity reused).
     pub fn next_record_into(&mut self, mut body: Vec<u8>) -> io::Result<Option<Record>> {
         body.clear();
@@ -188,6 +222,11 @@ pub struct Fetched {
 /// A source of input records with one record of lookahead (for `$`).
 pub trait RecordSource {
     fn next_record(&mut self) -> Result<Option<Fetched>, Fatal>;
+    /// Skips up to `n` records (fewer at the end of the input); returns how many were skipped.
+    /// Sources that cannot skip cheaply skip none.
+    fn skip_records(&mut self, _n: u64) -> Result<u64, Fatal> {
+        Ok(0)
+    }
     /// Hands back a buffer the caller is done with, to be reused for a later record.
     fn recycle(&mut self, _buf: Vec<u8>) {}
     /// Whether the record last returned is the last one: of all input, or of
@@ -370,6 +409,41 @@ impl RecordSource for FileInputs {
     fn next_record(&mut self) -> Result<Option<Fetched>, Fatal> {
         self.fill(false)?;
         Ok(self.peeked.take())
+    }
+
+    fn skip_records(&mut self, mut n: u64) -> Result<u64, Fatal> {
+        let mut done = 0;
+        if n > 0 && self.peeked.take().is_some() {
+            done += 1;
+            n -= 1;
+        }
+        while n > 0 {
+            if self.current.is_none() && !self.open_next() {
+                return match self.fatal.take() {
+                    Some(f) => Err(f),
+                    None => Ok(done),
+                };
+            }
+            let (source, name) = self.current.as_mut().unwrap();
+            let skipped = match source {
+                Source::Chunked(source) => source.skip_records(n),
+                Source::Stdin => with_stdin(|s| s.source.skip_records(n), self.unbuffered, self.separator),
+            };
+            match skipped {
+                Ok(k) => {
+                    done += k;
+                    n -= k;
+                    if k > 0 {
+                        self.started_file = true;
+                    }
+                    if n > 0 {
+                        self.current = None;
+                    }
+                }
+                Err(e) => return Err(Fatal::new(format!("read error on {}: {}", name, strerror(&e)), 4)),
+            }
+        }
+        Ok(done)
     }
 
     fn recycle(&mut self, buf: Vec<u8>) {
@@ -619,13 +693,25 @@ impl Outputs {
             Fatal::new(format!("cannot rename {}: {}", name.display(), strerror(&e)), 4)
         };
         if let Some(suffix) = backup_suffix.filter(|s| !s.is_empty()) {
-            let base = file.original.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-            let backup_name = if suffix.contains('*') { suffix.replace('*', &base) } else { format!("{base}{suffix}") };
-            let backup = if backup_name.starts_with('/') {
-                std::path::PathBuf::from(backup_name)
+            // A `*` stands for the input file name exactly as it was given (with its directory);
+            // without one the suffix is appended. The result is relative to the working directory.
+            use std::os::unix::ffi::{OsStrExt, OsStringExt};
+            let path = file.original.as_os_str().as_bytes();
+            let suffix = suffix.as_bytes();
+            let backup_name: Vec<u8> = if suffix.contains(&b'*') {
+                let mut out = Vec::new();
+                for &b in suffix {
+                    if b == b'*' {
+                        out.extend_from_slice(path);
+                    } else {
+                        out.push(b);
+                    }
+                }
+                out
             } else {
-                file.original.parent().unwrap_or_else(|| std::path::Path::new("")).join(backup_name)
+                [path, suffix].concat()
             };
+            let backup = std::path::PathBuf::from(std::ffi::OsString::from_vec(backup_name));
             if let Err(e) = std::fs::rename(&file.original, &backup) {
                 let _ = std::fs::remove_file(&file.temp);
                 return Err(rename_error(&file.original, e));

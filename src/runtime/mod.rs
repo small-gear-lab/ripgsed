@@ -303,11 +303,53 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
         }
     }
 
+    /// When no command can act on the next lines (every command is guarded by a line number that
+    /// is still ahead, and nothing is printed by default), skips them without running cycles.
+    fn skip_ahead(&mut self) -> Result<(), Fatal> {
+        if !self.quiet() || self.options.debug || self.options.separate || self.options.in_place.is_some() || self.line == 0 {
+            return Ok(());
+        }
+        let script = self.script;
+        let mut target = u64::MAX;
+        let mut pc = 0;
+        while pc < script.commands.len() {
+            let command = &script.commands[pc];
+            let ahead = match (&command.selector, &command.kind) {
+                _ if command.negate => return Ok(()),
+                (None, Kind::BlockEnd | Kind::Label(_) | Kind::Version) => None,
+                (Some(Selector::Single(Addr::Line(n))), _) if *n > self.line => Some(*n),
+                (Some(Selector::Single(Addr::Line(_))), _) => None,
+                (Some(Selector::Range(Addr::Line(a), _)), _) => match self.ranges[pc] {
+                    RangeState::Inactive if *a > self.line => Some(*a),
+                    RangeState::Closed => None,
+                    _ => return Ok(()),
+                },
+                _ => return Ok(()),
+            };
+            if let Some(n) = ahead {
+                target = target.min(n);
+            }
+            // The commands inside a block run only when the block is entered.
+            pc = match command.kind {
+                Kind::BlockStart(end) => end + 1,
+                _ => pc + 1,
+            };
+        }
+        if target == u64::MAX || target <= self.line + 1 {
+            return Ok(());
+        }
+        self.flush_pending()?;
+        let skipped = self.input.skip_records(target - 1 - self.line)?;
+        self.line += skipped;
+        Ok(())
+    }
+
     fn cycles_inner(&mut self) -> Result<i32, Fatal> {
         let mut restart = false;
         loop {
             if !restart {
                 self.substituted = false;
+                self.skip_ahead()?;
                 if !self.read_line(false)? {
                     break;
                 }
@@ -638,6 +680,7 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
             }
             match &command.kind {
                 Kind::BlockStart(_) | Kind::BlockEnd | Kind::Label(_) | Kind::Version => {}
+                Kind::Removed(_) => return Err(Fatal::new("INTERNAL ERROR: Bad cmd L", 4)),
                 Kind::Branch { when, target, .. } => {
                     let take = match when {
                         BranchWhen::Always => true,
