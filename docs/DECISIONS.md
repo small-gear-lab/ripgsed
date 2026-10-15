@@ -54,3 +54,10 @@ Decisions that have been made, with their reasons. Proposals and open questions 
 - Linux is the first supported platform. The differential tests rely on a POSIX `sh`, symbolic links, and GNU sed 4.9 as the reference, so they run on Unix systems only. Other platforms come after the core is verified.
 - The minimum supported Rust version is 1.85, the first release with edition 2024, and it is declared in `Cargo.toml`. It is raised only when a feature is needed, with a note here.
 - The project has no third-party dependencies so far (see D7 for regular expressions). A dependency needs a reason recorded here.
+
+## D9. Speed is a core goal: beat GNU sed 4.9, measured
+
+- Being faster than GNU sed 4.9 is a goal of the project, together with full compatibility (D4). Compatibility comes first: no optimization may change any output, so every change must keep all differential fixtures and the execution fuzz test passing.
+- "Faster" is defined by `tools/bench.sh`: fixed, deterministic workloads (literal and regex substitution, address matching, `y`, multi-line cycles, one huge line), compared with GNU sed 4.9 on the same machine, with output equality checked by hash. A claim names the machine, the build, and the numbers; an unmeasured claim is not made.
+- The work is ordered by expected gain: the regex search (literal prefilters, a DFA for patterns without back-references), allocation and I/O overhead, then automatic parallel execution of scripts proven record-local by static analysis (DESIGN.md), with a sequential fallback for everything else.
+- The first release is not called a replacement for `sed` before it is both fully compatible and faster on the benchmark set, or the gap is stated honestly next to the numbers.

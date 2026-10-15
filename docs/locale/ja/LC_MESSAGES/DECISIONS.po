@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ripgsed \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-15 13:52+0900\n"
+"POT-Creation-Date: 2026-10-15 15:16+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ja\n"
@@ -174,4 +174,24 @@ msgstr "対応する最小の Rust のバージョンは 1.85 で、edition 2024
 #: ../../DECISIONS.md:56
 msgid "The project has no third-party dependencies so far (see D7 for regular expressions). A dependency needs a reason recorded here."
 msgstr "いまのところ、サードパーティの依存はありません（正規表現は D7 を参照）。依存を足すときは、その理由をここに記録します。"
+
+#: ../../DECISIONS.md:58
+msgid "D9. Speed is a core goal: beat GNU sed 4.9, measured"
+msgstr "D9. 速さは中核の目標：GNU sed 4.9 に勝つ（測定して）"
+
+#: ../../DECISIONS.md:60
+msgid "Being faster than GNU sed 4.9 is a goal of the project, together with full compatibility (D4). Compatibility comes first: no optimization may change any output, so every change must keep all differential fixtures and the execution fuzz test passing."
+msgstr "GNU sed 4.9 より速いことは、完全互換（D4）と並ぶこのプロジェクトの目標です。互換性が先で、どの最適化も出力を変えてはならないため、すべての変更は、差分 fixture とランダム差分テストを通し続ける必要があります。"
+
+#: ../../DECISIONS.md:61
+msgid "\"Faster\" is defined by `tools/bench.sh`: fixed, deterministic workloads (literal and regex substitution, address matching, `y`, multi-line cycles, one huge line), compared with GNU sed 4.9 on the same machine, with output equality checked by hash. A claim names the machine, the build, and the numbers; an unmeasured claim is not made."
+msgstr "「速い」は `tools/bench.sh` で定義します。決まった再現可能な workload（リテラルと正規表現の置換、アドレス照合、`y`、複数行サイクル、巨大な 1 行）を、同じマシンで GNU sed 4.9 と比べ、出力の一致をハッシュで確認します。主張にはマシン、ビルド、数値を添え、測っていない主張はしません。"
+
+#: ../../DECISIONS.md:62
+msgid "The work is ordered by expected gain: the regex search (literal prefilters, a DFA for patterns without back-references), allocation and I/O overhead, then automatic parallel execution of scripts proven record-local by static analysis (DESIGN.md), with a sequential fallback for everything else."
+msgstr "作業は見込める効果の順に進めます。正規表現の探索（リテラルの先読み、後方参照のないパターンの DFA）、割り当てと I/O のオーバーヘッド、そして静的解析でレコード内で完結すると証明できたスクリプトの自動並列実行（DESIGN.md）です。それ以外は逐次にフォールバックします。"
+
+#: ../../DECISIONS.md:63
+msgid "The first release is not called a replacement for `sed` before it is both fully compatible and faster on the benchmark set, or the gap is stated honestly next to the numbers."
+msgstr "最初のリリースは、完全互換でベンチマークでも速くなるまで `sed` の代替とは呼びません。差が残るなら、数値の隣にその差を正直に書きます。"
 
