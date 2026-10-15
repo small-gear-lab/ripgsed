@@ -1,0 +1,31 @@
+seq 1 6 > s.txt
+sed '2,4c X' s.txt; echo ---
+sed '2,4!c X' s.txt; echo ---
+sed '$!N;c X' s.txt; echo ---
+sed '4,10c X' s.txt; echo ---
+sed '3,1c X' s.txt; echo ---
+sed '/2/,/nomatch/c X' s.txt; echo ---
+sed '2,+1c X' s.txt; echo ---
+sed '2,~4c X' s.txt; echo ---
+sed '0,/1/c X' s.txt; echo ---
+sed '2,3{c X
+}' s.txt; echo ---
+sed '2,3{/3/c X
+}' s.txt; echo ---
+sed -n '2,4c X' s.txt; echo ---
+sed '2,4{c X
+p}' s.txt; echo ---
+sed '1~2c X' s.txt; echo ---
+sed '2,4c\
+multi\
+line' s.txt; echo ---
+sed '$c X' s.txt; echo ---
+sed '2,$c X' s.txt; echo ---
+sed '/3/,+1c X' s.txt; echo ---
+sed '2,3c X' s.txt s.txt; echo ---
+sed -s '2,3c X' s.txt s.txt; echo ---
+sed '5,2c X' s.txt; echo ---
+sed '2,2c X' s.txt; echo ---
+sed -n '2,4{c X
+}' s.txt; echo ---
+sed 'N;N;2,3c X' s.txt

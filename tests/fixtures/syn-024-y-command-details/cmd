@@ -1,0 +1,19 @@
+printf 'a\tb\n' | sed 'y/\t/_/'
+printf 'a_b\n' | sed 'y/_/\t/'
+printf 'a\nb\n' | sed 'N;y/\n/,/'
+printf 'abc\n' | sed 'y///' 2>&1; echo $?
+printf 'abc\n' | sed 'y/abc/\n\n\n/'
+printf 'a/b\n' | sed 'y/\//|/'
+printf 'a|b\n' | sed 'y|\||/|'
+printf 'abc\n' | sed 'y,a\,b,xyz,' 2>&1; echo $?
+printf 'a\\b\n' | sed 'y/\\/X/'
+printf 'abc\n' | sed 'y/abc/\\xy/' 2>&1; echo $?
+printf 'abc\n' | sed 'y/a\bc/xyz/' 2>&1; echo $?
+printf 'abc\n' | sed 'y/ab/x/' 2>&1; echo $?
+printf 'abc\n' | sed 'y/aa/xy/' 2>&1; echo $?
+printf 'é\n' | sed 'y/é/e/' 2>&1; echo $?
+printf 'é\n' | LC_ALL=C.utf8 sed 'y/é/e/' 2>&1; echo $?
+printf 'aéb\n' | LC_ALL=C.utf8 sed 'y/aéb/AÉB/' 2>&1; echo $?
+printf 'abc\n' | sed 'y/abc/xyz/g' 2>&1; echo $?
+printf 'abc\n' | sed 'y/abc/xyz/;p' 2>&1; echo $?
+printf 'abc\n' | sed 'y/abc/xyz/ ' 2>&1; echo $?

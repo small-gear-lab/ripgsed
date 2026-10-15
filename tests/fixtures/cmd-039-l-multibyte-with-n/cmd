@@ -1,0 +1,16 @@
+printf 'aあいうえお\n' | sed -n 'l 6'
+printf 'aあいうえお\n' | sed -n -l 7 l
+printf 'aあいうえお\n' | sed -n l
+printf 'é\n' | sed -n 'l 2'
+printf 'éé\n' | sed -n 'l 4'
+printf 'éé\n' | sed -n 'l 5'
+printf 'a\303\n' | sed -n l
+printf 'あ\n' | sed -n 'l 5'
+printf 'あ\n' | sed -n 'l 4'
+printf 'あ\n' | sed -n 'l 3'
+printf 'あ\n' | sed -n 'l 2'
+printf 'あい\n' | sed -n 'l 10'
+printf 'あい\n' | sed -n 'l 11'
+printf 'あ\n' | sed -n 'l 1'
+printf 'あ\n' | sed 'l'
+printf 'あ\n' | sed -n -l 4 l

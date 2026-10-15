@@ -1,0 +1,33 @@
+printf 'a\0b\0' | sed -z = | od -c
+printf 'a\0b\0' | sed -z -n '$=' | od -c
+printf 'a\0b\0' | sed -z 'G' | od -c
+printf 'a\0b\0' | sed -z 'H;x' | od -c
+printf 'a\0b\0' | sed -z 'N;l' | od -c
+printf 'a\0b\0' | sed -z '1i\
+X' | od -c
+printf 'a\0b\0' | sed -z '$a\
+X' | od -c
+printf 'a\0b\0' | sed -z '2c\
+X' | od -c
+printf 'a\0b\0' | sed -z 'x;G' | od -c
+printf 'a\0b\0' | sed -z 'a X' | od -c
+printf 'a\0b\0' | sed -z 'i X' | od -c
+printf 'a\nb\0' | sed -z 'G' | od -c
+printf 'a\nb\0' | sed -z 'N;P;D' | od -c
+printf 'a\0b\0' | sed -z -s '$=' - - | od -c
+printf '1\n2\n' > a.txt; printf '3\n4\n' > b.txt
+sed -s -n '$=' a.txt b.txt
+sed -s '$a END' a.txt b.txt
+sed -s '1i BEGIN' a.txt b.txt
+sed -s -n '1F;$F' a.txt b.txt
+sed -s -n '$=;1=' a.txt b.txt
+sed -s '1!G;h;$!d' a.txt b.txt
+sed -i '$a END' a.txt b.txt; cat a.txt b.txt
+sed -i '1i BEGIN' a.txt b.txt; cat a.txt b.txt
+sed -i -n '$=' a.txt b.txt; cat a.txt b.txt
+printf '1\n2\n' > a.txt; printf '3\n4\n' > b.txt
+sed -i -n 'F;=' a.txt b.txt; cat a.txt b.txt
+printf '1\n2\n' > a.txt; printf '3\n4\n' > b.txt
+sed -i 'x;G' a.txt b.txt; cat a.txt b.txt
+printf 'a\0b\0' > z1; printf 'c\0d\0' > z2
+sed -z -i '$=' z1 z2; od -c z1 z2

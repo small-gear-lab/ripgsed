@@ -1,0 +1,17 @@
+sed '1{w out.txt}' a.txt 2>&1; echo $?
+ls
+rm -f 'out.txt}'
+sed -n '1w out.txt   ' a.txt; ls | od -c | sed -n '1,3p'
+rm -f out.txt*
+sed -n '1w a,b;c' a.txt; ls
+cat 'a,b;c'
+rm -f 'a,b;c'
+sed -n '1{w x.txt
+}' a.txt; cat x.txt
+sed '1{r a.txt}' a.txt 2>&1; echo $?
+sed '1{r a.txt
+}' a.txt 2>&1; echo $?
+sed 'r a.txt ' a.txt 2>&1 | sed -n '1,3p'; echo $?
+sed 'R a.txt}' a.txt 2>&1 | sed -n '1,3p'
+sed -n '1{W y.txt}' a.txt 2>&1; echo $?
+ls

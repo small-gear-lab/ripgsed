@@ -1,0 +1,10 @@
+t='aé中あb'
+for re in '[[=é=]]' '[[.é.]]' '[à-é]' '[あ-ん]' '[é]' '[é中]' '[^é]' '[a-é]' '[a-z]' '[é-é]' '[[=a=]]' '[[.a.]]' '[[.-.]]' '[[.space.]]' '[[=é=]é]' '[é-中]' '[中-あ]' '[[:alpha:]]' '[^[:alpha:]]' '[[:alpha:]é]' '[é[:alpha:]]' '[a-あ]'; do
+  printf "== %s\n" "$re"
+  printf '%s\n' "$t" | sed "s/$re/X/g" 2>&1; echo $?
+done
+printf '%s\n' "$t" | sed -E 's/[[=é=]]/X/' 2>&1; echo $?
+printf '%s\n' "$t" | sed -n '/[à-é]/p' 2>&1; echo $?
+printf '%s\n' "$t" | LC_ALL=C sed 's/[à-é]/X/g' 2>&1 | od -c
+printf '%s\n' "$t" | LC_ALL=C sed 's/[[=é=]]/X/g' 2>&1 | od -c
+printf '%s\n' "$t" | LC_ALL=C sed 's/[é]/X/g' 2>&1 | od -c

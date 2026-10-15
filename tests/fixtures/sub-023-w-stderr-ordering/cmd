@@ -1,0 +1,19 @@
+sed 's/o/0/w /dev/stderr' a.txt 2>&1
+echo ---
+sed -n 's/o/0/w /dev/stderr' a.txt 2>&1
+echo ---
+sed 's/o/0/w /dev/stderr' a.txt 2>&1 >/dev/null
+echo ---
+sed 's/o/0/w /dev/stderr' a.txt 2>/dev/null
+echo ---
+sed 's/o/0/pw /dev/stderr' a.txt 2>&1
+echo ---
+sed 's/o/0/w /dev/stderr' a.txt 2>&1 | cat
+echo ---
+sed -u 's/o/0/w /dev/stderr' a.txt 2>&1
+echo ---
+sed -n -e 's/o/0/w /dev/stdout' a.txt 2>&1
+echo ---
+sed -e 's/o/0/w /dev/stdout' -e 's/e/E/w /dev/stderr' a.txt 2>&1
+echo ---
+sed 'w /dev/stderr' a.txt > out.txt 2> err.txt; cat out.txt err.txt

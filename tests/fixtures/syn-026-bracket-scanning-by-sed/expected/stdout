@@ -1,0 +1,72 @@
+sed: -e expression #1, char 6: unterminated `s' command
+1
+sed: -e expression #1, char 7: unterminated `s' command
+1
+sed: -e expression #1, char 7: unterminated `s' command
+1
+one
+two
+three
+0
+xne
+xwo
+xhree
+0
+one
+two
+three
+0
+sed: -e expression #1, char 15: unterminated `s' command
+1
+sed: -e expression #1, char 7: unterminated `s' command
+1
+one
+two
+three
+0
+xne
+xwo
+xhree
+0
+sed: -e expression #1, char 4: unterminated address regex
+1
+one
+two
+three
+0
+one
+two
+three
+0
+sed: -e expression #1, char 5: unterminated address regex
+1
+sed: -e expression #1, char 13: unterminated address regex
+1
+sed: -e expression #1, char 9: unterminated address regex
+1
+sed: -e expression #1, char 9: unterminated address regex
+1
+one
+two
+three
+0
+one
+two
+three
+0
+one
+two
+three
+0
+one
+two
+three
+0
+0ne
+tw0
+three
+0
+sed: -e expression #1, char 6: unterminated `s' command
+1
+sed: -e expression #1, char 8: unterminated `s' command
+1

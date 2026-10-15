@@ -1,0 +1,9 @@
+for s in '2,4q' '2,4Q' '2,q' '1,$q' '/o/,/t/q' '/o/,+1Q' '1~2q' '2~2,4q' '0~2q' '$q' '$!q' '2,4!q' '2q' '/t/q' '/t/Q' 'q' 'Q' 'qx' 'Qx' 'q5' 'q 5' 'q5x' 'q5;p' 'q5 ;p' 'q 5 6' 'q-1' 'q 255' 'q 256' 'Q 3' 'Q3;p' '2q 3' '2{q}' '2{q;}' '2{q5}' '2,3{q}' '{q}' 'q}' 'q #c' 'q # c' 'q;;p' 'q
+p' '1!q' '2!{q}' 'qq' 'q;q' 'q p' 'q 7p'; do
+  printf "== %s\n" "$s"
+  sed -n "$s" a.txt 2>&1; echo $?
+done
+sed --posix q5 a.txt 2>&1; echo $?
+sed --posix q a.txt 2>&1; echo $?
+sed --posix '2,3q' a.txt 2>&1; echo $?
+sed --posix 'Q' a.txt 2>&1; echo $?

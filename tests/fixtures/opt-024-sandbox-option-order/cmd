@@ -1,0 +1,9 @@
+sed 'w out.txt' --sandbox a.txt 2>&1; echo $?
+sed -e 'p' --sandbox -e 'r a.txt' a.txt 2>&1; echo $?
+sed --sandbox -e 'p' -e 'e' a.txt 2>&1; echo $?
+sed --sandbox 's/o/0/;s/e/E/w out.txt' a.txt 2>&1; echo $?
+sed --sandbox 's/o/0/;s/e/echo X/e' a.txt 2>&1; echo $?
+sed --sandbox 'w /dev/stderr' a.txt 2>&1; echo $?
+sed --sandbox -n '$!{n;p};W out.txt' a.txt 2>&1; echo $?
+sed --sandbox 'R a.txt' a.txt 2>&1; echo $?
+ls

@@ -1,0 +1,46 @@
+ax\c
+0
+a\c
+0
+0000000   a 001   c  \n
+0000004
+adc
+0
+axc
+0
+aoc
+0
+adzc
+0
+axzc
+0
+ao9c
+0
+aAc
+0
+aAc
+0
+aAc
+0
+0000000   a 004   c  \n
+0000004
+0000000   a 006   c  \n
+0000004
+0000000   a 001   c  \n
+0000004
+a\c
+0
+a\Z
+0
+sed: -e expression #1, char 9: unknown option to `s'
+1
+sed: -e expression #1, char 8: unterminated `s' command
+1
+sed: -e expression #1, char 8: unknown option to `s'
+1
+0000000   a 034   c  \n
+0000004
+0000000   a 033   c  \n
+0000004
+aqc
+0

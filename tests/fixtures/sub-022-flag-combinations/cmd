@@ -1,0 +1,22 @@
+printf 'Ab\nab\n' | sed 'N;s/a/X/IM'
+printf 'Ab\nab\n' | sed 'N;s/^a/X/IMg'
+printf 'Ab\nab\n' | sed 's/a/X/ig'
+printf 'Ab\nab\n' | sed 's/a/X/gI'
+printf 'Ab\nab\n' | sed 's/a/X/Ip'
+printf 'Ab\nab\n' | sed -n 's/a/X/gpI'
+printf 'Ab\nab\n' | sed -n 's/a/X/pgI2' 2>&1; echo $?
+printf 'Ab\nab\n' | sed 's/a/X/IiI' 2>&1; echo $?
+printf 'Ab\nab\n' | sed 'N;s/^a/X/mM' 2>&1; echo $?
+printf 'Ab\nab\n' | sed -n '/ab/Ip' 2>&1; echo $?
+printf 'Ab\nab\n' | sed -n '/^a/Mp' 2>&1; echo $?
+printf 'Ab\nab\n' | sed -n 'N;/^a/Mp' 2>&1; echo $?
+printf 'Ab\nab\n' | sed -n 'N;/b$/MIp' 2>&1; echo $?
+printf 'Ab\nab\n' | sed -n '/ab/ip' 2>&1; echo $?
+printf 'Ab\nab\n' | sed -n '/ab/mp' 2>&1; echo $?
+printf 'Ab\nab\n' | sed -n 'N;/b$/m p' 2>&1; echo $?
+printf 'Ab\nab\n' | sed -n '/ab/gp' 2>&1; echo $?
+printf 'Ab\nab\n' | sed -n '/ab/I,/x/Mp' 2>&1; echo $?
+printf 'Ab\nab\n' | sed -n '/a/I,+1p' 2>&1; echo $?
+printf 'Ab\nab\n' | sed -n '\,a,Ip' 2>&1; echo $?
+printf 'Ab\nab\n' | sed 's/a/X/w out.txt' >/dev/null 2>&1; cat out.txt
+printf 'Ab\nab\n' | sed 's/a/X/Iw out2.txt' >/dev/null 2>&1; cat out2.txt

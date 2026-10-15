@@ -1,0 +1,24 @@
+sed -n '1,2,3p' a.txt 2>&1; echo $?
+sed -n '1,2;3p' a.txt 2>&1; echo $?
+sed '1,2:a' a.txt 2>&1; echo $?
+sed '1:a' a.txt 2>&1; echo $?
+sed '1}' a.txt 2>&1; echo $?
+sed '1{p;1}' a.txt 2>&1; echo $?
+sed '1,2}' a.txt 2>&1; echo $?
+sed '1#c' a.txt 2>&1; echo $?
+sed '1,2#c' a.txt 2>&1; echo $?
+sed '1,2=' a.txt 2>&1; echo $?
+sed -n '1,2a x' a.txt 2>&1; echo $?
+sed '1,2i x' a.txt 2>&1 >/dev/null; echo $?
+sed '1,2q' a.txt 2>&1; echo $?
+sed '1,2Q' a.txt 2>&1; echo $?
+sed '1,2r a.txt' a.txt 2>&1 >/dev/null; echo $?
+sed '$!{$!p}' a.txt 2>&1 >/dev/null; echo $?
+sed '/a/,p' a.txt 2>&1; echo $?
+sed ',2p' a.txt 2>&1; echo $?
+sed '1,p' a.txt 2>&1; echo $?
+sed '1,/x' a.txt 2>&1; echo $?
+sed 'p;' a.txt 2>&1 >/dev/null; echo $?
+sed '1,2 ;p' a.txt 2>&1; echo $?
+sed '1 , 2p' a.txt 2>&1; echo $?
+sed '1, 2p' a.txt 2>&1 >/dev/null; echo $?

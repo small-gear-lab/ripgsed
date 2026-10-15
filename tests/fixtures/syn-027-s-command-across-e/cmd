@@ -1,0 +1,20 @@
+sed -e 's/,/\' -e '/' a.txt 2>&1; echo $?
+sed -e 's/o/\' -e 'x/' a.txt 2>&1; echo $?
+sed -e 's/o/x\' -e '/' a.txt 2>&1; echo $?
+sed -e 's/o' -e '/x/' a.txt 2>&1; echo $?
+sed -e 's/o/x' -e '/' a.txt 2>&1; echo $?
+sed -e 's' -e '/o/x/' a.txt 2>&1; echo $?
+sed -e 's/o/x/' -e 'g' a.txt 2>&1; echo $?
+sed -e 's/o/x/g' -e 'p' -n a.txt 2>&1; echo $?
+sed -e 'y/o/\' -e '/' a.txt 2>&1; echo $?
+sed -e 'y/o' -e '/x/' a.txt 2>&1; echo $?
+sed -e '/o\' -e '/p' a.txt 2>&1; echo $?
+sed -e '/o' -e '/p' a.txt 2>&1; echo $?
+sed -e 's/t/\' -e 'T/' a.txt 2>&1; echo $?
+sed -e 's/t/a\' -e 'b/' a.txt 2>&1; echo $?
+sed -e 's/t/a\' -e '' a.txt 2>&1; echo $?
+printf 's/o/\\\n/\n' > s.sed
+sed -f s.sed a.txt 2>&1; echo $?
+sed -e 's/o/x/w' -e 'out.txt' a.txt 2>&1; echo $?
+sed -e 's/o/x/w out.txt' -e 'p' a.txt 2>&1 >/dev/null; echo $?
+cat out.txt

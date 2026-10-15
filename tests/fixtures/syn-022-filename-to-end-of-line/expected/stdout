@@ -1,0 +1,32 @@
+sed: -e expression #1, char 0: unmatched `{'
+1
+a.txt
+out.txt}
+0000000   a   .   t   x   t  \n   o   u   t   .   t   x   t            
+0000020  \n
+0000021
+a,b;c
+a.txt
+one
+one
+sed: -e expression #1, char 0: unmatched `{'
+1
+one
+one
+two
+three
+two
+three
+0
+one
+two
+three
+0
+one
+two
+three
+sed: -e expression #1, char 0: unmatched `{'
+1
+a.txt
+x.txt
+y.txt}

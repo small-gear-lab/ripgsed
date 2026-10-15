@@ -1,0 +1,46 @@
+sed: -e expression #1, char 4: extra characters after command
+1
+sed: -e expression #1, char 5: extra characters after command
+1
+one
+one
+two
+two
+three
+three
+0
+one
+one
+two
+two
+three
+three
+0
+sed: -e expression #1, char 4: unexpected `}'
+1
+one
+two
+three
+0
+one
+two
+three
+0
+one
+two
+three
+0
+sed: -e expression #1, char 5: extra characters after command
+1
+sed: -e expression #1, char 6: extra characters after command
+1
+sed: -e expression #1, char 3: extra characters after command
+1
+sed: -e expression #1, char 2: extra characters after command
+1
+sed: -e expression #1, char 2: extra characters after command
+1
+sed: -e expression #1, char 3: extra characters after command
+1
+sed: -e expression #1, char 4: extra characters after command
+1

@@ -1,0 +1,25 @@
+sed: character class syntax is [[:space:]], not [:space:]
+4
+xxb
+0
+a\nb
+0
+aXXb
+0
+a\nb
+0
+a
+b
+0
+Xb
+0
+XX
+0
+XX
+0
+X X
+0
+a X
+0
+a b
+0

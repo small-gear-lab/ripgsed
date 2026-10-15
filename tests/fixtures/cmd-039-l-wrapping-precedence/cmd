@@ -1,0 +1,31 @@
+printf 'abcdefghijklmnopqrstuvwxyz\n' > l.txt
+sed -n -l 8 l l.txt
+sed -n -l 8 'l 12' l.txt
+sed -n -l 8 'l 0' l.txt
+sed -n -l 8 'l 1' l.txt
+sed -n -l 1 l l.txt
+sed -n -l 0 l l.txt
+sed -n -l 2 l l.txt
+sed -n -l 3 l l.txt
+sed -n -l 8 'l 2' l.txt
+COLS=12 sed -n l l.txt
+COLS=12 sed -n -l 8 l l.txt
+COLS=12 sed -n 'l 10' l.txt
+COLS=1 sed -n l l.txt
+COLS=0 sed -n l l.txt
+COLS=abc sed -n l l.txt
+COLS=2 sed -n l l.txt
+COLS=100 sed -n l l.txt
+sed --posix -n 'l 5' l.txt 2>&1; echo $?
+sed --posix -n -l 5 l l.txt 2>&1; echo $?
+POSIXLY_CORRECT=1 sed -n 'l 5' l.txt 2>&1; echo $?
+sed -n 'l 5;l 6' l.txt
+sed -n 'l5' l.txt
+sed -n 'l 5 ' l.txt
+sed -n 'l 5x' l.txt 2>&1; echo $?
+sed -n -l 5 --line-length=9 l l.txt
+sed -n --line-length=9 -l 5 l l.txt
+printf 'a\tb\\c\001d\n' | sed -n -l 6 l | od -c | sed -n '1,4p'
+printf 'a\tb\\c\001d\n' | sed -n 'l 1'
+printf 'a\tb\\c\001d\n' | sed -n 'l 4'
+printf 'a\nb\n' | sed -n 'N;l 3'

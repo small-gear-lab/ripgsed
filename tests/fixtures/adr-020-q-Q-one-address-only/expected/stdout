@@ -1,0 +1,120 @@
+== 2,4q
+sed: -e expression #1, char 4: command only uses one address
+1
+== 2,4Q
+sed: -e expression #1, char 4: command only uses one address
+1
+== 2,q
+sed: -e expression #1, char 3: unexpected `,'
+1
+== 1,$q
+sed: -e expression #1, char 4: command only uses one address
+1
+== /o/,/t/q
+sed: -e expression #1, char 8: command only uses one address
+1
+== /o/,+1Q
+sed: -e expression #1, char 7: command only uses one address
+1
+== 1~2q
+0
+== 2~2,4q
+sed: -e expression #1, char 6: command only uses one address
+1
+== 0~2q
+0
+== $q
+0
+== $!q
+0
+== 2,4!q
+sed: -e expression #1, char 5: command only uses one address
+1
+== 2q
+0
+== /t/q
+0
+== /t/Q
+0
+== q
+0
+== Q
+0
+== qx
+sed: -e expression #1, char 2: extra characters after command
+1
+== Qx
+sed: -e expression #1, char 2: extra characters after command
+1
+== q5
+5
+== q 5
+5
+== q5x
+sed: -e expression #1, char 3: extra characters after command
+1
+== q5;p
+5
+== q5 ;p
+5
+== q 5 6
+sed: -e expression #1, char 5: extra characters after command
+1
+== q-1
+sed: -e expression #1, char 2: extra characters after command
+1
+== q 255
+255
+== q 256
+0
+== Q 3
+3
+== Q3;p
+3
+== 2q 3
+3
+== 2{q}
+0
+== 2{q;}
+0
+== 2{q5}
+5
+== 2,3{q}
+0
+== {q}
+0
+== q}
+sed: -e expression #1, char 2: unexpected `}'
+1
+== q #c
+0
+== q # c
+0
+== q;;p
+0
+== q
+p
+0
+== 1!q
+0
+== 2!{q}
+0
+== qq
+sed: -e expression #1, char 2: extra characters after command
+1
+== q;q
+0
+== q p
+sed: -e expression #1, char 3: extra characters after command
+1
+== q 7p
+sed: -e expression #1, char 4: extra characters after command
+1
+sed: -e expression #1, char 2: extra characters after command
+1
+one
+0
+sed: -e expression #1, char 4: command only uses one address
+1
+sed: -e expression #1, char 1: unknown command: `Q'
+1

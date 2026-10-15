@@ -1,0 +1,18 @@
+printf 'a\nb\nc\n' | sed 'D'; echo "[$?]"
+printf 'a\nb\nc\n' | sed -n 'p;D'; echo "[$?]"
+printf 'a\nb\nc\n' | sed 'N;D'; echo "[$?]"
+printf 'a\n\nc\n' | sed 'N;P;D'; echo "[$?]"
+printf '\n\nc\n' | sed 'D'; echo "[$?]"
+printf 'a\nb\nc\nd\n' | sed 'N;N;D'; echo "[$?]"
+printf 'a\nb\nc\nd\n' | sed '$!N;$!D'; echo "[$?]"
+printf 'a\nb\nc\n' | sed 'N;s/^/X/;P;D'; echo "[$?]"
+printf 'a\nb\nc\n' | sed '1{N;N;s/\n/-/;D}'; echo "[$?]"
+printf 'a\nb\nc\n' | sed -n '$!N;l;D'; echo "[$?]"
+printf 'a\nb\nc\n' | sed 'z;D'; echo "[$?]"
+printf 'a\nb\nc\n' | sed 'x;D'; echo "[$?]"
+printf 'a\nb\nc\n' | sed '$!N;P;D' | od -c | sed -n '1,2p'
+printf 'a\nb\nc' | sed '$!N;P;D' | od -c | sed -n '1,2p'
+printf 'a\nb\n' | sed -n '1{N;=;D}'; echo "[$?]"
+printf 'a\nb\nc\n' | sed 'N;a x
+D'; echo "[$?]"
+printf 'a\nb\nc\n' | sed -s 'N;P;D' - ; echo "[$?]"

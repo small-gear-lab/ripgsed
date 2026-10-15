@@ -1,0 +1,17 @@
+sed: -e expression #1, char 1: e/r/w commands disabled in sandbox mode
+1
+sed: -e expression #2, char 1: e/r/w commands disabled in sandbox mode
+1
+sed: -e expression #2, char 1: e/r/w commands disabled in sandbox mode
+1
+sed: -e expression #1, char 14: e/r/w commands disabled in sandbox mode
+1
+sed: -e expression #1, char 19: e/r/w commands disabled in sandbox mode
+1
+sed: -e expression #1, char 1: e/r/w commands disabled in sandbox mode
+1
+sed: -e expression #1, char 9: e/r/w commands disabled in sandbox mode
+1
+sed: -e expression #1, char 1: e/r/w commands disabled in sandbox mode
+1
+a.txt

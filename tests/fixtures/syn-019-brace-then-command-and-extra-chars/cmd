@@ -1,0 +1,16 @@
+sed -n '{p}p' a.txt 2>&1; echo $?
+sed -n '{p} p' a.txt 2>&1; echo $?
+sed -n '{p};p' a.txt 2>&1; echo $?
+sed -n '{p}
+p' a.txt 2>&1; echo $?
+sed -n '{p}}' a.txt 2>&1; echo $?
+sed -n '{{p}}' a.txt 2>&1; echo $?
+sed -n '{{p}} ' a.txt 2>&1; echo $?
+sed -n '{p} #c' a.txt 2>&1; echo $?
+sed -n '1{p}d' a.txt 2>&1; echo $?
+sed -n '1{p;}p' a.txt 2>&1; echo $?
+sed -n 'p p' a.txt 2>&1; echo $?
+sed -n 'dp' a.txt 2>&1; echo $?
+sed -n '=p' a.txt 2>&1; echo $?
+sed 'x x' a.txt 2>&1; echo $?
+sed -n '{p}=' a.txt 2>&1; echo $?

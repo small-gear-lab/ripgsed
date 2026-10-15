@@ -1,0 +1,12 @@
+printf 'a:b\n' | sed 's/[:alpha:]/x/g' 2>&1; echo $?
+printf 'a:b\n' | POSIXLY_CORRECT=1 sed 's/[:alpha:]/x/g' 2>&1; echo $?
+printf 'a\\nb\n' | sed 's/[\n]/X/g' 2>&1; echo $?
+printf 'a\\nb\n' | POSIXLY_CORRECT=1 sed 's/[\n]/X/g' 2>&1; echo $?
+printf 'a\\nb\n' | POSIXLY_CORRECT=1 sed -n '/[\n]/p' 2>&1; echo $?
+printf 'a\nb\n' | POSIXLY_CORRECT=1 sed -n 'N;/a\nb/p' 2>&1; echo $?
+printf 'ab\n' | POSIXLY_CORRECT=1 sed 's/\(a\)\+/X/' 2>&1; echo $?
+printf 'ab\n' | POSIXLY_CORRECT=1 sed 's/a\|b/X/g' 2>&1; echo $?
+printf 'ab\n' | POSIXLY_CORRECT=1 sed -E 's/a|b/X/g' 2>&1; echo $?
+printf 'a b\n' | POSIXLY_CORRECT=1 sed 's/\w\+/X/g' 2>&1; echo $?
+printf 'a b\n' | POSIXLY_CORRECT=1 sed 's/\bb/X/g' 2>&1; echo $?
+printf 'a b\n' | POSIXLY_CORRECT=1 sed --posix 's/\w\+/X/g' 2>&1; echo $?

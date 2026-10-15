@@ -1,0 +1,25 @@
+printf 'a\nb\0c\nd\0' | sed -z 's/^./X/Mg' | od -c
+echo ---
+printf 'a\nb\0c\nd\0' | sed -z 's/^./X/g' | od -c
+echo ---
+printf 'a\nb\0c\nd\0' | sed -z 's/.$/X/Mg' | od -c
+echo ---
+printf 'a\nb\0c\nd\0' | sed -z -n '/^b/Mp' | od -c
+echo ---
+printf 'a\nb\0c\nd\0' | sed -z -n '/^b/p' | od -c
+echo ---
+printf 'a\0b\0' | sed -z '$a x' | od -c
+echo ---
+printf 'a\0b\0' | sed -z '1i x' | od -c
+echo ---
+printf 'a\0b\0' | sed -z '$a\
+x\
+y' | od -c
+echo ---
+printf 'a\nb\0' | sed -z 'N;s/\n/+/g' | od -c
+echo ---
+printf 'a\0b\0' | sed -z 'N;l' | od -c
+echo ---
+printf 'a\0b\0' | sed -z 'G;H' | od -c
+echo ---
+printf 'a\0b\0' | sed -z 'N;P;D' | od -c

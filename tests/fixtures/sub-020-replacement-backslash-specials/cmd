@@ -1,0 +1,23 @@
+printf 'abc\n' | sed 's/b/x\c/' 2>&1; echo $?
+printf 'abc\n' | sed 's/b/\c/' 2>&1; echo $?
+printf 'abc\n' | sed 's/b/\cA/' 2>&1 | od -c
+printf 'abc\n' | sed 's/b/\d/' 2>&1; echo $?
+printf 'abc\n' | sed 's/b/\x/' 2>&1; echo $?
+printf 'abc\n' | sed 's/b/\o/' 2>&1; echo $?
+printf 'abc\n' | sed 's/b/\dz/' 2>&1; echo $?
+printf 'abc\n' | sed 's/b/\xz/' 2>&1; echo $?
+printf 'abc\n' | sed 's/b/\o9/' 2>&1; echo $?
+printf 'abc\n' | sed 's/b/\d65/' 2>&1; echo $?
+printf 'abc\n' | sed 's/b/\x41/' 2>&1; echo $?
+printf 'abc\n' | sed 's/b/\o101/' 2>&1; echo $?
+printf 'abc\n' | sed 's/b/\x4/' 2>&1 | od -c
+printf 'abc\n' | sed 's/b/\d6/' 2>&1 | od -c
+printf 'abc\n' | sed 's/b/\o1/' 2>&1 | od -c
+printf 'abc\n' | sed 's|b|\c|' 2>&1; echo $?
+printf 'abc\n' | sed 's/b/\c/;s/c/Z/' 2>&1; echo $?
+printf 'abc\n' | sed 's,b,x\c,,' 2>&1; echo $?
+printf 'abc\n' | sed 's/b/\c\/' 2>&1; echo $?
+printf 'abc\n' | sed 's/b/\c//' 2>&1; echo $?
+printf 'abc\n' | sed 's/b/\c\\/' 2>&1 | od -c
+printf 'abc\n' | sed 's/b/\c[/' 2>&1 | od -c
+printf 'abc\n' | sed 's/b/\q/' 2>&1; echo $?

@@ -1,0 +1,24 @@
+sed 's/[/x/' a.txt 2>&1; echo $?
+sed 's/a[/x/' a.txt 2>&1; echo $?
+sed 's/[a/x/' a.txt 2>&1; echo $?
+sed 's/[/]/x/' a.txt 2>&1; echo $?
+sed 's/[^/]/x/' a.txt 2>&1; echo $?
+sed 's,[,],x,' a.txt 2>&1; echo $?
+sed 's/[[:alpha:]/x/' a.txt 2>&1; echo $?
+sed 's/[]/x/' a.txt 2>&1; echo $?
+sed 's/[]/]/x/' a.txt 2>&1; echo $?
+sed 's/[^]/]/x/' a.txt 2>&1; echo $?
+sed '/[/p' a.txt 2>&1; echo $?
+sed '/[/]/p' a.txt 2>&1; echo $?
+sed '\,[,],p' a.txt 2>&1; echo $?
+sed '/a[/p' a.txt 2>&1; echo $?
+sed -n '/[[:alpha:]/p' a.txt 2>&1; echo $?
+sed -n '/[[.a.]/p' a.txt 2>&1; echo $?
+sed -n '/[[=a=]/p' a.txt 2>&1; echo $?
+sed 's/[\n]/x/' a.txt 2>&1; echo $?
+sed 's/[/\n]/x/' a.txt 2>&1; echo $?
+sed 'y/[/(/' a.txt 2>&1; echo $?
+sed 's/\[/x/' a.txt 2>&1; echo $?
+sed 's/[o]/0/;s/[[]/0/' a.txt 2>&1; echo $?
+sed -E 's/[/x/' a.txt 2>&1; echo $?
+sed 's/[a-/x/' a.txt 2>&1; echo $?

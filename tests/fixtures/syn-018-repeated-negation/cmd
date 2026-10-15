@@ -1,0 +1,8 @@
+sed -n '2!!p' a.txt 2>&1; echo $?
+sed -n '2! !p' a.txt 2>&1; echo $?
+sed -n '2!!!p' a.txt 2>&1; echo $?
+sed -n '/two/!!{p}' a.txt 2>&1; echo $?
+sed -n '2,3!!p' a.txt 2>&1; echo $?
+sed -n '!!p' a.txt 2>&1; echo $?
+sed -n '1!p;2!!p' a.txt 2>&1; echo $?
+sed -n '$!p' a.txt 2>&1; echo $?

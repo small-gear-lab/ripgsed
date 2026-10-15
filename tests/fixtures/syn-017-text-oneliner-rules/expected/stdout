@@ -1,0 +1,59 @@
+one
+two
+leading stripped
+three
+one
+two
+  text keeps
+three
+one
+two
+   text
+three
+one
+two
+ttext
+three
+one
+two
+x	y
+three
+one
+two
+x\y
+three
+one
+	z
+two
+three
+sed: -e expression #1, char 0: unmatched `{'
+1
+one
+two
+two
+foo
+three
+0
+one
+two
+foo;p
+three
+one
+two
+foo }
+three
+one
+ttext
+three
+one
+spaced   tail
+three
+one
+two
+three
+0
+one
+  two
+ three
+two
+three

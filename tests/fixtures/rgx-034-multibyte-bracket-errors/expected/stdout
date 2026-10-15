@@ -1,0 +1,79 @@
+== [[=é=]]
+sed: -e expression #1, char 14: Invalid collation character
+1
+== [[.é.]]
+sed: -e expression #1, char 14: Invalid collation character
+1
+== [à-é]
+sed: -e expression #1, char 13: Invalid collation character
+1
+== [あ-ん]
+sed: -e expression #1, char 15: Invalid collation character
+1
+== [é]
+aX中あb
+0
+== [é中]
+aXXあb
+0
+== [^é]
+XéXXX
+0
+== [a-é]
+sed: -e expression #1, char 12: Invalid collation character
+1
+== [a-z]
+Xé中あX
+0
+== [é-é]
+sed: -e expression #1, char 13: Invalid collation character
+1
+== [[=a=]]
+Xé中あb
+0
+== [[.a.]]
+Xé中あb
+0
+== [[.-.]]
+aé中あb
+0
+== [[.space.]]
+sed: -e expression #1, char 17: Invalid collation character
+1
+== [[=é=]é]
+sed: -e expression #1, char 16: Invalid collation character
+1
+== [é-中]
+sed: -e expression #1, char 14: Invalid collation character
+1
+== [中-あ]
+sed: -e expression #1, char 15: Invalid collation character
+1
+== [[:alpha:]]
+XXXXX
+0
+== [^[:alpha:]]
+aé中あb
+0
+== [[:alpha:]é]
+XXXXX
+0
+== [é[:alpha:]]
+XXXXX
+0
+== [a-あ]
+sed: -e expression #1, char 13: Invalid collation character
+1
+sed: -e expression #1, char 13: Invalid collation character
+1
+sed: -e expression #1, char 9: Invalid collation character
+1
+0000000   a   X   X 344   X   X 343 201 202   b  \n
+0000013
+0000000   s   e   d   :       -   e       e   x   p   r   e   s   s   i
+0000020   o   n       #   1   ,       c   h   a   r       1   4   :    
+0000040   I   n   v   a   l   i   d       c   o   l   l   a   t   i   o
+0000060   n       c   h   a   r   a   c   t   e   r  \n
+0000074
+0000000   a   X   X 344 270 255 343 201 202   b  \n
+0000013

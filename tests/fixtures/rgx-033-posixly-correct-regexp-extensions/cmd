@@ -1,0 +1,21 @@
+t='a+b?c|d w s b< a'
+for re in 'a\+' 'b\?' 'c\|d' '\w' '\s' '\bb' '\<a' '\`a' 'a\{1\}' '[[:alpha:]]' '[:alpha:]' '[[:alpha:]' '[a-z]\+'; do
+  printf "== BRE %s\n" "$re"
+  printf '%s\n' "$t" | sed "s/$re/X/" 2>&1; echo $?
+done
+for re in 'a+' 'c|d' '\w' '[:alpha:]' '[:alpha:]*'; do
+  printf "== ERE %s\n" "$re"
+  printf '%s\n' "$t" | sed -E "s/$re/X/" 2>&1; echo $?
+done
+printf 'a\nb\n' | sed 'N;s/[\n]/X/'
+printf 'a\\nb\n' | sed 's/[\n]/X/'
+printf 'a\tb\n' | sed 's/[\t]/X/'
+printf 'a\tb\n' | sed 's/\t/X/'
+printf 'a:b\n' | sed 's/[:alpha:]/x/g' 2>&1
+printf 'a:b\n' | sed 's/[:alpha:]*/x/' 2>&1
+printf 'a:b\n' | sed -n '/[:alpha:]/p' 2>&1
+printf 'a:b\n' | sed 'y/ab/\n\t/' | od -c
+printf 'a b\n' | sed 's/a/\n/' 
+printf 'a b\n' | sed 's/ /\t/' | od -c
+printf 'ab\n' | sed 's/\(a\)/\U\1/'
+printf 'ab\n' | sed -z 's/a/X/'

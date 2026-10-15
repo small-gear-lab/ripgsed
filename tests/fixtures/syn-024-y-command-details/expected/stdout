@@ -1,0 +1,35 @@
+a_b
+a	b
+a,b
+abc
+0
+
+
+
+
+a|b
+a/b
+xzc
+0
+aXb
+\xy
+0
+xyz
+0
+sed: -e expression #1, char 7: strings for `y' command are different lengths
+1
+ybc
+0
+sed: -e expression #1, char 7: strings for `y' command are different lengths
+1
+e
+0
+AÉB
+0
+sed: -e expression #1, char 11: extra characters after command
+1
+xyz
+xyz
+0
+xyz
+0

@@ -1,0 +1,50 @@
+one
+two
+three
+0
+one
+two
+three
+0
+0
+sed: -e expression #1, char 3: unexpected `}'
+1
+0
+one
+0
+one
+two
+three
+0
+sed: -e expression #1, char 1: ":" lacks a label
+1
+sed: -e expression #1, char 2: ":" lacks a label
+1
+sed: -e expression #1, char 1: ":" lacks a label
+1
+sed: -e expression #1, char 3: : doesn't want any addresses
+1
+one
+two
+three
+0
+sed: -e expression #1, char 7: unexpected `}'
+1
+two
+three
+0
+sed: can't find label for jump to `x'
+4
+sed: -e expression #1, char 5: unterminated `y' command
+1
+sed: -e expression #1, char 7: unterminated `y' command
+1
+one
+two
+0
+one
+two
+three
+0
+sed: can't find label for jump to `X1'
+4

@@ -1,0 +1,42 @@
+seq 1 4 > s.txt
+printf 'r1\nr2' > nonl.txt
+printf 'x\ny\nz\n' > r.txt
+mkdir d
+sed '2,3r r.txt' s.txt; echo ---
+sed '2,3R r.txt' s.txt; echo ---
+sed '2,3!R r.txt' s.txt; echo ---
+sed 'r d' s.txt 2>&1; echo "rc=$?"; echo ---
+sed 'R d' s.txt 2>&1; echo "rc=$?"; echo ---
+sed '2r .' s.txt 2>&1; echo "rc=$?"; echo ---
+sed 'R nonl.txt' s.txt; echo ---
+sed 'R nonl.txt' s.txt | od -c | sed -n '1,3p'; echo ---
+sed 'r nonl.txt' s.txt | od -c | sed -n '1,3p'; echo ---
+sed -n 'R nonl.txt' s.txt | od -c | sed -n '1,3p'; echo ---
+sed '1{r r.txt}' s.txt 2>&1; echo "rc=$?"; echo ---
+sed '1{R r.txt}' s.txt 2>&1; echo "rc=$?"; echo ---
+sed '1{r r.txt
+}' s.txt; echo ---
+sed 'R r.txt
+R r.txt' s.txt; echo ---
+sed 'R r.txt
+r r.txt' s.txt; echo ---
+sed 'R nofile' s.txt; echo "rc=$?"; echo ---
+sed 'r nofile' s.txt; echo "rc=$?"; echo ---
+printf 'in1\nin2\nin3\n' | sed 'R /dev/stdin' s.txt; echo ---
+printf 'in1\nin2\nin3\n' | sed '2R /dev/stdin' s.txt; echo ---
+printf 'in1\nin2\n' | sed 'r /dev/stdin' s.txt; echo ---
+printf 'in1\nin2\n' | sed '1r /dev/stdin' s.txt; echo ---
+printf 'in1\nin2\nin3\n' | sed 'R /dev/stdin' - ; echo ---
+sed '2r' s.txt 2>&1; echo "rc=$?"; echo ---
+sed 'R' s.txt 2>&1; echo "rc=$?"; echo ---
+sed '2r  r.txt' s.txt; echo ---
+sed '2r r.txt   ' s.txt 2>&1; echo "rc=$?"; echo ---
+: > empty.txt
+sed 'R empty.txt' s.txt; echo ---
+sed 'r empty.txt' s.txt; echo ---
+sed '$!N;R r.txt' s.txt; echo ---
+sed 'N;N;R r.txt' s.txt; echo ---
+sed '2{R r.txt
+d}' s.txt; echo ---
+sed '2{R r.txt
+n;R r.txt}' s.txt

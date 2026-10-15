@@ -1,0 +1,18 @@
+sed '2a    leading stripped' a.txt
+sed '2a\  text keeps' a.txt
+sed '2a\   text' a.txt
+sed '2a\ttext' a.txt
+sed '2a x\ty' a.txt
+sed '2a x\\y' a.txt
+sed '2i\\tz' a.txt
+sed '2{a foo; p}' a.txt 2>&1; echo $?
+sed '2{a foo
+p}' a.txt 2>&1; echo $?
+sed '2a foo;p' a.txt
+sed '2a foo }' a.txt
+sed '2c\ttext' a.txt
+sed '2c   spaced \  tail' a.txt
+sed '$a\' a.txt 2>&1; echo $?
+sed '1a\
+  two\
+ three' a.txt

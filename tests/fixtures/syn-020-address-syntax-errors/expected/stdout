@@ -1,0 +1,52 @@
+sed: -e expression #1, char 4: unknown command: `,'
+1
+sed: -e expression #1, char 4: unknown command: `;'
+1
+sed: -e expression #1, char 4: : doesn't want any addresses
+1
+sed: -e expression #1, char 2: : doesn't want any addresses
+1
+sed: -e expression #1, char 2: unexpected `}'
+1
+sed: -e expression #1, char 6: `}' doesn't want any addresses
+1
+sed: -e expression #1, char 4: unexpected `}'
+1
+sed: -e expression #1, char 2: comments don't accept any addresses
+1
+sed: -e expression #1, char 4: comments don't accept any addresses
+1
+1
+one
+2
+two
+three
+0
+x
+x
+0
+0
+sed: -e expression #1, char 4: command only uses one address
+1
+sed: -e expression #1, char 4: command only uses one address
+1
+0
+0
+sed: -e expression #1, char 5: unexpected `,'
+1
+sed: -e expression #1, char 1: unknown command: `,'
+1
+sed: -e expression #1, char 3: unexpected `,'
+1
+sed: -e expression #1, char 4: unterminated address regex
+1
+0
+sed: -e expression #1, char 5: unknown command: `;'
+1
+one
+one
+two
+two
+three
+0
+0

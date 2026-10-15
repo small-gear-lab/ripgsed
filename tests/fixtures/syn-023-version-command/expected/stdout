@@ -1,0 +1,70 @@
+one
+two
+three
+0
+one
+two
+three
+0
+one
+two
+three
+0
+sed: -e expression #1, char 7: expected newer version of sed
+1
+one
+two
+three
+0
+one
+two
+three
+0
+sed: -e expression #1, char 7: expected newer version of sed
+1
+sed: -e expression #1, char 3: expected newer version of sed
+1
+sed: -e expression #1, char 6: expected newer version of sed
+1
+one
+one
+two
+two
+three
+three
+0
+one
+two
+three
+0
+one
+one
+two
+two
+three
+three
+0
+one
+one
+two
+three
+0
+sed: -e expression #1, char 1: unknown command: `v'
+1
+sed: -e expression #1, char 1: unknown command: `v'
+1
+one
+two
+three
+0
+sed: -e expression #1, char 5: expected newer version of sed
+1
+one
+two
+three
+0
+sed: can't read v 4.9: No such file or directory
+one
+two
+three
+2

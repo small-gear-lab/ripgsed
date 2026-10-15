@@ -1,0 +1,61 @@
+seq 1 4 > s.txt
+echo F > f.txt; printf 'r1\nr2\nr3\n' > r.txt
+sed '2{i I
+a A
+e echo E
+}' s.txt; echo ---
+sed '2{a A
+i I
+n;s/^/n:/}' s.txt; echo ---
+sed '2{a A
+N;s/^/N:/}' s.txt; echo ---
+sed '2{a A
+d}' s.txt; echo ---
+sed '2{r f.txt
+a A
+R r.txt
+i I
+}' s.txt; echo ---
+sed '1{a A
+N;N;i I
+}' s.txt; echo ---
+sed -n '2{a A
+p;i I
+}' s.txt; echo ---
+sed -n '2{a A
+n;p}' s.txt; echo ---
+sed '2{a A
+D}' s.txt; echo ---
+sed '$!N;a A
+P;D' s.txt; echo ---
+sed '2{e echo E
+a A
+}' s.txt; echo ---
+sed 's/2/echo E/e;2a A' s.txt; echo ---
+sed '2{a A
+c C
+}' s.txt; echo ---
+sed '2{a A
+i I
+c C
+}' s.txt; echo ---
+sed -n '2{a A
+=}' s.txt; echo ---
+sed '2{a A
+w /dev/stdout
+}' s.txt; echo ---
+sed '2{a A
+l
+}' s.txt; echo ---
+sed '4{a A
+N;p}' s.txt; echo ---
+sed '$!d;a A
+n' s.txt; echo ---
+sed -s '$a A
+n' s.txt s.txt; echo ---
+sed '2{a A
+q}' s.txt; echo ---
+sed 'a A
+N;N;N;N' s.txt; echo ---
+sed '1e echo E
+2i I' s.txt | cat

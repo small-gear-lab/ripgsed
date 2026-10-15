@@ -1,0 +1,10 @@
+mkdir ro
+echo hi > ro/f.txt
+chmod 555 ro
+if [ -w ro ]; then echo "writable (skip)"; else
+sed -i 's/h/H/' ro/f.txt 2>&1 | awk '{ sub(/sed[A-Za-z0-9]+:/, "sedXXXXXX:"); print }'
+sed -i 's/h/H/' ro/f.txt >/dev/null 2>&1; echo $?
+fi
+chmod 755 ro
+cat ro/f.txt
+ls ro

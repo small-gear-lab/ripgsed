@@ -1,0 +1,22 @@
+sed -n ':a;:a;p' a.txt 2>&1; echo $?
+sed -n ':a
+:a
+p' a.txt 2>&1; echo $?
+sed -n ':a b;p' a.txt 2>&1; echo $?
+sed -n ':a}p' a.txt 2>&1; echo $?
+sed -n '1{:a}' a.txt 2>&1; echo $?
+sed -n '1{:a;p}' a.txt 2>&1; echo $?
+sed -n ': a;p' a.txt 2>&1; echo $?
+sed -n ':' a.txt 2>&1; echo $?
+sed -n ': ;p' a.txt 2>&1; echo $?
+sed -n ':;p' a.txt 2>&1; echo $?
+sed -n '1!:a' a.txt 2>&1; echo $?
+sed 'b end;:end' a.txt 2>&1; echo $?
+sed 'b end }' a.txt 2>&1; echo $?
+sed -n '1{b end};p;:end' a.txt 2>&1; echo $?
+sed -n 'bx' a.txt 2>&1; echo $?
+sed -n 'b x y' a.txt 2>&1; echo $?
+sed -n 'tx;:x y' a.txt 2>&1; echo $?
+sed -n ':a;ta;p' a.txt 2>&1 | sed -n '1,2p'; echo $?
+sed -n ':x1;:X1;p' a.txt 2>&1; echo $?
+sed -n 'b X1;:x1' a.txt 2>&1; echo $?

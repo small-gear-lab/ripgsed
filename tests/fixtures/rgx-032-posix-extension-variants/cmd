@@ -1,0 +1,20 @@
+t='a+b?c|d w s b< `x'
+for re in 'a\+' 'b\?' 'a\|d' '\w' '\s' '\bb' '\<a' '\`a' "x\\'" 'c\{1,2\}' '\(a\)\1' '\(a\)*' 'a\{1\}'; do
+  printf "== posix BRE %s\n" "$re"
+  printf '%s\n' "$t" | sed --posix "s/$re/X/" 2>&1; echo $?
+done
+t='a+b?c|d w s b< a{2} aa'
+for re in 'a+' 'b?' 'c|d' 'a{2}' '(a)\1' '\w' '\s' '\bb' '\<a' '\+' '\|' '\{' '\(a\)' '(a|b)+' 'a{1,2}'; do
+  printf "== posix ERE %s\n" "$re"
+  printf '%s\n' "$t" | sed --posix -E "s/$re/X/" 2>&1; echo $?
+done
+printf 'a\nb n\\\n' | sed --posix 'N;s/[\n]/X/g'
+printf 'a\nb n\\\n' | sed 'N;s/[\n]/X/g'
+printf 'a\nb n\\\n' | sed --posix -E 'N;s/[\n]/X/g'
+printf 'a\nb\n' | sed --posix 'N;s/a\nb/X/'
+printf 'a\tb\n' | sed --posix 's/[\t]/X/'
+printf 'a\tb\n' | sed --posix 's/\t/X/'
+printf 'a.b\n' | sed --posix 's/[\.]/X/'
+printf 'ab\n' | sed --posix 's/\(a\|b\)/X/g'
+printf 'ab\n' | sed --posix -E 's/(a|b)/X/g'
+printf 'AB\n' | sed --posix 's/a/X/I' 2>&1; echo $?

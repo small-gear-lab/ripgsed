@@ -1,0 +1,70 @@
+== BRE a\+
+X+b?c|d w s b< a
+0
+== BRE b\?
+Xa+b?c|d w s b< a
+0
+== BRE c\|d
+a+b?X|d w s b< a
+0
+== BRE \w
+X+b?c|d w s b< a
+0
+== BRE \s
+a+b?c|dXw s b< a
+0
+== BRE \bb
+a+X?c|d w s b< a
+0
+== BRE \<a
+X+b?c|d w s b< a
+0
+== BRE \`a
+X+b?c|d w s b< a
+0
+== BRE a\{1\}
+X+b?c|d w s b< a
+0
+== BRE [[:alpha:]]
+X+b?c|d w s b< a
+0
+== BRE [:alpha:]
+X+b?c|d w s b< a
+0
+== BRE [[:alpha:]
+sed: -e expression #1, char 15: unterminated `s' command
+1
+== BRE [a-z]\+
+X+b?c|d w s b< a
+0
+== ERE a+
+X+b?c|d w s b< a
+0
+== ERE c|d
+a+b?X|d w s b< a
+0
+== ERE \w
+X+b?c|d w s b< a
+0
+== ERE [:alpha:]
+X+b?c|d w s b< a
+0
+== ERE [:alpha:]*
+X+b?c|d w s b< a
+0
+a
+b
+aXnb
+a	b
+aXb
+xxb
+xb
+a:b
+0000000  \n   :  \t  \n
+0000004
+
+ b
+0000000   a  \t   b  \n
+0000004
+Ab
+Xb

@@ -1,0 +1,153 @@
+== ERE *a
+sed: -e expression #1, char 7: Invalid preceding regular expression
+1
+== ERE +a
+sed: -e expression #1, char 7: Invalid preceding regular expression
+1
+== ERE ?a
+sed: -e expression #1, char 7: Invalid preceding regular expression
+1
+== ERE {1}a
+sed: -e expression #1, char 9: Invalid preceding regular expression
+1
+== ERE {1,2}a
+sed: -e expression #1, char 11: Invalid preceding regular expression
+1
+== ERE (*a)
+sed: -e expression #1, char 9: Invalid preceding regular expression
+1
+== ERE (+a)
+sed: -e expression #1, char 9: Invalid preceding regular expression
+1
+== ERE ^*a
+sed: -e expression #1, char 8: Invalid preceding regular expression
+1
+== ERE ^+a
+sed: -e expression #1, char 8: Invalid preceding regular expression
+1
+== ERE ^?a
+sed: -e expression #1, char 8: Invalid preceding regular expression
+1
+== ERE a|*b
+sed: -e expression #1, char 9: Invalid preceding regular expression
+1
+== ERE a|+b
+sed: -e expression #1, char 9: Invalid preceding regular expression
+1
+== ERE (|*b)
+sed: -e expression #1, char 10: Invalid preceding regular expression
+1
+== ERE \<*a
+sed: -e expression #1, char 9: Invalid preceding regular expression
+1
+== ERE \b*a
+sed: -e expression #1, char 9: Invalid preceding regular expression
+1
+== ERE \>*a
+sed: -e expression #1, char 9: Invalid preceding regular expression
+1
+== ERE \B*a
+sed: -e expression #1, char 9: Invalid preceding regular expression
+1
+== ERE $*
+sed: -e expression #1, char 7: Invalid preceding regular expression
+1
+== ERE ^*
+sed: -e expression #1, char 7: Invalid preceding regular expression
+1
+== ERE a**
+X*b+c?d{1}
+0
+== ERE a+*
+X*b+c?d{1}
+0
+== ERE a*+
+X*b+c?d{1}
+0
+== ERE a?*
+X*b+c?d{1}
+0
+== ERE ()*
+Xa*b+c?d{1}
+0
+== ERE (*)
+sed: -e expression #1, char 8: Invalid preceding regular expression
+1
+== BRE *a
+a*b+c?d{1}
+0
+== BRE \+a
+a*b+c?d{1}
+0
+== BRE \?a
+a*b+c?d{1}
+0
+== BRE \{2\}a
+sed: -e expression #1, char 11: Invalid preceding regular expression
+1
+== BRE \{1,2\}a
+sed: -e expression #1, char 13: Invalid preceding regular expression
+1
+== BRE \(*a\)
+a*b+c?d{1}
+0
+== BRE \(\+a\)
+a*b+c?d{1}
+0
+== BRE ^*a
+a*b+c?d{1}
+0
+== BRE ^\+a
+a*b+c?d{1}
+0
+== BRE ^\?a
+a*b+c?d{1}
+0
+== BRE a\|*b
+X*b+c?d{1}
+0
+== BRE a\|\+b
+X*b+c?d{1}
+0
+== BRE \(\|*b\)
+Xa*b+c?d{1}
+0
+== BRE \<*a
+a*b+c?d{1}
+0
+== BRE \b*a
+a*b+c?d{1}
+0
+== BRE \>*a
+a*b+c?d{1}
+0
+== BRE \B*a
+a*b+c?d{1}
+0
+== BRE \`*a
+a*b+c?d{1}
+0
+== BRE \'*a
+a*b+c?d{1}
+0
+== BRE $*
+Xa*b+c?d{1}
+0
+== BRE ^*
+a*b+c?d{1}
+0
+== BRE a**
+sed: -e expression #1, char 8: Invalid preceding regular expression
+1
+== BRE **
+Xa*b+c?d{1}
+0
+== BRE \(^*a\)
+a*b+c?d{1}
+0
+== BRE a\|^*b
+X*b+c?d{1}
+0
+== BRE \(*\)
+aXb+c?d{1}
+0

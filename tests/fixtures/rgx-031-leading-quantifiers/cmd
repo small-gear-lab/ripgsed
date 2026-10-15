@@ -1,0 +1,6 @@
+for re in '*a' '+a' '?a' '{1}a' '{1,2}a' '(*a)' '(+a)' '^*a' '^+a' '^?a' 'a|*b' 'a|+b' '(|*b)' '\<*a' '\b*a' '\>*a' '\B*a' '$*' '^*' 'a**' 'a+*' 'a*+' 'a?*' '()*' '(*)'; do
+  printf "== ERE %s\n" "$re"; printf 'a*b+c?d{1}\n' | sed -E "s/$re/X/" 2>&1; echo $?
+done
+for re in '*a' '\+a' '\?a' '\{2\}a' '\{1,2\}a' '\(*a\)' '\(\+a\)' '^*a' '^\+a' '^\?a' 'a\|*b' 'a\|\+b' '\(\|*b\)' '\<*a' '\b*a' '\>*a' '\B*a' '\`*a' "\\'*a" '$*' '^*' 'a**' '**' '\(^*a\)' 'a\|^*b' '\(*\)'; do
+  printf "== BRE %s\n" "$re"; printf 'a*b+c?d{1}\n' | sed "s/$re/X/" 2>&1; echo $?
+done

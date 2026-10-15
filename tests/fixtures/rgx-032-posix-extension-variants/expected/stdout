@@ -1,0 +1,97 @@
+== posix BRE a\+
+Xb?c|d w s b< `x
+0
+== posix BRE b\?
+a+Xc|d w s b< `x
+0
+== posix BRE a\|d
+a+b?c|d w s b< `x
+0
+== posix BRE \w
+a+b?c|d X s b< `x
+0
+== posix BRE \s
+a+b?c|d w X b< `x
+0
+== posix BRE \bb
+a+b?c|d w s b< `x
+0
+== posix BRE \<a
+a+b?c|d w s b< `x
+0
+== posix BRE \`a
+a+b?c|d w s b< `x
+0
+== posix BRE x\'
+a+b?c|d w s b< `x
+0
+== posix BRE c\{1,2\}
+a+b?X|d w s b< `x
+0
+== posix BRE \(a\)\1
+a+b?c|d w s b< `x
+0
+== posix BRE \(a\)*
+X+b?c|d w s b< `x
+0
+== posix BRE a\{1\}
+X+b?c|d w s b< `x
+0
+== posix ERE a+
+X+b?c|d w s b< a{2} aa
+0
+== posix ERE b?
+Xa+b?c|d w s b< a{2} aa
+0
+== posix ERE c|d
+a+b?X|d w s b< a{2} aa
+0
+== posix ERE a{2}
+a+b?c|d w s b< a{2} X
+0
+== posix ERE (a)\1
+a+b?c|d w s b< a{2} X
+0
+== posix ERE \w
+a+b?c|d X s b< a{2} aa
+0
+== posix ERE \s
+a+b?c|d w X b< a{2} aa
+0
+== posix ERE \bb
+a+b?c|d w s b< a{2} aa
+0
+== posix ERE \<a
+a+b?c|d w s b< a{2} aa
+0
+== posix ERE \+
+aXb?c|d w s b< a{2} aa
+0
+== posix ERE \|
+a+b?cXd w s b< a{2} aa
+0
+== posix ERE \{
+a+b?c|d w s b< aX2} aa
+0
+== posix ERE \(a\)
+a+b?c|d w s b< a{2} aa
+0
+== posix ERE (a|b)+
+X+b?c|d w s b< a{2} aa
+0
+== posix ERE a{1,2}
+X+b?c|d w s b< a{2} aa
+0
+a
+b XX
+aXb n\
+a
+b XX
+X
+a	b
+aXb
+aXb
+ab
+XX
+sed: -e expression #1, char 7: unknown option to `s'
+1

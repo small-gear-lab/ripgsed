@@ -1,0 +1,17 @@
+sed: -e expression #1, char 3: multiple `!'s
+1
+sed: -e expression #1, char 4: multiple `!'s
+1
+sed: -e expression #1, char 3: multiple `!'s
+1
+sed: -e expression #1, char 7: multiple `!'s
+1
+sed: -e expression #1, char 5: multiple `!'s
+1
+sed: -e expression #1, char 2: multiple `!'s
+1
+sed: -e expression #1, char 7: multiple `!'s
+1
+one
+two
+0

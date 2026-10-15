@@ -1,0 +1,9 @@
+printf 'é a\n' | sed 's/x*/-/g' | od -c
+printf 'é a\n' | sed 's/x*/-/2' | od -c
+printf 'é a\n' | sed 's/\(\)/-/g' | od -c
+printf 'é a\n' | sed 's/a*/-/g' | od -c
+printf '中文\n' | sed 's/x*/-/g' | od -c
+printf 'é a\n' | sed 's/$/-/g' | od -c
+printf 'é a\n' | sed 's/\b/|/g' | od -c
+printf 'é a\n' | sed 's/./-/g' | od -c
+printf 'é a\n' | LC_ALL=C sed 's/x*/-/g' | od -c

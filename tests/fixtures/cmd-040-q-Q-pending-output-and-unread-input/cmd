@@ -1,0 +1,56 @@
+seq 1 4 > s.txt
+echo F > f.txt; printf 'r1\nr2\nr3\n' > r.txt
+sed '2{a A
+q}' s.txt; echo ---
+sed '2{a A
+Q}' s.txt; echo ---
+sed '2{i I
+Q}' s.txt; echo ---
+sed '2{i I
+a A
+r f.txt
+R r.txt
+q}' s.txt; echo ---
+sed '2{i I
+a A
+r f.txt
+R r.txt
+Q}' s.txt; echo ---
+sed -n '2{a A
+q}' s.txt; echo ---
+sed '2{a A
+q5}' s.txt; echo "rc=$?"; echo ---
+sed '2{a A
+Q5}' s.txt; echo "rc=$?"; echo ---
+sed '$!N;$!N;a A
+q' s.txt; echo ---
+sed '1{a A
+N;N;N;N;N}' s.txt; echo ---
+sed '$!d;a A
+N' s.txt; echo ---
+sed '4{a A
+n}' s.txt; echo ---
+sed -n '4{a A
+N}' s.txt; echo ---
+sed --posix '4{a A
+N}' s.txt; echo ---
+sed '2{c C
+q}' s.txt; echo ---
+sed '2{c C
+Q}' s.txt; echo ---
+sed '2q' s.txt s.txt; echo ---
+sed -s '2q' s.txt s.txt; echo ---
+(sed 2q; echo rest) < s.txt; echo ---
+(sed -n 2q; cat) < s.txt; echo ---
+(sed 2Q; cat) < s.txt; echo ---
+cat s.txt | (sed 2q; cat); echo ---
+cat s.txt | (sed -u 2q; cat); echo ---
+(sed -u 2q; cat) < s.txt; echo ---
+(sed -n '2{p;q}'; cat) < s.txt; echo ---
+(sed 2q - ; cat) < s.txt; echo ---
+(sed '2q' s.txt; cat) < s.txt; echo ---
+sed -i '2{a A
+q}' s.txt; cat s.txt; echo ---
+seq 1 4 > s.txt; sed -i '2{a A
+Q}' s.txt; cat s.txt; echo ---
+seq 1 4 > s.txt; sed -i -n '2{p;q}' s.txt; cat s.txt

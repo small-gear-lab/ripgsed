@@ -1,0 +1,20 @@
+sed 'v' a.txt 2>&1; echo $?
+sed 'v 4.2' a.txt 2>&1; echo $?
+sed 'v 4.9' a.txt 2>&1; echo $?
+sed 'v 4.9.1' a.txt 2>&1; echo $?
+sed 'v 4.8.1' a.txt 2>&1; echo $?
+sed 'v 4..9' a.txt 2>&1; echo $?
+sed 'v bogus' a.txt 2>&1; echo $?
+sed 'v 5' a.txt 2>&1; echo $?
+sed 'v 4.10' a.txt 2>&1; echo $?
+sed 'v 4.9;p' a.txt 2>&1; echo $?
+sed '1v 4.9' a.txt 2>&1; echo $?
+sed 'v 4.9
+p' a.txt 2>&1; echo $?
+sed '1{v 4.2;p}' a.txt 2>&1; echo $?
+sed --posix 'v' a.txt 2>&1; echo $?
+sed --posix 'v 4.2' a.txt 2>&1; echo $?
+POSIXLY_CORRECT=1 sed 'v 4.2' a.txt 2>&1; echo $?
+POSIXLY_CORRECT=1 sed 'v 9.9' a.txt 2>&1; echo $?
+sed 'v 0' a.txt 2>&1; echo $?
+sed -n 'v 4.9' -e p a.txt 2>&1; echo $?
