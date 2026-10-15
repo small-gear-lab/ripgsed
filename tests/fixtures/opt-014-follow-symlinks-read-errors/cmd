@@ -1,0 +1,19 @@
+printf 'one\ntwo\n' > a.txt
+ln -s nowhere dangling
+sed --follow-symlinks -n p dangling; echo $?
+sed --follow-symlinks -n p dangling a.txt; echo $?
+sed --follow-symlinks -n p a.txt missing; echo $?
+sed --follow-symlinks -n p missing a.txt; echo $?
+sed --follow-symlinks -n 1p ''; echo $?
+ln -s a.txt/. notdir
+sed --follow-symlinks -n p notdir; echo $?
+sed -n p notdir; echo $?
+mkdir d
+ln -s d dl
+ln -s dl dl2
+sed -i --follow-symlinks p dl2; echo $?
+chmod 000 a.txt
+ln -s a.txt unreadable
+sed --follow-symlinks -n 1p unreadable; echo $?
+sed -i --follow-symlinks -n 1p unreadable; echo $?
+chmod 644 a.txt

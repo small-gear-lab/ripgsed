@@ -1,0 +1,15 @@
+printf 'one\ntwo\n' > a.txt
+ln -s a.txt l1
+ln -s l1 l2
+sed -n 'F;1q' l2
+sed -s -n '1F;$F' l2 l1
+mkdir d
+ln -s ../a.txt d/up
+sed -n '1F' d/up
+sed --follow-symlinks -n 'F;1q' l2
+sed --follow-symlinks -s -n '1F;$F' l2 l1
+sed --follow-symlinks -n '1F' d/up
+ln -s d/../a.txt l3
+sed --follow-symlinks -n '1F' l3
+sed --follow-symlinks 'F' l1 - < a.txt
+sed --follow-symlinks --debug -n 1p l1

@@ -1,0 +1,10 @@
+sed: couldn't readlink nowhere: No such file or directory
+sed: couldn't readlink nowhere: No such file or directory
+sed: couldn't readlink missing: No such file or directory
+sed: couldn't readlink missing: No such file or directory
+sed: couldn't readlink : No such file or directory
+sed: couldn't readlink a.txt/.: Not a directory
+sed: can't read notdir: Not a directory
+sed: couldn't edit d: not a regular file
+sed: can't read unreadable: Permission denied
+sed: can't read unreadable: Permission denied

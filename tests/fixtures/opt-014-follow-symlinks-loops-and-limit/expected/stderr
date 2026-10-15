@@ -1,0 +1,9 @@
+sed: couldn't follow symlink self: Too many levels of symbolic links
+sed: couldn't follow symlink viaself: Too many levels of symbolic links
+sed: couldn't follow symlink viaself: Too many levels of symbolic links
+sed: can't read viaself: Too many levels of symbolic links
+sed: couldn't follow symlink ping: Too many levels of symbolic links
+sed: couldn't follow symlink k41: Too many levels of symbolic links
+sed: couldn't follow symlink k41: Too many levels of symbolic links
+sed: can't read k41: Too many levels of symbolic links
+sed: couldn't follow symlink k41: Too many levels of symbolic links

@@ -1,0 +1,22 @@
+printf 'one\ntwo\n' > a.txt
+ln -s self self
+ln -s self viaself
+sed --follow-symlinks -n p self; echo $?
+sed --follow-symlinks -n p viaself a.txt; echo $?
+sed -i --follow-symlinks p viaself; echo $?
+sed -n p viaself; echo $?
+ln -s viaself2 ping
+ln -s ping viaself2
+sed --follow-symlinks -n p ping; echo $?
+p=a.txt
+for i in $(seq 1 40); do ln -s $p k$i; p=k$i; done
+sed --follow-symlinks -n 1p k40; echo $?
+sed --follow-symlinks -n 1p k39; echo $?
+ln -s k40 k41
+sed --follow-symlinks -n 1p k41; echo $?
+sed --follow-symlinks -n 1p a.txt k41; echo $?
+sed -n 1p k41; echo $?
+sed -i --follow-symlinks 's/one/1/' k40; echo $?
+cat a.txt
+sed -i --follow-symlinks 's/two/2/' k41; echo $?
+cat a.txt

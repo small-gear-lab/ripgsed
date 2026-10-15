@@ -1,0 +1,17 @@
+printf 'one\n' > a.txt
+chmod 4755 a.txt
+sed -i 's/one/1/' a.txt
+stat -c '%a' a.txt
+chmod 2755 a.txt
+sed -i 's/1/2/' a.txt
+stat -c '%a' a.txt
+chmod 6750 a.txt
+sed -i.bak 's/2/3/' a.txt
+stat -c '%a' a.txt a.txt.bak
+chmod 1755 a.txt
+sed -i 's/3/4/' a.txt
+stat -c '%a' a.txt
+chmod 4755 a.txt
+sed -i --follow-symlinks 's/4/5/' a.txt
+stat -c '%a' a.txt
+cat a.txt

@@ -1,0 +1,32 @@
+l2
+l2
+l2
+l1
+l1
+d/up
+a.txt
+a.txt
+a.txt
+a.txt
+a.txt
+d/../a.txt
+d/../a.txt
+a.txt
+one
+a.txt
+two
+-
+one
+-
+two
+SED PROGRAM:
+  1 p
+INPUT:   'a.txt' line 1
+PATTERN: one
+COMMAND: 1 p
+one
+END-OF-CYCLE:
+INPUT:   'a.txt' line 2
+PATTERN: two
+COMMAND: 1 p
+END-OF-CYCLE:

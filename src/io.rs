@@ -324,15 +324,25 @@ impl FileInputs {
                 self.started_file = false;
                 return true;
             }
-            if self.in_place {
-                if self.follow_symlinks {
-                    // Follow the chain one link at a time, as GNU sed does; a link that cannot be
-                    // read (a missing target, for example) stops the run.
-                    if let Err((shown, e)) = follow_link_chain(std::path::Path::new(&name)) {
+            // With --follow-symlinks every input file (not only an in-place one) is resolved first:
+            // the resolved path is what is opened and what `F` and the diagnostics name.
+            let given = name.clone();
+            let name = if self.follow_symlinks {
+                match follow_link_chain(std::path::Path::new(&name)) {
+                    Ok(resolved) => resolved.to_string_lossy().into_owned(),
+                    Err(FollowError::Link(shown, e)) => {
                         self.fatal = Some(Fatal::new(format!("couldn't readlink {}: {}", shown.display(), strerror(&e)), 4));
                         return false;
                     }
+                    Err(FollowError::Loop(e)) => {
+                        self.fatal = Some(Fatal::new(format!("couldn't follow symlink {}: {}", name, strerror(&e)), 4));
+                        return false;
+                    }
                 }
+            } else {
+                name
+            };
+            if self.in_place {
                 if let Ok(m) = std::fs::metadata(&name) {
                     if !m.is_file() {
                         self.fatal = Some(Fatal::new(format!("couldn't edit {}: not a regular file", name), 4));
@@ -348,7 +358,7 @@ impl FileInputs {
                     return true;
                 }
                 Err(e) => {
-                    eprintln!("{}: can't read {}: {}", self.program, name, strerror(&e));
+                    eprintln!("{}: can't read {}: {}", self.program, given, strerror(&e));
                     self.had_open_error = true;
                 }
             }
@@ -696,6 +706,10 @@ impl Outputs {
         drop(file.output);
         if let Ok(meta) = std::fs::metadata(&file.original) {
             let _ = std::fs::set_permissions(&file.temp, meta.permissions());
+            // GNU sed hands the owner over after the mode, which makes the kernel drop the
+            // set-user-ID and set-group-ID bits of an unprivileged user's file.
+            use std::os::unix::fs::MetadataExt;
+            let _ = std::os::unix::fs::chown(&file.temp, Some(meta.uid()), Some(meta.gid()));
         }
         let rename_error = |name: &std::path::Path, e: io::Error| {
             Fatal::new(format!("cannot rename {}: {}", name.display(), strerror(&e)), 4)
@@ -822,22 +836,35 @@ pub fn display_name(name: &str) -> &str {
 /// Follows a chain of symbolic links one link at a time, as `--follow-symlinks` does: a
 /// relative target is joined to the directory part of the link as written (no
 /// canonicalization). The error carries the path whose link could not be read.
-pub fn follow_link_chain(path: &std::path::Path) -> Result<std::path::PathBuf, (std::path::PathBuf, io::Error)> {
+pub fn follow_link_chain(path: &std::path::Path) -> Result<std::path::PathBuf, FollowError> {
     let mut current = path.to_path_buf();
-    for _ in 0..40 {
+    let mut followed = 0;
+    loop {
         match std::fs::read_link(&current) {
             Ok(target) => {
+                // At most 40 links are followed, as the kernel does.
+                if followed == 40 {
+                    return Err(FollowError::Loop(io::Error::from_raw_os_error(40)));
+                }
+                followed += 1;
                 current = if target.is_absolute() {
                     target
                 } else {
                     current.parent().unwrap_or_else(|| std::path::Path::new("")).join(target)
                 };
             }
-            Err(e) if e.raw_os_error() == Some(22) => break,
-            Err(e) => return Err((current, e)),
+            Err(e) if e.raw_os_error() == Some(22) => return Ok(current),
+            Err(e) => return Err(FollowError::Link(current, e)),
         }
     }
-    Ok(current)
+}
+
+/// Why a chain of symbolic links could not be followed.
+pub enum FollowError {
+    /// The link at this path could not be read.
+    Link(std::path::PathBuf, io::Error),
+    /// The chain is longer than the system allows.
+    Loop(io::Error),
 }
 
 #[cfg(test)]

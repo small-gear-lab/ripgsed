@@ -20,7 +20,7 @@ OPT-010	option	-i optional argument parsing: -Ei vs -iE	verified	Command-Line Op
 OPT-011	option	-l N, --line-length=N	verified	Command-Line Options	wrap length for the l command; 0 disables wrapping; default 70
 OPT-012	option	--posix	verified	Command-Line Options	disables GNU extensions; changes N at EOF and other behavior
 OPT-013	option	-b, --binary	verified	Command-Line Options	no effect on POSIX systems
-OPT-014	option	--follow-symlinks	verified	Command-Line Options	only with -i
+OPT-014	option	--follow-symlinks	verified	Command-Line Options	resolves every input file, not only with -i: F, --debug and the 'couldn't edit' message name the resolved path, a failed link is fatal (exit 4), more than 40 links is a loop
 OPT-015	option	-E, -r, --regexp-extended	verified	Command-Line Options	
 OPT-016	option	-s, --separate	verified	Command-Line Options	ranges do not span files; line numbers and $ per file; R files rewound
 OPT-017	option	--sandbox	verified	Command-Line Options	rejects e/w/r commands before running
