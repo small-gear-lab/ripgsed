@@ -16,7 +16,7 @@ A stream editor in Rust that keeps the sed language but separates syntax, semant
 | `/ERROR/d` | 0.16 | 0.12 | 0.75 | 0.03 | 0.19 |
 | `-n /user=beta.*id=1/p` | 0.14 | 0.11 | 0.79 | 0.03 | 0.21 |
 | `y/abc/xyz/` | 1.43 | 1.06 | 0.74 | 0.22 | 0.15 |
-| `s/\(a\)\(l\)/\2\1/g` | 0.40 | 0.40 | 1.00 | 0.07 | 0.18 |
+| `s/\(a\)\(l\)/\2\1/g` | 0.40 | 0.22 | 0.55 | 0.04 | 0.10 |
 | `$!N;P;D` (not parallelizable) | 0.20 | 0.18 | 0.90 | 0.18 | 0.90 |
 | `-n 1000000p` (2,000,000 lines) | 0.06 | 0.04 | 0.67 | 0.02 | 0.33 |
 | one 20 MB line, `s/alpha/X/g` | 0.12 | 0.05 | 0.42 | 0.07 | 0.58 |
@@ -24,7 +24,7 @@ A stream editor in Rust that keeps the sed language but separates syntax, semant
 | Japanese text, `-E s/[0-9]+/N/g` | 4.47 | 0.40 | 0.09 | 0.07 | 0.02 |
 | Japanese text, `s/\w\+/<&>/g` | 5.63 | 0.68 | 0.12 | 0.21 | 0.04 |
 
-Memory use is higher than GNU sed's (tens of MiB against about 3 MiB), because input is read in blocks. A script that reads other records, uses the hold space, or touches files runs sequentially; the sequential path is at least as fast as GNU sed on every workload above (the one tie is a substitution with two groups).
+Memory use is higher than GNU sed's (tens of MiB against about 3 MiB), because input is read in blocks. A script that reads other records, uses the hold space, or touches files runs sequentially; the sequential path is faster than GNU sed on every workload above.
 
 ## Plan
 
