@@ -17,7 +17,7 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::time::{Duration, Instant};
 
-const TIMEOUT: Duration = Duration::from_secs(20);
+const TIMEOUT: Duration = Duration::from_secs(15);
 
 fn root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -35,17 +35,26 @@ fn load_matrix() -> BTreeMap<String, String> {
     map
 }
 
-/// Relative path -> contents for every file under `dir`.
+/// Relative path -> contents for every file under `dir`. A symbolic link is
+/// recorded as `\0link:<target>` (never followed, so dangling links are fine),
+/// and anything that is neither a file, a directory, nor a link is recorded as
+/// `\0special` (never opened, so a FIFO cannot block the runner).
 fn read_tree(dir: &Path) -> BTreeMap<PathBuf, Vec<u8>> {
     fn walk(base: &Path, dir: &Path, out: &mut BTreeMap<PathBuf, Vec<u8>>) {
         let Ok(entries) = fs::read_dir(dir) else { return };
         for entry in entries {
             let path = entry.unwrap().path();
-            if path.is_dir() {
+            let rel = path.strip_prefix(base).unwrap().to_path_buf();
+            let meta = fs::symlink_metadata(&path).unwrap();
+            if meta.file_type().is_symlink() {
+                let target = fs::read_link(&path).unwrap();
+                out.insert(rel, format!("\0link:{}", target.display()).into_bytes());
+            } else if meta.is_dir() {
                 walk(base, &path, out);
+            } else if meta.is_file() {
+                out.insert(rel, fs::read(&path).unwrap_or_default());
             } else {
-                let rel = path.strip_prefix(base).unwrap().to_path_buf();
-                out.insert(rel, fs::read(&path).unwrap());
+                out.insert(rel, b"\0special".to_vec());
             }
         }
     }
@@ -56,9 +65,13 @@ fn read_tree(dir: &Path) -> BTreeMap<PathBuf, Vec<u8>> {
 
 fn copy_tree(from: &Path, to: &Path) {
     for (rel, bytes) in read_tree(from) {
-        let dest = to.join(rel);
+        let dest = to.join(&rel);
         fs::create_dir_all(dest.parent().unwrap()).unwrap();
-        fs::write(dest, bytes).unwrap();
+        if let Some(target) = bytes.strip_prefix(b"\0link:") {
+            symlink(String::from_utf8_lossy(target).to_string(), dest).unwrap();
+        } else {
+            fs::write(dest, bytes).unwrap();
+        }
     }
 }
 
@@ -184,9 +197,45 @@ fn compare(want: &Outcome, got: &Outcome) -> Vec<String> {
     diffs
 }
 
+enum Verdict {
+    Pass,
+    PendingPass,
+    PendingFail,
+    Fail(String),
+}
+
+fn evaluate(dir: &Path, scratch: &Path, matrix: &BTreeMap<String, String>) -> Verdict {
+    let name = dir.file_name().unwrap().to_string_lossy().to_string();
+    let covers = fs::read_to_string(dir.join("covers")).unwrap_or_default();
+    let ids: Vec<&str> = covers.split_whitespace().collect();
+    if ids.is_empty() {
+        return Verdict::Fail(format!("{name}: `covers` is empty"));
+    }
+    let mut pending = true;
+    for id in &ids {
+        match matrix.get(*id).map(String::as_str) {
+            None => return Verdict::Fail(format!("{name}: unknown compatibility item {id}")),
+            Some("unsupported") => {}
+            Some(_) => pending = false,
+        }
+    }
+    let diffs = match run_fixture(dir, scratch) {
+        Ok(got) => compare(&expected(dir), &got),
+        Err(e) => vec![e],
+    };
+    match (diffs.is_empty(), pending) {
+        (true, false) => Verdict::Pass,
+        (true, true) => Verdict::PendingPass,
+        (false, true) => Verdict::PendingFail,
+        (false, false) => Verdict::Fail(format!("{name}\n  {}", diffs.join("\n  "))),
+    }
+}
+
 #[test]
 fn fixtures_match_gnu_sed() {
-    let matrix = load_matrix();
+    use std::sync::{Arc, Mutex};
+
+    let matrix = Arc::new(load_matrix());
     let only: Option<Vec<String>> = std::env::var("RIPGSED_FIXTURES")
         .ok()
         .map(|v| v.split(',').map(str::to_string).collect());
@@ -196,6 +245,10 @@ fn fixtures_match_gnu_sed() {
         .unwrap()
         .map(|e| e.unwrap().path())
         .filter(|p| p.is_dir())
+        .filter(|p| {
+            let name = p.file_name().unwrap().to_string_lossy().to_string();
+            only.as_ref().is_none_or(|o| o.contains(&name))
+        })
         .collect();
     dirs.sort();
 
@@ -203,45 +256,45 @@ fn fixtures_match_gnu_sed() {
     let _ = fs::remove_dir_all(&scratch);
     fs::create_dir_all(&scratch).unwrap();
 
+    let queue = Arc::new(Mutex::new(dirs.into_iter()));
+    let results: Arc<Mutex<Vec<(String, Verdict)>>> = Arc::new(Mutex::new(Vec::new()));
+    let workers = std::thread::available_parallelism().map_or(4, |n| n.get());
+    let handles: Vec<_> = (0..workers)
+        .map(|_| {
+            let (queue, results, matrix, scratch) =
+                (queue.clone(), results.clone(), matrix.clone(), scratch.clone());
+            std::thread::spawn(move || {
+                loop {
+                    let next = queue.lock().unwrap().next();
+                    let Some(dir) = next else { break };
+                    let name = dir.file_name().unwrap().to_string_lossy().to_string();
+                    let verdict = evaluate(&dir, &scratch, &matrix);
+                    results.lock().unwrap().push((name, verdict));
+                }
+            })
+        })
+        .collect();
+    for h in handles {
+        h.join().unwrap();
+    }
+    let _ = fs::remove_dir_all(&scratch);
+
+    let mut results = Arc::try_unwrap(results).ok().unwrap().into_inner().unwrap();
+    results.sort_by(|a, b| a.0.cmp(&b.0));
     let (mut passed, mut pending_ok, mut pending_fail) = (0, 0, 0);
     let mut failures = Vec::new();
     let mut promotable = Vec::new();
-
-    for dir in &dirs {
-        let name = dir.file_name().unwrap().to_string_lossy().to_string();
-        if only.as_ref().is_some_and(|o| !o.contains(&name)) {
-            continue;
-        }
-        let covers = fs::read_to_string(dir.join("covers")).unwrap_or_default();
-        let ids: Vec<&str> = covers.split_whitespace().collect();
-        if ids.is_empty() {
-            failures.push(format!("{name}: `covers` is empty"));
-            continue;
-        }
-        let mut pending = true;
-        for id in &ids {
-            match matrix.get(*id).map(String::as_str) {
-                None => failures.push(format!("{name}: unknown compatibility item {id}")),
-                Some("unsupported") => {}
-                Some(_) => pending = false,
-            }
-        }
-
-        let diffs = match run_fixture(dir, &scratch) {
-            Ok(got) => compare(&expected(dir), &got),
-            Err(e) => vec![e],
-        };
-        match (diffs.is_empty(), pending) {
-            (true, false) => passed += 1,
-            (true, true) => {
+    for (name, verdict) in results {
+        match verdict {
+            Verdict::Pass => passed += 1,
+            Verdict::PendingPass => {
                 pending_ok += 1;
                 promotable.push(name);
             }
-            (false, true) => pending_fail += 1,
-            (false, false) => failures.push(format!("{name}\n  {}", diffs.join("\n  "))),
+            Verdict::PendingFail => pending_fail += 1,
+            Verdict::Fail(msg) => failures.push(msg),
         }
     }
-    let _ = fs::remove_dir_all(&scratch);
 
     eprintln!(
         "fixtures: {passed} passed, {} failed, {pending_ok} pending but passing, {pending_fail} pending",
