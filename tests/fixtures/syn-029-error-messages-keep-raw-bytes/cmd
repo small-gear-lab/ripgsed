@@ -1,0 +1,5 @@
+printf 'abc\n' > in
+for s in "$(printf 'b \303')" "$(printf 'b\303')" "$(printf 't\351')" "$(printf '\251')" "$(printf '1\251')" "$(printf '/a/\377')" "$(printf '1!\351')" "$(printf ':\351')"; do
+  sed "$s" in 2>&1 | od -c | sed -n 1,3p
+  LC_ALL=C.utf8 sed "$s" in 2>&1 | od -c | sed -n 1,3p
+done

@@ -46,6 +46,19 @@ fn lossless_string(arg: std::ffi::OsString) -> String {
     out
 }
 
+/// A byte string as a `String` that keeps every byte, as `lossless_string` does for an argument.
+pub fn lossless_bytes(bytes: &[u8]) -> String {
+    lossless_string(std::os::unix::ffi::OsStringExt::from_vec(bytes.to_vec()))
+}
+
+/// Writes a message and a newline to standard error with the bytes `lossless_string` kept.
+pub fn eprint_message(message: &str) {
+    use std::io::Write;
+    let mut bytes = argument_bytes(message);
+    bytes.push(b'\n');
+    let _ = io::stderr().write_all(&bytes);
+}
+
 /// The bytes of an argument made by `lossless_string`.
 pub fn argument_bytes(arg: &str) -> Vec<u8> {
     let mut out = Vec::with_capacity(arg.len());
@@ -225,7 +238,7 @@ impl State {
                 match read_script_file(&name) {
                     Ok(text) => self.chunks.push((Chunk { source: ChunkSource::File(name), text }, self.parse_base)),
                     Err(e) => {
-                        eprintln!("{program}: couldn't open file {name}: {}", strerror(&e));
+                        eprint_message(&format!("{program}: couldn't open file {name}: {}", strerror(&e)));
                         return Err(EXIT_PANIC);
                     }
                 }
@@ -480,15 +493,15 @@ pub fn main() -> i32 {
             // GNU sed has already created the `w` files it read before the error, and a file
             // it cannot create stops it before the syntax error is found.
             if let Err(open_error) = create_write_files(&e.touched) {
-                eprintln!("{program}: {open_error}");
+                eprint_message(&format!("{program}: {open_error}"));
                 return EXIT_PANIC;
             }
-            eprintln!("{program}: {e}");
+            eprint_message(&format!("{program}: {e}"));
             return e.status;
         }
     };
     if let Err(open_error) = create_write_files(&script.write_files) {
-        eprintln!("{program}: {open_error}");
+        eprint_message(&format!("{program}: {open_error}"));
         return EXIT_PANIC;
     }
 
@@ -502,7 +515,7 @@ pub fn main() -> i32 {
         return match result {
             Ok(()) => 0,
             Err(Fatal { message, status }) => {
-                eprintln!("{program}: {message}");
+                eprint_message(&format!("{program}: {message}"));
                 let _ = outputs.flush_all();
                 status
             }
@@ -535,7 +548,7 @@ pub fn main() -> i32 {
         Ok(code) => code,
         Err(Fatal { message, status }) => {
             // GNU sed reports first, then flushes what it had written.
-            eprintln!("{program}: {message}");
+            eprint_message(&format!("{program}: {message}"));
             outputs.abort_in_place();
             let _ = outputs.flush_all();
             status

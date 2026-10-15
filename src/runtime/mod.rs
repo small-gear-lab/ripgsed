@@ -912,7 +912,16 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
             let ch = &self.pattern[i..i + len];
             // A single-byte locale keeps a table, so the last of two equal characters wins; a
             // multibyte locale searches the list, so the first does.
-            let found = if utf8 { pairs.iter().find(|(from, _)| from == ch) } else { pairs.iter().rev().find(|(from, _)| from == ch) };
+            // A byte that is not a character of its own (a lead byte without its continuation
+            // bytes, or a stray one) is compared with the start of each character instead.
+            let partial = utf8 && len == 1 && ch[0] >= 0x80;
+            let found = if partial {
+                pairs.iter().find(|(from, _)| from.starts_with(ch))
+            } else if utf8 {
+                pairs.iter().find(|(from, _)| from == ch)
+            } else {
+                pairs.iter().rev().find(|(from, _)| from == ch)
+            };
             match found {
                 Some((_, to)) => out.extend_from_slice(to),
                 None => out.extend_from_slice(ch),
@@ -1047,7 +1056,7 @@ fn run_shell(command: &[u8]) -> Vec<u8> {
 }
 
 /// Length in bytes of the character at the start of `bytes` (UTF-8), or 1 for an invalid sequence.
-fn char_len(bytes: &[u8]) -> usize {
+pub(crate) fn char_len(bytes: &[u8]) -> usize {
     let want = match bytes.first() {
         Some(0xC2..=0xDF) => 2,
         Some(0xE0..=0xEF) => 3,

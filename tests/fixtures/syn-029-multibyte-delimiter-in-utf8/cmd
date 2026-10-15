@@ -1,0 +1,8 @@
+printf 'abc\n' > in
+for i in 127 128 169 191 192 193 194 195 223 224 233 237 239 240 244 245 247 248 251 252 253 254 255; do
+  d=$(printf "\\$(printf '%03o' $i)")
+  printf '== %s\n' "$i"
+  sed "s${d}b${d}X${d}" in 2>&1 | od -c | sed -n 1,2p
+  sed "y${d}b${d}X${d}" in 2>&1 | od -c | sed -n 1,2p
+  sed -n "\\${d}b${d}p" in 2>&1 | od -c | sed -n 1,2p
+done

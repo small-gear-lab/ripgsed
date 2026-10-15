@@ -212,7 +212,7 @@ impl Parser {
                     let _ = pos;
                     return Err(SyntaxError {
                         location: Location::Bare,
-                        message: format!("can't find label for jump to `{}'", String::from_utf8_lossy(&label)),
+                        message: format!("can't find label for jump to `{}'", crate::cli::lossless_bytes(&label)),
                         status: 4,
                         touched: self.touched.clone(),
                     });
@@ -287,6 +287,7 @@ impl Parser {
                 } else {
                     b'/'
                 };
+                self.check_delimiter(delim)?;
                 if delim == b'\\' {
                     return Err(self.error("unterminated address regex"));
                 }
@@ -493,7 +494,7 @@ impl Parser {
         let _ = start_of_command;
 
         if self.options().posix && matches!(ch, b'F' | b'e' | b'Q' | b'T' | b'z' | b'v' | b'W' | b'R') {
-            return Err(self.error(&format!("unknown command: `{}'", ch as char)));
+            return Err(self.error(&format!("unknown command: `{}'", crate::cli::lossless_bytes(&[ch]))));
         }
         if self.options().posix
             && matches!(selector, Some(Selector::Range(..)))
@@ -645,7 +646,7 @@ impl Parser {
                 Kind::Version
             }
             other => {
-                return Err(self.error(&format!("unknown command: `{}'", other as char)));
+                return Err(self.error(&format!("unknown command: `{}'", crate::cli::lossless_bytes(&[other]))));
             }
         };
         let (selector, kind) = match (selector, kind) {
@@ -825,6 +826,14 @@ impl Parser {
         Ok(text)
     }
 
+    /// In a UTF-8 locale the byte that starts a multibyte character cannot delimit a regexp.
+    fn check_delimiter(&self, delim: u8) -> Result<()> {
+        if self.options().locale == Locale::Utf8 && (0xc2..=0xfd).contains(&delim) {
+            return Err(self.error("delimiter character is not a single-byte character"));
+        }
+        Ok(())
+    }
+
     fn check_version(&self, label: &[u8]) -> Result<()> {
         if label.is_empty() {
             return Ok(());
@@ -841,6 +850,7 @@ impl Parser {
         let Some(delim) = self.next() else {
             return Err(self.error("unterminated `s' command"));
         };
+        self.check_delimiter(delim)?;
         let Some(pattern_text) = self.read_delimited(delim, true) else {
             return Err(self.error("unterminated `s' command"));
         };
@@ -984,6 +994,7 @@ impl Parser {
         let Some(delim) = self.next() else {
             return Err(self.error("unterminated `y' command"));
         };
+        self.check_delimiter(delim)?;
         let Some(source) = self.read_delimited(delim, false) else {
             return Err(self.error("unterminated `y' command"));
         };
@@ -1030,22 +1041,13 @@ fn y_chars(text: &[u8], locale: Locale) -> Vec<Vec<u8>> {
             continue;
         }
         let len = match locale {
-            Locale::Utf8 => utf8_len(b).min(text.len() - i),
+            Locale::Utf8 => crate::runtime::char_len(&text[i..]),
             Locale::C => 1,
         };
         out.push(text[i..i + len].to_vec());
         i += len;
     }
     out
-}
-
-fn utf8_len(first: u8) -> usize {
-    match first {
-        0xC0..=0xDF => 2,
-        0xE0..=0xEF => 3,
-        0xF0..=0xF7 => 4,
-        _ => 1,
-    }
 }
 
 /// The number after `l`, `L`, `q` or `Q` as GNU sed keeps it: an `int`, where -1 means that there was

@@ -77,12 +77,11 @@ fn convert(out: &mut Vec<u8>, ch: &[u8], how: Mode, locale: Locale) {
     // One character maps to one character (like towupper): `ß` stays `ß`, not `SS`.
     let converted = std::str::from_utf8(ch).ok().and_then(|s| {
         let c = s.chars().next()?;
-        let mut mapped: Vec<char> = match how {
-            Mode::Upper => c.to_uppercase().collect(),
-            Mode::Lower => c.to_lowercase().collect(),
-            Mode::None => vec![c],
-        };
-        if mapped.len() == 1 { mapped.pop() } else { Some(c) }
+        Some(match how {
+            Mode::Upper => crate::regex::simple_upper(c),
+            Mode::Lower => crate::regex::simple_lower(c),
+            Mode::None => c,
+        })
     });
     match converted {
         Some(c) => {

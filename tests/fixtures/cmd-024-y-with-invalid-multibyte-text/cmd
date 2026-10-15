@@ -1,0 +1,17 @@
+printf '\343\201\202\n' > a
+printf 'caf\303\251\n' > e
+printf '\303\n' | sed 'y/é/x/' | od -c | sed -n 1,2p
+printf 'a\303\251\303b\n' | sed 'y/é/e/'
+printf '\343\201\n' | sed 'y/あ/X/' | od -c | sed -n 1,2p
+printf '\343\201\343\201\202\n' | sed 'y/あ/X/' | od -c | sed -n 1,2p
+printf '\343a\n' | sed 'y/あ/X/' | od -c | sed -n 1,2p
+printf '\303\n' | sed 'y/éè/ab/'
+printf '\303\n' | sed 'y/èé/ab/'
+printf '\360\n' | sed 'y/😀/X/'
+printf '\251\n' | sed 'y/é/e/' | od -c | sed -n 1,2p
+printf '\303\303\251\n' | sed 'y/é/e/'
+sed "$(printf 'y/\343\201/ab/')" a | od -c | sed -n 1,2p
+sed "$(printf 'y/\343\201\202/a/')" a 2>&1
+sed "$(printf 'y/\303a/xy/')" e | od -c | sed -n 1,2p
+sed "$(printf 'y/\303/x/')" e | od -c | sed -n 1,2p
+sed "$(printf 'y/é\303/ab/')" e | od -c | sed -n 1,2p

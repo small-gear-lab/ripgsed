@@ -124,11 +124,11 @@ impl<'a> Searcher<'a> {
             return false;
         }
         if self.utf8 {
-            // An invalid byte counts as a word character here (though `\w`
-            // does not match it).
+            // An invalid byte counts as the character of the same number (glibc reads it
+            // that way), though `\w` does not match it.
             match decode_utf8(self.hay, pos) {
                 Some((c, _)) => is_word_char(c),
-                None => true,
+                None => is_word_char(self.hay[pos] as char),
             }
         } else {
             is_word_byte(self.hay[pos])
@@ -142,7 +142,7 @@ impl<'a> Searcher<'a> {
         if self.utf8 {
             match decode_utf8_before(self.hay, pos) {
                 Some((c, _)) => is_word_char(c),
-                None => true,
+                None => is_word_char(self.hay[pos - 1] as char),
             }
         } else {
             is_word_byte(self.hay[pos - 1])

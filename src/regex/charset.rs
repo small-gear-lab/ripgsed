@@ -201,6 +201,8 @@ pub fn simple_lower(c: char) -> char {
     let mut it = c.to_lowercase();
     match (it.next(), it.next()) {
         (Some(l), None) => l,
+        // The full mapping of `İ` has two characters; its simple mapping is `i`.
+        _ if c == '\u{130}' => 'i',
         _ => c,
     }
 }
@@ -209,7 +211,15 @@ pub fn simple_upper(c: char) -> char {
     let mut it = c.to_uppercase();
     match (it.next(), it.next()) {
         (Some(u), None) => u,
-        _ => c,
+        // The full upper case of a Greek letter with iota subscript has two characters; its
+        // simple mapping is the letter with the capital and the subscript.
+        _ => match c as u32 {
+            v @ (0x1f80..=0x1f87 | 0x1f90..=0x1f97 | 0x1fa0..=0x1fa7) => char::from_u32(v + 8).unwrap_or(c),
+            0x1fb3 => '\u{1fbc}',
+            0x1fc3 => '\u{1fcc}',
+            0x1ff3 => '\u{1ffc}',
+            _ => c,
+        },
     }
 }
 

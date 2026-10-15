@@ -1,0 +1,6 @@
+printf 'abc\n' > in
+sed 's.b.X.' in
+sed "$(printf 's\303\251b\303\251X\303\251')" in 2>&1
+sed "$(printf 'y\303b\303X\303')" in 2>&1
+sed -n "$(printf '\\\303b\303p')" in 2>&1
+sed "$(printf 's\351b\351X\351')" in 2>&1

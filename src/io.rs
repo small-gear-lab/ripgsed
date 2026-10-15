@@ -358,7 +358,7 @@ impl FileInputs {
                     return true;
                 }
                 Err(e) => {
-                    eprintln!("{}: can't read {}: {}", self.program, given, strerror(&e));
+                    crate::cli::eprint_message(&format!("{}: can't read {}: {}", self.program, given, strerror(&e)));
                     self.had_open_error = true;
                 }
             }

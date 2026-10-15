@@ -63,7 +63,7 @@
 //! invalid byte, classes and case folding use the Unicode tables of `std`
 //! adjusted toward glibc's `C.utf8` (under `I` a literal matches characters
 //! with the same upper-case form, and `[:upper:]`/`[:lower:]` mean
-//! `[:alpha:]`), invalid bytes count as word characters for `\b` and
+//! `[:alpha:]`), invalid bytes count as the Latin-1 character of the same number for `\b` and
 //! friends, which never hold inside a character. Matches may start at any
 //! byte offset (GNU sed's `s/x*/-/g` splits `é`), except under `I` or when
 //! the pattern has a class-like set (`[a-c]`, `[^x]`, `[[:alpha:]]`, `[é]`,
@@ -94,6 +94,7 @@
 
 mod ast;
 mod charset;
+pub use charset::{simple_lower, simple_upper};
 mod classes_table;
 mod compile;
 mod dfa;
