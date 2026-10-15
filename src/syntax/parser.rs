@@ -121,7 +121,11 @@ impl Parser {
     fn error_at(&self, pos: usize, message: &str) -> SyntaxError {
         let span = self.span_at(pos.saturating_sub(1).min(self.src.len()));
         let location = match &span.source {
-            ChunkSource::Expression(n) => Location::Expression { number: *n, position: pos.saturating_sub(span.start) },
+            ChunkSource::Expression(n) => Location::Expression {
+                number: *n,
+                // The newline that joins two chunks is not part of either.
+                position: pos.saturating_sub(span.start).min(span.end - span.start),
+            },
             ChunkSource::File(name) => {
                 let upto = pos.min(self.src.len());
                 let line = 1 + self.src[span.start..upto.max(span.start)].iter().filter(|&&b| b == b'\n').count();
@@ -312,6 +316,12 @@ impl Parser {
         };
         match Regex::compile(&normalize_escapes(text, o.posixly_correct), &syntax) {
             Ok(re) => Ok(Pattern { regex: Some(Rc::new(re)), source: text.to_vec(), icase, multiline }),
+            Err(e) if e.message.starts_with("character class syntax is") => Err(SyntaxError {
+                location: Location::Bare,
+                message: e.message,
+                status: 4,
+                touched: self.touched.clone(),
+            }),
             Err(e) => Err(self.error(&e.message)),
         }
     }

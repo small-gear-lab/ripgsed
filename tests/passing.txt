@@ -1416,6 +1416,11 @@ rgx-016-collating-utf8-multibyte-errors
 rgx-016-equivalence-class-c-locale
 rgx-016-equivalence-class-errors
 rgx-016-equivalence-class-utf8
+rgx-017-class-outside-brackets-bre-ere-address
+rgx-017-class-outside-brackets-error
+rgx-017-class-outside-brackets-in-s-flags-and-ranges
+rgx-017-class-outside-brackets-near-misses
+rgx-017-class-valid-vs-invalid-forms
 rgx-018-bracket-escape-with-i-and-class
 rgx-018-bracket-escapes-multiple
 rgx-018-bracket-escapes-newline-tab
@@ -1476,11 +1481,13 @@ rgx-026-error-long-line-and-huge-interval-match
 rgx-026-error-no-previous-regexp
 rgx-026-error-regex-too-big
 rgx-026-error-s-flags-regex-related
+rgx-026-error-script-from-file-and-e
 rgx-026-error-unterminated-s-and-address
 rgx-027-posix-bre-backrefs-groups-still-work
 rgx-027-posix-bre-bracket-escapes
 rgx-027-posix-bre-buffer-anchors
 rgx-027-posix-bre-double-star-and-intervals
+rgx-027-posix-bre-extension-errors
 rgx-027-posix-bre-extensions-letters-literal
 rgx-027-posix-bre-plus-question-alt-literal
 rgx-027-posix-bre-vs-gnu-mode-comparison
