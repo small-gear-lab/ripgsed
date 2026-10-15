@@ -110,8 +110,19 @@ pub enum Locale {
     /// Byte-wise matching, as under `LC_ALL=C`.
     #[default]
     C,
-    /// UTF-8 character-wise matching.
+    /// UTF-8 character-wise matching with glibc's `C.utf8` tables: what the classes contain, the
+    /// letter case rules, and the order of ranges are built in.
     Utf8,
+    /// UTF-8 character-wise matching in any other UTF-8 locale: the classes, the letter case
+    /// rules and the order of ranges come from the C library (see `crate::locale`).
+    Libc,
+}
+
+impl Locale {
+    /// Whether text is read as UTF-8 characters rather than bytes.
+    pub fn is_utf8(self) -> bool {
+        !matches!(self, Locale::C)
+    }
 }
 
 /// The dialect and flags a pattern is read in.
@@ -201,6 +212,11 @@ pub struct Regex {
     dfa: std::cell::RefCell<dfa::DfaSlot>,
     /// Off to test the DFA against the simulation.
     use_dfa: bool,
+    /// In a locale of the C library, for a pattern with a bracket expression of digit ranges: GNU
+    /// sed runs a first matcher that reads those ranges by code point (`[0-9]` holds no `٣`), and
+    /// a line it does not match is not matched at all. When it does match, the second matcher
+    /// (collation, `٣` is in `[0-9]`) decides where. `filter` is the pattern read the first way.
+    filter: Option<Box<Regex>>,
 }
 
 impl Regex {
@@ -215,10 +231,20 @@ impl Regex {
     /// the delimiter from `syntax.null_data`.
     pub fn compile_with_delimiter(pattern: &[u8], syntax: &Syntax, delim: u8) -> Result<Regex, CompileError> {
         let parsed = parse::parse(pattern, syntax, delim)?;
+        let filter = if parsed.digit_sets {
+            let exact = parse::parse_filter(pattern, syntax, delim)?;
+            Some(Box::new(Regex::from_parsed(exact, syntax, delim, None)?))
+        } else {
+            None
+        };
+        Regex::from_parsed(parsed, syntax, delim, filter)
+    }
+
+    fn from_parsed(parsed: parse::Parsed, syntax: &Syntax, delim: u8, filter: Option<Box<Regex>>) -> Result<Regex, CompileError> {
         let prog = compile::compile(&parsed.node, parsed.ngroups, parsed.referenced, parsed.char_starts, parsed.utf8, syntax.glibc_compat)?;
         let prog_has_no_backrefs = !prog.has_backrefs;
-        let literals = literal::analyze(&parsed.node, syntax.locale == Locale::Utf8);
-        Ok(Regex { prog, syntax: *syntax, delim, literals, scratch: Default::default(), quirk_stars: if syntax.glibc_compat { star_before_not_word_boundary(&parsed.node) } else { 0 }, fixed: if prog_has_no_backrefs { dfa::fixed_groups(&parsed.node, parsed.ngroups) } else { None }, node: parsed.node, dfa: Default::default(), use_dfa: true })
+        let literals = literal::analyze(&parsed.node, syntax.locale.is_utf8());
+        Ok(Regex { prog, syntax: *syntax, delim, literals, scratch: Default::default(), quirk_stars: if syntax.glibc_compat { star_before_not_word_boundary(&parsed.node) } else { 0 }, fixed: if prog_has_no_backrefs { dfa::fixed_groups(&parsed.node, parsed.ngroups) } else { None }, node: parsed.node, dfa: Default::default(), use_dfa: true, filter })
     }
 
     /// Number of parenthesized subexpressions.
@@ -231,6 +257,9 @@ impl Regex {
     /// boundaries behave as in the full record. Fills `caps` on a match.
     pub fn captures_at(&self, haystack: &[u8], start: usize, caps: &mut Captures) -> bool {
         if start > haystack.len() {
+            return false;
+        }
+        if self.filter.as_ref().is_some_and(|f| !f.is_match(haystack)) {
             return false;
         }
         if let Some(lit) = &self.literals.pure {
@@ -271,7 +300,8 @@ impl Regex {
             multiline: self.syntax.multiline,
             delim: self.delim,
             address: false,
-            utf8: self.syntax.locale == Locale::Utf8,
+            utf8: self.syntax.locale.is_utf8(),
+            libc: self.syntax.locale == Locale::Libc,
             icase: self.syntax.icase,
         };
         match searcher.search(start) {
@@ -290,6 +320,9 @@ impl Regex {
     /// the match may meet a newline the match consumes even when the pattern
     /// has groups. Use this for addresses and `captures_at` for `s`.
     pub fn is_match(&self, haystack: &[u8]) -> bool {
+        if self.filter.as_ref().is_some_and(|f| !f.is_match(haystack)) {
+            return false;
+        }
         if let Some(lit) = &self.literals.pure {
             return lit.find(haystack).is_some();
         }
@@ -311,7 +344,8 @@ impl Regex {
             multiline: self.syntax.multiline,
             delim: self.delim,
             address: true,
-            utf8: self.syntax.locale == Locale::Utf8,
+            utf8: self.syntax.locale.is_utf8(),
+            libc: self.syntax.locale == Locale::Libc,
             icase: self.syntax.icase,
         };
         searcher.exists()

@@ -61,6 +61,7 @@ fn single(node: &Node, ascii_only: bool) -> Option<Vec<u8>> {
                 && cs.classes.is_empty()
                 && !cs.icase
                 && !cs.by_upper
+                && cs.lib.is_none()
                 && cs.exclude.is_none()
                 && !cs.mb;
             match (plain, cs.ranges.as_slice()) {

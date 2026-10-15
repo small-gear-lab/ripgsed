@@ -196,6 +196,11 @@ pub fn is_word_char(c: char) -> bool {
     in_table(ALNUM, c as u32)
 }
 
+/// `\w` in a UTF-8 locale of the C library.
+pub fn is_word_char_libc(c: char) -> bool {
+    crate::locale::is_word(c)
+}
+
 /// Single-character lower and upper case mappings, as `towlower`/`towupper` give.
 pub fn simple_lower(c: char) -> char {
     let mut it = c.to_lowercase();
@@ -243,6 +248,26 @@ pub struct CharSet {
     /// GNU sed treats this set as multibyte-aware: a pattern that uses one
     /// starts matches only at character boundaries (`Program::char_starts`).
     pub mb: bool,
+    /// In a locale of the C library (`Locale::Libc`): the library's answer for the whole set,
+    /// which then replaces `ranges`, `classes` and the rest (they only keep the shape of the
+    /// set for `mb`).
+    pub lib: Option<std::rc::Rc<LibHandle>>,
+    /// With `lib`: code point ranges that are members whatever the library says.
+    pub lib_or: Vec<(u32, u32)>,
+    /// With `lib` and `I`: the set is a literal letter or a bracket expression of single
+    /// characters. GNU sed's second matcher then ignores the small Cyrillic variants
+    /// U+1C80..U+1C88 (`в` does not match `ᲀ`, though both have the capital `В`) unless the
+    /// pattern writes the variant itself.
+    pub icase_singles: bool,
+}
+
+/// A set compiled by the C library, shared by the copies of a `CharSet`.
+pub struct LibHandle(pub crate::locale::LibSet);
+
+impl std::fmt::Debug for LibHandle {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("LibHandle")
+    }
 }
 
 impl CharSet {
@@ -261,6 +286,13 @@ impl CharSet {
     pub fn matches_char(&self, c: char) -> bool {
         if self.exclude.is_some_and(|b| c as u32 == b as u32 || c == '\n') {
             return false;
+        }
+        if let Some(lib) = &self.lib {
+            let u = c as u32;
+            if self.icase_singles && (0x1c80..=0x1c88).contains(&u) && !self.ranges.iter().any(|&(lo, hi)| lo <= u && u <= hi) {
+                return false;
+            }
+            return lib.0.contains(c) || self.lib_or.iter().any(|&(lo, hi)| lo <= u && u <= hi);
         }
         if self.by_upper {
             return self.positive(simple_upper(c)) != self.negated;

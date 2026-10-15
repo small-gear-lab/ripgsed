@@ -3,8 +3,9 @@
 //! with GNU sed 4.9 (see tests/regex_differential.rs), not from its source.
 
 use super::ast::{Assert, Node, Unit};
-use super::charset::{decode_utf8, ByteSet, CharSet, Class};
+use super::charset::{decode_utf8, ByteSet, CharSet, Class, LibHandle};
 use super::{CompileError, Locale, Syntax};
+use crate::locale::{LibError, LibSet};
 
 /// The largest repetition count of an interval (`RE_DUP_MAX`).
 pub const DUP_MAX: u32 = 0x7fff;
@@ -40,10 +41,26 @@ pub struct Parsed {
     pub ngroups: usize,
     /// `referenced[g]` is true when `\g` occurs in the pattern.
     pub referenced: Vec<bool>,
+    /// In a locale of the C library: the pattern has a bracket expression of single characters
+    /// and ranges between ASCII digits, which GNU sed's first matcher reads by code point.
+    pub digit_sets: bool,
 }
 
 pub fn parse(pattern: &[u8], syntax: &Syntax, delim: u8) -> Result<Parsed, CompileError> {
+    parse_with(pattern, syntax, delim, false)
+}
+
+/// The pattern as GNU sed's first matcher (gnulib's dfa) reads it: a bracket expression that
+/// has only single characters and ranges between ASCII digits holds exactly those code points.
+/// A line that this reading does not match is not matched at all (`Regex::filter`).
+pub fn parse_filter(pattern: &[u8], syntax: &Syntax, delim: u8) -> Result<Parsed, CompileError> {
+    parse_with(pattern, syntax, delim, true)
+}
+
+fn parse_with(pattern: &[u8], syntax: &Syntax, delim: u8, digit_exact: bool) -> Result<Parsed, CompileError> {
     let mut p = Parser {
+        digit_exact,
+        digit_sets: false,
         pat: pattern,
         pos: 0,
         ere: syntax.extended,
@@ -51,7 +68,8 @@ pub fn parse(pattern: &[u8], syntax: &Syntax, delim: u8) -> Result<Parsed, Compi
         icase: syntax.icase,
         multiline: syntax.multiline,
         delim,
-        utf8: syntax.locale == Locale::Utf8,
+        utf8: syntax.locale.is_utf8(),
+        libc: syntax.locale == Locale::Libc,
         ngroups: 0,
         completed: 0,
         referenced: vec![false; 10],
@@ -72,7 +90,7 @@ pub fn parse(pattern: &[u8], syntax: &Syntax, delim: u8) -> Result<Parsed, Compi
     let mut referenced = p.referenced;
     referenced.resize(p.ngroups + 1, false);
     let char_starts = p.utf8 && p.icase;
-    Ok(Parsed { node, ngroups: p.ngroups, referenced, char_starts, utf8: p.utf8 })
+    Ok(Parsed { node, ngroups: p.ngroups, referenced, char_starts, utf8: p.utf8, digit_sets: p.digit_sets })
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -90,6 +108,9 @@ enum Elem {
     Raw(u8),
     Class(Class),
     Equiv(u32),
+    /// In a locale of the C library: a collating symbol, or a class name this program does not
+    /// know. The library decides whether it is valid and what it stands for.
+    Lib,
 }
 
 struct Parser<'a> {
@@ -102,6 +123,11 @@ struct Parser<'a> {
     /// The line delimiter of `M` mode (a newline, or NUL under `sed -z`).
     delim: u8,
     utf8: bool,
+    /// `Locale::Libc`: the library decides what the classes, ranges and case rules mean.
+    libc: bool,
+    /// See `parse_filter`.
+    digit_exact: bool,
+    digit_sets: bool,
     ngroups: usize,
     /// Groups 1..=9 that a back-reference may refer to at this point.
     completed: u32,
@@ -447,7 +473,12 @@ impl<'a> Parser<'a> {
         if c.is_ascii() {
             return self.literal_byte(c as u8);
         }
-        if self.icase {
+        if self.icase && self.libc {
+            // The library knows which characters this one stands for under `I`.
+            if let Some(node) = self.lib_literal(c) {
+                return node;
+            }
+        } else if self.icase {
             let u = super::charset::simple_upper(c) as u32;
             return Node::Unit(Unit::Chars(Box::new(CharSet {
                 ranges: vec![(u, u)],
@@ -459,8 +490,27 @@ impl<'a> Parser<'a> {
         Node::Unit(Unit::Chars(Box::new(CharSet { ranges: vec![(u, u)], ..CharSet::default() })))
     }
 
+    /// A character that is read under `I` in a locale of the C library: the set of characters the
+    /// library's matcher takes for it.
+    fn lib_literal(&self, c: char) -> Option<Node> {
+        let mut buf = [0u8; 4];
+        let set = LibSet::new(c.encode_utf8(&mut buf).as_bytes(), true).ok()?;
+        Some(Node::Unit(Unit::Chars(Box::new(CharSet {
+            ranges: vec![(c as u32, c as u32)],
+            lib: Some(std::rc::Rc::new(LibHandle(set))),
+            icase_singles: true,
+            ..CharSet::default()
+        }))))
+    }
+
     fn literal_byte(&self, b: u8) -> Node {
-        if self.icase && self.utf8 {
+        if self.icase && self.libc && b.is_ascii_alphabetic() {
+            // `I` is `ı` as well as `i` in most locales, and `i` is `İ` in Turkish.
+            if let Some(node) = self.lib_literal(b as char) {
+                return node;
+            }
+        }
+        if self.icase && self.utf8 && !self.libc {
             // In UTF-8 `I` also matches the letters whose upper-case form is an ASCII
             // letter: the dotless i for `i` and `I`, the long s for `s` and `S`.
             let extra = match b {
@@ -503,11 +553,19 @@ impl<'a> Parser<'a> {
             } else {
                 (Vec::new(), vec![Class::Space])
             };
+            let text: &[u8] = match (word, negated) {
+                (true, false) => b"[_[:alnum:]]",
+                (true, true) => b"[^_[:alnum:]]",
+                (false, false) => b"[[:space:]]",
+                (false, true) => b"[^[:space:]]",
+            };
+            let lib = if self.libc { LibSet::new(text, false).ok().map(|s| std::rc::Rc::new(LibHandle(s))) } else { None };
             return Unit::Chars(Box::new(CharSet {
                 negated,
                 ranges,
                 classes,
                 mb: true,
+                lib,
                 ..CharSet::default()
             }));
         }
@@ -534,6 +592,18 @@ impl<'a> Parser<'a> {
             self.pos += 1;
         }
         let content_start = self.pos;
+        let bracket_start = content_start - 1 - usize::from(negated);
+        // In a locale of the C library, whether the library has to be asked about this set.
+        let mut needs_lib = self.libc && self.icase;
+        let mut raw_seen = false;
+        // GNU sed also runs the pattern through a second matcher (gnulib's dfa) that reads a
+        // bracket expression of single characters and ranges between ASCII digits by code point
+        // (`[0-9]` does not take `٣` or `²`, though the collation of the locale puts them between
+        // `0` and `9`), and that leaves every other bracket expression to the library. The
+        // elements that are not digit ranges, and whether the rest is of that kind:
+        let mut kept: Vec<(usize, usize)> = Vec::new();
+        let mut digit_ranges: Vec<(u32, u32)> = Vec::new();
+        let mut code_point_set = true;
         let mut bytes = ByteSet::empty();
         let mut cs = CharSet::default();
         let mut first = true;
@@ -545,6 +615,7 @@ impl<'a> Parser<'a> {
                 break;
             }
             first = false;
+            let elem_start = self.pos;
             let elem = self.parse_elem()?;
             let is_range = self.at(0) == Some(b'-') && self.at(1).is_some() && self.at(1) != Some(b']');
             if is_range {
@@ -555,8 +626,11 @@ impl<'a> Parser<'a> {
                 let lo = match elem {
                     Elem::Ch(c) => c,
                     Elem::Raw(b) => b as u32,
+                    Elem::Lib => 0,
                     _ => return Err(err(E_ERANGE)),
                 };
+                needs_lib = true;
+                let start_is_char = matches!(elem, Elem::Ch(_));
                 // A class or an equivalence class cannot end a range, whether or not it is valid.
                 if self.at(0) == Some(b'[') {
                     if let Some(kind @ (b':' | b'=')) = self.at(1) {
@@ -576,12 +650,15 @@ impl<'a> Parser<'a> {
                     Elem::Raw(b) => b as u32,
                     // A class or an equivalence class ends a range only in a pattern that was
                     // rejected above.
+                    Elem::Lib => 0,
                     Elem::Class(_) | Elem::Equiv(_) => unreachable!("rejected as the end of a range"),
                 };
-                if self.utf8 && (lo_wide || hi_wide) {
+                // In a locale of the C library its collation decides (below, when the whole set is
+                // compiled), not the code points.
+                if self.utf8 && !self.libc && (lo_wide || hi_wide) {
                     return Err(err(E_ECOLLATE));
                 }
-                if hi < lo {
+                if !self.libc && hi < lo {
                     return Err(err(E_ERANGE));
                 }
                 if self.at(0) == Some(b'-') && self.at(1).is_some() && self.at(1) != Some(b']') {
@@ -592,10 +669,23 @@ impl<'a> Parser<'a> {
                 } else {
                     bytes.insert_range(lo as u8, hi as u8);
                 }
+                let digits = |c: u32| (b'0' as u32..=b'9' as u32).contains(&c);
+                if start_is_char && matches!(end, Elem::Ch(_)) && digits(lo) && digits(hi) {
+                    digit_ranges.push((lo, hi));
+                } else {
+                    kept.push((elem_start, self.pos));
+                    code_point_set &= lo == hi && !matches!(end, Elem::Lib) && start_is_char;
+                }
                 continue;
             }
+            kept.push((elem_start, self.pos));
+            code_point_set &= matches!(elem, Elem::Ch(_) | Elem::Raw(_) | Elem::Class(Class::Digit));
             match elem {
+                Elem::Lib => needs_lib = true,
                 Elem::Ch(c) | Elem::Equiv(c) => {
+                    if matches!(elem, Elem::Equiv(_)) {
+                        needs_lib = true;
+                    }
                     if self.utf8 {
                         cs.ranges.push((c, c));
                     } else {
@@ -603,8 +693,9 @@ impl<'a> Parser<'a> {
                     }
                 }
                 // An invalid byte alone in a bracket expression matches nothing (not even itself).
-                Elem::Raw(_) => {}
+                Elem::Raw(_) => raw_seen = true,
                 Elem::Class(cl) => {
+                    needs_lib = true;
                     if self.utf8 {
                         cs.classes.push(cl);
                     } else {
@@ -618,6 +709,40 @@ impl<'a> Parser<'a> {
             }
         }
         cs.mb = negated || !cs.classes.is_empty() || cs.ranges.iter().any(|&(lo, hi)| lo != hi || hi > 0x7f);
+        if self.libc && needs_lib && !raw_seen {
+            // The library compiles the whole bracket expression, as GNU sed does, and decides
+            // the range ends, the classes and the case rules.
+            let set = LibSet::new(&self.pat[bracket_start..=self.pos], self.icase).map_err(|e| {
+                err(match e {
+                    LibError::Collate => E_ECOLLATE,
+                    LibError::CType => E_ECTYPE,
+                    LibError::Bracket => E_EBRACK,
+                    LibError::Range => E_ERANGE,
+                    LibError::Other => E_BADPAT,
+                })
+            })?;
+            cs.mb = true;
+            cs.icase_singles = self.icase && !negated && cs.classes.is_empty() && cs.ranges.iter().all(|&(lo, hi)| lo == hi) && kept.len() == cs.ranges.len();
+            let digit_set = code_point_set && !negated && !digit_ranges.is_empty();
+            self.digit_sets |= digit_set;
+            if digit_set && self.digit_exact {
+                // The digit ranges are code points; the rest is the library's.
+                cs.lib_or = digit_ranges;
+                let mut text = vec![b'['];
+                kept.iter().for_each(|&(a, b)| text.extend_from_slice(&self.pat[a..b]));
+                text.push(b']');
+                if kept.is_empty() {
+                    cs.lib = None;
+                } else if let Ok(rest) = LibSet::new(&text, self.icase) {
+                    cs.lib = Some(std::rc::Rc::new(LibHandle(rest)));
+                } else {
+                    cs.lib = Some(std::rc::Rc::new(LibHandle(set)));
+                    cs.lib_or.clear();
+                }
+            } else {
+                cs.lib = Some(std::rc::Rc::new(LibHandle(set)));
+            }
+        }
         let content = &self.pat[content_start..self.pos];
         if content.len() >= 2 && content[0] == b':' && content[content.len() - 1] == b':' {
             self.class_syntax_error = true;
@@ -662,7 +787,14 @@ impl<'a> Parser<'a> {
                 let name = &self.pat[start..end];
                 self.pos = end + 2;
                 if kind == b':' {
-                    return Class::from_name(name).map(Elem::Class).ok_or_else(|| err(E_ECTYPE));
+                    return match Class::from_name(name) {
+                        Some(class) => Ok(Elem::Class(class)),
+                        None if self.libc => Ok(Elem::Lib),
+                        None => Err(err(E_ECTYPE)),
+                    };
+                }
+                if self.libc {
+                    return Ok(if kind == b'.' { Elem::Lib } else { Elem::Equiv(0) });
                 }
                 // A collating symbol or equivalence class: one single-byte character.
                 if name.len() != 1 || (self.utf8 && name[0] > 0x7f) {

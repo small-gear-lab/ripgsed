@@ -7,6 +7,7 @@ pub mod analysis;
 pub mod cli;
 pub mod debug;
 pub mod io;
+pub mod locale;
 pub mod parallel;
 pub mod regex;
 pub mod runtime;

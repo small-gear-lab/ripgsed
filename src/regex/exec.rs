@@ -12,7 +12,7 @@
 use std::collections::{HashMap, HashSet};
 
 use super::ast::{Assert, Unit};
-use super::charset::{decode_utf8, decode_utf8_before, is_word_byte, is_word_char, simple_upper};
+use super::charset::{decode_utf8, decode_utf8_before, is_word_byte, is_word_char, is_word_char_libc, simple_upper};
 use super::compile::{GroupCopy, Inst, Program};
 
 const NONE: usize = usize::MAX;
@@ -108,10 +108,20 @@ pub struct Searcher<'a> {
     /// match at line boundaries like `^` and `$`.
     pub address: bool,
     pub utf8: bool,
+    /// The characters are those of a locale of the C library (`Locale::Libc`).
+    pub libc: bool,
     pub icase: bool,
 }
 
 impl<'a> Searcher<'a> {
+    fn word_char(&self, c: char) -> bool {
+        if self.libc { is_word_char_libc(c) } else { is_word_char(c) }
+    }
+
+    fn upper(&self, c: char) -> char {
+        if self.libc { crate::locale::upper(c) } else { simple_upper(c) }
+    }
+
     #[inline]
     fn unit_len(&self, u: u32, pos: usize) -> Option<usize> {
         let b = *self.hay.get(pos)?;
@@ -137,8 +147,8 @@ impl<'a> Searcher<'a> {
             // An invalid byte counts as the character of the same number (glibc reads it
             // that way), though `\w` does not match it.
             match decode_utf8(self.hay, pos) {
-                Some((c, _)) => is_word_char(c),
-                None => is_word_char(self.hay[pos] as char),
+                Some((c, _)) => self.word_char(c),
+                None => self.word_char(self.hay[pos] as char),
             }
         } else {
             is_word_byte(self.hay[pos])
@@ -151,8 +161,8 @@ impl<'a> Searcher<'a> {
         }
         if self.utf8 {
             match decode_utf8_before(self.hay, pos) {
-                Some((c, _)) => is_word_char(c),
-                None => is_word_char(self.hay[pos - 1] as char),
+                Some((c, _)) => self.word_char(c),
+                None => self.word_char(self.hay[pos - 1] as char),
             }
         } else {
             is_word_byte(self.hay[pos - 1])
@@ -1029,7 +1039,7 @@ impl<'s, 'a> Backtracker<'s, 'a> {
         while i < b {
             match (decode_utf8(hay, i), decode_utf8(hay, j)) {
                 (Some((c1, l1)), Some((c2, l2))) => {
-                    if c1 != c2 && simple_upper(c1) != simple_upper(c2) {
+                    if c1 != c2 && self.s.upper(c1) != self.s.upper(c2) {
                         return None;
                     }
                     i += l1;

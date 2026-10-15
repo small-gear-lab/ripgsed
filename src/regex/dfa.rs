@@ -481,7 +481,7 @@ fn expand_utf8(node: &super::ast::Node) -> Option<super::ast::Node> {
                 sequences(&ranges, budget)?
             }
             Node::Unit(Unit::Chars(cs)) => {
-                if cs.icase || cs.by_upper {
+                if cs.icase || cs.by_upper || cs.lib.is_some() {
                     return None;
                 }
                 let mut ranges = cs.ranges.clone();

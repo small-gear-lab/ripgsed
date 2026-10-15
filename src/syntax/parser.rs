@@ -820,7 +820,7 @@ impl Parser {
 
     /// In a UTF-8 locale the byte that starts a multibyte character cannot delimit a regexp.
     fn check_delimiter(&self, delim: u8) -> Result<()> {
-        if self.options().locale == Locale::Utf8 && (0xc2..=0xfd).contains(&delim) {
+        if self.options().locale.is_utf8() && (0xc2..=0xfd).contains(&delim) {
             return Err(self.error("delimiter character is not a single-byte character"));
         }
         Ok(())
@@ -1065,7 +1065,7 @@ fn y_chars(text: &[u8], locale: Locale) -> Vec<Vec<u8>> {
             continue;
         }
         let len = match locale {
-            Locale::Utf8 => crate::runtime::char_len(&text[i..]),
+            Locale::Utf8 | Locale::Libc => crate::runtime::char_len(&text[i..]),
             Locale::C => 1,
         };
         out.push(text[i..i + len].to_vec());

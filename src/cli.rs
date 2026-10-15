@@ -83,12 +83,7 @@ pub fn program_name() -> String {
 }
 
 fn locale_from_env() -> Locale {
-    let value = ["LC_ALL", "LC_CTYPE", "LANG"]
-        .iter()
-        .find_map(|k| std::env::var(k).ok().filter(|v| !v.is_empty()))
-        .unwrap_or_default()
-        .to_ascii_lowercase();
-    if value.contains("utf-8") || value.contains("utf8") { Locale::Utf8 } else { Locale::C }
+    crate::locale::from_env()
 }
 
 fn usage_line(program: &str) -> String {
@@ -523,7 +518,7 @@ pub fn main() -> i32 {
         if options.debug {
             // GNU sed has listed the program by then.
             use std::io::Write;
-            let _ = io::stdout().write_all(&crate::debug::program(&script, options.locale == Locale::Utf8));
+            let _ = io::stdout().write_all(&crate::debug::program(&script, options.locale.is_utf8()));
         }
         return EXIT_PANIC;
     }
