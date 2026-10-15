@@ -45,9 +45,28 @@ pub fn analyze(node: &Node, ascii_only: bool) -> Literals {
     lits
 }
 
-fn single(node: &Node, ascii_only: bool) -> Option<u8> {
+/// The bytes a node matches when it is one literal character: a byte, or (in UTF-8) a single
+/// non-ASCII character written without `I`, whose encoding cannot start inside another one.
+fn single(node: &Node, ascii_only: bool) -> Option<Vec<u8>> {
     match node {
-        Node::Unit(Unit::Byte(set)) => set.single_member().filter(|&b| !ascii_only || b < 0x80),
+        Node::Unit(Unit::Byte(set)) => set.single_member().filter(|&b| !ascii_only || b < 0x80).map(|b| vec![b]),
+        Node::Unit(Unit::Chars(cs)) if ascii_only => {
+            let plain = !cs.negated
+                && cs.classes.is_empty()
+                && cs.raw == ByteSet::empty()
+                && !cs.icase
+                && !cs.by_upper
+                && cs.exclude.is_none()
+                && !cs.mb;
+            match (plain, cs.ranges.as_slice()) {
+                (true, &[(lo, hi)]) if lo == hi => {
+                    let c = char::from_u32(lo)?;
+                    let mut buf = [0u8; 4];
+                    Some(c.encode_utf8(&mut buf).as_bytes().to_vec())
+                }
+                _ => None,
+            }
+        }
         _ => None,
     }
 }
@@ -55,8 +74,14 @@ fn single(node: &Node, ascii_only: bool) -> Option<u8> {
 /// The literal, if the node is only single-byte units.
 fn pure(node: &Node, ascii_only: bool) -> Option<Vec<u8>> {
     match node {
-        Node::Concat(children) => children.iter().map(|c| single(c, ascii_only)).collect(),
-        other => single(other, ascii_only).map(|b| vec![b]),
+        Node::Concat(children) => {
+            let mut out = Vec::new();
+            for c in children {
+                out.extend(single(c, ascii_only)?);
+            }
+            Some(out)
+        }
+        other => single(other, ascii_only),
     }
 }
 
@@ -65,7 +90,7 @@ fn pure(node: &Node, ascii_only: bool) -> Option<Vec<u8>> {
 fn literal_of(node: &Node, ascii_only: bool) -> Option<Vec<u8>> {
     match node {
         Node::Empty => Some(Vec::new()),
-        Node::Unit(_) => single(node, ascii_only).map(|b| vec![b]),
+        Node::Unit(_) => single(node, ascii_only),
         Node::Group(_, inner) => literal_of(inner, ascii_only),
         Node::Concat(children) => {
             let mut out = Vec::new();
@@ -80,7 +105,7 @@ fn literal_of(node: &Node, ascii_only: bool) -> Option<Vec<u8>> {
 
 fn required(node: &Node, ascii_only: bool) -> Option<Vec<u8>> {
     match node {
-        Node::Unit(_) => single(node, ascii_only).map(|b| vec![b]),
+        Node::Unit(_) => single(node, ascii_only),
         Node::Group(_, inner) => required(inner, ascii_only),
         // At least one copy of the body is always there.
         Node::Repeat(inner, min, _) if *min >= 1 => required(inner, ascii_only),
