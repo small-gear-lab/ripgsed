@@ -3,13 +3,18 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fs::File;
-use std::io::{self, BufRead, BufReader, Read, Seek, SeekFrom, Write};
+use std::io::{self, BufRead, Read, Seek, SeekFrom, Write};
 use std::mem::ManuallyDrop;
 use std::os::fd::FromRawFd;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
+use crate::stream::ChunkReader;
 use crate::Fatal;
+
+/// How much is read at a time: large enough to keep system calls rare, small enough to stay in
+/// cache. With `-u` input is read a byte at a time so that nothing is taken past the last record.
+const BLOCK: usize = 256 * 1024;
 
 /// File descriptor 0, which is never closed by this handle.
 struct StdinFile(ManuallyDrop<File>);
@@ -26,41 +31,106 @@ impl Seek for StdinFile {
     }
 }
 
-// Standard input is read through one buffered reader shared by the input stream and by
-// `R /dev/stdin` and `r /dev/stdin`, so they see one stream. It reads file descriptor 0
-// directly, so that the file offset can be put back at the end (see `restore_stdin_offset`).
-thread_local! {
-    static STDIN: RefCell<Option<BufReader<StdinFile>>> = const { RefCell::new(None) };
+/// Standard input as it is read: one chunked source shared by the input stream and by
+/// `R /dev/stdin`, so they see one stream. It reads file descriptor 0 directly and remembers
+/// the offset it started at, so that the offset can be put back at the end
+/// (see `restore_stdin_offset`).
+struct StdinState {
+    source: ChunkedSource<StdinFile>,
+    /// The offset of descriptor 0 when reading began; `None` for pipes and terminals.
+    start: Option<u64>,
 }
 
-fn with_stdin<T>(f: impl FnOnce(&mut BufReader<StdinFile>) -> T, unbuffered: bool) -> T {
+thread_local! {
+    static STDIN: RefCell<Option<StdinState>> = const { RefCell::new(None) };
+}
+
+fn with_stdin<T>(f: impl FnOnce(&mut StdinState) -> T, unbuffered: bool, separator: u8) -> T {
     STDIN.with(|cell| {
         let mut slot = cell.borrow_mut();
-        let reader = slot.get_or_insert_with(|| {
+        let state = slot.get_or_insert_with(|| {
             // SAFETY: descriptor 0 is owned by the process; ManuallyDrop keeps it open.
-            let file = StdinFile(ManuallyDrop::new(unsafe { File::from_raw_fd(0) }));
-            BufReader::with_capacity(if unbuffered { 1 } else { 8192 }, file)
+            let mut file = StdinFile(ManuallyDrop::new(unsafe { File::from_raw_fd(0) }));
+            #[allow(clippy::seek_from_current)]
+            let start = file.seek(SeekFrom::Current(0)).ok();
+            StdinState {
+                source: ChunkedSource::new(file, separator, if unbuffered { 1 } else { BLOCK }),
+                start,
+            }
         });
-        f(reader)
+        f(state)
     })
 }
 
 /// Reads one separator-terminated record from standard input.
 pub fn stdin_record(separator: u8, unbuffered: bool) -> io::Result<Option<Record>> {
-    with_stdin(|r| read_record(r, separator), unbuffered)
+    with_stdin(|s| s.source.next_record(), unbuffered, separator)
 }
 
-/// Puts the file offset of standard input where the last byte sed used ends, as GNU sed
+/// Takes back `n` bytes of records that were read ahead but not used (the record looked at
+/// to find out whether the current one is the last).
+fn stdin_unconsume(n: u64) {
+    STDIN.with(|cell| {
+        if let Some(state) = cell.borrow_mut().as_mut() {
+            state.source.consumed = state.source.consumed.saturating_sub(n);
+        }
+    });
+}
+
+/// Puts the file offset of standard input where the last record sed used ends, as GNU sed
 /// does when it quits early, so that the next process reads what sed left. It does nothing
 /// for pipes and terminals.
 pub fn restore_stdin_offset() {
     STDIN.with(|cell| {
-        if let Some(reader) = cell.borrow_mut().as_mut() {
-            // Unlike `stream_position`, this really moves the descriptor back past the read-ahead.
-            #[allow(clippy::seek_from_current)]
-            let _ = reader.seek(SeekFrom::Current(0));
+        if let Some(state) = cell.borrow_mut().as_mut() {
+            if let Some(start) = state.start {
+                let target = start + state.source.consumed;
+                let _ = state.source.reader_mut().seek(SeekFrom::Start(target));
+            }
         }
     });
+}
+
+/// Records out of a chunked byte stream. `consumed` counts the bytes of the records handed out.
+pub struct ChunkedSource<R: Read> {
+    reader: ChunkReader<R>,
+    separator: u8,
+    chunk: Vec<u8>,
+    pos: usize,
+    pub consumed: u64,
+}
+
+impl<R: Read> ChunkedSource<R> {
+    pub fn new(reader: R, separator: u8, block: usize) -> Self {
+        ChunkedSource { reader: ChunkReader::new(reader, separator, block), separator, chunk: Vec::new(), pos: 0, consumed: 0 }
+    }
+
+    pub fn reader_mut(&mut self) -> &mut R {
+        self.reader.get_mut()
+    }
+
+    /// The next record, or `None` at the end of the input.
+    pub fn next_record(&mut self) -> io::Result<Option<Record>> {
+        loop {
+            if self.pos < self.chunk.len() {
+                let rest = &self.chunk[self.pos..];
+                let (body, used, terminated) = match rest.iter().position(|&b| b == self.separator) {
+                    Some(i) => (rest[..i].to_vec(), i + 1, true),
+                    None => (rest.to_vec(), rest.len(), false),
+                };
+                self.pos += used;
+                self.consumed += used as u64;
+                return Ok(Some(Record { body, terminated }));
+            }
+            match self.reader.next_chunk()? {
+                Some(chunk) => {
+                    self.chunk = chunk.data;
+                    self.pos = 0;
+                }
+                None => return Ok(None),
+            }
+        }
+    }
 }
 
 /// Set before `main` if file descriptor 1 was closed when the process started (Rust
@@ -113,7 +183,7 @@ pub trait RecordSource {
 /// (exit status 2). A missing final terminator ends a record, so it never joins
 /// the first record of the next file.
 enum Source {
-    Reader(Box<dyn BufRead>),
+    Chunked(Box<ChunkedSource<File>>),
     Stdin,
 }
 
@@ -158,6 +228,16 @@ impl FileInputs {
             had_read_error: false,
             had_edit_error: false,
             unbuffered: false,
+        }
+    }
+
+    /// Call when the run is over: gives back a record that was only looked at, so that the
+    /// offset left on standard input is exact.
+    pub fn finish(&mut self) {
+        if let Some(p) = self.peeked.take() {
+            if &*p.file_name == "-" {
+                stdin_unconsume((p.record.body.len() + usize::from(p.record.terminated)) as u64);
+            }
         }
     }
 
@@ -215,7 +295,8 @@ impl FileInputs {
             }
             match File::open(&name) {
                 Ok(f) => {
-                    self.current = Some((Source::Reader(Box::new(BufReader::new(f))), Rc::from(name.as_str())));
+                    let source = ChunkedSource::new(f, self.separator, BLOCK);
+                    self.current = Some((Source::Chunked(Box::new(source)), Rc::from(name.as_str())));
                     self.started_file = false;
                     return true;
                 }
@@ -240,7 +321,7 @@ impl FileInputs {
             }
             let (source, name) = self.current.as_mut().unwrap();
             let read = match source {
-                Source::Reader(reader) => read_record(reader, self.separator),
+                Source::Chunked(source) => source.next_record(),
                 Source::Stdin => stdin_record(self.separator, self.unbuffered),
             };
             match read {

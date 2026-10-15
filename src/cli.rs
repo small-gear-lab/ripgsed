@@ -402,6 +402,7 @@ pub fn main() -> i32 {
 
     let result = runtime::run(&script, options, &mut inputs, &mut outputs)
         .and_then(|code| outputs.flush_all().map(|()| code));
+    inputs.finish();
     crate::io::restore_stdin_offset();
     match result {
         Ok(_) if inputs.had_edit_error || inputs.had_read_error => EXIT_PANIC,
