@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ripgsed \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-15 13:26+0900\n"
+"POT-Creation-Date: 2026-10-15 13:52+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ja\n"
@@ -158,4 +158,20 @@ msgstr "仕様は、GNU sed 4.9（D6）の観測できる挙動であり、POSIX
 #: ../../DECISIONS.md:50
 msgid "The engine sits behind the interface of D3, so it can be tested, benchmarked, and compared against other engines in isolation."
 msgstr "エンジンは D3 のインターフェースの裏にあるので、単独でテスト、ベンチマーク、ほかのエンジンとの比較ができます。"
+
+#: ../../DECISIONS.md:52
+msgid "D8. Platforms and toolchain"
+msgstr "D8. 対応プラットフォームとツールチェーン"
+
+#: ../../DECISIONS.md:54
+msgid "Linux is the first supported platform. The differential tests rely on a POSIX `sh`, symbolic links, and GNU sed 4.9 as the reference, so they run on Unix systems only. Other platforms come after the core is verified."
+msgstr "最初に対応するプラットフォームは Linux です。差分テストは POSIX の `sh`、シンボリックリンク、参照としての GNU sed 4.9 に依存するため、Unix 系でのみ動きます。ほかのプラットフォームは、コアの検証が済んでから対応します。"
+
+#: ../../DECISIONS.md:55
+msgid "The minimum supported Rust version is 1.85, the first release with edition 2024, and it is declared in `Cargo.toml`. It is raised only when a feature is needed, with a note here."
+msgstr "対応する最小の Rust のバージョンは 1.85 で、edition 2024 を最初に備えたリリースです。`Cargo.toml` で宣言します。必要な機能があるときだけ引き上げ、その旨をここに記録します。"
+
+#: ../../DECISIONS.md:56
+msgid "The project has no third-party dependencies so far (see D7 for regular expressions). A dependency needs a reason recorded here."
+msgstr "いまのところ、サードパーティの依存はありません（正規表現は D7 を参照）。依存を足すときは、その理由をここに記録します。"
 

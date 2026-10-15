@@ -48,3 +48,9 @@ Decisions that have been made, with their reasons. Proposals and open questions 
 - The dialects include the `--posix` and `POSIXLY_CORRECT` variants of BRE and ERE, not only the default GNU behavior, and the locale (D2 orders the work: `C` locale first, then UTF-8 and other multibyte locales).
 - The specification is the observable behavior of GNU sed 4.9 (D6), including where it deviates from POSIX. Differential tests against GNU sed decide that behavior.
 - The engine sits behind the interface of D3, so it can be tested, benchmarked, and compared against other engines in isolation.
+
+## D8. Platforms and toolchain
+
+- Linux is the first supported platform. The differential tests rely on a POSIX `sh`, symbolic links, and GNU sed 4.9 as the reference, so they run on Unix systems only. Other platforms come after the core is verified.
+- The minimum supported Rust version is 1.85, the first release with edition 2024, and it is declared in `Cargo.toml`. It is raised only when a feature is needed, with a note here.
+- The project has no third-party dependencies so far (see D7 for regular expressions). A dependency needs a reason recorded here.
