@@ -6,22 +6,25 @@ A stream editor in Rust that keeps the sed language but separates syntax, semant
 
 ## Performance
 
-`tools/bench.sh` compares ripgsed with GNU sed 4.9 on deterministic workloads (1,000,000 log-like lines, output equality checked by hash). Times are medians of 7 runs in seconds on an Intel Core i7-1260P (16 threads), Linux, release build, `LC_ALL=C`. "Auto" is the default mode: scripts proven record-local by static analysis run in parallel on large regular files.
+`tools/bench.sh` compares ripgsed with GNU sed 4.9 on deterministic workloads (1,000,000 log-like lines, output equality checked by hash). Times are medians of 7 runs in seconds on an Intel Core i7-1260P (16 threads), Linux, release build, `LANG=ja_JP.UTF-8` (a UTF-8 locale, the harder case). "Auto" is the default mode: scripts proven record-local by static analysis run in parallel on large regular files.
 
 | workload | GNU sed | ripgsed, 1 thread | ratio | ripgsed, auto | ratio |
 |---|---:|---:|---:|---:|---:|
-| `s/alpha/X/g` | 0.21 | 0.16 | 0.76 | 0.03 | 0.14 |
-| `-E s/[0-9]+/N/g` | 0.93 | 0.50 | 0.54 | 0.11 | 0.12 |
-| `s/[a-z]*a$/END/` | 1.31 | 0.95 | 0.73 | 0.23 | 0.18 |
-| `/ERROR/d` | 0.16 | 0.14 | 0.88 | 0.06 | 0.38 |
-| `-n /user=beta.*id=1/p` | 0.12 | 0.09 | 0.75 | 0.02 | 0.17 |
-| `y/abc/xyz/` | 1.20 | 0.90 | 0.75 | 0.18 | 0.15 |
-| `s/\(a\)\(l\)/\2\1/g` | 0.31 | 0.30 | 0.97 | 0.05 | 0.16 |
-| `$!N;P;D` (not parallelizable) | 0.17 | 0.12 | 0.71 | 0.13 | 0.76 |
-| `-n 1000000p` (2,000,000 lines) | 0.04 | 0.06 | 1.50 | 0.01 | 0.25 |
-| one 20 MB line, `s/alpha/X/g` | 0.09 | 0.04 | 0.44 | 0.05 | 0.56 |
+| `s/alpha/X/g` | 0.31 | 0.22 | 0.71 | 0.05 | 0.16 |
+| `-E s/[0-9]+/N/g` | 1.21 | 0.66 | 0.55 | 0.14 | 0.12 |
+| `s/[a-z]*a$/END/` | 1.70 | 1.04 | 0.61 | 0.22 | 0.13 |
+| `/ERROR/d` | 0.16 | 0.12 | 0.75 | 0.03 | 0.19 |
+| `-n /user=beta.*id=1/p` | 0.14 | 0.11 | 0.79 | 0.03 | 0.21 |
+| `y/abc/xyz/` | 1.43 | 1.06 | 0.74 | 0.22 | 0.15 |
+| `s/\(a\)\(l\)/\2\1/g` | 0.40 | 0.40 | 1.00 | 0.07 | 0.18 |
+| `$!N;P;D` (not parallelizable) | 0.20 | 0.18 | 0.90 | 0.18 | 0.90 |
+| `-n 1000000p` (2,000,000 lines) | 0.06 | 0.04 | 0.67 | 0.02 | 0.33 |
+| one 20 MB line, `s/alpha/X/g` | 0.12 | 0.05 | 0.42 | 0.07 | 0.58 |
+| Japanese text (500,000 lines), `s/ユーザー/U/g` | 0.18 | 0.12 | 0.67 | 0.03 | 0.17 |
+| Japanese text, `-E s/[0-9]+/N/g` | 4.47 | 0.40 | 0.09 | 0.07 | 0.02 |
+| Japanese text, `s/\w\+/<&>/g` | 5.63 | 0.68 | 0.12 | 0.21 | 0.04 |
 
-Memory use is higher than GNU sed's (tens of MiB against about 3 MiB), because input is read in blocks. A script that reads other records, uses the hold space, or touches files runs sequentially; the sequential path is not slower than GNU sed on the workloads above except for plain line selection by number.
+Memory use is higher than GNU sed's (tens of MiB against about 3 MiB), because input is read in blocks. A script that reads other records, uses the hold space, or touches files runs sequentially; the sequential path is at least as fast as GNU sed on every workload above (the one tie is a substitution with two groups).
 
 ## Plan
 

@@ -33,6 +33,15 @@ awk -v n="$size" 'BEGIN {
 head -c 20000000 "$scratch/log.txt" | tr '\n' ' ' > "$scratch/long.txt"; echo >> "$scratch/long.txt"
 awk 'BEGIN { for (i = 1; i <= 2000000; i++) print i }' > "$scratch/nums.txt"
 
+# Japanese text with numbers (for UTF-8 locales).
+awk -v n=$((size / 2)) 'BEGIN {
+  srand(7)
+  split("エラー 警告 情報 デバッグ", lv, " ")
+  split("こんにちは 世界 ユーザー 処理 完了 失敗 café naïve", w, " ")
+  for (i = 1; i <= n; i++)
+    printf "%d %s user=%s id=%d メッセージ=%s %s\n", 1700000000 + i, lv[1 + int(rand() * 4)], w[1 + int(rand() * 8)], int(rand() * 100000), w[1 + int(rand() * 8)], w[1 + int(rand() * 8)]
+}' > "$scratch/jp.txt"
+
 printf '| workload | GNU sed (s) | ripgsed 1 thread (s) | ratio | ripgsed auto (s) | ratio | GNU RSS | ripgsed RSS |\n|---|---:|---:|---:|---:|---:|---:|---:|\n'
 
 measure() { # program file args... -> "median_seconds rss_mib hash"; JOBS=n forces RIPGSED_JOBS
@@ -69,3 +78,6 @@ row 's/\(a\)\(b\)/\2\1/g'      log.txt 's/\(a\)\(l\)/\2\1/g'
 row '$!N;P;D'                  nums.txt '$!N;P;D'
 row 'sed -n 2000000p'          nums.txt -n '1000000p'
 row 'one 20 MB line, s///g'    long.txt 's/alpha/X/g'
+row 'UTF-8: s/ユーザー/U/g'     jp.txt 's/ユーザー/U/g'
+row 'UTF-8: -E s/[0-9]+/N/g'  jp.txt -E 's/[0-9]+/N/g'
+row 'UTF-8: s/\w+/<&>/g'       jp.txt 's/\w\+/<&>/g'
