@@ -108,6 +108,24 @@ impl Class {
         })
     }
 
+    /// The code points of a UTF-8 locale that are in the class, as sorted inclusive ranges.
+    pub fn ranges(self) -> &'static [(u32, u32)] {
+        match self {
+            Class::Alnum => ALNUM,
+            Class::Alpha => ALPHA,
+            Class::Blank => BLANK,
+            Class::Cntrl => CNTRL,
+            Class::Graph => GRAPH,
+            Class::Lower => LOWER,
+            Class::Print => PRINT,
+            Class::Punct => PUNCT,
+            Class::Space => SPACE,
+            Class::Upper => UPPER,
+            Class::Digit => &[(0x30, 0x39)],
+            Class::Xdigit => &[(0x30, 0x39), (0x41, 0x46), (0x61, 0x66)],
+        }
+    }
+
     /// Membership in the `C` locale: ASCII only, bytes 0x80..=0xff are in no class.
     pub fn contains_byte(self, b: u8) -> bool {
         match self {

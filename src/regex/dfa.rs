@@ -13,8 +13,9 @@
 //! To stay exactly equal to the simulation, the DFA is used only where the assertions reduce to
 //! simple facts about the neighbouring bytes: the haystack must hold no line delimiter (so `^`,
 //! `$`, and the `M` flag mean the buffer edges, and the newline rules of `assert_check` never
-//! apply) and, in UTF-8, only ASCII (so every character is a byte). Programs with
-//! back-references never come here. See `Searcher` for the check and the fallback.
+//! apply). In UTF-8 the characters of the pattern are spelled out as byte sequences, so the DFAs
+//! run on bytes; patterns that cannot be (case folding, word assertions) stop at the first
+//! non-ASCII byte instead. Programs with back-references never come here. See `Searcher` for the check and the fallback.
 
 use std::collections::HashMap;
 
@@ -408,24 +409,211 @@ impl std::fmt::Debug for DfaSlot {
 impl DfaSlot {
     pub fn get(&mut self, prog: &Program, node: &super::ast::Node, utf8: bool, delim: u8) -> Option<&mut DfaSet> {
         if matches!(self, DfaSlot::Unbuilt) {
-            *self = if Dfa::supports(prog) {
-                match super::compile::compile(&reverse(node), prog.ngroups, vec![false; prog.ngroups + 1], prog.char_starts, utf8) {
-                    Ok(rev) => DfaSlot::Ready(Box::new(DfaSet {
-                        forward: Dfa::new(prog.clone(), utf8, delim, false),
-                        reverse: Dfa::new(rev, utf8, delim, true),
-                        unanchored: Dfa::new(prog.clone(), utf8, delim, true),
-                    })),
-                    Err(_) => DfaSlot::Disabled,
-                }
-            } else {
-                DfaSlot::Disabled
-            };
+            *self = Self::build(prog, node, utf8, delim).map_or(DfaSlot::Disabled, |set| DfaSlot::Ready(Box::new(set)));
         }
         match self {
             DfaSlot::Ready(set) => Some(set),
             _ => None,
         }
     }
+
+    fn build(prog: &Program, node: &super::ast::Node, utf8: bool, delim: u8) -> Option<DfaSet> {
+        if !Dfa::supports(prog) {
+            return None;
+        }
+        let compile = |n: &super::ast::Node, utf8: bool| {
+            super::compile::compile(n, prog.ngroups, vec![false; prog.ngroups + 1], prog.char_starts && utf8, utf8).ok()
+        };
+        // In UTF-8, characters are spelled out as byte sequences when the pattern allows it; the
+        // DFAs then run on bytes and can pass non-ASCII text. Otherwise they stop at the first
+        // non-ASCII byte and the caller falls back.
+        if utf8 {
+            // A pattern that starts only at character boundaries could match empty in the middle
+            // of a character here, so those are expanded only if no match can be empty.
+            if let Some(bytes) = expand_utf8(node).filter(|b| !prog.char_starts || !nullable(b)) {
+                if let (Some(fwd), Some(rev)) = (compile(&bytes, false), compile(&reverse(&bytes), false)) {
+                    return Some(DfaSet {
+                        unanchored: Dfa::new(fwd.clone(), false, delim, true),
+                        forward: Dfa::new(fwd, false, delim, false),
+                        reverse: Dfa::new(rev, false, delim, true),
+                    });
+                }
+            }
+        }
+        let rev = compile(&reverse(node), utf8)?;
+        Some(DfaSet {
+            forward: Dfa::new(prog.clone(), utf8, delim, false),
+            reverse: Dfa::new(rev, utf8, delim, true),
+            unanchored: Dfa::new(prog.clone(), utf8, delim, true),
+        })
+    }
+}
+
+/// The pattern with every character unit written as the UTF-8 byte sequences it matches, or
+/// `None` when it has something that cannot be (case folding, raw bytes, word assertions, which
+/// depend on whole characters, or a set too large).
+fn expand_utf8(node: &super::ast::Node) -> Option<super::ast::Node> {
+    use super::ast::Node;
+    let mut budget = 4000usize;
+    fn walk(node: &Node, budget: &mut usize) -> Option<Node> {
+        Some(match node {
+            Node::Empty => Node::Empty,
+            Node::Backref(_) => return None,
+            Node::Assert(a) => match a {
+                Assert::WordBoundary | Assert::NotWordBoundary | Assert::WordStart | Assert::WordEnd => return None,
+                _ => Node::Assert(*a),
+            },
+            Node::Group(n, inner) => Node::Group(*n, Box::new(walk(inner, budget)?)),
+            Node::Concat(items) => Node::Concat(items.iter().map(|i| walk(i, budget)).collect::<Option<_>>()?),
+            Node::Alt(items) => Node::Alt(items.iter().map(|i| walk(i, budget)).collect::<Option<_>>()?),
+            Node::Repeat(inner, min, max) => Node::Repeat(Box::new(walk(inner, budget)?), *min, *max),
+            Node::Unit(Unit::Byte(set)) => {
+                if (0x80..=0xffu8).any(|b| set.contains(b)) {
+                    return None;
+                }
+                Node::Unit(Unit::Byte(*set))
+            }
+            Node::Unit(Unit::Any { exclude }) => {
+                let mut ranges = normalize(vec![(0, 0x10ffff)]);
+                if let Some(e) = exclude {
+                    ranges = subtract(&ranges, &[(0xa, 0xa), (*e as u32, *e as u32)]);
+                }
+                sequences(&ranges, budget)?
+            }
+            Node::Unit(Unit::Chars(cs)) => {
+                if cs.icase || cs.by_upper || cs.raw != super::charset::ByteSet::empty() {
+                    return None;
+                }
+                let mut ranges = cs.ranges.clone();
+                for class in &cs.classes {
+                    ranges.extend_from_slice(class.ranges());
+                }
+                let mut ranges = normalize(ranges);
+                if cs.negated {
+                    ranges = normalize(subtract(&[(0, 0x10ffff)], &ranges));
+                }
+                if let Some(e) = cs.exclude {
+                    ranges = subtract(&ranges, &[(0xa, 0xa), (e as u32, e as u32)]);
+                }
+                sequences(&ranges, budget)?
+            }
+        })
+    }
+    walk(node, &mut budget)
+}
+
+/// Sorted, merged, without surrogates.
+fn normalize(mut ranges: Vec<(u32, u32)>) -> Vec<(u32, u32)> {
+    ranges.sort_unstable();
+    let mut out: Vec<(u32, u32)> = Vec::new();
+    for (lo, hi) in ranges {
+        match out.last_mut() {
+            Some(last) if lo <= last.1.saturating_add(1) => last.1 = last.1.max(hi),
+            _ => out.push((lo, hi)),
+        }
+    }
+    subtract(&out, &[(0xd800, 0xdfff)])
+}
+
+/// `a` without `b` (both sorted and merged, or `b` small).
+fn subtract(a: &[(u32, u32)], b: &[(u32, u32)]) -> Vec<(u32, u32)> {
+    let mut b = b.to_vec();
+    b.sort_unstable();
+    let mut out = Vec::new();
+    for &(mut lo, hi) in a {
+        let mut dead = false;
+        for &(blo, bhi) in &b {
+            if bhi < lo || blo > hi {
+                continue;
+            }
+            if blo > lo {
+                out.push((lo, blo - 1));
+            }
+            if bhi >= hi {
+                dead = true;
+                break;
+            }
+            lo = bhi + 1;
+        }
+        if !dead {
+            out.push((lo, hi));
+        }
+    }
+    out
+}
+
+/// The code point ranges as an alternation of UTF-8 byte sequences.
+fn sequences(ranges: &[(u32, u32)], budget: &mut usize) -> Option<super::ast::Node> {
+    use super::ast::Node;
+    use super::charset::ByteSet;
+    let mut seqs: Vec<Vec<(u8, u8)>> = Vec::new();
+    for &(lo, hi) in ranges {
+        split_utf8(lo, hi, &mut seqs);
+    }
+    if seqs.len() > *budget {
+        return None;
+    }
+    *budget -= seqs.len();
+    let branches: Vec<Node> = seqs
+        .into_iter()
+        .map(|seq| {
+            let units: Vec<Node> = seq
+                .into_iter()
+                .map(|(lo, hi)| {
+                    let mut set = ByteSet::empty();
+                    set.insert_range(lo, hi);
+                    Node::Unit(Unit::Byte(set))
+                })
+                .collect();
+            if units.len() == 1 { units.into_iter().next().unwrap() } else { Node::Concat(units) }
+        })
+        .collect();
+    Some(match branches.len() {
+        0 => Node::Unit(Unit::Byte(super::charset::ByteSet::empty())),
+        1 => branches.into_iter().next().unwrap(),
+        _ => Node::Alt(branches),
+    })
+}
+
+/// Splits a range of scalar values into runs whose encodings are products of byte ranges.
+fn split_utf8(lo: u32, hi: u32, out: &mut Vec<Vec<(u8, u8)>>) {
+    if lo > hi {
+        return;
+    }
+    // One encoded length at a time.
+    for &(top, _) in &[(0x7fu32, 1), (0x7ff, 2), (0xffff, 3)] {
+        if lo <= top && hi > top {
+            split_utf8(lo, top, out);
+            split_utf8(top + 1, hi, out);
+            return;
+        }
+    }
+    if hi < 0x80 {
+        out.push(vec![(lo as u8, hi as u8)]);
+        return;
+    }
+    let n = if hi < 0x800 { 2 } else if hi < 0x10000 { 3 } else { 4 };
+    for i in 1..n {
+        let m = (1u32 << (6 * i)) - 1;
+        if lo & !m != hi & !m {
+            if lo & m != 0 {
+                split_utf8(lo, lo | m, out);
+                split_utf8((lo | m) + 1, hi, out);
+                return;
+            }
+            if hi & m != m {
+                split_utf8(lo, (hi & !m) - 1, out);
+                split_utf8(hi & !m, hi, out);
+                return;
+            }
+        }
+    }
+    let encode = |c: u32| {
+        let mut buf = [0u8; 4];
+        char::from_u32(c).expect("scalar value").encode_utf8(&mut buf).as_bytes().to_vec()
+    };
+    let (a, b) = (encode(lo), encode(hi));
+    out.push(a.iter().zip(&b).map(|(&x, &y)| (x, y)).collect());
 }
 
 /// For a pattern that is a fixed sequence of single bytes, with groups around parts of it, the
@@ -456,4 +644,17 @@ pub fn fixed_groups(node: &super::ast::Node, ngroups: usize) -> Option<(usize, V
     let width = walk(node, 0, &mut groups)?;
     // Every group must be placed (a group number the walk never met would be unset).
     groups.iter().skip(1).all(|g| g.0 != usize::MAX).then_some((width, groups))
+}
+
+/// Whether the pattern can match the empty string (assertions count as empty).
+fn nullable(node: &super::ast::Node) -> bool {
+    use super::ast::Node;
+    match node {
+        Node::Empty | Node::Assert(_) | Node::Backref(_) => true,
+        Node::Unit(_) => false,
+        Node::Group(_, inner) => nullable(inner),
+        Node::Concat(items) => items.iter().all(nullable),
+        Node::Alt(items) => items.iter().any(nullable),
+        Node::Repeat(inner, min, _) => *min == 0 || nullable(inner),
+    }
 }

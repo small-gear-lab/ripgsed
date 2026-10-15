@@ -252,3 +252,50 @@ fn dfa_is_used_for_plain_patterns() {
     assert_eq!(caps.whole(), (3, 6));
     assert!(matches!(*re.dfa.borrow(), dfa::DfaSlot::Ready(_)));
 }
+
+/// The same, in a UTF-8 locale, on text with multibyte characters and invalid bytes.
+#[test]
+fn dfa_agrees_with_simulation_in_utf8() {
+    let atoms = [
+        "a", "é", "中", ".", "[^a]", "[é中a]", "[^é]", "[[:alpha:]]", "[[:upper:]]", "[[:punct:]]", "[a-é]", "(é|a)", "é*", "中+", ".*", "x?",
+        "^", "$", "(é)(a)", "(中)", "[^[:space:]]", "\\w", "\\W", "\\<",
+    ];
+    let hays: [&[u8]; 14] = [
+        b"", b"a", "é".as_bytes(), "aéa".as_bytes(), "中中é a".as_bytes(), b"\xff", b"a\xc3", b"\xe4\xb8a", "Éa é".as_bytes(), "x中Y".as_bytes(),
+        b"\xc3\xa9\xc3", "é!é".as_bytes(), "ÿ中\u{1f600}a".as_bytes(), b"\xed\xa0\x80a",
+    ];
+    let mut seed = 0x9e3779b97f4a7c15u64;
+    let mut next = move |n: usize| {
+        seed ^= seed << 13;
+        seed ^= seed >> 7;
+        seed ^= seed << 17;
+        (seed % n as u64) as usize
+    };
+    for round in 0..3000 {
+        let k = 1 + next(3);
+        let mut pat = String::new();
+        for _ in 0..k {
+            pat.push_str(atoms[next(atoms.len())]);
+        }
+        let mut s = syn(round % 2 == 0);
+        s.locale = Locale::Utf8;
+        s.icase = next(8) == 0;
+        let pat = if round % 2 == 0 { pat } else { pat.replace('(', "\\(").replace(')', "\\)") };
+        let Ok(mut re) = Regex::compile(pat.as_bytes(), &s) else { continue };
+        for hay in hays {
+            for start in 0..=hay.len() {
+                re.use_dfa = true;
+                let mut a = Captures::default();
+                let ra = re.captures_at(hay, start, &mut a);
+                let ea = re.is_match(hay);
+                re.use_dfa = false;
+                let fixed = re.fixed.take();
+                let mut b = Captures::default();
+                let rb = re.captures_at(hay, start, &mut b);
+                let eb = re.is_match(hay);
+                re.fixed = fixed;
+                assert_eq!((ra, &a.groups, ea), (rb, &b.groups, eb), "pattern {pat:?} hay {hay:?} start {start}");
+            }
+        }
+    }
+}
