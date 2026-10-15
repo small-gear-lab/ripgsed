@@ -4,7 +4,7 @@ ripgsed は GNU sed 4.9 と完全に同じ動作（同じ出力、C ロケール
 
 ## 意図的な差分
 
-- `--version` and `--help` print ripgsed's own text. The first line of the usage message and the `sed:` lines of option errors are the same as GNU sed's.
+- `--version` と `--help` は ripgsed 独自の文面を出します。usage の先頭行とオプションエラーの `sed:` の行は GNU sed と同じです。
 - 実装しているロケールは `C` と UTF-8 のみです。その他のマルチバイトエンコーディングはバイト列として読みます。
 - メモリ使用量は多めです。入力を 256 KiB のブロック単位で読み、並列実行では複数のブロックを同時に保持します。
 

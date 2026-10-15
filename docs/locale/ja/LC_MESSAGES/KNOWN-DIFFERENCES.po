@@ -44,9 +44,8 @@ msgid ""
 "usage message and the `sed:` lines of option errors are the same as GNU "
 "sed's."
 msgstr ""
-"`--version` and `--help` print ripgsed's own text. The first line of the "
-"usage message and the `sed:` lines of option errors are the same as GNU "
-"sed's."
+"`--version` と `--help` は ripgsed 独自の文面を出します。usage の先頭行とオプションエラーの `sed:` の行は "
+"GNU sed と同じです。"
 
 #: ../../KNOWN-DIFFERENCES.md:8
 msgid ""
