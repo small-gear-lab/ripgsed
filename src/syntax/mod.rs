@@ -57,6 +57,10 @@ pub enum Addr2 {
 #[derive(Debug, Clone)]
 pub struct Pattern {
     pub regex: Option<Rc<Regex>>,
+    /// The pattern as written (for `--debug`), with its `I` and `M` flags.
+    pub source: Vec<u8>,
+    pub icase: bool,
+    pub multiline: bool,
 }
 
 #[derive(Debug)]
@@ -64,9 +68,10 @@ pub enum Kind {
     /// `{`: the index of the matching `}`.
     BlockStart(usize),
     BlockEnd,
-    Label,
-    /// `b`, `t`, `T`: the target command index, or `None` for the end of the script.
-    Branch { when: BranchWhen, target: Option<usize> },
+    /// `:label`
+    Label(Vec<u8>),
+    /// `b`, `t`, `T`: the label, and the target command index (`None`: the end of the script).
+    Branch { when: BranchWhen, label: Vec<u8>, target: Option<usize> },
     Append(Vec<u8>),
     Insert(Vec<u8>),
     Change(Vec<u8>),

@@ -145,7 +145,8 @@ struct State {
 impl State {
     fn apply(&mut self, opt: Opt, value: Option<String>, program: &str) -> Result<(), i32> {
         match opt {
-            Opt::Binary | Opt::Debug => {}
+            Opt::Binary => {}
+            Opt::Debug => self.options.debug = true,
             Opt::Quiet => self.options.quiet = true,
             Opt::ExtendedRegexp => self.parse_base.extended = true,
             Opt::Separate => self.options.separate = true,
@@ -397,7 +398,7 @@ pub fn main() -> i32 {
     let mut outputs = Outputs::new(Box::new(BufWriter::new(stdout)), options.separator);
     outputs.unbuffered = options.unbuffered;
 
-    let result = runtime::run(&script, options, &mut inputs, &mut outputs, &program)
+    let result = runtime::run(&script, options, &mut inputs, &mut outputs)
         .and_then(|code| outputs.flush_all().map(|()| code));
     match result {
         Ok(_) if inputs.had_edit_error || inputs.had_read_error => EXIT_PANIC,

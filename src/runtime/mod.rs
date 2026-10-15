@@ -8,6 +8,7 @@ use std::io::Write;
 use std::process::{Command as Process, Stdio};
 use std::rc::Rc;
 
+use crate::debug;
 use crate::io::{write_error, Fetched, Outputs, RecordSource};
 use crate::regex::{Captures, Locale, Regex};
 use crate::syntax::{Addr, Addr2, BranchWhen, Kind, Pattern, ReplacementPart, Script, Selector, Substitute};
@@ -30,6 +31,8 @@ pub struct Options {
     pub in_place: Option<String>,
     pub follow_symlinks: bool,
     pub unbuffered: bool,
+    /// `--debug`: print the program and annotate its execution.
+    pub debug: bool,
 }
 
 impl Default for Options {
@@ -44,6 +47,7 @@ impl Default for Options {
             in_place: None,
             follow_symlinks: false,
             unbuffered: false,
+            debug: false,
         }
     }
 }
@@ -93,6 +97,10 @@ struct Machine<'a, S: RecordSource + ?Sized> {
     quit_status: Option<i32>,
     /// `0,/re/` ranges that have already ended; they never restart.
     zero_finished: Vec<usize>,
+    /// The indentation of the trace; it follows `{` and `}` as they are visited.
+    debug_depth: usize,
+    /// The registers of the first match of the last `s`, for the trace.
+    debug_registers: Option<Vec<u8>>,
 }
 
 /// Runs `script` over the records of `input`. Returns the exit status requested
@@ -102,7 +110,6 @@ pub fn run<S: RecordSource + ?Sized>(
     options: Options,
     input: &mut S,
     out: &mut Outputs,
-    program: &str,
 ) -> Result<i32, Fatal> {
     for command in &script.commands {
         match &command.kind {
@@ -133,7 +140,13 @@ pub fn run<S: RecordSource + ?Sized>(
         read_files: HashMap::new(),
         quit_status: None,
         zero_finished: Vec::new(),
+        debug_depth: 0,
+        debug_registers: None,
     };
+    if machine.options.debug {
+        let listing = debug::program(script);
+        machine.debug_write(&listing)?;
+    }
     machine.cycles()
 }
 
@@ -207,13 +220,23 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                 if !self.read_line(false)? {
                     break;
                 }
+                if self.options.debug {
+                    let name = if &*self.file_name == "-" { "STDIN".to_string() } else { self.file_name.to_string() };
+                    self.debug_write(format!("INPUT:   '{}' line {}\n", name, self.line).as_bytes())?;
+                    self.debug_pattern()?;
+                }
+            } else if self.options.debug {
+                self.debug_pattern()?;
             }
             restart = false;
             match self.execute()? {
                 Flow::End => {
+                    self.debug_write(b"END-OF-CYCLE:\n")?;
                     self.autoprint()?;
                 }
-                Flow::Discard => {}
+                Flow::Discard => {
+                    self.debug_write(b"END-OF-CYCLE:\n")?;
+                }
                 Flow::Restart => {
                     restart = true;
                     continue;
@@ -234,6 +257,63 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
         }
         self.flush_pending()?;
         Ok(self.quit_status.unwrap_or(0))
+    }
+
+    /// Writes to the real standard output (the trace is never written to the file edited in place).
+    fn debug_write(&mut self, bytes: &[u8]) -> Result<(), Fatal> {
+        if !self.options.debug {
+            return Ok(());
+        }
+        self.out.stdout.write_raw(bytes).map_err(|e| write_error("stdout", &e))
+    }
+
+    fn debug_pattern(&mut self) -> Result<(), Fatal> {
+        let mut line = b"PATTERN: ".to_vec();
+        line.extend(debug::escape(&self.pattern));
+        line.push(b'\n');
+        self.debug_write(&line)
+    }
+
+    fn debug_hold(&mut self) -> Result<(), Fatal> {
+        let mut line = b"HOLD:    ".to_vec();
+        line.extend(debug::escape(&self.hold));
+        line.push(b'\n');
+        self.debug_write(&line)
+    }
+
+    fn debug_command(&mut self, command: &crate::syntax::Command) -> Result<(), Fatal> {
+        if matches!(command.kind, Kind::BlockEnd) {
+            self.debug_depth = self.debug_depth.saturating_sub(1);
+        }
+        let mut line = b"COMMAND: ".to_vec();
+        line.extend(std::iter::repeat_n(b' ', self.debug_depth * 2));
+        line.extend(debug::command_text(command));
+        line.push(b'\n');
+        if matches!(command.kind, Kind::BlockStart(_)) {
+            self.debug_depth += 1;
+        }
+        self.debug_write(&line)
+    }
+
+    /// The state the trace shows after a command: what GNU sed prints, command by command.
+    fn debug_after(&mut self, kind: &Kind) -> Result<(), Fatal> {
+        match kind {
+            Kind::Exchange => {
+                self.debug_pattern()?;
+                self.debug_hold()
+            }
+            Kind::GetAppend | Kind::Translate(_) | Kind::Next | Kind::NextAppend | Kind::Zap => self.debug_pattern(),
+            // GNU sed shows the hold space after `g` too.
+            Kind::Get | Kind::Hold | Kind::HoldAppend => self.debug_hold(),
+            Kind::Substitute(_) => {
+                if let Some(registers) = self.debug_registers.take() {
+                    self.debug_write(b"MATCHED REGEX REGISTERS\n")?;
+                    self.debug_write(&registers)?;
+                }
+                self.debug_pattern()
+            }
+            _ => Ok(()),
+        }
     }
 
     fn autoprint(&mut self) -> Result<(), Fatal> {
@@ -423,17 +503,21 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                 pc += 1;
                 continue;
             }
+            if self.options.debug {
+                self.debug_command(command)?;
+            }
             if !self.selected(pc)? {
                 if let Kind::BlockStart(end) = command.kind {
-                    pc = end + 1;
+                    // Skip the block but still visit its `}`.
+                    pc = end;
                 } else {
                     pc += 1;
                 }
                 continue;
             }
             match &command.kind {
-                Kind::BlockStart(_) | Kind::BlockEnd | Kind::Label | Kind::Version => {}
-                Kind::Branch { when, target } => {
+                Kind::BlockStart(_) | Kind::BlockEnd | Kind::Label(_) | Kind::Version => {}
+                Kind::Branch { when, target, .. } => {
                     let take = match when {
                         BranchWhen::Always => true,
                         BranchWhen::IfSubstituted => std::mem::replace(&mut self.substituted, false),
@@ -555,6 +639,9 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                 Kind::Translate(pairs) => self.translate(pairs),
                 Kind::Substitute(sub) => self.substitute(sub)?,
             }
+            if self.options.debug {
+                self.debug_after(&command.kind)?;
+            }
             pc += 1;
         }
         Ok(Flow::End)
@@ -574,6 +661,9 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
     /// with the next file.
     fn no_next_line(&mut self) -> Result<Flow, Fatal> {
         let print = !self.options.posixly_correct;
+        if print {
+            self.debug_write(b"END-OF-CYCLE:\n")?;
+        }
         if self.input.is_last(false)? {
             return Ok(Flow::Quit { code: 0, print });
         }
@@ -667,6 +757,9 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                 previous_end = None;
                 continue;
             }
+            if count == 0 && self.options.debug {
+                self.debug_registers = Some(registers_text(&self.pattern, &caps));
+            }
             count += 1;
             if count >= wanted {
                 result.extend_from_slice(&self.pattern[copied..start]);
@@ -705,6 +798,19 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
         }
         Ok(())
     }
+}
+
+/// `  regex[N] = START-END 'text'` for every group of the first match.
+fn registers_text(subject: &[u8], caps: &Captures) -> Vec<u8> {
+    let mut out = Vec::new();
+    for (i, group) in caps.groups.iter().enumerate() {
+        if let Some((s, e)) = group {
+            out.extend_from_slice(format!("  regex[{i}] = {s}-{e} '").as_bytes());
+            out.extend_from_slice(&subject[*s..*e]);
+            out.extend_from_slice(b"'\n");
+        }
+    }
+    out
 }
 
 fn run_shell(command: &[u8]) -> Vec<u8> {

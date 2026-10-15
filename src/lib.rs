@@ -3,6 +3,7 @@
 //! See docs/ARCHITECTURE.md for the module layout.
 
 pub mod cli;
+pub mod debug;
 pub mod io;
 pub mod regex;
 pub mod runtime;

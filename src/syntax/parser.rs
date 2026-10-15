@@ -292,7 +292,7 @@ impl Parser {
             if icase || multiline {
                 return Err(self.error("cannot specify modifiers on empty regexp"));
             }
-            return Ok(Pattern { regex: None });
+            return Ok(Pattern { regex: None, source: Vec::new(), icase: false, multiline: false });
         }
         let o = self.options();
         let syntax = Syntax {
@@ -304,7 +304,7 @@ impl Parser {
             locale: o.locale,
         };
         match Regex::compile(&normalize_escapes(text, o.posixly_correct), &syntax) {
-            Ok(re) => Ok(Pattern { regex: Some(Rc::new(re)) }),
+            Ok(re) => Ok(Pattern { regex: Some(Rc::new(re)), source: text.to_vec(), icase, multiline }),
             Err(e) => Err(self.error(&e.message)),
         }
     }
@@ -444,8 +444,8 @@ impl Parser {
                 if label.is_empty() {
                     return Err(self.error("\":\" lacks a label"));
                 }
-                self.labels.insert(label, self.script.commands.len());
-                Kind::Label
+                self.labels.insert(label.clone(), self.script.commands.len());
+                Kind::Label(label)
             }
             b'b' | b't' | b'T' => {
                 let label = self.read_label();
@@ -455,9 +455,9 @@ impl Parser {
                     _ => BranchWhen::IfNotSubstituted,
                 };
                 if !label.is_empty() {
-                    self.pending_jumps.push((self.script.commands.len(), label, self.pos));
+                    self.pending_jumps.push((self.script.commands.len(), label.clone(), self.pos));
                 }
-                Kind::Branch { when, target: None }
+                Kind::Branch { when, label, target: None }
             }
             b'a' | b'i' | b'c' => {
                 let text = self.read_text()?;
