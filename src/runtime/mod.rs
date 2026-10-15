@@ -179,6 +179,7 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
         }
         let first_of_stream = new_file && (self.options.separate || self.line == 0);
         self.line += 1;
+        self.substituted = false;
         self.file_name = file_name;
         if first_of_stream && !append {
             self.insert_before_first_line()?;
@@ -558,7 +559,7 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                 },
                 Kind::Next => {
                     if self.is_last()? {
-                        return self.no_next_line();
+                        return self.no_next_line(true);
                     }
                     self.autoprint()?;
                     if !self.read_line(false)? {
@@ -567,7 +568,7 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                 }
                 Kind::NextAppend => {
                     if self.is_last()? {
-                        return self.no_next_line();
+                        return self.no_next_line(false);
                     }
                     if !self.read_line(true)? {
                         return Ok(Flow::Quit { code: 0, print: true });
@@ -659,8 +660,8 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
     /// `n` or `N` with no next line. GNU sed prints the pattern space (POSIX mode does
     /// not) and stops; with `-s` the end of a file only ends the cycle, and sed goes on
     /// with the next file.
-    fn no_next_line(&mut self) -> Result<Flow, Fatal> {
-        let print = !self.options.posixly_correct;
+    fn no_next_line(&mut self, always_print: bool) -> Result<Flow, Fatal> {
+        let print = always_print || !self.options.posixly_correct;
         if print {
             self.debug_write(b"END-OF-CYCLE:\n")?;
         }
@@ -682,7 +683,7 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
         });
         let Some(reader) = reader.as_mut() else { return Ok(None) };
         let mut line = Vec::new();
-        match reader.read_until(b'\n', &mut line) {
+        match reader.read_until(self.options.separator, &mut line) {
             Ok(0) => Ok(None),
             Ok(_) => Ok(Some(line)),
             Err(e) => {

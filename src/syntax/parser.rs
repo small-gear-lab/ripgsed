@@ -264,7 +264,7 @@ impl Parser {
                 } else {
                     b'/'
                 };
-                if delim == b'\n' || delim == b'\\' {
+                if delim == b'\\' {
                     return Err(self.error("unterminated address regex"));
                 }
                 let Some(text) = self.read_delimited(delim, true) else {
@@ -338,10 +338,7 @@ impl Parser {
                 } else if next == b'\n' {
                     out.push(b'\n');
                 } else if next == delim && !(next == b'&' && !regex) {
-                    // A delimiter that is special in the pattern stays escaped.
-                    if regex && is_regex_special(delim) {
-                        out.push(b'\\');
-                    }
+                    // `\` and the delimiter: just the delimiter, which then has its usual meaning.
                     out.push(next);
                 } else {
                     out.push(b'\\');
@@ -349,8 +346,64 @@ impl Parser {
                 }
                 continue;
             }
+            if ch == b'[' && regex {
+                out.push(ch);
+                self.copy_bracket(&mut out, limit)?;
+                continue;
+            }
             out.push(ch);
         }
+    }
+
+    /// Copies a bracket expression (after its `[`) up to and including the `]`, so that a
+    /// delimiter inside it does not end the regexp. `None` if it is not closed on the line.
+    fn copy_bracket(&mut self, out: &mut Vec<u8>, limit: usize) -> Option<()> {
+        let mut ch = self.bracket_char(limit)?;
+        if ch == b'^' {
+            out.push(ch);
+            ch = self.bracket_char(limit)?;
+        }
+        if ch == b']' {
+            out.push(ch);
+            ch = self.bracket_char(limit)?;
+        }
+        loop {
+            out.push(ch);
+            match ch {
+                b']' => return Some(()),
+                b'[' => {
+                    // `[.`, `[=` and `[:` run to their closing `.]`, `=]` or `:]`.
+                    if let Some(kind @ (b'.' | b'=' | b':')) = self.peek() {
+                        self.pos += 1;
+                        out.push(kind);
+                        let mut previous = 0u8;
+                        loop {
+                            let c = self.bracket_char(limit)?;
+                            out.push(c);
+                            if previous == kind && c == b']' {
+                                break;
+                            }
+                            previous = c;
+                        }
+                    }
+                }
+                _ => {}
+            }
+            ch = self.bracket_char(limit)?;
+        }
+    }
+
+    /// The next character of a bracket expression: a raw newline or the end ends the scan.
+    fn bracket_char(&mut self, limit: usize) -> Option<u8> {
+        if self.pos >= limit {
+            return None;
+        }
+        let ch = self.next()?;
+        if ch == b'\n' {
+            self.pos -= 1;
+            return None;
+        }
+        Some(ch)
     }
 
     // ---- commands ------------------------------------------------------------------
@@ -598,10 +651,6 @@ impl Parser {
             AddrParsed::Plus(_) | AddrParsed::Multiple(_) => unreachable!("rejected as a first address"),
         };
         let second = match a2 {
-            AddrParsed::Line(0) => {
-                self.zero_address = true;
-                Addr2::Line(0)
-            }
             AddrParsed::Line(n) => Addr2::Line(n),
             AddrParsed::Last => Addr2::Last,
             AddrParsed::Regex(p) => Addr2::Regex(p),
@@ -712,7 +761,7 @@ impl Parser {
         let Some(delim) = self.next() else {
             return Err(self.error("unterminated `s' command"));
         };
-        if delim == b'\n' || delim == b'\\' {
+        if delim == b'\\' {
             return Err(self.error("unterminated `s' command"));
         }
         let Some(pattern_text) = self.read_delimited(delim, true) else {
@@ -799,7 +848,7 @@ impl Parser {
     }
 
     fn parse_replacement(&self, text: &[u8], pattern: &Pattern) -> Result<Vec<ReplacementPart>> {
-        let text = normalize_escapes(text, self.options().posixly_correct);
+        let text = normalize_escapes_for(text, self.options().posixly_correct, true);
         let mut parts = Vec::new();
         let mut literal = Vec::new();
         let flush = |parts: &mut Vec<ReplacementPart>, literal: &mut Vec<u8>| {
@@ -861,8 +910,9 @@ impl Parser {
             return Err(self.error("unterminated `y' command"));
         };
         let locale = self.options().locale;
-        let src_chars = y_chars(&source, locale);
-        let dst_chars = y_chars(&dest, locale);
+        let posixly_correct = self.options().posixly_correct;
+        let src_chars = y_chars(&normalize_escapes(&source, posixly_correct), locale);
+        let dst_chars = y_chars(&normalize_escapes(&dest, posixly_correct), locale);
         if src_chars.len() != dst_chars.len() {
             return Err(self.error("strings for `y' command are different lengths"));
         }
@@ -878,10 +928,6 @@ enum AddrParsed {
     Regex(Pattern),
     Plus(u64),
     Multiple(u64),
-}
-
-fn is_regex_special(b: u8) -> bool {
-    matches!(b, b'.' | b'*' | b'[' | b']' | b'^' | b'$' | b'\\' | b'+' | b'?' | b'(' | b')' | b'{' | b'}' | b'|')
 }
 
 /// Splits the strings of `y` into characters, resolving `\\`, `\n`, and `\delim`.
@@ -920,19 +966,55 @@ fn utf8_len(first: u8) -> usize {
     }
 }
 
+fn normalize_escapes(text: &[u8], posixly_correct: bool) -> Vec<u8> {
+    normalize_escapes_for(text, posixly_correct, false)
+}
+
 /// Resolves the GNU escapes `\a \f \v \t \r \cX \dNNN \oNNN \xHH` into the
-/// bytes they stand for. Other escapes are kept for the next stage.
-fn normalize_escapes(text: &[u8], _posixly_correct: bool) -> Vec<u8> {
+/// bytes they stand for. Other escapes are kept for the next stage. Inside a
+/// bracket expression they are left alone under POSIXLY_CORRECT. In a replacement
+/// a produced `&` or backslash stays literal.
+fn normalize_escapes_for(text: &[u8], posixly_correct: bool, replacement: bool) -> Vec<u8> {
     let mut out = Vec::with_capacity(text.len());
     let mut i = 0;
+    let mut in_bracket = false;
     while i < text.len() {
         let b = text[i];
-        if b != b'\\' || i + 1 >= text.len() {
+        if !replacement {
+            if !in_bracket && b == b'[' {
+                in_bracket = true;
+                out.push(b);
+                i += 1;
+                // A leading `^` and a leading `]` belong to the bracket expression.
+                if text.get(i) == Some(&b'^') {
+                    out.push(b'^');
+                    i += 1;
+                }
+                if text.get(i) == Some(&b']') {
+                    out.push(b']');
+                    i += 1;
+                }
+                continue;
+            }
+            if in_bracket && b == b']' {
+                in_bracket = false;
+                out.push(b);
+                i += 1;
+                continue;
+            }
+        }
+        if b != b'\\' || i + 1 >= text.len() || (in_bracket && posixly_correct) {
             out.push(b);
             i += 1;
             continue;
         }
         let n = text[i + 1];
+        if in_bracket && n == b'n' {
+            // Inside a bracket expression `\n` is a newline (GNU sed only; not under POSIXLY_CORRECT).
+            out.push(b'\n');
+            i += 2;
+            continue;
+        }
         match n {
             b'a' => {
                 out.push(0x07);
@@ -977,7 +1059,11 @@ fn normalize_escapes(text: &[u8], _posixly_correct: bool) -> Vec<u8> {
                     out.push(n);
                     i += 2;
                 } else {
-                    out.push((value & 0xff) as u8);
+                    let produced = (value & 0xff) as u8;
+                    if replacement && (produced == b'&' || produced == b'\\') {
+                        out.push(b'\\');
+                    }
+                    out.push(produced);
                     i = j;
                 }
             }
