@@ -1561,6 +1561,7 @@ rgx-034-multibyte-bracket-errors
 rgx-035-interval-limits
 rgx-036-empty-regexp-errors
 rgx-037-locale-dependent-classes
+rgx-038-utf8-class-tables
 sub-001-delim-ampersand
 sub-001-delim-caret-in-brackets
 sub-001-delim-comma-letter

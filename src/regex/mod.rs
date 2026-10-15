@@ -90,6 +90,7 @@
 
 mod ast;
 mod charset;
+mod classes_table;
 mod compile;
 mod dfa;
 mod exec;
