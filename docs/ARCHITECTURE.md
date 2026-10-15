@@ -8,16 +8,18 @@ One crate (lib + bin). No workspace split until dependency boundaries settle.
 
 | Module | Responsible for | Not responsible for |
 | --- | --- | --- |
-| `syntax` | tokenizing, AST, source spans, syntax diagnostics | execution, file writes |
-| `runtime` | cycle, pattern/hold space, command evaluation | CLI argument parsing |
-| `io` | record reading and output | script syntax |
-| `cli` | mode selection, argument validation, exit status | a second implementation of the transformation logic |
+| `syntax` | tokenizing, AST, source spans, syntax diagnostics (`parser`) | execution, file writes |
+| `regex` | the regular expression engine: BRE/ERE dialects, leftmost-longest matching, captures | sed syntax, substitution |
+| `runtime` | cycle, pattern/hold space, command evaluation, `s` and `y`, `l` | CLI argument parsing |
+| `io` | record reading, output streams, `w` files, in-place editing, standard input | script syntax |
+| `debug` | the canonical program text and the execution trace of `--debug` | running the script |
+| `cli` | option parsing, mode selection, exit status | a second implementation of the transformation logic |
 
-`regex`, `analysis`, and `plan` are not part of P0; they are added from P1 onward.
+`analysis` and `plan` (parallel execution) are not written yet; they come after full GNU sed compatibility.
 
 ## Policies
 
-- P0 has only the sequential VM. The CLI and the Rust API share one path (parse, then run).
+- There is only the sequential VM so far. The CLI and the Rust API share one path (parse, then run).
 - Unsupported syntax is a compile-time error and is never silently reinterpreted.
 - Input is held as bytes. The record terminator is kept separate from the record body.
 
