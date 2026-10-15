@@ -17,6 +17,8 @@ pub struct Script {
     pub quiet: bool,
     /// The `v` command appeared: GNU extensions stay on even under POSIXLY_CORRECT.
     pub extensions: bool,
+    /// Files named by `w`, `W`, and `s///w`, in script order: created before any input is read.
+    pub write_files: Vec<Vec<u8>>,
 }
 
 #[derive(Debug)]

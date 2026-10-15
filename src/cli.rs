@@ -364,6 +364,47 @@ fn restore_inherited_sigpipe() {
     }
 }
 
+/// Creates (truncates) the files named by `w` commands. `/dev/stdout` and `/dev/stderr` are special.
+fn create_write_files(names: &[Vec<u8>]) -> Result<(), String> {
+    for name in names {
+        if name == b"/dev/stdout" || name == b"/dev/stderr" {
+            continue;
+        }
+        let path = String::from_utf8_lossy(name).into_owned();
+        if let Err(e) = std::fs::File::create(&path) {
+            return Err(format!("couldn't open file {path}: {}", strerror(&e)));
+        }
+    }
+    Ok(())
+}
+
+/// How many workers to use, or `None` to run sequentially.
+///
+/// A script runs in parallel only if it is record-local (see `analysis`) and either the
+/// input is large regular files or `RIPGSED_JOBS` forces it (also for standard input). The
+/// result is identical either way; only the speed differs.
+fn parallel_jobs(script: &crate::syntax::Script, options: &Options, files: &[String]) -> Option<usize> {
+    let forced: Option<usize> = std::env::var("RIPGSED_JOBS").ok().and_then(|v| v.parse().ok());
+    if forced.is_some_and(|n| n < 2) {
+        return None;
+    }
+    crate::analysis::record_local(script, options).ok()?;
+    // Every named file must be a readable regular file, or the sequential run reports the errors.
+    let mut total = 0u64;
+    for name in files.iter().filter(|n| *n != "-") {
+        let meta = std::fs::metadata(name).ok().filter(|m| m.is_file())?;
+        std::fs::File::open(name).ok()?;
+        total += meta.len();
+    }
+    if let Some(n) = forced {
+        return Some(n);
+    }
+    let cores = std::thread::available_parallelism().map_or(1, |n| n.get());
+    let min_bytes: u64 = std::env::var("RIPGSED_PARALLEL_MIN_BYTES").ok().and_then(|v| v.parse().ok()).unwrap_or(8 << 20);
+    let reads_stdin = files.is_empty() || files.iter().any(|n| n == "-");
+    (cores >= 2 && !reads_stdin && total >= min_bytes).then_some(cores.min(16))
+}
+
 /// Returns the process exit status.
 pub fn main() -> i32 {
     restore_inherited_sigpipe();
@@ -378,16 +419,37 @@ pub fn main() -> i32 {
     let script = match parse(&invocation.chunks) {
         Ok(s) => s,
         Err(e) => {
-            // GNU sed has already created the `w` files it read before the error.
-            for name in &e.touched {
-                let _ = std::fs::File::create(String::from_utf8_lossy(name).as_ref());
+            // GNU sed has already created the `w` files it read before the error, and a file
+            // it cannot create stops it before the syntax error is found.
+            if let Err(open_error) = create_write_files(&e.touched) {
+                eprintln!("{program}: {open_error}");
+                return EXIT_PANIC;
             }
             eprintln!("{program}: {e}");
             return e.status;
         }
     };
+    if let Err(open_error) = create_write_files(&script.write_files) {
+        eprintln!("{program}: {open_error}");
+        return EXIT_PANIC;
+    }
 
     let options = invocation.options;
+    if let Some(jobs) = parallel_jobs(&script, &options, &invocation.files) {
+        let block = std::env::var("RIPGSED_BLOCK").ok().and_then(|v| v.parse().ok()).unwrap_or(1 << 20);
+        let stdout = io::stdout().lock();
+        let mut outputs = Outputs::new(Box::new(BufWriter::new(stdout)), options.separator);
+        let result = crate::parallel::run(invocation.chunks.clone(), &options, &invocation.files, jobs, block, &mut outputs)
+            .and_then(|()| outputs.flush_all());
+        return match result {
+            Ok(()) => 0,
+            Err(Fatal { message, status }) => {
+                eprintln!("{program}: {message}");
+                let _ = outputs.flush_all();
+                status
+            }
+        };
+    }
     if options.in_place.is_some() && invocation.files.is_empty() {
         eprintln!("{program}: no input files");
         return EXIT_PANIC;

@@ -21,7 +21,9 @@ pub fn list(pattern: &[u8], width: usize, separator: u8) -> Vec<u8> {
         };
         if width != 0 && column + escape.len() > limit {
             // GNU sed's wrap test: a line holds at most `width - 1` characters.
-            out.extend_from_slice(b"\\\n");
+            // The line break after the backslash is the record separator (a NUL under -z).
+            out.push(b'\\');
+            out.push(separator);
             column = 0;
         }
         column += escape.len();

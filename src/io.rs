@@ -464,6 +464,16 @@ impl Output {
     pub fn flush(&mut self) -> io::Result<()> {
         self.inner.borrow_mut().flush()
     }
+
+    /// Whether the last record written had no terminator (it gets one if more output follows).
+    pub fn ends_unterminated(&self) -> bool {
+        self.missing_separator
+    }
+
+    /// Declares that the previous output ended without a terminator, as another writer left it.
+    pub fn set_unterminated(&mut self, yes: bool) {
+        self.missing_separator = yes;
+    }
 }
 
 /// Every output the script writes to: standard output, standard error, and the

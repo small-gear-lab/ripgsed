@@ -2,9 +2,11 @@
 //!
 //! See docs/ARCHITECTURE.md for the module layout.
 
+pub mod analysis;
 pub mod cli;
 pub mod debug;
 pub mod io;
+pub mod parallel;
 pub mod regex;
 pub mod runtime;
 pub mod stream;

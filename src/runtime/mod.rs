@@ -4,7 +4,7 @@ mod case;
 mod list;
 
 use std::collections::HashMap;
-use std::io::Write;
+use std::io::{self, Write};
 use std::process::{Command as Process, Stdio};
 use std::rc::Rc;
 
@@ -115,6 +115,79 @@ pub fn run<S: RecordSource + ?Sized>(
     input: &mut S,
     out: &mut Outputs,
 ) -> Result<i32, Fatal> {
+    run_from(script, options, input, out, 0)
+}
+
+/// The bytes a script produced for one chunk, and whether they end without a terminator.
+pub struct ChunkOutput {
+    pub bytes: Vec<u8>,
+    pub unterminated: bool,
+}
+
+/// An output sink that several `Output`s can share and that the caller can read back.
+struct SharedBuffer(Rc<std::cell::RefCell<Vec<u8>>>);
+
+impl Write for SharedBuffer {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        self.0.borrow_mut().extend_from_slice(buf);
+        Ok(buf.len())
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
+    }
+}
+
+/// The records of one chunk, as a record source.
+struct ChunkRecords {
+    data: Vec<u8>,
+    pos: usize,
+    separator: u8,
+    name: Rc<str>,
+}
+
+impl RecordSource for ChunkRecords {
+    fn next_record(&mut self) -> Result<Option<Fetched>, Fatal> {
+        if self.pos >= self.data.len() {
+            return Ok(None);
+        }
+        let rest = &self.data[self.pos..];
+        let (body, used, terminated) = match rest.iter().position(|&b| b == self.separator) {
+            Some(i) => (rest[..i].to_vec(), i + 1, true),
+            None => (rest.to_vec(), rest.len(), false),
+        };
+        self.pos += used;
+        Ok(Some(Fetched { record: crate::io::Record { body, terminated }, new_file: false, file_name: self.name.clone() }))
+    }
+
+    fn is_last(&mut self, _separate: bool) -> Result<bool, Fatal> {
+        // Scripts that ask are not run chunk by chunk (see `analysis`).
+        Ok(false)
+    }
+}
+
+/// Runs a record-local script (see `analysis`) over the records in `data`, whose first record
+/// is line number `first_line`, and returns what it printed. The script must not read other
+/// records, use the hold space, or touch files.
+pub fn run_chunk(script: &Script, options: &Options, data: Vec<u8>, first_line: u64) -> Result<ChunkOutput, Fatal> {
+    let sink = Rc::new(std::cell::RefCell::new(Vec::with_capacity(data.len() + data.len() / 8)));
+    let mut outputs = Outputs::new(Box::new(SharedBuffer(sink.clone())), options.separator);
+    let mut source = ChunkRecords { data, pos: 0, separator: options.separator, name: Rc::from("-") };
+    run_from(script, options.clone(), &mut source, &mut outputs, first_line.saturating_sub(1))?;
+    let unterminated = outputs.stdout.ends_unterminated();
+    outputs.flush_all()?;
+    drop(outputs);
+    let bytes = std::mem::take(&mut *sink.borrow_mut());
+    Ok(ChunkOutput { bytes, unterminated })
+}
+
+fn run_from<S: RecordSource + ?Sized>(
+    script: &Script,
+    options: Options,
+    input: &mut S,
+    out: &mut Outputs,
+    line_before: u64,
+) -> Result<i32, Fatal> {
     for command in &script.commands {
         match &command.kind {
             Kind::WriteFile(name) | Kind::WriteFirstLine(name) => out.open(name)?,
@@ -135,7 +208,7 @@ pub fn run<S: RecordSource + ?Sized>(
         terminated: true,
         hold: Vec::new(),
         hold_terminated: true,
-        line: 0,
+        line: line_before,
         file_name: Rc::from("-"),
         ranges: vec![RangeState::Inactive; script.commands.len()],
         last_regex: None,

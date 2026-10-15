@@ -223,6 +223,7 @@ impl Parser {
                 }
             }
         }
+        self.script.write_files = std::mem::take(&mut self.touched);
         Ok(self.script)
     }
 
@@ -729,21 +730,12 @@ impl Parser {
     }
 
     /// GNU sed creates (truncates) every `w` file while it reads the script, so a file that
-    /// cannot be created stops the run with status 4 even before later syntax errors.
+    /// cannot be created stops the run with status 4 even before later syntax errors. The
+    /// parser has no side effects: it records the names in order and the caller creates them
+    /// (see `Script::write_files` and `SyntaxError::touched`).
     fn create_write_file(&mut self, name: &[u8]) -> Result<()> {
-        if name == b"/dev/stdout" || name == b"/dev/stderr" {
-            return Ok(());
-        }
-        let path = String::from_utf8_lossy(name).into_owned();
-        match std::fs::File::create(&path) {
-            Ok(_) => Ok(()),
-            Err(e) => Err(SyntaxError {
-                location: Location::Bare,
-                message: format!("couldn't open file {path}: {}", crate::io::strerror(&e)),
-                status: 4,
-                touched: Vec::new(),
-            }),
-        }
+        self.touched.push(name.to_vec());
+        Ok(())
     }
 
     /// Text of `a`, `i`, `c`: the one-liner form (`a text`, or `a\text` which keeps

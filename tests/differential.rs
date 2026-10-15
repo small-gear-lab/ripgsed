@@ -114,6 +114,13 @@ fn run_fixture(dir: &Path, scratch: &Path) -> Result<Outcome, String> {
         .env("PATH", format!("{}:/usr/bin:/bin", bin.display()))
         .env("HOME", "/nonexistent")
         .env("LC_ALL", "C");
+    // Lets the whole suite run through the parallel executor, e.g.
+    // `RIPGSED_JOBS=4 RIPGSED_BLOCK=16 cargo test`.
+    for key in ["RIPGSED_JOBS", "RIPGSED_BLOCK", "RIPGSED_PARALLEL_MIN_BYTES"] {
+        if let Ok(value) = std::env::var(key) {
+            cmd.env(key, value);
+        }
+    }
     if let Ok(text) = fs::read_to_string(dir.join("env")) {
         for line in text.lines().filter(|l| !l.is_empty()) {
             let (k, v) = line.split_once('=').ok_or(format!("{name}: bad env line {line:?}"))?;
