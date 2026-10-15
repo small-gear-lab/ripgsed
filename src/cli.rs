@@ -313,7 +313,12 @@ fn read_script_file(name: &str) -> io::Result<Vec<u8>> {
     if name == "-" {
         io::stdin().read_to_end(&mut bytes)?;
     } else {
-        bytes = std::fs::read(name)?;
+        match std::fs::read(name) {
+            Ok(b) => bytes = b,
+            // A directory reads as an empty script, as with GNU sed.
+            Err(e) if e.raw_os_error() == Some(21) => {}
+            Err(e) => return Err(e),
+        }
     }
     if bytes.last() == Some(&b'\n') {
         bytes.pop();
@@ -321,8 +326,44 @@ fn read_script_file(name: &str) -> io::Result<Vec<u8>> {
     Ok(bytes)
 }
 
+unsafe extern "C" {
+    fn signal(signum: i32, handler: usize) -> usize;
+}
+
+const SIGPIPE: i32 = 13;
+const SIG_DFL: usize = 0;
+
+/// The SIGPIPE disposition the process was started with, saved before Rust's runtime
+/// replaces it with "ignore".
+static INHERITED_SIGPIPE: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(SIG_DFL);
+
+/// Runs before `main` (and before the Rust runtime changes SIGPIPE) on Linux.
+extern "C" fn save_inherited_sigpipe() {
+    // SAFETY: `signal` is async-signal-safe; the handler is put straight back.
+    unsafe {
+        let old = signal(SIGPIPE, SIG_DFL);
+        signal(SIGPIPE, old);
+        INHERITED_SIGPIPE.store(old, std::sync::atomic::Ordering::Relaxed);
+    }
+}
+
+#[used]
+#[unsafe(link_section = ".init_array")]
+static SAVE_SIGPIPE: extern "C" fn() = save_inherited_sigpipe;
+
+/// Rust ignores SIGPIPE at startup; GNU sed keeps what it inherited, which is normally the
+/// default, so `sed ... | head` ends the pipeline with status 141 instead of an error message.
+fn restore_inherited_sigpipe() {
+    let inherited = INHERITED_SIGPIPE.load(std::sync::atomic::Ordering::Relaxed);
+    // SAFETY: installs the saved disposition before any other thread exists.
+    unsafe {
+        signal(SIGPIPE, inherited);
+    }
+}
+
 /// Returns the process exit status.
 pub fn main() -> i32 {
+    restore_inherited_sigpipe();
     let program = program_name();
     let args: Vec<String> = std::env::args().skip(1).collect();
     let invocation = match parse_args(args, &program) {
@@ -350,6 +391,7 @@ pub fn main() -> i32 {
     }
     let mut inputs = FileInputs::new(invocation.files, options.separator, &program)
         .in_place(options.in_place.is_some())
+        .follow_symlinks(options.follow_symlinks)
         .unbuffered(options.unbuffered);
     let stdout = io::stdout().lock();
     let mut outputs = Outputs::new(Box::new(BufWriter::new(stdout)), options.separator);
@@ -358,8 +400,8 @@ pub fn main() -> i32 {
     let result = runtime::run(&script, options, &mut inputs, &mut outputs, &program)
         .and_then(|code| outputs.flush_all().map(|()| code));
     match result {
-        Ok(0) if inputs.had_edit_error => EXIT_PANIC,
-        Ok(0) if inputs.had_open_error => EXIT_BAD_INPUT,
+        Ok(_) if inputs.had_edit_error || inputs.had_read_error => EXIT_PANIC,
+        Ok(_) if inputs.had_open_error => EXIT_BAD_INPUT,
         Ok(code) => code,
         Err(Fatal { message, status }) => {
             let _ = outputs.flush_all();

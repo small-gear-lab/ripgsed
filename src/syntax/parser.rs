@@ -230,7 +230,7 @@ impl Parser {
         match ch {
             b'0'..=b'9' => {
                 let n = self.read_number();
-                if self.peek() == Some(b'~') {
+                if self.peek() == Some(b'~') && !self.options().posix {
                     self.pos += 1;
                     let step = self.read_number();
                     if n == 0 && step == 0 {
@@ -240,7 +240,7 @@ impl Parser {
                 }
                 Ok(Some(AddrParsed::Line(n)))
             }
-            b'+' | b'~' if !first => {
+            b'+' | b'~' if !first && !self.options().posix => {
                 self.pos += 1;
                 let n = self.read_number();
                 Ok(Some(if ch == b'+' { AddrParsed::Plus(n) } else { AddrParsed::Multiple(n) }))
@@ -271,7 +271,7 @@ impl Parser {
                     return Err(self.error("unterminated address regex"));
                 };
                 let (mut icase, mut multiline) = (false, false);
-                loop {
+                while !self.options().posix {
                     match self.peek() {
                         Some(b'I') => icase = true,
                         Some(b'M') => multiline = true,
@@ -400,6 +400,13 @@ impl Parser {
             return Err(self.error("missing command"));
         };
         let _ = start_of_command;
+
+        if self.options().posix && matches!(ch, b'F' | b'e' | b'Q' | b'T' | b'z' | b'v' | b'W' | b'R') {
+            return Err(self.error(&format!("unknown command: `{}'", ch as char)));
+        }
+        if self.options().sandbox && matches!(ch, b'e' | b'r' | b'R' | b'w' | b'W') {
+            return Err(self.error("e/r/w commands disabled in sandbox mode"));
+        }
 
         let kind = match ch {
             b'#' => {
@@ -579,7 +586,7 @@ impl Parser {
         let first = match a1 {
             AddrParsed::Line(0) => {
                 // `0,/regexp/` is the only use of line 0 as a range start.
-                if !matches!(a2, AddrParsed::Regex(_)) {
+                if !matches!(a2, AddrParsed::Regex(_)) || self.options().posix {
                     self.zero_address = true;
                 }
                 Addr::Line(0)
@@ -609,7 +616,7 @@ impl Parser {
 
     /// A label runs to whitespace, `;` or `}`; leading whitespace is skipped.
     fn read_label(&mut self) -> Vec<u8> {
-        self.skip_whitespace();
+        self.skip_blanks();
         let start = self.pos;
         while self.peek().is_some_and(|b| !b.is_ascii_whitespace() && b != b';' && b != b'}') {
             self.pos += 1;
@@ -640,6 +647,10 @@ impl Parser {
         let Some(first) = self.peek() else {
             return Err(self.error("expected \\ after `a', `c' or `i'"));
         };
+        if first != b'\\' && self.options().posix {
+            self.pos += 1;
+            return Err(self.error("expected \\ after `a', `c' or `i'"));
+        }
         if first == b'\\' {
             self.pos += 1;
             match self.peek() {
@@ -726,6 +737,9 @@ impl Parser {
                     break;
                 }
                 Some(b' ') | Some(b'\t') | Some(b'\r') => {}
+                Some(b'i') | Some(b'I') | Some(b'm') | Some(b'M') | Some(b'e') if self.options().posix => {
+                    return Err(self.error("unknown option to `s'"));
+                }
                 Some(b'i') | Some(b'I') => icase = true,
                 Some(b'm') | Some(b'M') => multiline = true,
                 Some(b'e') => {
@@ -747,10 +761,10 @@ impl Parser {
                     global = true;
                 }
                 Some(b'w') => {
-                    let name = self.read_filename()?;
                     if self.options().sandbox {
                         return Err(self.error("e/r/w commands disabled in sandbox mode"));
                     }
+                    let name = self.read_filename()?;
                     self.touched.push(name.clone());
                     write = Some(name);
                     break;

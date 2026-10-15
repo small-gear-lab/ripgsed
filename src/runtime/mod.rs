@@ -79,7 +79,6 @@ struct Machine<'a, S: RecordSource + ?Sized> {
     options: Options,
     input: &'a mut S,
     out: &'a mut Outputs,
-    program: &'a str,
     pattern: Vec<u8>,
     terminated: bool,
     hold: Vec<u8>,
@@ -121,7 +120,6 @@ pub fn run<S: RecordSource + ?Sized>(
         options,
         input,
         out,
-        program,
         pattern: Vec::new(),
         terminated: true,
         hold: Vec::new(),
@@ -476,11 +474,7 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                 },
                 Kind::Next => {
                     if self.is_last()? {
-                        return Ok(if self.options.posixly_correct {
-                            Flow::Quit { code: 0, print: false }
-                        } else {
-                            Flow::Quit { code: 0, print: true }
-                        });
+                        return self.no_next_line();
                     }
                     self.autoprint()?;
                     if !self.read_line(false)? {
@@ -489,11 +483,7 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                 }
                 Kind::NextAppend => {
                     if self.is_last()? {
-                        return Ok(if self.options.posixly_correct {
-                            Flow::Quit { code: 0, print: false }
-                        } else {
-                            Flow::Quit { code: 0, print: true }
-                        });
+                        return self.no_next_line();
                     }
                     if !self.read_line(true)? {
                         return Ok(Flow::Quit { code: 0, print: true });
@@ -549,7 +539,7 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                 }
                 Kind::ReadFile(name) => self.pending.push(Pending::File(name.clone())),
                 Kind::ReadLine(name) => {
-                    if let Some(line) = self.read_one_line(name) {
+                    if let Some(line) = self.read_one_line(name)? {
                         self.pending.push(Pending::Text(line));
                     }
                 }
@@ -579,18 +569,36 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
         }
     }
 
+    /// `n` or `N` with no next line. GNU sed prints the pattern space (POSIX mode does
+    /// not) and stops; with `-s` the end of a file only ends the cycle, and sed goes on
+    /// with the next file.
+    fn no_next_line(&mut self) -> Result<Flow, Fatal> {
+        let print = !self.options.posixly_correct;
+        if self.input.is_last(false)? {
+            return Ok(Flow::Quit { code: 0, print });
+        }
+        if print {
+            self.autoprint()?;
+        }
+        Ok(Flow::Discard)
+    }
+
     /// One line of the file named by an `R` command; the file stays open between calls.
-    fn read_one_line(&mut self, name: &[u8]) -> Option<Vec<u8>> {
+    fn read_one_line(&mut self, name: &[u8]) -> Result<Option<Vec<u8>>, Fatal> {
         use std::io::BufRead;
         let reader = self.read_files.entry(name.to_vec()).or_insert_with(|| {
             let path = String::from_utf8_lossy(name).into_owned();
             std::fs::File::open(path).ok().map(std::io::BufReader::new)
         });
-        let reader = reader.as_mut()?;
+        let Some(reader) = reader.as_mut() else { return Ok(None) };
         let mut line = Vec::new();
         match reader.read_until(b'\n', &mut line) {
-            Ok(0) | Err(_) => None,
-            Ok(_) => Some(line),
+            Ok(0) => Ok(None),
+            Ok(_) => Ok(Some(line)),
+            Err(e) => {
+                let path = String::from_utf8_lossy(name).into_owned();
+                Err(Fatal::new(format!("read error on {path}: {}", crate::io::strerror(&e)), 4))
+            }
         }
     }
 
@@ -623,7 +631,6 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
     /// `e command`: runs it and writes its output now. `e`: runs the pattern space
     /// as a command and replaces the pattern space with the output.
     fn execute_command(&mut self, command: &[u8]) -> Result<(), Fatal> {
-        self.out.main().flush().ok();
         if command.is_empty() {
             let output = run_shell(&self.pattern);
             let mut output = output;

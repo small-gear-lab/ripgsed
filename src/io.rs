@@ -63,6 +63,11 @@ pub struct FileInputs {
     pub had_open_error: bool,
     /// `-i`: only regular files can be edited; anything else is an error (exit status 4).
     in_place: bool,
+    follow_symlinks: bool,
+    /// An error that stops the run at the next read (exit status 4).
+    fatal: Option<Fatal>,
+    /// A read error on an input (reported, then reading continues): exit status 4.
+    pub had_read_error: bool,
     pub had_edit_error: bool,
     /// `-u`: read standard input without read-ahead.
     unbuffered: bool,
@@ -83,6 +88,9 @@ impl FileInputs {
             program: program.to_string(),
             had_open_error: false,
             in_place: false,
+            follow_symlinks: false,
+            fatal: None,
+            had_read_error: false,
             had_edit_error: false,
             unbuffered: false,
         }
@@ -93,6 +101,11 @@ impl FileInputs {
         self
     }
 
+    pub fn follow_symlinks(mut self, yes: bool) -> Self {
+        self.follow_symlinks = yes;
+        self
+    }
+
     pub fn unbuffered(mut self, yes: bool) -> Self {
         self.unbuffered = yes;
         self
@@ -100,12 +113,7 @@ impl FileInputs {
 
     fn open_next(&mut self) -> bool {
         for name in self.names.by_ref() {
-            if name == "-" && self.in_place {
-                eprintln!("{}: couldn't edit -: not a regular file", self.program);
-                self.had_edit_error = true;
-                continue;
-            }
-            if name == "-" {
+            if name == "-" && !self.in_place {
                 let reader: Box<dyn BufRead> = if self.unbuffered {
                     Box::new(BufReader::with_capacity(1, io::stdin()))
                 } else {
@@ -116,13 +124,20 @@ impl FileInputs {
                 return true;
             }
             if self.in_place {
-                match std::fs::metadata(&name) {
-                    Ok(m) if !m.is_file() => {
-                        eprintln!("{}: couldn't edit {}: not a regular file", self.program, name);
-                        self.had_edit_error = true;
-                        continue;
+                if self.follow_symlinks {
+                    let is_link = std::fs::symlink_metadata(&name).is_ok_and(|m| m.file_type().is_symlink());
+                    if is_link {
+                        if let Err(e) = std::fs::canonicalize(&name) {
+                            self.fatal = Some(Fatal::new(format!("couldn't readlink {}: {}", name, strerror(&e)), 4));
+                            return false;
+                        }
                     }
-                    _ => {}
+                }
+                if let Ok(m) = std::fs::metadata(&name) {
+                    if !m.is_file() {
+                        self.fatal = Some(Fatal::new(format!("couldn't edit {}: not a regular file", name), 4));
+                        return false;
+                    }
                 }
             }
             match File::open(&name) {
@@ -143,7 +158,10 @@ impl FileInputs {
     fn fill(&mut self) -> Result<(), Fatal> {
         while self.peeked.is_none() {
             if self.current.is_none() && !self.open_next() {
-                return Ok(());
+                return match self.fatal.take() {
+                    Some(f) => Err(f),
+                    None => Ok(()),
+                };
             }
             let (reader, name) = self.current.as_mut().unwrap();
             match read_record(reader, self.separator) {
@@ -154,8 +172,9 @@ impl FileInputs {
                 }
                 Ok(None) => self.current = None,
                 Err(e) => {
-                    let message = format!("read error on {}: {}", name, strerror(&e));
-                    return Err(Fatal::new(message, 4));
+                    eprintln!("{}: read error on {}: {}", self.program, name, strerror(&e));
+                    self.had_read_error = true;
+                    self.current = None;
                 }
             }
         }
@@ -422,7 +441,7 @@ impl Outputs {
     }
 
     pub fn flush_all(&mut self) -> Result<(), Fatal> {
-        let mut result = self.stdout.flush().map_err(|e| write_error("stdout", &e));
+        let mut result = self.stdout.flush().map_err(|e| flush_error("stdout", &e));
         if let Some(f) = self.in_place.as_mut() {
             let _ = f.output.flush();
         }
@@ -432,12 +451,34 @@ impl Outputs {
         for out in self.files.values_mut() {
             if let Err(e) = out.flush() {
                 if result.is_ok() {
-                    result = Err(write_error(&out.name, &e));
+                    // GNU sed does not know the name of a file it fails to flush.
+                    result = Err(flush_error("<unknown>", &e));
                 }
             }
         }
+        if result.is_ok() && !stdout_is_open() {
+            result = Err(Fatal::new("couldn't close stdout: Bad file descriptor", 4));
+        }
         result
     }
+}
+
+unsafe extern "C" {
+    fn fcntl(fd: i32, cmd: i32, ...) -> i32;
+}
+
+/// Whether file descriptor 1 is still open (Rust ignores writes to a closed stdout).
+fn stdout_is_open() -> bool {
+    const F_GETFD: i32 = 1;
+    // SAFETY: F_GETFD only queries the descriptor flags.
+    unsafe { fcntl(1, F_GETFD) != -1 }
+}
+
+fn flush_error(name: &str, e: &io::Error) -> Fatal {
+    if e.raw_os_error() == Some(9) {
+        return Fatal::new(format!("couldn't close {name}: {}", strerror(e)), 4);
+    }
+    Fatal::new(format!("couldn't flush {name}: {}", strerror(e)), 4)
 }
 
 pub fn write_error(name: &str, e: &io::Error) -> Fatal {

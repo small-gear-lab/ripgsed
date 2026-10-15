@@ -396,6 +396,7 @@ cmd-021-R-address
 cmd-021-R-basic
 cmd-021-R-brace-closing
 cmd-021-R-dev-stdin
+cmd-021-R-directory
 cmd-021-R-empty-file
 cmd-021-R-empty-input
 cmd-021-R-empty-lines
@@ -572,6 +573,7 @@ cmd-034-label-case-sensitive
 cmd-034-label-duplicate
 cmd-034-label-forward-backward
 cmd-034-label-in-block
+cmd-034-label-last-in-script-empty-branch
 cmd-034-label-leading-space
 cmd-034-label-lines-sorted-loop
 cmd-034-label-missing-name
@@ -579,6 +581,7 @@ cmd-034-label-missing-target
 cmd-034-label-name-with-punctuation
 cmd-034-label-same-prefix
 cmd-034-label-semicolon
+cmd-034-label-semicolon-in-name
 cmd-034-label-tab-in-script
 cmd-034-label-trailing-space
 cmd-034-label-unterminated-at-eof
@@ -735,6 +738,7 @@ cyc-010-s-with-stdin-dash
 cyc-010-without-s-continuous
 cycle-no-final-newline
 env-001-gnu-option-order-baseline
+env-001-posixly-correct-n-in-multiple-files
 env-001-posixly-correct-option-order
 env-002-v-version-checks
 esc-001-in-y
@@ -767,6 +771,7 @@ ext-001-success-ignores-no-match
 ext-001-success-zero
 ext-002-error-stops-before-output
 ext-002-invalid-command
+ext-002-posix-extension-errors
 ext-002-unknown-command-message
 ext-002-unknown-option-and-usage
 ext-003-missing-input-continues
@@ -778,13 +783,19 @@ ext-003-unreadable-script-file
 ext-004-in-place-backup-fails
 ext-004-in-place-in-readonly-directory
 ext-004-r-file-missing-is-not-error
+ext-004-write-to-dev-full
 ext-004-write-to-unwritable-w-file
 ext-005-Q-exit-code
 ext-005-q-exit-code
+ext-005-q-exit-code-syntax
+ext-005-q-exit-code-with-missing-file
 ext-005-q-in-place-and-w-flush
 ext-005-q-prints-pattern-space-Q-does-not
 ext-005-q-with-pending-N-and-hold
+ext-006-broken-pipe
 ext-006-broken-pipe-sigpipe-ignored
+ext-006-pipe-reader-exits-early
+ext-006-write-error-dev-full
 inv-001-no-script-given
 inv-001-script-as-first-operand
 inv-001-script-looks-like-file
@@ -801,6 +812,7 @@ inv-002-stdin-no-final-newline
 inv-002-stdin-with-F-command
 inv-003-c-i-fragments
 inv-003-e-f-order-matters
+inv-003-e-fragments-labels-branches
 inv-003-e-semicolon-and-close-brace-in-fragments
 inv-003-e-w-filename-ends-at-fragment
 inv-003-multiple-e-concatenate
@@ -838,7 +850,10 @@ iof-004-r-special-and-missing
 iof-005-stdout-order-inplace
 iof-005-stdout-vs-stderr-flush-order
 iof-006-e-command-output-order
+iof-006-e-stdout-interleave-with-w
 iof-006-s-e-flag-output
+iof-006-sandbox-rejects-e-r-w
+iof-007-missing-file-with-q-and-i
 iof-007-missing-input-file
 iof-007-unreadable-permission
 iof-008-special-files-as-input
@@ -863,6 +878,7 @@ opt-005-expression-short
 opt-005-expression-split-command
 opt-005-expression-trailing-backslash-a
 opt-006-file-comments-and-blank
+opt-006-file-directory
 opt-006-file-hash-n-first-line
 opt-006-file-long-forms
 opt-006-file-missing
@@ -875,6 +891,7 @@ opt-006-file-stdin-dash-and-input-dash
 opt-007-in-place-F-command
 opt-007-in-place-basic
 opt-007-in-place-broken-symlink
+opt-007-in-place-directory-operand
 opt-007-in-place-empty-file
 opt-007-in-place-hard-link-detached
 opt-007-in-place-l-and-equals-go-to-file
@@ -886,6 +903,7 @@ opt-007-in-place-no-trailing-newline
 opt-007-in-place-preserves-mode
 opt-007-in-place-q-command
 opt-007-in-place-quiet-p
+opt-007-in-place-stdin-dash
 opt-007-in-place-symlink-replaced
 opt-007-in-place-w-dev-stdout
 opt-007-in-place-w-file-and-r
@@ -945,7 +963,10 @@ opt-016-separate-no-trailing-newline-between-files
 opt-016-separate-ranges
 opt-017-sandbox-in-place-and-quit
 opt-017-sandbox-in-script-file
+opt-017-sandbox-rejects-before-running
 opt-017-sandbox-rejects-e
+opt-017-sandbox-rejects-r
+opt-017-sandbox-rejects-w
 opt-017-sandbox-without-sandbox-works
 opt-018-unbuffered-delete-first-from-pipe
 opt-018-unbuffered-in-place
