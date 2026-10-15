@@ -1,0 +1,2 @@
+S() { sed "$@" <in; }
+S -e :a -e '$q;N;3,$D;ba'; echo ==; S '$!N;$!D'

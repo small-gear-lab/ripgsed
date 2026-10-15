@@ -1,0 +1,3 @@
+S() { sed "$@" <in; }
+S '1a\  keep leading' ; S '1a \  keep2'; S '1a\
+\  keep3'

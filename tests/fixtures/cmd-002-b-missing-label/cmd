@@ -1,0 +1,2 @@
+S() { sed "$@" <in; }
+S 'b nowhere'; echo "[$?]"; S '/x/bfoo;p'; echo "[$?]"

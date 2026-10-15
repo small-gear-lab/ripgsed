@@ -1,0 +1,20 @@
+one
+foo
+two
+three
+four
+five
+==
+one
+foo; bar
+two
+three
+four
+five
+[0]
+one
+foo
+two
+three
+four
+five

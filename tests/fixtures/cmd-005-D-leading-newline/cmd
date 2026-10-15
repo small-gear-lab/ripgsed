@@ -1,0 +1,2 @@
+S() { sed "$@" <in; }
+S 'N;s/^/\n/;P;D' | od -c | sed -n '1,3p'; echo ==; S -n 'N;s/^/\n/;P;D' | od -c | sed -n '1,3p'

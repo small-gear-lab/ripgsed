@@ -1,0 +1,2 @@
+S() { sed "$@" <in; }
+S 'hx'; echo "[$?]"; S 'h h'; echo "[$?]"; S 'h;h;g' | sed -n '1p'

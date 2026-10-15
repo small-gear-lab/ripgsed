@@ -1,0 +1,2 @@
+S() { sed "$@" <in; }
+S '/two/,/four/d'; echo ==; S '/two/,+1d'; echo ==; S '0~2d'; echo ==; S '1~2d'; echo ==; S '2,~4d'; echo ==; S '0,/one/d'

@@ -1,0 +1,2 @@
+S() { sed "$@" <in; }
+S -n 'H;2d;${x;p}'; echo ==; S -z 'd'; echo "[$?]"

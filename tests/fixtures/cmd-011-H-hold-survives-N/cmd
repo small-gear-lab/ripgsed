@@ -1,0 +1,2 @@
+S() { sed "$@" <in; }
+S -n 'H;N;${x;l}'; echo ==; S -n '1{H;H};${x;l}'

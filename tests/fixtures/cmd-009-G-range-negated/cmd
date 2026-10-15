@@ -1,0 +1,2 @@
+S() { sed "$@" <in; }
+S '2,3G'; echo ==; S '2,3!G'; echo ==; S '/two/,/four/!G'

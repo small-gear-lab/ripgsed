@@ -1,0 +1,2 @@
+S() { sed "$@" <in; }
+S '$d'; echo '|'; S '2d'; echo '|'; S '1,2d'; echo '|'; S 'd'

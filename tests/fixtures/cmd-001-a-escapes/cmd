@@ -1,0 +1,4 @@
+S() { sed "$@" <in; }
+S '1a a\tb\\c\nd'
+S '2a\
+x\ty\\z'

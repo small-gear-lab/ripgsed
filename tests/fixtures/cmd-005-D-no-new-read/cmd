@@ -1,0 +1,2 @@
+S() { sed "$@" <in; }
+S -n 'N;N;l;D'; echo ==; S 'N;N;s/\n/+/;P;D'

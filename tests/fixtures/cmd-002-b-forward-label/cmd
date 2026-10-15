@@ -1,0 +1,2 @@
+S() { sed "$@" <in; }
+S '2b skip;s/^/>/;:skip'; echo ==; S -n '/two/b end;p;:end'

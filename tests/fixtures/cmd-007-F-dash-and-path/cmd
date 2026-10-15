@@ -1,0 +1,2 @@
+mkdir -p sub; printf 'x\n' > sub/in.txt; printf 'y\n' > ./local.txt
+sed -n 'F' sub/in.txt ./local.txt; echo ==; printf 's\n' | sed -n F - sub/in.txt; echo ==; printf 's\n' | sed 'F' sub/in.txt -

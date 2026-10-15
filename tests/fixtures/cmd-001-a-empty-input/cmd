@@ -1,0 +1,1 @@
+sed 'a x' </dev/null; echo "[$?]"; sed '$a x' </dev/null

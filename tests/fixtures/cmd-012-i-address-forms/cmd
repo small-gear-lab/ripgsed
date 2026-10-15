@@ -1,0 +1,2 @@
+S() { sed "$@" <in; }
+S '2,+1i +'; echo ==; S '1~2i odd'; echo ==; S '2,~2i m'; echo ==; S '0,/one/i z'; echo ==; S '0i z'; echo "[$?]"

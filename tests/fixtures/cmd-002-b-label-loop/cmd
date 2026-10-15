@@ -1,0 +1,2 @@
+S() { sed "$@" <in; }
+S ':a;s/  / /;ta'; echo ==; S -e ':x' -e 's/  / /' -e 'tx'

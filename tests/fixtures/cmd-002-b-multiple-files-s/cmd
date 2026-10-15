@@ -1,0 +1,2 @@
+printf '1\n2\n' > f1; printf '3\n4\n' > f2
+sed -s '1b;s/^/>/' f1 f2; echo ==; sed -n '$!b;p' f1 f2

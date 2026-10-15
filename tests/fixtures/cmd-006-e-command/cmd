@@ -1,0 +1,2 @@
+S() { sed "$@" <in; }
+S '2e echo hello'; echo ==; S '1e printf "A\\nB\\n"'; echo ==; S -n '2e echo X'

@@ -1,0 +1,5 @@
+S() { sed "$@" <in; }
+S '2,4{c X
+}'; echo ==; S '2,4{/three/c X
+}'; echo ==; S '1,3{$!c X
+}'

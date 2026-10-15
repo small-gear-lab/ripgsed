@@ -1,0 +1,4 @@
+S() { sed "$@" <in; }
+S -e '2d' -e 's/^/>/'; echo ==; S -n -e '2d' -e 'p'; echo ==; S '2{p;d}'; echo ==; S '2{a x
+d}'; echo ==; S '2{i y
+d}'

@@ -1,0 +1,2 @@
+S() { sed "$@" <in; }
+S '$c X'; echo '|'; S '1c X'; echo '|'; S '1,2c X'

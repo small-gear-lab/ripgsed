@@ -1,0 +1,2 @@
+S() { sed "$@" <in; }
+S '2a hello world'

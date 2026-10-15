@@ -1,0 +1,4 @@
+S() { sed "$@" <in; }
+S '2,3!c X'; echo ==; S '2!c X'; echo ==; S '2,4!c\
+a\
+b'

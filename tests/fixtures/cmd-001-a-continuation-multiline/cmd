@@ -1,0 +1,6 @@
+S() { sed "$@" <in; }
+S '2a\
+first\
+second
+3a\
+  indented'

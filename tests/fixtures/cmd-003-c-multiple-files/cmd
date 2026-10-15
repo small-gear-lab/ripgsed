@@ -1,0 +1,2 @@
+printf '1\n2\n' > f1; printf '3\n4\n' > f2
+sed '2,3c X' f1 f2; echo ==; sed -s '2,3c X' f1 f2; echo ==; sed -s '$c X' f1 f2; echo ==; sed -i '1c Y' f1 f2; cat f1 f2

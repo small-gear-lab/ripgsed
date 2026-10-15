@@ -1,0 +1,2 @@
+S() { sed "$@" <in; }
+S -e '2c X' -e 's/X/Y/'; echo ==; S -e '2{c X' -e 'p}' ; echo ==; S -n '2c X'

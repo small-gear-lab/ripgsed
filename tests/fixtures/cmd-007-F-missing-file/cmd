@@ -1,0 +1,2 @@
+printf 'a\n' > f1
+sed F nonexist f1; echo "[$?]"

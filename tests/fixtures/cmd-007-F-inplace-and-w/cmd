@@ -1,0 +1,2 @@
+printf 'a\n' > f1; printf 'b\n' > f2
+sed -i 'F' f1 f2; echo "[$?]"; cat f1 f2

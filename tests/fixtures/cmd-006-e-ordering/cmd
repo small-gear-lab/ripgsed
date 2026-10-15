@@ -1,0 +1,6 @@
+S() { sed "$@" <in; }
+S '2{i before
+e echo mid
+a after
+}'; echo ==; S -n '2{p;e echo cmd
+p}'

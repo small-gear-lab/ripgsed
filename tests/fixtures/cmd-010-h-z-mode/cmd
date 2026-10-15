@@ -1,0 +1,1 @@
+printf 'a\0b\0' | sed -z 'h;s/./X/;G' | od -c

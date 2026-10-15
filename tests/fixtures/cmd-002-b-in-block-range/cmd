@@ -1,0 +1,2 @@
+S() { sed "$@" <in; }
+S -n '2,4{/three/b;p}'; echo ==; S -n '/two/,/four/{/three/!b done;p;:done}'

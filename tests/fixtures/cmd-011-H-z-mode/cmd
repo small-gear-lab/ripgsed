@@ -1,0 +1,2 @@
+printf 'a\0b\0c\0' | sed -z -n 'H;${x;l}'
+printf 'a\0b\0' | sed -z 'H;$!d;x;s/\n/_/g' | od -c

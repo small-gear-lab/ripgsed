@@ -1,0 +1,2 @@
+S() { sed "$@" <in; }
+S '2b;s/./X/'; echo ==; S '/t/b;s/./X/'; echo ==; S '3!b;s/./X/'

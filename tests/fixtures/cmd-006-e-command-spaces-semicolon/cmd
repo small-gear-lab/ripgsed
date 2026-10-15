@@ -1,0 +1,3 @@
+S() { sed "$@" <in; }
+S '1e   echo   spaced; echo second'; echo ==; S '1{e echo in-block
+}'

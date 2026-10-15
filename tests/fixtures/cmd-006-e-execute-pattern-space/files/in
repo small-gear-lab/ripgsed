@@ -1,0 +1,2 @@
+echo one
+printf "x y\n"

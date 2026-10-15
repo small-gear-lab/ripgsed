@@ -1,0 +1,2 @@
+printf 'a\0b\0' | sed -z 'G' | od -c
+printf 'a\nb\0c' | sed -z 'G;s/\n/N/g' | od -c

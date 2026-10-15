@@ -1,0 +1,5 @@
+S() { sed "$@" <in; }
+S -n '2i shown'; echo ==; S '2{i ins
+p}'; echo ==; S '2{s/two/TWO/;i ins
+}'; echo ==; S '2{i ins
+d}'

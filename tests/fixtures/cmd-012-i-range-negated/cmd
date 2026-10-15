@@ -1,0 +1,2 @@
+S() { sed "$@" <in; }
+S '2,3i --'; echo ==; S '2,3!i --'; echo ==; S '/t/i [&]'; echo ==; S '0~2i even'

@@ -1,0 +1,2 @@
+S() { sed "$@" <in; }
+S -n '1h;1!H;${g;s/\n/ /g;p}'; echo ==; S ':a;N;$!ba;s/\n/+/g'; echo ==; S -n 'H;${x;s/^\n//;s/\n/ /g;p}'

@@ -1,0 +1,7 @@
+S() { sed "$@" <in; }
+S '2i\
+first\
+second\
+third'; echo ==; S '2i\
+  indented\
+\  escaped'

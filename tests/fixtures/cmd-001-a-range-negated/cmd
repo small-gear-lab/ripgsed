@@ -1,0 +1,2 @@
+S() { sed "$@" <in; }
+S '2,3a --' ; echo; S '2,3!a --'; echo; S '$a END'; echo; S '/t/a [&]'

@@ -1,0 +1,4 @@
+S() { sed "$@" <in; }
+S '2{i foo
+}'; echo ==; S '2{i foo; bar
+}'; echo "[$?]"; S -e '2{i foo' -e '}'

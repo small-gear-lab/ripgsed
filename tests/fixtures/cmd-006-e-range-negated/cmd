@@ -1,0 +1,2 @@
+S() { sed "$@" <in; }
+S '2,3e echo R'; echo ==; S '2,4!e echo N'; echo ==; S '$e echo END'

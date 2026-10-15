@@ -1,0 +1,2 @@
+S() { sed "$@" <in; }
+S '4,10c X'; echo ==; S '/four/,/nomatch/c X'; echo ==; S '0,/one/c X'; echo ==; S '2,+1c X'; echo ==; S '2,~2c X'; echo ==; S '3,1c X'

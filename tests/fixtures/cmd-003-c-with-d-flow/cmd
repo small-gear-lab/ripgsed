@@ -1,0 +1,2 @@
+S() { sed "$@" <in; }
+S -e '2c X' -e '2s/^/never/'; echo ==; S '$!N;2c X'; echo ==; S 'N;N;c X'

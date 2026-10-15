@@ -1,0 +1,2 @@
+S() { sed "$@" <in; }
+S '2e true' ; echo ==; S '2e printf ""'; echo ==; S '2e exit 3'; echo "[$?]"

@@ -1,0 +1,2 @@
+printf 'a\0b\0' | sed -z '2i X' | od -c
+printf 'a\0b\0' | sed -z '$a Y' | od -c

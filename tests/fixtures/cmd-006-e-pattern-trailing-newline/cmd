@@ -1,0 +1,3 @@
+S() { sed "$@" <in; }
+S 'e' | od -c | sed -n '1,3p'
+printf 'printf abc\n' | sed 'e' | od -c | sed -n '1,3p'

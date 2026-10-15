@@ -1,0 +1,4 @@
+S() { sed "$@" <in; }
+S -e ':a ' -e 's/o/0/;ta' ; echo ==; S '2b   end
+s/^/>/
+:end'; echo ==; S '1{b end};s/^/>/;:end'

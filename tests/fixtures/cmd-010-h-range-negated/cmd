@@ -1,0 +1,2 @@
+S() { sed "$@" <in; }
+S -n '2,3h;${g;p}'; echo ==; S -n '2,3!h;${g;p}'; echo ==; S -n '$!h;${G;p}'

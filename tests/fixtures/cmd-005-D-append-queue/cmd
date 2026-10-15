@@ -1,0 +1,4 @@
+S() { sed "$@" <in; }
+S '1{N;a queued
+D}'; echo ==; S '$!N;i ins
+P;D'

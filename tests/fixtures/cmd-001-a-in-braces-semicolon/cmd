@@ -1,0 +1,2 @@
+S() { sed "$@" <in; }
+S '2{a foo; p}'; echo ==; S -e '2a\' -e 'bar'; echo ==; S -e '2a foo' -e 'p'

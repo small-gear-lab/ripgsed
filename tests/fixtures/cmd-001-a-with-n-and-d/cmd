@@ -1,0 +1,5 @@
+S() { sed "$@" <in; }
+S -n '2a shown'; echo ==; S '2{a queued
+d}'; echo ==; S '2{a queued
+n;}'; echo ==; S '2{a queued
+N;}'

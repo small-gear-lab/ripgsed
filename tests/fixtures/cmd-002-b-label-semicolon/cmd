@@ -1,0 +1,2 @@
+S() { sed "$@" <in; }
+S '2b end;s/^/>/;:end'; echo "[$?]"; sed ':a;b a;' </dev/null; echo "[$?]"

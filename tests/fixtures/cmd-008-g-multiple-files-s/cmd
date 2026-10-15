@@ -1,0 +1,2 @@
+printf 'a\nb\n' > f1; printf 'c\nd\n' > f2
+sed '1h;$g' f1 f2; echo ==; sed -s '1h;$g' f1 f2; echo ==; sed -s '1!g' f1 f2

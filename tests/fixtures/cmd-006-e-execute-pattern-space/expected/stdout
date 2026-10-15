@@ -1,0 +1,6 @@
+one
+x y
+==
+==
+one
+printf "x y\n"

@@ -1,0 +1,2 @@
+sed: can't find label for jump to `nowhere'
+sed: can't find label for jump to `foo'
