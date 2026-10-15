@@ -121,6 +121,8 @@ pub struct Searcher<'a> {
     pub boundary: usize,
     /// `Mb`: the boundaries `mb_scan` has found in this line (see `BoundaryCache`).
     pub seen: &'a std::cell::RefCell<BoundaryCache>,
+    /// `Mb`: a position can be inside a character (see `Regex::tails`).
+    pub tails: bool,
 }
 
 /// `Mb`: positions of one line that are character boundaries, each with the valid character that
@@ -160,7 +162,17 @@ impl<'a> Searcher<'a> {
     /// The character at `pos` and its length (UTF-8 or the character set of the locale).
     #[inline]
     fn dec(&self, pos: usize) -> Option<(char, usize)> {
-        if self.mb { crate::locale::mb_decode(self.hay, pos) } else { decode_utf8(self.hay, pos) }
+        if self.mb {
+            if self.tails && pos > 0 && pos < self.hay.len() && !crate::locale::is_resync_byte(self.hay[pos]) {
+                // Inside a character a new one is read only from the bytes that are left of it.
+                if let Some(end) = self.mb_scan_end(pos).0 {
+                    return crate::locale::mb_decode(&self.hay[..end], pos);
+                }
+            }
+            crate::locale::mb_decode(self.hay, pos)
+        } else {
+            decode_utf8(self.hay, pos)
+        }
     }
 
     /// `Mb`: reads the line forward from a character boundary before `pos` (an ASCII byte that
@@ -169,10 +181,16 @@ impl<'a> Searcher<'a> {
     /// backward). Returns whether `pos` is inside a character and, if it is not, the valid
     /// character that ends at it.
     fn mb_scan(&self, pos: usize) -> (bool, Option<(char, usize)>) {
+        let (inside, last) = self.mb_scan_end(pos);
+        (inside.is_some(), last)
+    }
+
+    /// Like `mb_scan`, with the end of the character when `pos` is inside one.
+    fn mb_scan_end(&self, pos: usize) -> (Option<usize>, Option<(char, usize)>) {
         let hay = self.hay;
         let pos = pos.min(hay.len());
         if let Some(last) = self.seen.borrow().exact(pos) {
-            return (false, last);
+            return (None, last);
         }
         // A position known to be a boundary before `pos`: where an earlier query ended or, for a
         // character that starts the search, nothing (the character before is not known). Reading
@@ -200,7 +218,7 @@ impl<'a> Searcher<'a> {
             match crate::locale::mb_decode(hay, p) {
                 Some((c, l)) => {
                     if p + l > pos {
-                        return (true, None);
+                        return (Some(p + l), None);
                     }
                     last = Some((c, l));
                     p += l;
@@ -212,7 +230,7 @@ impl<'a> Searcher<'a> {
             }
         }
         self.seen.borrow_mut().insert(pos, last);
-        (false, last)
+        (None, last)
     }
 
     /// The character that ends exactly at `pos`, if there is one.
@@ -228,18 +246,8 @@ impl<'a> Searcher<'a> {
         if self.libc { crate::locale::upper(c) } else { simple_upper(c) }
     }
 
-    /// `--glibc-compat` in a multibyte set: whether `pos` is inside a character, which only a
-    /// match that ended inside one (see `LibSet::partial_len`) leaves a search at. glibc knows the
-    /// bytes of a character after its first, and no unit matches there.
-    fn in_tail(&self, pos: usize) -> bool {
-        self.glibc && self.mb && pos > 0 && pos < self.hay.len() && !crate::locale::is_resync_byte(self.hay[pos]) && self.mb_scan(pos).0
-    }
-
     #[inline]
     fn unit_len(&self, u: u32, pos: usize) -> Option<usize> {
-        if self.glibc && self.mb && self.in_tail(pos) {
-            return None;
-        }
         let b = *self.hay.get(pos)?;
         match &self.prog.units[u as usize] {
             Unit::Byte(set) => set.contains(b).then_some(1),
@@ -357,9 +365,6 @@ impl<'a> Searcher<'a> {
     /// need a whole character simply fail there. Some patterns only start
     /// at character boundaries (`Program::char_starts`).
     fn step_len(&self, pos: usize) -> usize {
-        if self.in_tail(pos) {
-            return 1;
-        }
         if self.prog.char_starts {
             self.dec(pos).map_or(1, |(_, l)| l)
         } else {
@@ -453,6 +458,13 @@ impl<'a> Searcher<'a> {
     pub fn search(&self, start: usize) -> Option<(usize, Groups)> {
         let len = self.hay.len();
         let mut from = start;
+        // A match that ended inside a character (a lone lead byte of the pattern, or
+        // `--glibc-compat`) leaves the search there: it goes on at the next character.
+        if self.mb && start > 0 && start < len {
+            if let Some(end) = self.mb_scan_end(start).0 {
+                from = end;
+            }
+        }
         loop {
             debug_assert!(from <= len, "a search starts inside the haystack and steps by whole characters");
             let (s, e) = if self.prog.has_backrefs {
@@ -461,6 +473,12 @@ impl<'a> Searcher<'a> {
                 loop {
                     if self.may_start(s) {
                         if let Some(e) = bt.run(s, None) {
+                            // With an assertion in the pattern glibc loses the whole search when
+                            // a path through an unset group that can be empty also reaches the end
+                            // (`(\<()|())\2` on `b`).
+                            if s == start && e == s && bt.hit_unset && self.prog.insts.iter().any(|i| matches!(i, Inst::Assert(_))) {
+                                return None;
+                            }
                             break (s, e);
                         }
                         // glibc gives up the whole search when its attempt at the first position
@@ -701,6 +719,11 @@ struct Backtracker<'s, 'a> {
     refused: bool,
     /// Some path that `copy_ok` refused for that reason would have matched (see `Searcher::search`).
     hit: bool,
+    /// Some path that went through a back-reference to an unset group that can be empty, at the
+    /// start of the match, reached the end of the pattern.
+    hit_unset: bool,
+    /// The path being followed is of that kind.
+    unset_path: bool,
 }
 
 /// `copy_ok` looks at matches that are not longer than this many bytes, and at groups with at
@@ -787,6 +810,8 @@ impl<'s, 'a> Backtracker<'s, 'a> {
             reach: None,
             body_closes: HashMap::new(),
             hit: false,
+            hit_unset: false,
+            unset_path: false,
             no_empty: false,
             refused: false,
         }
@@ -1216,6 +1241,8 @@ impl<'s, 'a> Backtracker<'s, 'a> {
         self.viable.clear();
         self.big = false;
         self.hit = false;
+        self.hit_unset = false;
+        self.unset_path = false;
         self.reach = None;
         if !prog.has_backrefs {
             let e = target.expect("only searched with back-references");
@@ -1324,7 +1351,15 @@ impl<'s, 'a> Backtracker<'s, 'a> {
                         pc += 1;
                     }
                     Inst::Backref(g) => {
-                        if !self.copy_ok(g as usize, start, pos) {
+                        // A group that can be empty but was left unset by another alternative:
+                        // at the start of the match glibc refuses it, and the search fails as it
+                        // does for an empty group refused by `copy_ok`.
+                        let unset_empty = prog.nullable_refs.get(g as usize).copied().unwrap_or(false) && self.caps[2 * g as usize] == NONE;
+                        if unset_empty {
+                            self.refused = pos == start;
+                            self.unset_path = pos == start;
+                        }
+                        if unset_empty || !self.copy_ok(g as usize, start, pos) {
                             // The path goes on in shadow: if it reaches a match, glibc's attempt
                             // at `start` fails although it would have found one.
                             let sh = 6 * (prog.ngroups + 1);
@@ -1338,7 +1373,7 @@ impl<'s, 'a> Backtracker<'s, 'a> {
                                 self.set_cap(sh, 1);
                             }
                         }
-                        match self.backref_len(g as usize, pos) {
+                        match if unset_empty { Some(0) } else { self.backref_len(g as usize, pos) } {
                             Some(l) => {
                                 pos += l;
                                 pc += 1;
@@ -1357,6 +1392,7 @@ impl<'s, 'a> Backtracker<'s, 'a> {
                     Inst::Match if nl => break,
                     Inst::Match if prog.quirks && self.caps[6 * (prog.ngroups + 1)] == 1 => {
                         self.hit = true;
+                        self.hit_unset |= self.unset_path;
                         break;
                     }
                     Inst::Match => {

@@ -1205,6 +1205,7 @@ loc-012-eucjp-characters-and-classes
 loc-012-euckr-characters-and-case
 loc-012-gb18030-four-byte-characters
 loc-012-gbk-second-byte-range
+loc-012-lone-lead-bytes-in-patterns
 loc-012-multibyte-invalid-sequences
 loc-012-sjis-second-byte-is-ascii
 loc-012-sjis-yen-and-overline
@@ -1659,6 +1660,7 @@ rgx-041-backref-to-group-with-empty-iteration
 rgx-042-word-boundary-next-to-invalid-bytes
 rgx-043-bracket-class-followed-by-escape
 rgx-043-range-end-is-a-class-or-equivalence
+rgx-044-backref-to-unset-empty-group
 sub-001-delim-ampersand
 sub-001-delim-caret-in-brackets
 sub-001-delim-comma-letter

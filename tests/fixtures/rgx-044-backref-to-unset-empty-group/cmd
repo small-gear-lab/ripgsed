@@ -1,0 +1,4 @@
+cat > in.txt
+for re in '(\<()|())\2' '(\<(y)|)\2' '(\<()|a)\2' '(a()|b)\2' '(|\<())\2' '((x|)|)\2'; do
+  printf '== %s\n' "$re"; sed -E "s/$re/<&>/" <in.txt
+done

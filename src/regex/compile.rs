@@ -53,6 +53,9 @@ pub struct Program {
     /// Some group a back-reference names can be empty and is repeated (its copies, or an empty
     /// iteration of its loop): the registers of the glibc quirks are needed (see `Backtracker`).
     pub quirks: bool,
+    /// With the quirks: a group a back-reference names can be empty (a back-reference to it that
+    /// finds it unset, because another alternative was taken, is glibc's to refuse at the start).
+    pub nullable_refs: Vec<bool>,
 }
 
 /// One copy of a group in the program.
@@ -131,11 +134,13 @@ pub fn compile(
             *slot = list;
         }
     }
+    let nullable_refs: Vec<bool> = (0..=ngroups).map(|g| glibc && referenced.get(g).copied().unwrap_or(false) && c.groups.iter().any(|e| e.0 == g && e.1.nullable)).collect();
     let quirks = glibc
-        && copies.iter().any(|l| l.iter().any(|c| c.nullable))
+        && (copies.iter().any(|l| l.iter().any(|c| c.nullable)) || nullable_refs.iter().any(|&b| b))
         || c.insts.iter().any(|i| matches!(*i, Inst::Close(g, _, _, lk) if lk != 0 && referenced.get(g as usize) == Some(&true)));
     let mut prog = Program {
         quirks,
+        nullable_refs,
         copies,
         insts: c.insts,
         units: c.units,

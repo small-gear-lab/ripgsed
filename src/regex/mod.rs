@@ -248,6 +248,9 @@ pub struct Regex {
     dfa: std::cell::RefCell<dfa::DfaSlot>,
     /// `Mb`: boundaries found in the line of the running `s` (see `forget_boundaries`).
     boundaries: std::cell::RefCell<exec::BoundaryCache>,
+    /// `Mb`: a match can end inside a character (a lone byte of 0x80 or more in the pattern, or
+    /// `--glibc-compat`), so what is read at a position there stops at the end of that character.
+    tails: bool,
     /// Off to test the DFA against the simulation.
     use_dfa: bool,
     /// In a locale of the C library, for a pattern with a bracket expression of digit ranges: GNU
@@ -282,7 +285,8 @@ impl Regex {
         let prog = compile::compile(&parsed.node, parsed.ngroups, parsed.referenced, parsed.char_starts, parsed.utf8, syntax.glibc_compat)?;
         let prog_has_no_backrefs = !prog.has_backrefs;
         let literals = literal::analyze(&parsed.node, syntax.locale.is_chars(), syntax.locale == Locale::Mb);
-        Ok(Regex { prog, syntax: *syntax, delim, literals, scratch: Default::default(), quirk_stars: if syntax.glibc_compat { star_before_not_word_boundary(&parsed.node) } else { 0 }, fixed: if prog_has_no_backrefs { dfa::fixed_groups(&parsed.node, parsed.ngroups) } else { None }, node: parsed.node, dfa: Default::default(), boundaries: Default::default(), use_dfa: syntax.locale != Locale::Mb || (crate::locale::ascii_bytes_are_characters() && !syntax.glibc_compat), filter })
+        let prog_has_lone_high_byte = prog.units.iter().any(|u| matches!(u, ast::Unit::Byte(set) if (0x80..=0xffu8).any(|b| set.contains(b))));
+        Ok(Regex { prog, syntax: *syntax, delim, literals, scratch: Default::default(), quirk_stars: if syntax.glibc_compat { star_before_not_word_boundary(&parsed.node) } else { 0 }, fixed: if prog_has_no_backrefs { dfa::fixed_groups(&parsed.node, parsed.ngroups) } else { None }, node: parsed.node, dfa: Default::default(), boundaries: Default::default(), tails: syntax.locale == Locale::Mb && (syntax.glibc_compat || prog_has_lone_high_byte), use_dfa: syntax.locale != Locale::Mb || (crate::locale::ascii_bytes_are_characters() && !syntax.glibc_compat), filter })
     }
 
     /// Number of parenthesized subexpressions.
@@ -352,6 +356,7 @@ impl Regex {
             // (`--glibc-compat`: a search may start inside a character, after a match that ended there.)
             boundary: if self.syntax.glibc_compat { 0 } else { start },
             seen: &self.boundaries,
+            tails: self.tails,
         };
         match searcher.search(start) {
             Some((_, groups)) => {
@@ -400,6 +405,7 @@ impl Regex {
             icase: self.syntax.icase,
             boundary: 0,
             seen: &exec::BoundaryCache::default().into(),
+            tails: false,
         };
         searcher.exists()
     }

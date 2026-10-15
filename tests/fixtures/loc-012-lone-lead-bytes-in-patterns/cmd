@@ -1,0 +1,20 @@
+mk() { mkdir -p "$PWD/loc"; localedef -f "$1" -i "$2" "$PWD/loc/$3" > /dev/null 2>&1; }
+export LOCPATH=$PWD/loc LANGUAGE=C
+mk SHIFT_JIS ja_JP ja_JP.SJIS
+mk EUC-JP ja_JP ja_JP.eucJP
+# A pattern byte of 0x80 or more that is not a whole character: the lead byte of a two-byte character
+# matches where it starts a character, and what follows it in the pattern reads the rest of the character
+export LC_ALL=ja_JP.SJIS
+A=$(printf '\202\240'); B=$(printf '\202\242')
+printf '%s\n' "${A}${B}a" | sed 's/\x82./X/' | LC_ALL=C od -An -c
+printf '%s\n' "${A}${B}a" | sed 's/\x82*/X/g' | LC_ALL=C od -An -c
+printf '%s\n' "${A}${B}a" | sed 's/\x82\{2\}/X/' | LC_ALL=C od -An -c
+printf '%s\n' "${A}${B}a" | sed 's/\x82[a-z]/X/' | LC_ALL=C od -An -c
+printf '\201\100\201\101\n' | sed 's/\x81./X/g' | LC_ALL=C od -An -c
+export LC_ALL=ja_JP.eucJP
+A=$(printf '\244\242'); B=$(printf '\244\244')
+printf '%s\n' "${A}${B}a" | sed 's/\xa4*/X/g' | LC_ALL=C od -An -c
+printf '%s\n' "${A}${B}a" | sed 's/\xa4\{2\}/X/g' | LC_ALL=C od -An -c
+printf '%s\n' "${A}${B}a" | sed 's/\xa4./X/g' | LC_ALL=C od -An -c
+printf '%s\n' "${A}${B}a" | sed 's/\xa2/X/g' | LC_ALL=C od -An -c
+rm -rf loc
