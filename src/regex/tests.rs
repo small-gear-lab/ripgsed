@@ -130,6 +130,26 @@ fn backreference_to_repeated_group() {
 }
 
 #[test]
+fn backreference_to_group_with_empty_iteration() {
+    let e = syn(true);
+    // An empty last iteration of a loop is seen as an empty group, and the group is reported
+    // with its earlier value.
+    assert_eq!(sub_g("(a?)*\\1", "a", &e), "<a>[a]");
+    assert_eq!(sub_g("(a|)*\\1", "aa", &e), "<aa>[a]");
+    assert_eq!(sub_g("(a*)*\\1b", "ab", &e), "<ab>[]");
+    assert_eq!(sub_g("(a?)+b\\1", "aab", &e), "<aab>[a]");
+    // ... unless another copy of the group could also end there.
+    assert_eq!(sub_g("(a?)+b\\1", "ab", &e), "a<b>[]");
+    assert_eq!(sub_g("(a?)+\\1", "ab", &e), "<>[]a<>[]b<>[]");
+    // A refused empty group at the start of the search ends the search.
+    assert_eq!(sub_g("(a?){2}\\1", "aaa", &e), "<aaa>[a]");
+    assert_eq!(sub_g("(a?){2}\\1", "baaa", &e), "baaa");
+    assert_eq!(sub_g("(a?){2}\\1b", "baaab", &e), "baaab");
+    assert_eq!(sub_g("(a?){2}\\1|b", "abab", &e), "abab");
+    assert_eq!(sub_g("(b?)*\\1b", "abb", &e), "a<bb>[b]");
+}
+
+#[test]
 fn compile_errors() {
     let b = syn(false);
     let e = syn(true);

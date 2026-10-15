@@ -306,6 +306,11 @@ impl<'a> Searcher<'a> {
                         if let Some(e) = bt.run(s, None) {
                             break (s, e);
                         }
+                        // glibc gives up the whole search when its attempt at the first position
+                        // fails because it refuses an empty group there (`(a?){2}\1` on `baaa`).
+                        if s == start && bt.hit {
+                            return None;
+                        }
                     }
                     if s >= len {
                         return None;
@@ -341,7 +346,15 @@ impl<'a> Searcher<'a> {
             // `$` (see `assert_check`); when no such path reaches the end,
             // it gives up this start and searches on.
             let mut bt = Backtracker::new(self, true);
-            if bt.run(s, Some(e)).is_some() {
+            // The registers of a group like `(a*)*` come from the first path that reaches `e`
+            // without an empty iteration after a non-empty one, if there is one; the empty
+            // iteration only makes the back-reference match (`(a*)*\1b` on `ab`).
+            bt.no_empty = self.prog.has_backrefs;
+            let found = bt.run(s, Some(e)).is_some() || {
+                bt.no_empty = false;
+                bt.run(s, Some(e)).is_some()
+            };
+            if found {
                 for (g, slot) in groups.iter_mut().enumerate().skip(1) {
                     let (a, b) = (bt.caps[2 * g], bt.caps[2 * g + 1]);
                     if a != NONE && b != NONE {
@@ -484,7 +497,9 @@ impl<'a> Searcher<'a> {
 /// group that is the whole body of an optional repetition, when that group
 /// already has a value in the snapshot, restores all registers from the
 /// snapshot (so an empty last iteration does not erase the previous one);
-/// otherwise it records the empty match.
+/// otherwise it records the empty match. When it restores, and the group is the body of the
+/// loop of `*`, `+` or `{m,}` and is not itself a repetition, a back-reference sees the group
+/// as empty at that position (`empty_slot`) although the registers hold the earlier value.
 ///
 /// Loops: between two consumed characters a path may come back to a `Split`
 /// whose preferred alternative it already went through; it then takes the
@@ -525,6 +540,14 @@ struct Backtracker<'s, 'a> {
     /// The positions at which a copy of a group, entered at a position, can close (see `copy_ok`),
     /// by the closing instruction and the entry position.
     body_closes: HashMap<(u32, usize), Vec<usize>>,
+    /// Paths that end an iteration of a group whose body is a repetition empty after a non-empty
+    /// one are not taken (see `Searcher::search`).
+    no_empty: bool,
+    /// The last back-reference `copy_ok` refused was one to an empty group at the start of the
+    /// match.
+    refused: bool,
+    /// Some path that `copy_ok` refused for that reason would have matched (see `Searcher::search`).
+    hit: bool,
 }
 
 /// `copy_ok` looks at matches that are not longer than this many bytes, and at groups with at
@@ -565,9 +588,11 @@ impl Drop for Backtracker<'_, '_> {
 
 impl<'s, 'a> Backtracker<'s, 'a> {
     fn new(s: &'s Searcher<'a>, strict: bool) -> Self {
-        // Two registers per group, then two more per group: whether it was last closed in a
-        // middle copy of a bounded repetition (`Inst::Close`) and which instruction closed it.
-        let n = 4 * (s.prog.ngroups + 1);
+        // Two registers per group, then four more per group: whether it was last closed in a
+        // middle copy of a bounded repetition (`Inst::Close`), which instruction closed it, and
+        // where and by which instruction an empty iteration closed it (`empty_slot`); and a last
+        // register for the shadow mark (see the `Backref` case of `run`).
+        let n = if s.prog.quirks { 6 * (s.prog.ngroups + 1) + 1 } else { 4 * (s.prog.ngroups + 1) };
         let keyed = (1..=s.prog.ngroups).filter(|&g| s.prog.referenced[g]).collect();
         let (mut caps, mut snap, mut stamp, mut trail, mut stack) = {
             let mut sc = s.scratch.borrow_mut();
@@ -608,6 +633,9 @@ impl<'s, 'a> Backtracker<'s, 'a> {
             big: false,
             reach: None,
             body_closes: HashMap::new(),
+            hit: false,
+            no_empty: false,
+            refused: false,
         }
     }
 
@@ -785,7 +813,7 @@ impl<'s, 'a> Backtracker<'s, 'a> {
             return self.memo_set.insert(vec![pc as usize, pos]);
         }
         if self.s.prog.has_backrefs {
-            let mut key = Vec::with_capacity(3 + 8 * self.keyed.len());
+            let mut key = Vec::with_capacity(4 + 10 * self.keyed.len());
             key.push(pc as usize);
             key.push(pos);
             for &g in &self.keyed {
@@ -795,6 +823,13 @@ impl<'s, 'a> Backtracker<'s, 'a> {
                 key.push(self.snap[self.mid_slot(g)]);
                 key.push(self.caps[self.closer_slot(g)]);
                 key.push(self.snap[self.closer_slot(g)]);
+                if self.s.prog.quirks {
+                    key.push(self.caps[self.empty_slot(g)]);
+                    key.push(self.caps[self.empty_closer_slot(g)]);
+                }
+            }
+            if self.s.prog.quirks {
+                key.push(self.caps[6 * (self.s.prog.ngroups + 1)]);
             }
             let mut bitsv = 0usize;
             for g in 1..=self.s.prog.ngroups.min(63) {
@@ -832,13 +867,19 @@ impl<'s, 'a> Backtracker<'s, 'a> {
     /// The copies are those of the program (a repetition `{m,n}` is expanded to `m` mandatory and
     /// `n - m` optional copies; `+` and `*` end in one looping copy). Where a copy could start is
     /// found by walking the program from the start of the match, ignoring back-references.
-    fn copy_ok(&mut self, g: usize, start: usize) -> bool {
+    /// An empty last iteration of a loop that gave its earlier value back counts as a copy that
+    /// ends where it is (see `empty_slot`).
+    fn copy_ok(&mut self, g: usize, start: usize, pos: usize) -> bool {
         let prog = self.s.prog;
         let copies = &prog.copies[g];
         if copies.is_empty() || copies.len() > MAX_COPIES {
             return true;
         }
-        let (s, e, closer) = (self.caps[2 * g], self.caps[2 * g + 1], self.caps[self.closer_slot(g)]);
+        let (mut s, mut e, mut closer) = (self.caps[2 * g], self.caps[2 * g + 1], self.caps[self.closer_slot(g)]);
+        let ep = if prog.quirks { self.caps[self.empty_slot(g)] } else { NONE };
+        if ep != NONE {
+            (s, e, closer) = (ep, ep, self.caps[self.empty_closer_slot(g)]);
+        }
         if s == NONE || e == NONE || closer == NONE || e > start + COPY_SPAN_LIMIT {
             return true;
         }
@@ -869,6 +910,7 @@ impl<'s, 'a> Backtracker<'s, 'a> {
                     open_pos > s && !(nullable && mandatory(closer) && !mandatory(c.close))
                 };
                 if conflict {
+                    self.refused = s == e && s == start && pos == start;
                     return false;
                 }
             }
@@ -949,10 +991,27 @@ impl<'s, 'a> Backtracker<'s, 'a> {
         3 * (self.s.prog.ngroups + 1) + g
     }
 
+    /// The register that holds the position of the empty iteration that last closed group `g`
+    /// and gave its earlier value back (else `NONE`): a back-reference then sees an empty group
+    /// at that position, though the group is reported with the earlier value.
+    #[inline]
+    fn empty_slot(&self, g: usize) -> usize {
+        4 * (self.s.prog.ngroups + 1) + g
+    }
+
+    /// The register that holds the instruction of that empty iteration.
+    #[inline]
+    fn empty_closer_slot(&self, g: usize) -> usize {
+        5 * (self.s.prog.ngroups + 1) + g
+    }
+
     fn backref_len(&self, g: usize, pos: usize) -> Option<usize> {
         let (a, b) = (self.caps[2 * g], self.caps[2 * g + 1]);
         if a == NONE || b == NONE || self.caps[self.mid_slot(g)] == 1 {
             return None;
+        }
+        if self.s.prog.quirks && self.caps[self.empty_slot(g)] != NONE {
+            return Some(0);
         }
         let hay = self.s.hay;
         let sub = &hay[a..b];
@@ -998,6 +1057,7 @@ impl<'s, 'a> Backtracker<'s, 'a> {
         self.memo_set.clear();
         self.viable.clear();
         self.big = false;
+        self.hit = false;
         self.reach = None;
         if !prog.has_backrefs {
             let e = target.expect("only searched with back-references");
@@ -1058,22 +1118,35 @@ impl<'s, 'a> Backtracker<'s, 'a> {
                         self.set_cap(2 * g + 1, NONE);
                         pc += 1;
                     }
-                    Inst::Close(g, opt, mid) => {
+                    Inst::Close(g, opt, mid, lk) => {
                         let g = g as usize;
                         let slot = self.mid_slot(g);
+                        if self.no_empty && lk == 3 && self.caps[2 * g] == pos && self.snap[2 * g] != NONE {
+                            break;
+                        }
                         if self.caps[2 * g] == pos {
                             if opt && self.snap[2 * g] != NONE {
                                 for i in 0..self.caps.len() {
                                     let v = self.snap[i];
                                     self.set_cap(i, v);
                                 }
+                                if lk != 0 && prog.quirks {
+                                    self.set_cap(self.empty_slot(g), pos);
+                                    self.set_cap(self.empty_closer_slot(g), pc as usize);
+                                }
                             } else {
                                 self.set_cap(2 * g + 1, pos);
+                                if prog.quirks {
+                                    self.set_cap(self.empty_slot(g), NONE);
+                                }
                                 self.set_cap(slot, mid as usize);
                                 self.set_cap(self.closer_slot(g), pc as usize);
                             }
                         } else {
                             self.set_cap(2 * g + 1, pos);
+                            if prog.quirks {
+                                self.set_cap(self.empty_slot(g), NONE);
+                            }
                             self.set_cap(slot, mid as usize);
                             self.set_cap(self.closer_slot(g), pc as usize);
                             for i in 0..self.caps.len() {
@@ -1092,23 +1165,42 @@ impl<'s, 'a> Backtracker<'s, 'a> {
                         c = true;
                         pc += 1;
                     }
-                    Inst::Backref(g) if !self.copy_ok(g as usize, start) => break,
-                    Inst::Backref(g) => match self.backref_len(g as usize, pos) {
-                        Some(l) => {
-                            pos += l;
-                            pc += 1;
-                            if l > 0 {
-                                nl = false;
-                                c = false;
-                                self.new_segment();
-                                if !self.memo(pc, pos) {
+                    Inst::Backref(g) => {
+                        if !self.copy_ok(g as usize, start, pos) {
+                            // The path goes on in shadow: if it reaches a match, glibc's attempt
+                            // at `start` fails although it would have found one.
+                            let sh = 6 * (prog.ngroups + 1);
+                            if !prog.quirks {
+                                break;
+                            }
+                            if self.caps[sh] != 1 {
+                                if !self.refused {
                                     break;
                                 }
+                                self.set_cap(sh, 1);
                             }
                         }
-                        None => break,
-                    },
+                        match self.backref_len(g as usize, pos) {
+                            Some(l) => {
+                                pos += l;
+                                pc += 1;
+                                if l > 0 {
+                                    nl = false;
+                                    c = false;
+                                    self.new_segment();
+                                    if !self.memo(pc, pos) {
+                                        break;
+                                    }
+                                }
+                            }
+                            None => break,
+                        }
+                    }
                     Inst::Match if nl => break,
+                    Inst::Match if prog.quirks && self.caps[6 * (prog.ngroups + 1)] == 1 => {
+                        self.hit = true;
+                        break;
+                    }
                     Inst::Match => {
                         match target {
                             Some(e) => {

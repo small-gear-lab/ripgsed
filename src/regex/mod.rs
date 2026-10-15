@@ -74,11 +74,13 @@
 //! Some GNU sed 4.9 results come from glibc regex quirks that are not
 //! reproduced; `tests/regex_differential.rs` lists them separately:
 //!
-//! * back-references to a repeated group, in the shapes that are not covered by the two rules
-//!   of `Backtracker::copy_ok` (a bounded `{m,n}` is seen after `m` or `n` iterations only;
-//!   a copy of the group is not seen where another copy could also end): `(a*)*\1b` on `ab`
-//!   gives an empty `\1` and matches all of `ab` in GNU sed, `(a?){2}\1` does not match
-//!   `baaa` there;
+//! * back-references to a repeated group, in the shapes that are not covered by the rules of
+//!   `Backtracker::copy_ok` (a bounded `{m,n}` is seen after `m` or `n` iterations only;
+//!   a copy of the group is not seen where another copy could also end; an empty last
+//!   iteration of a loop is seen as an empty group) and of `Searcher::search` (a refused empty
+//!   group ends the search): `a?(a+)+\1` on `aaaaa` matches all of it in GNU sed, with `\1`
+//!   = `aa`; which iteration of a group like `(a?)*` the report shows when a back-reference
+//!   follows can differ (`a?(a?)+\1` on `aa`);
 //! * assertions inside a group repeated by `+` or an interval: `(^a)+`
 //!   never matches in GNU sed, `(|$.a){2}` matches `_a`;
 //! * groups under stacked quantifiers or `{0,n}`: `(c+){0,2}` on `ccc`

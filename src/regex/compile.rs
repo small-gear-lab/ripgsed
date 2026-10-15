@@ -16,8 +16,12 @@ pub enum Inst {
     /// Close a group. The first flag marks a group that is the whole body of an
     /// optional repetition (see the capture rules in `exec`). The second one marks
     /// a group closed in a middle copy of a bounded repetition `{m,n}`
-    /// (`m < copy < n`): a back-reference does not see such a group.
-    Close(u32, bool, bool),
+    /// (`m < copy < n`): a back-reference does not see such a group. The last one is 1 or 2
+    /// for a group that is the whole body of the loop of `*` (1) or of `+`/`{m,}` (2) and
+    /// whose body is not itself an unbounded repetition: an empty last iteration of such a
+    /// group is seen by a back-reference as an empty group (see `exec`). It is 3 for a group
+    /// whose body is an unbounded repetition (`(a*)*`), else 0.
+    Close(u32, bool, bool, u8),
     Assert(Assert),
     Backref(u32),
     Match,
@@ -46,6 +50,9 @@ pub struct Program {
     /// lies in a repetition that was expanded): its copies, in program order. Empty for every
     /// other group. See `Backtracker::copy_ok`.
     pub copies: Vec<Vec<GroupCopy>>,
+    /// Some group a back-reference names can be empty and is repeated (its copies, or an empty
+    /// iteration of its loop): the registers of the glibc quirks are needed (see `Backtracker`).
+    pub quirks: bool,
 }
 
 /// One copy of a group in the program.
@@ -69,10 +76,17 @@ pub fn compile(
     char_starts: bool,
     utf8: bool,
 ) -> Result<Program, CompileError> {
-    let mut c = Compiler { insts: Vec::new(), units: Vec::new(), optional: 0, groups: Vec::new() };
+    let has_backrefs = referenced.iter().any(|&r| r);
+    let mut c = Compiler {
+        insts: Vec::new(),
+        units: Vec::new(),
+        optional: 0,
+        groups: Vec::new(),
+        loopk: 0,
+        backrefs: has_backrefs,
+    };
     c.emit(node, false, false, false)?;
     c.insts.push(Inst::Match);
-    let has_backrefs = referenced.iter().any(|&r| r);
     let mut preds = vec![Vec::new(); c.insts.len()];
     for (pc, inst) in c.insts.iter().enumerate() {
         let pc32 = pc as u32;
@@ -115,7 +129,10 @@ pub fn compile(
             *slot = list;
         }
     }
+    let quirks = copies.iter().any(|l| l.iter().any(|c| c.nullable))
+        || c.insts.iter().any(|i| matches!(*i, Inst::Close(g, _, _, lk) if lk != 0 && referenced.get(g as usize) == Some(&true)));
     let mut prog = Program {
+        quirks,
         copies,
         insts: c.insts,
         units: c.units,
@@ -138,6 +155,10 @@ struct Compiler {
     optional: u32,
     /// Every group emitted: its number and its copy.
     groups: Vec<(usize, GroupCopy)>,
+    /// 1 while emitting the body of the loop of `*`, 2 of `+`/`{m,}`, 0 elsewhere.
+    loopk: u8,
+    /// The pattern has back-references.
+    backrefs: bool,
 }
 
 impl Compiler {
@@ -174,8 +195,13 @@ impl Compiler {
             }
             Node::Group(g, inner) => {
                 let open = self.push(Inst::Open(*g as u32))?;
+                let lk = std::mem::take(&mut self.loopk);
+                // Body that is a repetition itself (`(a*)*`): with back-references in the
+                // pattern, glibc reports its empty last iteration as it is.
+                let lk = if lk == 0 || !can_be_empty(inner) { 0 } else if is_loop(inner) { 3 } else { lk };
+                let opt = opt && !(self.backrefs && lk == 3);
                 self.emit(inner, false, dup, mid)?;
-                let close = self.push(Inst::Close(*g as u32, opt, mid))?;
+                let close = self.push(Inst::Close(*g as u32, opt, mid, lk))?;
                 let copy = GroupCopy { open, close, mandatory: self.optional == 0, nullable: can_be_empty(inner) };
                 self.groups.push((*g, copy));
             }
@@ -221,7 +247,9 @@ impl Compiler {
                     None => {
                         let l = self.push(Inst::Split(0, 0))?;
                         self.optional += 1;
+                        self.loopk = if !matches!(**body, Node::Group(..)) { 0 } else if *min == 0 { 1 } else { 2 };
                         self.emit(body, mark, dup || copy > 0, mid)?;
+                        self.loopk = 0;
                         self.optional -= 1;
                         self.push(Inst::Jmp(l))?;
                         let end = self.pc();
@@ -259,6 +287,15 @@ fn can_be_empty(node: &Node) -> bool {
         Node::Concat(items) => items.iter().all(can_be_empty),
         Node::Alt(branches) => branches.iter().any(can_be_empty),
         Node::Repeat(body, min, _) => *min == 0 || can_be_empty(body),
+    }
+}
+
+/// Whether a node is an unbounded repetition (possibly in groups).
+fn is_loop(node: &Node) -> bool {
+    match node {
+        Node::Group(_, inner) => is_loop(inner),
+        Node::Repeat(_, _, max) => max.is_none(),
+        _ => false,
     }
 }
 

@@ -1,0 +1,15 @@
+cat > in.txt
+printf '== %s\n' '(a?)*\1'; sed -E 's/(a?)*\1/<&>[\1]/' <in.txt
+printf '== %s\n' '(a|)*\1'; sed -E 's/(a|)*\1/<&>[\1]/' <in.txt
+printf '== %s\n' '(a{0,2})*\1'; sed -E 's/(a{0,2})*\1/<&>[\1]/' <in.txt
+printf '== %s\n' '(a?)+\1'; sed -E 's/(a?)+\1/<&>[\1]/' <in.txt
+printf '== %s\n' '(a?)+b\1'; sed -E 's/(a?)+b\1/<&>[\1]/' <in.txt
+printf '== %s\n' '(a?)+\1b'; sed -E 's/(a?)+\1b/<&>[\1]/' <in.txt
+printf '== %s\n' '(a?){2}\1'; sed -E 's/(a?){2}\1/<&>[\1]/' <in.txt
+printf '== %s\n' '(a?){2}\1|b'; sed -E 's/(a?){2}\1|b/<&>[\1]/' <in.txt
+printf '== %s\n' '(a?){2}b\1'; sed -E 's/(a?){2}b\1/<&>[\1]/' <in.txt
+printf '== %s\n' '(b?)*\1b'; sed -E 's/(b?)*\1b/<&>[\1]/' <in.txt
+printf '== %s\n' '((a|b)?)+\1'; sed -E 's/((a|b)?)+\1/<&>[\1]/' <in.txt
+printf '== %s\n' '(a|b?)*\1'; sed -E 's/(a|b?)*\1/<&>[\1]/' <in.txt
+printf '== %s\n' '(a?)*b\1'; sed -E 's/(a?)*b\1/<&>[\1]/' <in.txt
+rm -f in.txt

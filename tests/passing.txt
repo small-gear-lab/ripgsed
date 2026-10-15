@@ -1416,6 +1416,7 @@ rgx-011-longest-with-star-groups
 rgx-011-posix-subexpression-lengths
 rgx-012-backref-after-failed-optional
 rgx-012-backref-empty-group
+rgx-012-backref-group-in-star-iteration
 rgx-012-backref-in-alternation-branches
 rgx-012-backref-nonparticipating-bre
 rgx-012-backref-nonparticipating-fails
@@ -1564,6 +1565,7 @@ rgx-037-locale-dependent-classes
 rgx-038-utf8-class-tables
 rgx-039-not-word-boundary-after-repetition
 rgx-040-backref-to-repeated-group
+rgx-041-backref-to-group-with-empty-iteration
 sub-001-delim-ampersand
 sub-001-delim-caret-in-brackets
 sub-001-delim-comma-letter
