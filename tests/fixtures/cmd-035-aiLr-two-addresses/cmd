@@ -1,0 +1,14 @@
+in=$(cat)
+printf 'R\n' > rf
+printf '%s\n' "$in" | sed '1,2a\
+after'
+echo ---
+printf '%s\n' "$in" | sed '1,2i\
+before'
+echo ---
+printf '%s\n' "$in" | sed '1,2r rf'
+echo ---
+printf '%s\n' "$in" | sed '1,2R rf'
+echo ---
+printf '%s\n' "$in" | sed '1,2c\
+changed'

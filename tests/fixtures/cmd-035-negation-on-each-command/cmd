@@ -1,0 +1,8 @@
+in=$(cat)
+printf '%s\n' "$in" | sed -n '2!p'
+printf '%s\n' "$in" | sed '2!d'
+printf '%s\n' "$in" | sed '2,3!y/abcde/ABCDE/'
+printf '%s\n' "$in" | sed '2!z'
+printf '%s\n' "$in" | sed '2!x'
+printf '%s\n' "$in" | sed -n '2!='
+printf '%s\n' "$in" | sed '1,2! s/./X/'

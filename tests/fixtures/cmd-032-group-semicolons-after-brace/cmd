@@ -1,0 +1,4 @@
+in=$(cat)
+printf '%s\n' "$in" | sed -n '1{p};2{p;p};'
+echo ---
+printf '%s\n' "$in" | sed -n '1{p;};2{;p;}'

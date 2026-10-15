@@ -1,0 +1,4 @@
+in=$(cat)
+printf '%s\n' "$in" | sed 's/./X/;1,2b;s/$/ !/'
+printf '%s\n' "$in" | sed 's/./X/;1,2t;s/$/ !/'
+printf '%s\n' "$in" | sed 's/b/X/;1,3T;s/$/ !/'

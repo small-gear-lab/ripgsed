@@ -1,0 +1,4 @@
+in=$(cat)
+printf '%s\n' "$in" | sed -n '2 ! p'
+printf '%s\n' "$in" | sed -n '2,3 !p'
+printf '%s\n' "$in" | sed -n '2 p'

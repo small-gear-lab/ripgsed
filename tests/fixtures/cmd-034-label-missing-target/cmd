@@ -1,0 +1,7 @@
+in=$(cat)
+printf '%s\n' "$in" | sed 'b nowhere'
+echo "status=$?"
+printf '%s\n' "$in" | sed 'b nowhere;:other'
+echo "status=$?"
+printf '%s\n' "$in" | sed -n '/a/b nowhere'
+echo "status=$?"

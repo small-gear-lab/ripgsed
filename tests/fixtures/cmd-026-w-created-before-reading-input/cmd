@@ -1,0 +1,3 @@
+printf 'one\ntwo\n' > f
+sed -n 'w f' f
+echo "size: $(wc -c < f)"

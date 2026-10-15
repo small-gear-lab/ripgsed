@@ -1,0 +1,1 @@
+sed 's/x/y/;n;T out;s/$/ taken-not/;:out'

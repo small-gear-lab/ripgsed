@@ -1,0 +1,2 @@
+sed -n 'w out.txt'
+od -c out.txt

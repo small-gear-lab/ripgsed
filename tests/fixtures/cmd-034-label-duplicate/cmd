@@ -1,0 +1,7 @@
+in=$(cat)
+printf '%s\n' "$in" | sed ':a;:a'
+echo "status=$?"
+printf '%s\n' "$in" | sed ':a;p;:b;:a'
+echo "status=$?"
+printf '%s\n' "$in" | sed -e ':a' -e ':a'
+echo "status=$?"

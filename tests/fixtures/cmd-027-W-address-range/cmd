@@ -1,0 +1,2 @@
+sed -n '2,4W out.txt'
+cat out.txt

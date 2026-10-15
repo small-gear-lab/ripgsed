@@ -1,0 +1,2 @@
+sed -n -e '/b/w s.txt' -e '/b/w s.txt' -e '2w s.txt'
+cat s.txt

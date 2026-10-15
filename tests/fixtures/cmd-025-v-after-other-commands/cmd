@@ -1,0 +1,2 @@
+sed 's/a/b/;v 4.10'
+echo "status=$?"

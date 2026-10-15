@@ -1,0 +1,9 @@
+in=$(cat)
+printf '#n\np\n' > s1.sed
+printf '#n' > s2.sed
+printf '#n\n' > s3.sed
+printf '%s\n' "$in" | sed -f s1.sed
+echo ---
+printf '%s\n' "$in" | sed -f s2.sed -e p
+echo ---
+printf '%s\n' "$in" | sed -f s3.sed

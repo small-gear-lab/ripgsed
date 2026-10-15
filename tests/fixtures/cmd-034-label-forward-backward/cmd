@@ -1,0 +1,2 @@
+sed -n '1b skip;p;:skip;$!{N;b skip2};:skip2'
+echo "status=$?"

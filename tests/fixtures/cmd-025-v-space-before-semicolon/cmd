@@ -1,0 +1,6 @@
+in=$(cat)
+printf '%s\n' "$in" | sed 'v 4.2 ; p'
+echo "status=$?"
+printf '%s\n' "$in" | sed 'v 4.2
+p'
+echo "status=$?"

@@ -1,0 +1,1 @@
+sed 's/a/A/;s/zzz/Z/;t y;s/$/ no/;:y'

@@ -1,0 +1,1 @@
+sed -e 's/a/A/' -e '2t end' -e 's/$/ x/' -e ':end'

@@ -1,0 +1,4 @@
+sed: -e expression #1, char 2: : doesn't want any addresses
+sed: -e expression #1, char 4: : doesn't want any addresses
+sed: -e expression #1, char 4: : doesn't want any addresses
+sed: -e expression #1, char 3: : doesn't want any addresses

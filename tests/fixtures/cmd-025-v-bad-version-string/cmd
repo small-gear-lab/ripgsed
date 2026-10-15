@@ -1,0 +1,5 @@
+in=$(cat)
+printf '%s\n' "$in" | sed 'v bogus'
+echo "status=$?"
+printf '%s\n' "$in" | sed 'v 4..9'
+echo "status=$?"

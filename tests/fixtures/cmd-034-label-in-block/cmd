@@ -1,0 +1,8 @@
+in=$(cat)
+printf '%s\n' "$in" | sed -n '2{b out};p;:out'
+echo "status=$?"
+printf '%s\n' "$in" | sed -n '2{
+b out
+}
+p
+:out'

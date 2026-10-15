@@ -1,0 +1,2 @@
+sed -n '/[bd]/w out.txt' 
+cat out.txt

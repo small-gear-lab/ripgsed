@@ -1,0 +1,6 @@
+in=$(cat)
+printf '%s\n' "$in" | sed -n '1{w out.txt}'
+echo "status=$?"
+printf '%s\n' "$in" | sed -n '1{w out.txt
+}'
+cat out.txt

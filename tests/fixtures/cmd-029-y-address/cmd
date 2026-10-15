@@ -1,0 +1,1 @@
+sed '2,4y/bcd/BCD/;$y/e/E/'

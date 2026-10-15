@@ -1,0 +1,3 @@
+sed 'y/ /\n/'
+echo ---
+printf 'a\nb\n' | sed 'N;y/\n/ /'

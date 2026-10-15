@@ -1,0 +1,3 @@
+sed -n '/zzz/w never.txt'
+test -f never.txt && echo created
+wc -c < never.txt

@@ -1,0 +1,2 @@
+sed -n 'w sp.txt  '
+ls | sed -n 's/$/|/p'

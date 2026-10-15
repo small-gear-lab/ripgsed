@@ -1,0 +1,5 @@
+in=$(cat)
+printf '%s\n' "$in" | sed '/b/!q'
+echo "status=$?"
+printf '%s\n' "$in" | sed '/b/,/c/!Q'
+echo "status=$?"

@@ -1,0 +1,2 @@
+sed -n 's/hello/HELLO/;w out.txt'
+cat out.txt

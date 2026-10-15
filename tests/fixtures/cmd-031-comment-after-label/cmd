@@ -1,0 +1,3 @@
+sed ':a # c
+s/a/b/;ta'
+echo "status=$?"

@@ -1,0 +1,6 @@
+printf '1\n2\n' > f1; printf '3\n4\n' > f2
+sed -n '2,3w out.txt' f1 f2
+cat out.txt
+echo ---
+sed -s -n '1w out2.txt' f1 f2
+cat out2.txt

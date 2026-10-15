@@ -1,0 +1,2 @@
+sed -n -e '1,2w one.txt' -e '4,5w two.txt'
+echo one; cat one.txt; echo two; cat two.txt

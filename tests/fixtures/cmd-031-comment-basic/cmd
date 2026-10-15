@@ -1,0 +1,2 @@
+sed '# just a comment
+s/a/X/'

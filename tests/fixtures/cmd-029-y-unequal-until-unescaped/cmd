@@ -1,0 +1,7 @@
+in=$(cat)
+printf '%s\n' "$in" | sed 'y/\\a/xy/'
+echo "status=$?"
+printf '%s\n' "$in" | sed 'y/ab/\\x/'
+echo "status=$?"
+printf '%s\n' "$in" | sed 'y/\n/xy/'
+echo "status=$?"

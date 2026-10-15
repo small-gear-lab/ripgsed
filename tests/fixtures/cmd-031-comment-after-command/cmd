@@ -1,0 +1,2 @@
+sed -n 'p # print it
+s/a/X/p # and again'

@@ -1,0 +1,1 @@
+sed -n '$!N;s/a/A/;P;D;t x;p;:x'

@@ -1,0 +1,6 @@
+in=$(cat)
+printf '%s\n' "$in" | sed -n 's/a/X/;t end ; p;:end'
+echo ---
+printf '%s\n' "$in" | sed -n 's/a/X/;t end
+p
+:end'

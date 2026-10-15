@@ -1,0 +1,2 @@
+sed -n '/zzz/W never.txt'
+wc -c < never.txt

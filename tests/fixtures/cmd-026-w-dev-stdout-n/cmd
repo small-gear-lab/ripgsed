@@ -1,0 +1,1 @@
+sed -n '/[ac]/w /dev/stdout'

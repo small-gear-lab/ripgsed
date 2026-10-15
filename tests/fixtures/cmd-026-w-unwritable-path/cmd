@@ -1,0 +1,2 @@
+sed -n 'w nodir/out.txt'
+echo "status=$?"

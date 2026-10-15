@@ -1,0 +1,2 @@
+printf ':top\ns/a/A/\nt end\ns/$/!/\n:end\n' > s.sed
+sed -f s.sed

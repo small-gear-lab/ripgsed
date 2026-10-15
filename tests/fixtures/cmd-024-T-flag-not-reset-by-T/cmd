@@ -1,0 +1,1 @@
+sed 's/a/A/;T out;T out;s/$/ flag-kept/;:out'

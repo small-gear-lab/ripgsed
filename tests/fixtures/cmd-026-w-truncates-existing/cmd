@@ -1,0 +1,2 @@
+sed -n '/zzz/w old.txt'
+wc -c < old.txt

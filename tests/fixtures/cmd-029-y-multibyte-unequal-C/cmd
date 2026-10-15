@@ -1,0 +1,2 @@
+sed 'y/é/e/'
+echo "status=$?"

@@ -1,0 +1,2 @@
+sed -n -e '1,2w shared.txt' -e '/d/w shared.txt' -e '$w shared.txt'
+cat shared.txt

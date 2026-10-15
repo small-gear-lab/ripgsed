@@ -1,0 +1,2 @@
+sed 's/a/b/;t nolabel'
+echo "status=$?"

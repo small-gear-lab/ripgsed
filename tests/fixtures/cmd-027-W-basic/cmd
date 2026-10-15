@@ -1,0 +1,2 @@
+sed -n 'N;W out.txt'
+cat out.txt

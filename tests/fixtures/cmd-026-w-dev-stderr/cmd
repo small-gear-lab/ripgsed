@@ -1,0 +1,2 @@
+sed -n 's/^/E/;2,3w /dev/stderr'
+echo "status=$?"

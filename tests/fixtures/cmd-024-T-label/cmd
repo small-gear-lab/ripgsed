@@ -1,0 +1,1 @@
+sed 's/a/X/;T done;s/$/ yes/;:done;s/^/> /'

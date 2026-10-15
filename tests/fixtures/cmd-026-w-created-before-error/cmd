@@ -1,0 +1,3 @@
+sed -n 'w early.txt' nonexistent-input
+echo "status=$?"
+test -f early.txt && echo created

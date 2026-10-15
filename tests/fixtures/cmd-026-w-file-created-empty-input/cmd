@@ -1,0 +1,2 @@
+sed -n 'w out.txt'
+test -f out.txt && echo created

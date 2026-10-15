@@ -1,0 +1,7 @@
+in=$(cat)
+printf '%s\n' "$in" | sed '1,2,3p'
+echo "status=$?"
+printf '%s\n' "$in" | sed '1,2,p'
+echo "status=$?"
+printf '%s\n' "$in" | sed '1,2,3,4d'
+echo "status=$?"

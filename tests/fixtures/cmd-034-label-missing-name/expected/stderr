@@ -1,0 +1,3 @@
+sed: -e expression #1, char 1: ":" lacks a label
+sed: -e expression #1, char 2: ":" lacks a label
+sed: -e expression #1, char 1: ":" lacks a label

@@ -1,0 +1,4 @@
+printf 'a\nb' > f
+sed '=' f
+echo
+sed -n '$=' f

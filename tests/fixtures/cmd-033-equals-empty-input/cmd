@@ -1,0 +1,4 @@
+sed '='
+echo "status=$?"
+sed -n '$='
+echo "status=$?"

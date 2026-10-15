@@ -1,0 +1,8 @@
+printf 'a\nb\n' > f1; printf 'c\nd\n' > f2
+sed -n '=' f1 f2
+echo ---
+sed -s -n '=' f1 f2
+echo ---
+sed -n '$=' f1 f2
+echo ---
+sed -s -n '$=' f1 f2

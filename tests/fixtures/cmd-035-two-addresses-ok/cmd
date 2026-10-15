@@ -1,0 +1,3 @@
+in=$(cat)
+printf '%s\n' "$in" | sed -n '2,3p'
+printf '%s\n' "$in" | sed -n '2,3='

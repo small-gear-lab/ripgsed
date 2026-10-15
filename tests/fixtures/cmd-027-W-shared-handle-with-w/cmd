@@ -1,0 +1,2 @@
+sed -n -e 'N;W s.txt' -e 'w s.txt'
+cat s.txt

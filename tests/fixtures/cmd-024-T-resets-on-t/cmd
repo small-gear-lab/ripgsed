@@ -1,0 +1,1 @@
+sed 's/a/A/;t one;:one;T two;s/$/ reset-by-t/;:two'

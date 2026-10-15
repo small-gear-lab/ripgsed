@@ -1,0 +1,9 @@
+in=$(cat)
+printf '%s\n' "$in" | sed '#no
+p'
+echo ---
+printf '%s\n' "$in" | sed '#n comment
+p'
+echo ---
+printf '%s\n' "$in" | sed '#n 
+p'

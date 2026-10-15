@@ -1,0 +1,4 @@
+printf 'a\nb\n' > f1; printf 'c\nd\n' > f2
+sed 'x' f1 f2
+echo ---
+sed -s 'x' f1 f2

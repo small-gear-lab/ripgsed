@@ -1,0 +1,2 @@
+i=0; while [ $i -lt 12 ]; do echo l; i=$((i+1)); done > f
+sed -n '10,$=' f

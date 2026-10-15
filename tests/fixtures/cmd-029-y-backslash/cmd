@@ -1,0 +1,3 @@
+in=$(cat)
+printf '%s\n' "$in" | sed 'y/\\/\//'
+printf '%s\n' "$in" | sed 'y/a/\\/'
