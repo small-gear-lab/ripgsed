@@ -1,0 +1,10 @@
+printf 'aab\n' | sed 'y/aa/xy/'
+printf 'aab\n' | sed 'y/aab/xyz/'
+printf 'abc\n' | sed 'y/abcab/12345/'
+printf 'aab\n' | LC_ALL=C.utf8 sed 'y/aa/xy/'
+printf 'aab\n' | LC_ALL=C.utf8 sed 'y/aab/xyz/'
+printf 'abc\n' | LC_ALL=C.utf8 sed 'y/abcab/12345/'
+printf 'a\303\251b\n' | LC_ALL=C.utf8 sed 'y/\xc3\xa9\xc3\xa9/xy/' 2>&1
+printf 'aéb\n' | LC_ALL=C.utf8 sed 'y/éé/xy/'
+printf 'aéb\n' | LC_ALL=C.utf8 sed 'y/aéé/xyz/'
+printf 'a\ta\n' | sed 'y/\t\t/xy/'

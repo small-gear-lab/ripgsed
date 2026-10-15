@@ -1,0 +1,15 @@
+SED PROGRAM:
+  y/ba/xy/
+  y/aa/xy/
+  y/éa/éb/
+  y/a/a/
+xéb
+xyb
+axb
+SED PROGRAM:
+  y/aéé/xyz/
+INPUT:   'STDIN' line 1
+PATTERN: a\o37777777703\o37777777651b
+COMMAND: y/aéé/xyz/
+PATTERN: xyb
+END-OF-CYCLE:

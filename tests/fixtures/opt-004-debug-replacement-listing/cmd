@@ -1,0 +1,6 @@
+for r in '&' '\&' '\\' '\\&' 'a\nb' 'a\tb' '\x26' '\x5c' '\x01' '\/' '\1' '\0' '\u&' '\l&' '\U&' '\L&' '\E' '\U\1\E' '\ua' '\Ua\Eb' '\l\U&' '\u\L&' '\L\u&' '\u\u&' '\U\L&' '\l\u&' '\u\E&' 'a\Ub\Ec' '\U&\E\l&\u&\L&' '\u&&' '\u&a' '\U\u&a' '\L\l\u\1' '\E&' '&\U' '\u\E\U' '\U\E\U\E' ; do
+  sed --debug -n "s/\\(b\\)/$r/" /dev/null
+done
+sed --debug -n 's/b/x\
+y/' /dev/null
+printf 'abc\n' | sed --debug -n 's/b/\U&\E\l&\u&\L&/;s/c/\u\L&X/'

@@ -1,0 +1,10 @@
+SED PROGRAM:
+  s/a/b/
+4
+SED PROGRAM:
+  p
+4
+SED PROGRAM:
+  s/a/b/
+  p
+4

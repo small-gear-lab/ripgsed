@@ -1,0 +1,32 @@
+printf 'H1\nH2\n' > h.txt
+printf 'l1\nl2\nl3\n' > in
+for s in '1d;0r h.txt' '2d;0r h.txt' 'n;0r h.txt' 'N;0r h.txt' '$!N;0r h.txt;P;D' 'x;0r h.txt' 'p;0r h.txt' '=;0r h.txt' 'i\X
+0r h.txt' '0r h.txt
+i\X' 'a A
+0r h.txt' '0r h.txt
+a A' 'r h.txt
+0r h.txt' '0r h.txt
+r h.txt' '0r h.txt
+0r h.txt' 'c\C
+0r h.txt' '2q;0r h.txt' '0r h.txt
+2q' '0r h.txt
+$!d' '1{
+0r h.txt
+}' '2{
+0r h.txt
+}' '0~0r h.txt' '0~0r h.txt
+1d'; do
+  echo "== $s"
+  sed "$s" in
+  sed -n "$s" in
+done
+echo == s
+sed -s '0r h.txt' in in
+sed -s '1d;0r h.txt' in in
+sed '0r h.txt' in in
+echo == i
+cp in e1; cp in e2
+sed -i '1d;0r h.txt' e1 e2; cat e1 e2
+echo == empty
+sed '0r h.txt' /dev/null
+sed '0r h.txt' /dev/null in

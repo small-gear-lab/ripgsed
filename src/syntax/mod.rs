@@ -41,6 +41,8 @@ pub enum Addr {
     /// `first~step`
     Step { first: u64, step: u64 },
     Regex(Pattern),
+    /// `+0`, `~0`, or a sign alone as a first address: every line.
+    Null,
 }
 
 #[derive(Debug)]
@@ -61,7 +63,7 @@ pub enum Addr2 {
 #[derive(Debug, Clone)]
 pub struct Pattern {
     pub regex: Option<Rc<Regex>>,
-    /// The pattern as written (for `--debug`), with its `I` and `M` flags.
+    /// The pattern after its escapes are resolved (for `--debug`).
     pub source: Vec<u8>,
     pub icase: bool,
     pub multiline: bool,
@@ -92,13 +94,18 @@ pub enum Kind {
     Exchange,
     Zap,
     LineNumber,
-    List(Option<usize>),
+    /// `l` with the width written after it, kept as the 32-bit integer GNU sed makes of it (-1 reads as no width).
+    List(Option<i32>),
     /// `L`: parsed like `l N` but fails when it runs ("INTERNAL ERROR: Bad cmd L").
-    Removed(Option<usize>),
-    Quit(i32),
-    QuitSilent(i32),
+    Removed(Option<i32>),
+    /// `q` and `Q` with the exit status written after them, if any.
+    Quit(Option<i32>),
+    QuitSilent(Option<i32>),
     FileName,
     ReadFile(Vec<u8>),
+    /// `0r file`: GNU sed turns it into `1r file` whose file is written at once, where the command stands,
+    /// instead of at the end of the cycle.
+    ReadFileNow(Vec<u8>),
     ReadLine(Vec<u8>),
     WriteFile(Vec<u8>),
     WriteFirstLine(Vec<u8>),

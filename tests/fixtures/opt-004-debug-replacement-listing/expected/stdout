@@ -1,0 +1,92 @@
+SED PROGRAM:
+  s/\\(b\\)/&/
+SED PROGRAM:
+  s/\\(b\\)/&/
+SED PROGRAM:
+  s/\\(b\\)/\/
+SED PROGRAM:
+  s/\\(b\\)/\&/
+SED PROGRAM:
+  s/\\(b\\)/a
+b/
+SED PROGRAM:
+  s/\\(b\\)/a	b/
+SED PROGRAM:
+  s/\\(b\\)/&/
+SED PROGRAM:
+  s/\\(b\\)/\/
+SED PROGRAM:
+  s/\\(b\\)//
+SED PROGRAM:
+  s/\\(b\\)///
+SED PROGRAM:
+  s/\\(b\\)/\1/
+SED PROGRAM:
+  s/\\(b\\)/&/
+SED PROGRAM:
+  s/\\(b\\)/\u&/
+SED PROGRAM:
+  s/\\(b\\)/\l&/
+SED PROGRAM:
+  s/\\(b\\)/\U&/
+SED PROGRAM:
+  s/\\(b\\)/\L&/
+SED PROGRAM:
+  s/\\(b\\)//
+SED PROGRAM:
+  s/\\(b\\)/\U\1/
+SED PROGRAM:
+  s/\\(b\\)/\ua/
+SED PROGRAM:
+  s/\\(b\\)/\Ua\Eb/
+SED PROGRAM:
+  s/\\(b\\)/\l\U&/
+SED PROGRAM:
+  s/\\(b\\)/\u\L&/
+SED PROGRAM:
+  s/\\(b\\)/\L\u&/
+SED PROGRAM:
+  s/\\(b\\)/\u&/
+SED PROGRAM:
+  s/\\(b\\)/\U\L&/
+SED PROGRAM:
+  s/\\(b\\)/\l\u&/
+SED PROGRAM:
+  s/\\(b\\)/\u\E&/
+SED PROGRAM:
+  s/\\(b\\)/a\Ub\Ec/
+SED PROGRAM:
+  s/\\(b\\)/\U&\E\l&\E\u&\E\L&/
+SED PROGRAM:
+  s/\\(b\\)/\u&\E&/
+SED PROGRAM:
+  s/\\(b\\)/\u&\Ea/
+SED PROGRAM:
+  s/\\(b\\)/\U\u&\Ua/
+SED PROGRAM:
+  s/\\(b\\)/\L\l\u\1/
+SED PROGRAM:
+  s/\\(b\\)/&/
+SED PROGRAM:
+  s/\\(b\\)/&/
+SED PROGRAM:
+  s/\\(b\\)/\u\E/
+SED PROGRAM:
+  s/\\(b\\)/\U\E\U/
+SED PROGRAM:
+  s/b/x
+y/
+SED PROGRAM:
+  s/b/\U&\E\l&\E\u&\E\L&/
+  s/c/\u\L&X/
+INPUT:   'STDIN' line 1
+PATTERN: abc
+COMMAND: s/b/\U&\E\l&\E\u&\E\L&/
+MATCHED REGEX REGISTERS
+  regex[0] = 1-2 'b'
+PATTERN: aBbBbc
+COMMAND: s/c/\u\L&X/
+MATCHED REGEX REGISTERS
+  regex[0] = 5-6 'c'
+PATTERN: aBbBbcx
+END-OF-CYCLE:

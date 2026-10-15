@@ -1,0 +1,160 @@
+SED PROGRAM:
+  s/a/b/p
+INPUT:   'in' line 1
+PATTERN: a
+COMMAND: s/a/b/p
+MATCHED REGEX REGISTERS
+  regex[0] = 0-1 'a'
+b
+PATTERN: b
+END-OF-CYCLE:
+INPUT:   'in' line 2
+PATTERN: aa
+COMMAND: s/a/b/p
+MATCHED REGEX REGISTERS
+  regex[0] = 0-1 'a'
+ba
+PATTERN: ba
+END-OF-CYCLE:
+SED PROGRAM:
+  s/a/b/w/dev/stdout
+INPUT:   'in' line 1
+PATTERN: a
+COMMAND: s/a/b/w/dev/stdout
+MATCHED REGEX REGISTERS
+  regex[0] = 0-1 'a'
+b
+PATTERN: b
+END-OF-CYCLE:
+INPUT:   'in' line 2
+PATTERN: aa
+COMMAND: s/a/b/w/dev/stdout
+MATCHED REGEX REGISTERS
+  regex[0] = 0-1 'a'
+ba
+PATTERN: ba
+END-OF-CYCLE:
+SED PROGRAM:
+  s/a/b/pw/dev/stdout
+INPUT:   'in' line 1
+PATTERN: a
+COMMAND: s/a/b/pw/dev/stdout
+MATCHED REGEX REGISTERS
+  regex[0] = 0-1 'a'
+b
+b
+PATTERN: b
+END-OF-CYCLE:
+INPUT:   'in' line 2
+PATTERN: aa
+COMMAND: s/a/b/pw/dev/stdout
+MATCHED REGEX REGISTERS
+  regex[0] = 0-1 'a'
+ba
+ba
+PATTERN: ba
+END-OF-CYCLE:
+SED PROGRAM:
+  s/a/b/p2
+INPUT:   'in' line 1
+PATTERN: a
+COMMAND: s/a/b/p2
+MATCHED REGEX REGISTERS
+  regex[0] = 0-1 'a'
+PATTERN: a
+END-OF-CYCLE:
+INPUT:   'in' line 2
+PATTERN: aa
+COMMAND: s/a/b/p2
+MATCHED REGEX REGISTERS
+  regex[0] = 0-1 'a'
+ab
+PATTERN: ab
+END-OF-CYCLE:
+SED PROGRAM:
+  s/a/b/gp
+INPUT:   'in' line 1
+PATTERN: a
+COMMAND: s/a/b/gp
+MATCHED REGEX REGISTERS
+  regex[0] = 0-1 'a'
+b
+PATTERN: b
+END-OF-CYCLE:
+INPUT:   'in' line 2
+PATTERN: aa
+COMMAND: s/a/b/gp
+MATCHED REGEX REGISTERS
+  regex[0] = 0-1 'a'
+bb
+PATTERN: bb
+END-OF-CYCLE:
+SED PROGRAM:
+  s/x/y/p
+INPUT:   'in' line 1
+PATTERN: a
+COMMAND: s/x/y/p
+PATTERN: a
+END-OF-CYCLE:
+INPUT:   'in' line 2
+PATTERN: aa
+COMMAND: s/x/y/p
+PATTERN: aa
+END-OF-CYCLE:
+SED PROGRAM:
+  s/\\(a\\)\\(x\\)\\?/[\1\2]/p
+INPUT:   'in' line 1
+PATTERN: a
+COMMAND: s/\\(a\\)\\(x\\)\\?/[\1\2]/p
+MATCHED REGEX REGISTERS
+  regex[0] = 0-1 'a'
+  regex[1] = 0-1 'a'
+[a]
+PATTERN: [a]
+END-OF-CYCLE:
+INPUT:   'in' line 2
+PATTERN: aa
+COMMAND: s/\\(a\\)\\(x\\)\\?/[\1\2]/p
+MATCHED REGEX REGISTERS
+  regex[0] = 0-1 'a'
+  regex[1] = 0-1 'a'
+[a]a
+PATTERN: [a]a
+END-OF-CYCLE:
+SED PROGRAM:
+  s/a/
+/
+  l
+  s/\n/-/
+INPUT:   'in' line 1
+PATTERN: a
+COMMAND: s/a/
+/
+MATCHED REGEX REGISTERS
+  regex[0] = 0-1 'a'
+PATTERN: \n
+COMMAND: l
+\n$
+COMMAND: s/\n/-/
+MATCHED REGEX REGISTERS
+  regex[0] = 0-1 '
+'
+PATTERN: -
+END-OF-CYCLE:
+-
+INPUT:   'in' line 2
+PATTERN: aa
+COMMAND: s/a/
+/
+MATCHED REGEX REGISTERS
+  regex[0] = 0-1 'a'
+PATTERN: \na
+COMMAND: l
+\na$
+COMMAND: s/\n/-/
+MATCHED REGEX REGISTERS
+  regex[0] = 0-1 '
+'
+PATTERN: -a
+END-OF-CYCLE:
+-a

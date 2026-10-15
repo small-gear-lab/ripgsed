@@ -1,0 +1,4 @@
+sed --debug -n 'y/ba/xy/;y/abc/cab/;y/aa/xy/;y/a/a/;y/abc/aXc/;y/\n\t\\\//abcd/;y/ab/\n\t/' /dev/null
+printf 'aab\n' | sed 'y/aa/xy/'
+printf 'aab\n' | sed --debug -n 'y/aa/xy/'
+printf 'aab\n' | sed 'y/ab/bb/;y/b/c/'

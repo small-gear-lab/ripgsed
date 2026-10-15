@@ -1,0 +1,21 @@
+printf 'one\ntwo\nthree\n' > in
+sed --debug D in
+sed --debug -n 'x;D' in
+sed --debug -n 'p;D' in
+sed --debug '$!N;P;D' in
+sed --debug 'n;d' in
+sed --debug n in
+sed --debug 'n;n;n;n' in
+sed --debug -n 'n;p' in
+sed --debug N in
+sed --debug 'N;N;N' in
+sed --debug '$!N' in
+sed --debug --posix N in
+POSIXLY_CORRECT=1 sed --debug N in
+POSIXLY_CORRECT=1 sed --debug n in
+printf 'a1\na2\na3\n' > a; printf 'b1\nb2\n' > b
+sed --debug -s n a b
+sed --debug -s N a b
+sed --debug -s 'N;N' a b
+sed --debug -s -n 'n;p' a b
+sed --debug 'N;N;N' a b

@@ -1,0 +1,19 @@
+printf 'x\n' > in
+sed 'e echo a\tb' in | od -c | sed -n 1,2p
+sed 'e echo a\\tb' in
+sed 'e echo a\\\\tb' in
+sed 'e echo a\qb' in
+sed 'e echo \x41\x42' in
+sed 'e echo \x26' in
+sed 'e echo "a\
+b"' in
+sed 'e\
+echo cont' in
+sed 'e \  echo lead' in | od -c | sed -n 1,2p
+sed 'e echo one\necho two' in
+sed 'e echo a; echo b' in
+sed -e 'e echo c' -e p in
+sed -e 'e echo a\' -e 'echo b' in
+sed '1{e echo in-block
+}' in
+sed '1e echo trailing  ' in | od -c | sed -n 1,2p

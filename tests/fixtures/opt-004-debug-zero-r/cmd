@@ -1,0 +1,9 @@
+printf 'H1\nH2\n' > h.txt
+printf 'l1\nl2\nl3\n' > in
+sed --debug '0r h.txt' in
+sed --debug -n '0r h.txt' in
+sed --debug '0~0r h.txt' in
+sed --debug -s '0r h.txt' in in
+sed --debug '0r h.txt' /dev/null
+sed --debug -e p -e '0r h.txt' in
+sed --debug -e '1{' -e '0r h.txt' -e '}' in

@@ -1,0 +1,19 @@
+SED PROGRAM:
+  y/ab/yx/
+  y/abc/cab/
+  y/a/y/
+  y///
+  y/b/X/
+  y/	
+/\/badc/
+  y/ab/
+	/
+yyb
+SED PROGRAM:
+  y/a/y/
+INPUT:   'STDIN' line 1
+PATTERN: aab
+COMMAND: y/a/y/
+PATTERN: yyb
+END-OF-CYCLE:
+ccc

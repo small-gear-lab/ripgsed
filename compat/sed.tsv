@@ -113,7 +113,7 @@ ADR-010	address	addr1,addr2	verified	Addresses	range semantics: addr2 line numbe
 ADR-011	address	addr1,+N	verified	Addresses	
 ADR-012	address	addr1,~N	verified	Addresses	
 ADR-013	address	0,/regexp/	verified	Addresses	only valid with a regexp as the second address
-ADR-014	address	0 address with r	verified	Addresses	inserts the file before the first line
+ADR-014	address	0 address with r	verified	Addresses	0r and 0~0r become 1r with the file written at once where the command stands: before the first line when nothing before it changes the line number, and not at all when d or n has moved on first
 ADR-015	address	address 0 anywhere else is an error	verified	Addresses	
 ADR-016	address	! negation of addresses and ranges	verified	Addresses	
 ADR-017	address	ranges and multiple input files	verified	Addresses	ranges may span files unless -s or -i
@@ -234,3 +234,11 @@ ADR-020	address	q and Q accept at most one address	verified	tests	2,4q: 'command
 CYC-011	cycle	D restarts the cycle without reading input and keeps the line number	verified	tests	
 CYC-012	cycle	order of pending a/r/R output relative to n, N, and autoprint	verified	tests	n and N flush pending output before reading
 CYC-013	cycle	#n at the start of the script also works for the first -e and the first line of -f	verified	tests	the same looseness as OPT: '#nx' forces -n, '# n' and '#N' do not
+ADR-021	address	blanks between a regexp address and its I and M flags	verified	tests	/a/ I p, /a/ I , /b/ M p and /a/I M p are accepted
+SYN-028	script-syntax	a newline between an address and its command is an error	verified	tests	only blanks may stand there: 1<newline>p gives unknown command: `<newline>'; the same after !, a comma, and 0
+CMD-043	command	e command text is read like the text of a, i, and c	verified	tests	backslash escapes are resolved (\t, \x41, \\), a backslash-newline continues the text, and e\<newline>text works; the shell does not get the final newline
+CMD-044	command	y with the same source character twice	verified	tests	in a single-byte locale the last pair wins, in a multibyte locale the first
+CMD-045	command	0r runs at the first line like 1r	verified	tests	1d;0r writes nothing, n;0r writes nothing, N;0r writes nothing, i\X before it comes first; 0~0r is the same as 0r
+IOF-011	io	script and file arguments that are not UTF-8	verified	tests	s/\351/x/ and y/\351/x/ work byte for byte
+OPT-029	option	--debug program listing forms	verified	tests	regexps are written byte by byte (control characters as \a \t \o001, bytes above 127 as \o37777777703, slash as \/), the replacement as it is with case conversions as GNU sed segments them, y as a sorted table in a single-byte locale, s flags in the order i m g e p N w, w and W without a space, e with its newline, q and Q only with an argument written, l and L arguments as 32-bit integers, +0 and ~0 as [ADDR-NULL], !cmd without an address, and no v command
+OPT-030	option	--debug trace details	verified	tests	D never shows END-OF-CYCLE; n at the end of the input prints before END-OF-CYCLE and N after it; MATCHED REGEX REGISTERS come before what the p flag prints; the trace does not end an unterminated output line; the pattern and hold space are written byte by byte as in the listing; the text of e shows a NUL for its newline after the first run; -i without files lists the program before it fails

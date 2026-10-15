@@ -58,10 +58,12 @@ enum Flow {
     End,
     /// `d` and friends: start the next cycle without printing.
     Discard,
+    /// `D` without a newline: like `d`, but the trace does not mark the end of the cycle.
+    DiscardQuietly,
     /// `D` with a newline: restart without reading a new line.
     Restart,
     /// Stop: print the pattern space if asked, flush appends, exit.
-    Quit { code: i32, print: bool, finish_line: bool },
+    Quit { code: i32, print: bool, finish_line: bool, trace_end: bool },
     /// `Q`: stop immediately.
     QuitNow { code: i32 },
 }
@@ -107,6 +109,8 @@ struct Machine<'a, S: RecordSource + ?Sized> {
     debug_depth: usize,
     /// The registers of the first match of the last `s`, for the trace.
     debug_registers: Option<Vec<u8>>,
+    /// The `e command` commands that have run: GNU sed's trace then shows the end of their text differently.
+    executed_e: std::collections::HashSet<usize>,
 }
 
 /// Runs `script` over the records of `input`. Returns the exit status requested
@@ -222,9 +226,10 @@ fn run_from<S: RecordSource + ?Sized>(
         zero_finished: Vec::new(),
         debug_depth: 0,
         debug_registers: None,
+        executed_e: std::collections::HashSet::new(),
     };
     if machine.options.debug {
-        let listing = debug::program(script);
+        let listing = debug::program(script, machine.options.locale == Locale::Utf8);
         machine.debug_write(&listing)?;
     }
     machine.cycles()
@@ -267,13 +272,9 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
             self.hold.clear();
             self.read_files.clear();
         }
-        let first_of_stream = new_file && (self.options.separate || self.line == 0);
         self.line += 1;
         self.substituted = false;
         self.file_name = file_name;
-        if first_of_stream && !append {
-            self.insert_before_first_line()?;
-        }
         if append {
             self.pattern.push(self.options.separator);
             self.pattern.extend_from_slice(&record.body);
@@ -284,17 +285,6 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
         }
         self.terminated = record.terminated;
         Ok(true)
-    }
-
-    /// `0r file`: the file is written before the first line of the input (of each file with `-s`).
-    fn insert_before_first_line(&mut self) -> Result<(), Fatal> {
-        let script = self.script;
-        for command in &script.commands {
-            if let (Some(Selector::Single(Addr::Line(0))), Kind::ReadFile(name)) = (&command.selector, &command.kind) {
-                self.pending.push(Pending::File(name.clone()));
-            }
-        }
-        self.flush_pending()
     }
 
     fn cycles(&mut self) -> Result<i32, Fatal> {
@@ -378,13 +368,17 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                 Flow::Discard => {
                     self.debug_write(b"END-OF-CYCLE:\n")?;
                 }
+                Flow::DiscardQuietly => {}
                 Flow::Restart => {
                     restart = true;
                     continue;
                 }
-                Flow::Quit { code, print, finish_line } => {
+                Flow::Quit { code, print, finish_line, trace_end } => {
                     if print {
                         self.autoprint()?;
+                    }
+                    if trace_end {
+                        self.debug_write(b"END-OF-CYCLE:\n")?;
                     }
                     self.flush_pending()?;
                     if finish_line {
@@ -408,7 +402,7 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
         if !self.options.debug {
             return Ok(());
         }
-        self.out.stdout.write_raw(bytes).map_err(|e| write_error("stdout", &e))
+        self.out.stdout.write_unchecked(bytes).map_err(|e| write_error("stdout", &e))
     }
 
     fn debug_pattern(&mut self) -> Result<(), Fatal> {
@@ -425,13 +419,18 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
         self.debug_write(&line)
     }
 
-    fn debug_command(&mut self, command: &crate::syntax::Command) -> Result<(), Fatal> {
+    fn debug_command(&mut self, pc: usize, command: &crate::syntax::Command) -> Result<(), Fatal> {
         if matches!(command.kind, Kind::BlockEnd) {
             self.debug_depth = self.debug_depth.saturating_sub(1);
         }
         let mut line = b"COMMAND: ".to_vec();
         line.extend(std::iter::repeat_n(b' ', self.debug_depth * 2));
-        line.extend(debug::command_text(command));
+        line.extend(debug::command_text(command, self.options.locale == Locale::Utf8));
+        if matches!(&command.kind, Kind::Execute(c) if !c.is_empty()) && self.executed_e.contains(&pc) {
+            // GNU sed overwrote the newline that ends the text of the command when it ran it.
+            let last = line.len() - 1;
+            line[last] = 0;
+        }
         line.push(b'\n');
         if matches!(command.kind, Kind::BlockStart(_)) {
             self.debug_depth += 1;
@@ -450,14 +449,20 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
             // GNU sed shows the hold space after `g` too.
             Kind::Get | Kind::Hold | Kind::HoldAppend => self.debug_hold(),
             Kind::Substitute(_) => {
-                if let Some(registers) = self.debug_registers.take() {
-                    self.debug_write(b"MATCHED REGEX REGISTERS\n")?;
-                    self.debug_write(&registers)?;
-                }
+                self.debug_flush_registers()?;
                 self.debug_pattern()
             }
             _ => Ok(()),
         }
+    }
+
+    /// The registers of the match of an `s` command, shown before anything its flags print.
+    fn debug_flush_registers(&mut self) -> Result<(), Fatal> {
+        if let Some(registers) = self.debug_registers.take() {
+            self.debug_write(b"MATCHED REGEX REGISTERS\n")?;
+            self.debug_write(&registers)?;
+        }
+        Ok(())
     }
 
     fn autoprint(&mut self) -> Result<(), Fatal> {
@@ -483,20 +488,24 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
         for item in std::mem::take(&mut self.pending) {
             match item {
                 Pending::Text(text) => self.write_raw(&text)?,
-                Pending::File(name) => {
-                    // Even a missing file ends an unterminated last line.
-                    self.write_raw(&[])?;
-                    let path = String::from_utf8_lossy(&name).into_owned();
-                    match std::fs::read(&path) {
-                        Ok(bytes) => self.write_raw(&bytes)?,
-                        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
-                        Err(e) if e.raw_os_error() == Some(21) => {
-                            return Err(Fatal::new(format!("read error on {path}: Is a directory"), 4));
-                        }
-                        Err(_) => {}
-                    }
-                }
+                Pending::File(name) => self.write_file(&name)?,
             }
+        }
+        Ok(())
+    }
+
+    /// Writes the contents of the file an `r` command names.
+    fn write_file(&mut self, name: &[u8]) -> Result<(), Fatal> {
+        // Even a missing file ends an unterminated last line.
+        self.write_raw(&[])?;
+        let path = String::from_utf8_lossy(name).into_owned();
+        match std::fs::read(crate::io::bytes_path(name)) {
+            Ok(bytes) => self.write_raw(&bytes)?,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+            Err(e) if e.raw_os_error() == Some(21) => {
+                return Err(Fatal::new(format!("read error on {path}: Is a directory"), 4));
+            }
+            Err(_) => {}
         }
         Ok(())
     }
@@ -538,6 +547,7 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                 }
             }
             Addr::Regex(p) => self.regex_matches(p)?,
+            Addr::Null => true,
         })
     }
 
@@ -670,13 +680,8 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
         let mut pc = 0;
         while pc < script.commands.len() {
             let command = &script.commands[pc];
-            if matches!(command.selector, Some(Selector::Single(Addr::Line(0)))) {
-                // `0r`: handled before the first line, never during a cycle.
-                pc += 1;
-                continue;
-            }
-            if self.options.debug {
-                self.debug_command(command)?;
+            if self.options.debug && !matches!(command.kind, Kind::Version) {
+                self.debug_command(pc, command)?;
             }
             if !self.selected(pc)? {
                 if let Kind::BlockStart(end) = command.kind {
@@ -723,7 +728,7 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                 }
                 Kind::Delete => return Ok(Flow::Discard),
                 Kind::DeleteFirst => match crate::search::memchr(self.options.separator, &self.pattern) {
-                    None => return Ok(Flow::Discard),
+                    None => return Ok(Flow::DiscardQuietly),
                     Some(i) => {
                         self.pattern.drain(..=i);
                         return Ok(Flow::Restart);
@@ -735,7 +740,7 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                     }
                     self.autoprint()?;
                     if !self.read_line(false)? {
-                        return Ok(Flow::Quit { code: 0, print: false, finish_line: false });
+                        return Ok(Flow::Quit { code: 0, print: false, finish_line: false, trace_end: false });
                     }
                 }
                 Kind::NextAppend => {
@@ -743,7 +748,7 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                         return self.no_next_line(false);
                     }
                     if !self.read_line(true)? {
-                        return Ok(Flow::Quit { code: 0, print: true, finish_line: false });
+                        return Ok(Flow::Quit { code: 0, print: true, finish_line: false, trace_end: false });
                     }
                 }
                 Kind::Print => self.print_pattern()?,
@@ -783,18 +788,22 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                     self.write_raw(&text)?;
                 }
                 Kind::List(width) => {
-                    let width = width.unwrap_or(self.options.line_length);
+                    let width = match *width {
+                        None => self.options.line_length,
+                        Some(w) => w.max(0) as usize,
+                    };
                     let text = list::list(&self.pattern, width, self.options.separator);
                     self.write_raw(&text)?;
                 }
-                Kind::Quit(code) => return Ok(Flow::Quit { code: *code, print: true, finish_line: true }),
-                Kind::QuitSilent(code) => return Ok(Flow::QuitNow { code: *code }),
+                Kind::Quit(code) => return Ok(Flow::Quit { code: code.unwrap_or(0), print: true, finish_line: true, trace_end: false }),
+                Kind::QuitSilent(code) => return Ok(Flow::QuitNow { code: code.unwrap_or(0) }),
                 Kind::FileName => {
                     let mut text = self.file_name.as_bytes().to_vec();
                     text.push(self.options.separator);
                     self.write_raw(&text)?;
                 }
                 Kind::ReadFile(name) => self.pending.push(Pending::File(name.clone())),
+                Kind::ReadFileNow(name) => self.write_file(name)?,
                 Kind::ReadLine(name) => {
                     if let Some(line) = self.read_one_line(name)? {
                         self.pending.push(Pending::Text(line));
@@ -808,7 +817,12 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                     let (first, terminated) = self.first_line();
                     self.out.get(name).write_record(&first, terminated).map_err(|e| write_error("file", &e))?;
                 }
-                Kind::Execute(command) => self.execute_command(command)?,
+                Kind::Execute(command) => {
+                    self.execute_command(command)?;
+                    if !command.is_empty() {
+                        self.executed_e.insert(pc);
+                    }
+                }
                 Kind::Translate(pairs) => self.translate(pairs),
                 Kind::Substitute(sub) => self.substitute(sub)?,
             }
@@ -834,16 +848,18 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
     /// with the next file.
     fn no_next_line(&mut self, always_print: bool) -> Result<Flow, Fatal> {
         let print = always_print || !self.posixly_correct();
-        if print {
+        // `n` shows the output before the end of the cycle in the trace, `N` after.
+        if !always_print {
             self.debug_write(b"END-OF-CYCLE:\n")?;
         }
         if self.input.is_last(false)? {
-            return Ok(Flow::Quit { code: 0, print, finish_line: false });
+            return Ok(Flow::Quit { code: 0, print, finish_line: false, trace_end: print && always_print });
         }
         if print {
             self.autoprint()?;
         }
-        Ok(Flow::Discard)
+        // For `N` the trace has ended the cycle already.
+        Ok(if always_print { Flow::Discard } else { Flow::DiscardQuietly })
     }
 
     /// One line of the file named by an `R` command; the file stays open between calls.
@@ -862,7 +878,8 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
         }
         let reader = self.read_files.entry(name.to_vec()).or_insert_with(|| {
             let path = String::from_utf8_lossy(name).into_owned();
-            std::fs::File::open(path).ok().map(std::io::BufReader::new)
+            let _ = path;
+            std::fs::File::open(crate::io::bytes_path(name)).ok().map(std::io::BufReader::new)
         });
         let Some(reader) = reader.as_mut() else { return Ok(None) };
         let mut line = Vec::new();
@@ -893,7 +910,10 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
         while i < self.pattern.len() {
             let len = if utf8 { char_len(&self.pattern[i..]) } else { 1 };
             let ch = &self.pattern[i..i + len];
-            match pairs.iter().rev().find(|(from, _)| from == ch) {
+            // A single-byte locale keeps a table, so the last of two equal characters wins; a
+            // multibyte locale searches the list, so the first does.
+            let found = if utf8 { pairs.iter().find(|(from, _)| from == ch) } else { pairs.iter().rev().find(|(from, _)| from == ch) };
+            match found {
                 Some((_, to)) => out.extend_from_slice(to),
                 None => out.extend_from_slice(ch),
             }
@@ -913,7 +933,8 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
             }
             self.pattern = output;
         } else {
-            let output = run_shell(command);
+            // The text of the command ends with a newline that the shell does not get.
+            let output = run_shell(command.strip_suffix(b"\n").unwrap_or(command));
             self.write_raw(&output)?;
         }
         Ok(())
@@ -983,6 +1004,7 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
         result.extend_from_slice(&self.pattern[copied..]);
         self.pattern = result;
         self.substituted = true;
+        self.debug_flush_registers()?;
         if sub.print_before {
             self.print_pattern()?;
         }

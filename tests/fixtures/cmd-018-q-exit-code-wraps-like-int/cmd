@@ -1,0 +1,10 @@
+printf 'abc\n' > in
+for n in 0 1 255 256 257 2147483647 2147483648 4294967294 4294967295 4294967296 4294967551 99999999999999999999; do
+  sed "q $n" in >/dev/null; echo "q $n -> $?"
+  sed "Q $n" in >/dev/null; echo "Q $n -> $?"
+done
+printf 'aaaaaaaaaa\n' > w
+for n in 0 1 2 4 2147483647 2147483648 4294967294 4294967295 4294967296 4294967297 4294967300; do
+  echo "l $n"; sed -n "l $n" w
+done
+sed -n 'l 99999999999999999999' w

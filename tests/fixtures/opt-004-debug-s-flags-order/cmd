@@ -1,0 +1,3 @@
+for f in g p e i I m M 1 2 3 gp pg ep pe gep pge 2g g2 3p p3 2ge gI Ig pI Mg IM MI 'w out' 'pw out' '2gpIMw out' 'w' ; do
+  sed --debug -n "s/a/b/$f" /dev/null 2>&1
+done

@@ -1,0 +1,83 @@
+== 1
+p
+sed: -e expression #1, char 2: unknown command: `
+'
+1
+== 1,2
+p
+sed: -e expression #1, char 4: unknown command: `
+'
+1
+== /a/
+p
+sed: -e expression #1, char 4: unknown command: `
+'
+1
+== $
+p
+sed: -e expression #1, char 2: unknown command: `
+'
+1
+== 1!
+p
+sed: -e expression #1, char 3: unknown command: `
+'
+1
+== 1 
+ p
+sed: -e expression #1, char 3: unknown command: `
+'
+1
+== 0
+r h
+sed: -e expression #1, char 2: invalid usage of line address 0
+1
+== 0 
+r h
+sed: -e expression #1, char 3: invalid usage of line address 0
+1
+== 0,/x/
+p
+sed: -e expression #1, char 6: unknown command: `
+'
+1
+== 1~2
+p
+sed: -e expression #1, char 4: unknown command: `
+'
+1
+== 1,
+2p
+sed: -e expression #1, char 3: unexpected `,'
+1
+== 1,2!
+p
+sed: -e expression #1, char 5: unknown command: `
+'
+1
+== 1!
+!p
+sed: -e expression #1, char 3: unknown command: `
+'
+1
+== 0~0
+r h
+sed: -e expression #1, char 4: invalid usage of line address 0
+1
+== +0
+p
+sed: -e expression #1, char 3: unknown command: `
+'
+1
+== ~0
+p
+sed: -e expression #1, char 3: unknown command: `
+'
+1
+== blanks
+a
+a
+b
+a
+b
+b

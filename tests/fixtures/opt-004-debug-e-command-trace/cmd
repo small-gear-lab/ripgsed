@@ -1,0 +1,7 @@
+printf 'one\ntwo\nthree\n' > in
+sed --debug '2e echo hello' in
+sed --debug '1e printf "A\\nB\n"' in
+sed --debug 'e echo first' in
+sed --debug -n 'e echo x' in
+sed --debug -s 'e echo x' in in
+printf 'echo hi\nprintf x\n' | sed --debug 'e'

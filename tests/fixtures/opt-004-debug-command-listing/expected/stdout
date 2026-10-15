@@ -1,0 +1,147 @@
+SED PROGRAM:
+  wout
+SED PROGRAM:
+  Wout
+SED PROGRAM:
+  r f
+SED PROGRAM:
+  R f
+SED PROGRAM:
+  e 
+SED PROGRAM:
+  e 
+SED PROGRAM:
+  e ls
+
+SED PROGRAM:
+  e ls -l
+
+SED PROGRAM:
+  q
+SED PROGRAM:
+  q 0
+SED PROGRAM:
+  q 0
+SED PROGRAM:
+  q 5
+SED PROGRAM:
+  Q
+SED PROGRAM:
+  Q 0
+SED PROGRAM:
+  Q 7
+SED PROGRAM:
+  l
+SED PROGRAM:
+  l 0
+SED PROGRAM:
+  l 1
+SED PROGRAM:
+  l 5
+SED PROGRAM:
+  l 2147483647
+SED PROGRAM:
+  l -2147483648
+SED PROGRAM:
+  l
+SED PROGRAM:
+  l 0
+SED PROGRAM:
+  l 1
+SED PROGRAM:
+  q
+SED PROGRAM:
+  q -2
+SED PROGRAM:
+  Q 0
+SED PROGRAM:
+  l 1661992959
+SED PROGRAM:
+  q 1661992959
+SED PROGRAM:
+SED PROGRAM:
+sed: -e expression #1, char 9: unknown command: `X'
+SED PROGRAM:
+SED PROGRAM:
+  p
+  p
+SED PROGRAM:
+  !p
+SED PROGRAM:
+  1! p
+SED PROGRAM:
+  1,3! p
+SED PROGRAM:
+  $! N
+SED PROGRAM:
+  /a/! {
+    p
+  }
+SED PROGRAM:
+  !{
+    p
+  }
+SED PROGRAM:
+  /x/,/y/! d
+SED PROGRAM:
+  2 p
+SED PROGRAM:
+  1 p
+sed: -e expression #1, char 4: invalid usage of line address 0
+SED PROGRAM:
+  0~3 p
+SED PROGRAM:
+  2~3 p
+SED PROGRAM:
+  2,[ADDR-NULL] p
+SED PROGRAM:
+  2,~1 p
+SED PROGRAM:
+  2,[ADDR-NULL] p
+SED PROGRAM:
+  2,+1 p
+SED PROGRAM:
+  [ADDR-NULL] p
+SED PROGRAM:
+  [ADDR-NULL] p
+SED PROGRAM:
+  [ADDR-NULL] p
+SED PROGRAM:
+  [ADDR-NULL] p
+SED PROGRAM:
+  0,/a/ p
+SED PROGRAM:
+  1,3 p
+SED PROGRAM:
+  $ p
+SED PROGRAM:
+  2,$ p
+SED PROGRAM:
+  :a
+  t a
+  T b
+  b
+  :b
+SED PROGRAM:
+  b a
+  :a
+SED PROGRAM:
+  t a
+  :a
+SED PROGRAM:
+  T a
+  :a
+SED PROGRAM:
+  1 {
+    2,3 {
+      p
+    }
+  }
+SED PROGRAM:
+  a\text
+
+  i\two
+lines
+
+  c\  indented
+

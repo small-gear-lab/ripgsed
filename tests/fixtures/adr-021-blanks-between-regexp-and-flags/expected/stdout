@@ -1,0 +1,36 @@
+a
+A
+==
+a
+A
+b
+B
+==
+a
+A
+==
+a
+A
+b
+==
+a
+A
+b
+==
+b
+B
+x
+==
+a
+A
+==
+sed: -e expression #1, char 5: unknown command: `J'
+1
+sed: -e expression #1, char 6: unknown command: `
+'
+1
+sed: -e expression #1, char 5: unknown command: `I'
+1
+a
+A
+==

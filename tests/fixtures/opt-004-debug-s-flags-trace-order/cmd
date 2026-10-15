@@ -1,0 +1,9 @@
+printf 'a\naa\n' > in
+sed --debug -n 's/a/b/p' in
+sed --debug -n 's/a/b/w /dev/stdout' in
+sed --debug -n 's/a/b/pw /dev/stdout' in
+sed --debug -n 's/a/b/2p' in
+sed --debug -n 's/a/b/gp' in
+sed --debug -n 's/x/y/p' in
+sed --debug -n 's/\(a\)\(x\)\?/[\1\2]/p' in
+sed --debug 's/a/\n/;l;s/\n/-/' in

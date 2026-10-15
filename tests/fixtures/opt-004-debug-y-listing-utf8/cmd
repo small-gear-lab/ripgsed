@@ -1,0 +1,5 @@
+sed --debug -n 'y/ba/xy/;y/aa/xy/;y/éa/éb/;y/a/a/' /dev/null
+printf 'aéb\n' | sed 'y/aa/xy/'
+printf 'aéb\n' | sed 'y/aéé/xyz/'
+printf 'aéb\n' | sed 'y/éé/xy/'
+printf 'aéb\n' | sed --debug -n 'y/aéé/xyz/'

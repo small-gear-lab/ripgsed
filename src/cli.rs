@@ -19,6 +19,48 @@ struct Invocation {
     files: Vec<String>,
 }
 
+/// An argument as a `String` that keeps every byte: the bytes that are not UTF-8 become the
+/// private-use characters U+F780 to U+F7FF, which `argument_bytes` turns back.
+fn lossless_string(arg: std::ffi::OsString) -> String {
+    use std::os::unix::ffi::OsStringExt;
+    let bytes = arg.into_vec();
+    let mut out = String::with_capacity(bytes.len());
+    let mut rest: &[u8] = &bytes;
+    while !rest.is_empty() {
+        match std::str::from_utf8(rest) {
+            Ok(valid) => {
+                out.push_str(valid);
+                break;
+            }
+            Err(e) => {
+                let (valid, after) = rest.split_at(e.valid_up_to());
+                out.push_str(std::str::from_utf8(valid).unwrap_or_default());
+                let bad = e.error_len().unwrap_or(after.len());
+                for &b in &after[..bad] {
+                    out.push(char::from_u32(0xF700 + u32::from(b)).unwrap_or('?'));
+                }
+                rest = &after[bad..];
+            }
+        }
+    }
+    out
+}
+
+/// The bytes of an argument made by `lossless_string`.
+pub fn argument_bytes(arg: &str) -> Vec<u8> {
+    let mut out = Vec::with_capacity(arg.len());
+    for c in arg.chars() {
+        match c as u32 {
+            v @ 0xF780..=0xF7FF => out.push((v - 0xF700) as u8),
+            _ => {
+                let mut buf = [0u8; 4];
+                out.extend_from_slice(c.encode_utf8(&mut buf).as_bytes());
+            }
+        }
+    }
+    out
+}
+
 /// The name this program was run as, used as the prefix of every message.
 fn program_name() -> String {
     std::env::args_os()
@@ -175,7 +217,7 @@ impl State {
             }
             Opt::Expression => {
                 self.expressions += 1;
-                let text = value.unwrap_or_default().into_bytes();
+                let text = argument_bytes(&value.unwrap_or_default());
                 self.chunks.push((Chunk { source: ChunkSource::Expression(self.expressions), text }, self.parse_base));
             }
             Opt::File => {
@@ -303,7 +345,7 @@ fn parse_args(args: Vec<String>, program: &str) -> Result<Result<Invocation, ()>
             return Err(EXIT_BAD_USAGE);
         }
         state.expressions += 1;
-        let text = operands.remove(0).into_bytes();
+        let text = argument_bytes(&operands.remove(0));
         state.chunks.push((Chunk { source: ChunkSource::Expression(state.expressions), text }, state.parse_base));
     }
     Ok(Ok(Invocation { options: state.options, chunks: state.chunks, files: operands }))
@@ -379,7 +421,7 @@ fn create_write_files(names: &[Vec<u8>]) -> Result<(), String> {
             continue;
         }
         let path = String::from_utf8_lossy(name).into_owned();
-        if let Err(e) = std::fs::File::create(&path) {
+        if let Err(e) = std::fs::File::create(crate::io::bytes_path(name)) {
             return Err(format!("couldn't open file {path}: {}", strerror(&e)));
         }
     }
@@ -425,7 +467,7 @@ fn parallel_jobs(script: &crate::syntax::Script, options: &Options, files: &[Str
 pub fn main() -> i32 {
     restore_inherited_sigpipe();
     let program = program_name();
-    let args: Vec<String> = std::env::args().skip(1).collect();
+    let args: Vec<String> = std::env::args_os().skip(1).map(lossless_string).collect();
     let invocation = match parse_args(args, &program) {
         Ok(Ok(i)) => i,
         Ok(Err(())) => return 0,
@@ -468,6 +510,11 @@ pub fn main() -> i32 {
     }
     if options.in_place.is_some() && invocation.files.is_empty() {
         eprintln!("{program}: no input files");
+        if options.debug {
+            // GNU sed has listed the program by then.
+            use std::io::Write;
+            let _ = io::stdout().write_all(&crate::debug::program(&script, options.locale == Locale::Utf8));
+        }
         return EXIT_PANIC;
     }
     let mut inputs = FileInputs::new(invocation.files, options.separator, &program)

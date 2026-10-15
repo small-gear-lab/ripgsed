@@ -1,0 +1,5 @@
+printf 'a\001b\tc\\d\033\177e\200\377f\n' > in
+sed --debug -n 'h;x;G' in
+printf 'a\\b/c\n' | sed --debug -n 'H;x'
+printf 'a\0b\n' | sed --debug -n 'p'
+printf 'one\ntwo\n' | sed --debug -n 'N;P;D'

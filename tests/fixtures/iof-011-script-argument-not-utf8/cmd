@@ -1,0 +1,14 @@
+printf 'caf\351\n' > in
+sed "$(printf 's/\351/E/')" in
+sed "$(printf 'y/\351/E/')" in
+sed "$(printf 's/f/\351/')" in | od -c | sed -n 1,2p
+sed -n "$(printf '/\351/p')" in | od -c | sed -n 1,2p
+sed -e "$(printf 's/\351/E/')" -e p in
+sed --debug -n "$(printf 's/\351/E/')" in
+printf 's/\351/E/\n' > s.sed
+sed -f s.sed in
+sed "$(printf 'a\351')" in | od -c | sed -n 1,3p
+sed "$(printf 'w o\351')" in; ls
+sed -n p "$(printf 'in')"
+cp in "$(printf 'f\351.txt')"
+sed -n p "$(printf 'f\351.txt')"

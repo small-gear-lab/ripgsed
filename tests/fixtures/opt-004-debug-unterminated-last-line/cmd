@@ -1,0 +1,23 @@
+printf 'a' > in
+sed --debug p in
+echo; echo ==
+sed --debug -n 'p;p' in
+echo; echo ==
+sed --debug -n '=;p' in
+echo; echo ==
+sed --debug 's/a/b/' in
+echo; echo ==
+sed --debug -n 's/a/b/w /dev/stdout' in
+echo; echo ==
+printf 'a\nb' > in2
+sed --debug 'n;p' in2
+echo; echo ==
+sed --debug 'N;p' in2
+echo; echo ==
+sed --debug '$!N;P;D' in2
+echo; echo ==
+sed --debug -z 'p' in2
+echo; echo ==
+sed --debug -z -n 'P' in2
+echo; echo ==
+printf 'a\0b' | sed --debug -z '$!N;P;D'

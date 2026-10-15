@@ -1,0 +1,4 @@
+printf 'caf\303\251 \346\227\245\n' > in
+sed --debug -n 's/\xc3\xa9/e/;s/é/e/;/日/p;s/[é日]/x/g' in
+sed --debug -n 'y/é日/ab/' in
+sed --debug -n 's/./é\n日/' in

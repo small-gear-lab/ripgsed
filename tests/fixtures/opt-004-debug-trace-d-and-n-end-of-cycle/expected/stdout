@@ -1,0 +1,320 @@
+SED PROGRAM:
+  D
+INPUT:   'in' line 1
+PATTERN: one
+COMMAND: D
+INPUT:   'in' line 2
+PATTERN: two
+COMMAND: D
+INPUT:   'in' line 3
+PATTERN: three
+COMMAND: D
+SED PROGRAM:
+  x
+  D
+INPUT:   'in' line 1
+PATTERN: one
+COMMAND: x
+PATTERN: 
+HOLD:    one
+COMMAND: D
+INPUT:   'in' line 2
+PATTERN: two
+COMMAND: x
+PATTERN: one
+HOLD:    two
+COMMAND: D
+INPUT:   'in' line 3
+PATTERN: three
+COMMAND: x
+PATTERN: two
+HOLD:    three
+COMMAND: D
+SED PROGRAM:
+  p
+  D
+INPUT:   'in' line 1
+PATTERN: one
+COMMAND: p
+one
+COMMAND: D
+INPUT:   'in' line 2
+PATTERN: two
+COMMAND: p
+two
+COMMAND: D
+INPUT:   'in' line 3
+PATTERN: three
+COMMAND: p
+three
+COMMAND: D
+SED PROGRAM:
+  $! N
+  P
+  D
+INPUT:   'in' line 1
+PATTERN: one
+COMMAND: $! N
+PATTERN: one\ntwo
+COMMAND: P
+one
+COMMAND: D
+PATTERN: two
+COMMAND: $! N
+PATTERN: two\nthree
+COMMAND: P
+two
+COMMAND: D
+PATTERN: three
+COMMAND: $! N
+COMMAND: P
+three
+COMMAND: D
+SED PROGRAM:
+  n
+  d
+INPUT:   'in' line 1
+PATTERN: one
+COMMAND: n
+one
+PATTERN: two
+COMMAND: d
+END-OF-CYCLE:
+INPUT:   'in' line 3
+PATTERN: three
+COMMAND: n
+three
+END-OF-CYCLE:
+SED PROGRAM:
+  n
+INPUT:   'in' line 1
+PATTERN: one
+COMMAND: n
+one
+PATTERN: two
+END-OF-CYCLE:
+two
+INPUT:   'in' line 3
+PATTERN: three
+COMMAND: n
+three
+END-OF-CYCLE:
+SED PROGRAM:
+  n
+  n
+  n
+  n
+INPUT:   'in' line 1
+PATTERN: one
+COMMAND: n
+one
+PATTERN: two
+COMMAND: n
+two
+PATTERN: three
+COMMAND: n
+three
+END-OF-CYCLE:
+SED PROGRAM:
+  n
+  p
+INPUT:   'in' line 1
+PATTERN: one
+COMMAND: n
+PATTERN: two
+COMMAND: p
+two
+END-OF-CYCLE:
+INPUT:   'in' line 3
+PATTERN: three
+COMMAND: n
+END-OF-CYCLE:
+SED PROGRAM:
+  N
+INPUT:   'in' line 1
+PATTERN: one
+COMMAND: N
+PATTERN: one\ntwo
+END-OF-CYCLE:
+one
+two
+INPUT:   'in' line 3
+PATTERN: three
+COMMAND: N
+END-OF-CYCLE:
+three
+SED PROGRAM:
+  N
+  N
+  N
+INPUT:   'in' line 1
+PATTERN: one
+COMMAND: N
+PATTERN: one\ntwo
+COMMAND: N
+PATTERN: one\ntwo\nthree
+COMMAND: N
+END-OF-CYCLE:
+one
+two
+three
+SED PROGRAM:
+  $! N
+INPUT:   'in' line 1
+PATTERN: one
+COMMAND: $! N
+PATTERN: one\ntwo
+END-OF-CYCLE:
+one
+two
+INPUT:   'in' line 3
+PATTERN: three
+COMMAND: $! N
+END-OF-CYCLE:
+three
+SED PROGRAM:
+  N
+INPUT:   'in' line 1
+PATTERN: one
+COMMAND: N
+PATTERN: one\ntwo
+END-OF-CYCLE:
+one
+two
+INPUT:   'in' line 3
+PATTERN: three
+COMMAND: N
+END-OF-CYCLE:
+SED PROGRAM:
+  N
+INPUT:   'in' line 1
+PATTERN: one
+COMMAND: N
+PATTERN: one\ntwo
+END-OF-CYCLE:
+one
+two
+INPUT:   'in' line 3
+PATTERN: three
+COMMAND: N
+END-OF-CYCLE:
+SED PROGRAM:
+  n
+INPUT:   'in' line 1
+PATTERN: one
+COMMAND: n
+one
+PATTERN: two
+END-OF-CYCLE:
+two
+INPUT:   'in' line 3
+PATTERN: three
+COMMAND: n
+three
+END-OF-CYCLE:
+SED PROGRAM:
+  n
+INPUT:   'a' line 1
+PATTERN: a1
+COMMAND: n
+a1
+PATTERN: a2
+END-OF-CYCLE:
+a2
+INPUT:   'a' line 3
+PATTERN: a3
+COMMAND: n
+a3
+END-OF-CYCLE:
+INPUT:   'b' line 1
+PATTERN: b1
+COMMAND: n
+b1
+PATTERN: b2
+END-OF-CYCLE:
+b2
+SED PROGRAM:
+  N
+INPUT:   'a' line 1
+PATTERN: a1
+COMMAND: N
+PATTERN: a1\na2
+END-OF-CYCLE:
+a1
+a2
+INPUT:   'a' line 3
+PATTERN: a3
+COMMAND: N
+END-OF-CYCLE:
+a3
+INPUT:   'b' line 1
+PATTERN: b1
+COMMAND: N
+PATTERN: b1\nb2
+END-OF-CYCLE:
+b1
+b2
+SED PROGRAM:
+  N
+  N
+INPUT:   'a' line 1
+PATTERN: a1
+COMMAND: N
+PATTERN: a1\na2
+COMMAND: N
+PATTERN: a1\na2\na3
+END-OF-CYCLE:
+a1
+a2
+a3
+INPUT:   'b' line 1
+PATTERN: b1
+COMMAND: N
+PATTERN: b1\nb2
+COMMAND: N
+END-OF-CYCLE:
+b1
+b2
+SED PROGRAM:
+  n
+  p
+INPUT:   'a' line 1
+PATTERN: a1
+COMMAND: n
+PATTERN: a2
+COMMAND: p
+a2
+END-OF-CYCLE:
+INPUT:   'a' line 3
+PATTERN: a3
+COMMAND: n
+END-OF-CYCLE:
+INPUT:   'b' line 1
+PATTERN: b1
+COMMAND: n
+PATTERN: b2
+COMMAND: p
+b2
+END-OF-CYCLE:
+SED PROGRAM:
+  N
+  N
+  N
+INPUT:   'a' line 1
+PATTERN: a1
+COMMAND: N
+PATTERN: a1\na2
+COMMAND: N
+PATTERN: a1\na2\na3
+COMMAND: N
+PATTERN: a1\na2\na3\nb1
+END-OF-CYCLE:
+a1
+a2
+a3
+b1
+INPUT:   'b' line 5
+PATTERN: b2
+COMMAND: N
+END-OF-CYCLE:
+b2

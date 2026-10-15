@@ -1,0 +1,143 @@
+SED PROGRAM:
+  1 r h.txt
+INPUT:   'in' line 1
+PATTERN: l1
+COMMAND: 1 r h.txt
+H1
+H2
+END-OF-CYCLE:
+l1
+INPUT:   'in' line 2
+PATTERN: l2
+COMMAND: 1 r h.txt
+END-OF-CYCLE:
+l2
+INPUT:   'in' line 3
+PATTERN: l3
+COMMAND: 1 r h.txt
+END-OF-CYCLE:
+l3
+SED PROGRAM:
+  1 r h.txt
+INPUT:   'in' line 1
+PATTERN: l1
+COMMAND: 1 r h.txt
+H1
+H2
+END-OF-CYCLE:
+INPUT:   'in' line 2
+PATTERN: l2
+COMMAND: 1 r h.txt
+END-OF-CYCLE:
+INPUT:   'in' line 3
+PATTERN: l3
+COMMAND: 1 r h.txt
+END-OF-CYCLE:
+SED PROGRAM:
+  1 r h.txt
+INPUT:   'in' line 1
+PATTERN: l1
+COMMAND: 1 r h.txt
+H1
+H2
+END-OF-CYCLE:
+l1
+INPUT:   'in' line 2
+PATTERN: l2
+COMMAND: 1 r h.txt
+END-OF-CYCLE:
+l2
+INPUT:   'in' line 3
+PATTERN: l3
+COMMAND: 1 r h.txt
+END-OF-CYCLE:
+l3
+SED PROGRAM:
+  1 r h.txt
+INPUT:   'in' line 1
+PATTERN: l1
+COMMAND: 1 r h.txt
+H1
+H2
+END-OF-CYCLE:
+l1
+INPUT:   'in' line 2
+PATTERN: l2
+COMMAND: 1 r h.txt
+END-OF-CYCLE:
+l2
+INPUT:   'in' line 3
+PATTERN: l3
+COMMAND: 1 r h.txt
+END-OF-CYCLE:
+l3
+INPUT:   'in' line 1
+PATTERN: l1
+COMMAND: 1 r h.txt
+H1
+H2
+END-OF-CYCLE:
+l1
+INPUT:   'in' line 2
+PATTERN: l2
+COMMAND: 1 r h.txt
+END-OF-CYCLE:
+l2
+INPUT:   'in' line 3
+PATTERN: l3
+COMMAND: 1 r h.txt
+END-OF-CYCLE:
+l3
+SED PROGRAM:
+  1 r h.txt
+SED PROGRAM:
+  p
+  1 r h.txt
+INPUT:   'in' line 1
+PATTERN: l1
+COMMAND: p
+l1
+COMMAND: 1 r h.txt
+H1
+H2
+END-OF-CYCLE:
+l1
+INPUT:   'in' line 2
+PATTERN: l2
+COMMAND: p
+l2
+COMMAND: 1 r h.txt
+END-OF-CYCLE:
+l2
+INPUT:   'in' line 3
+PATTERN: l3
+COMMAND: p
+l3
+COMMAND: 1 r h.txt
+END-OF-CYCLE:
+l3
+SED PROGRAM:
+  1 {
+    1 r h.txt
+  }
+INPUT:   'in' line 1
+PATTERN: l1
+COMMAND: 1 {
+COMMAND:   1 r h.txt
+H1
+H2
+COMMAND: }
+END-OF-CYCLE:
+l1
+INPUT:   'in' line 2
+PATTERN: l2
+COMMAND: 1 {
+COMMAND: }
+END-OF-CYCLE:
+l2
+INPUT:   'in' line 3
+PATTERN: l3
+COMMAND: 1 {
+COMMAND: }
+END-OF-CYCLE:
+l3

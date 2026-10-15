@@ -350,7 +350,7 @@ impl FileInputs {
                     }
                 }
             }
-            match File::open(&name) {
+            match File::open(os_path(&name)) {
                 Ok(f) => {
                     let source = ChunkedSource::new(f, self.separator, BLOCK);
                     self.current = Some((Source::Chunked(Box::new(source)), Rc::from(name.as_str())));
@@ -581,6 +581,12 @@ impl Output {
         self.inner.borrow_mut().write_all(bytes)
     }
 
+    /// Writes bytes without restoring a missing terminator first: the `--debug` trace goes
+    /// to standard output beside the output, and does not complete an unterminated line.
+    pub fn write_unchecked(&mut self, bytes: &[u8]) -> io::Result<()> {
+        self.inner.borrow_mut().write_all(bytes)
+    }
+
     pub fn flush(&mut self) -> io::Result<()> {
         self.inner.borrow_mut().flush()
     }
@@ -757,7 +763,7 @@ impl Outputs {
                     return Ok(());
                 }
                 let path = String::from_utf8_lossy(name).into_owned();
-                match File::create(&path) {
+                match File::create(bytes_path(name)) {
                     Ok(f) => {
                         self.files.insert(name.to_vec(), Output::new(Box::new(io::BufWriter::new(f)), self.separator, &path));
                         Ok(())
@@ -891,3 +897,15 @@ mod tests {
     }
 }
 
+
+/// A file name given on the command line, as the path it stands for.
+pub fn os_path(name: &str) -> std::path::PathBuf {
+    use std::os::unix::ffi::OsStringExt;
+    std::path::PathBuf::from(std::ffi::OsString::from_vec(crate::cli::argument_bytes(name)))
+}
+
+/// A file name from the script, as the path it stands for.
+pub fn bytes_path(name: &[u8]) -> std::path::PathBuf {
+    use std::os::unix::ffi::OsStrExt;
+    std::path::PathBuf::from(std::ffi::OsStr::from_bytes(name))
+}

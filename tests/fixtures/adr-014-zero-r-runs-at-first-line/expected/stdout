@@ -1,0 +1,269 @@
+== 1d;0r h.txt
+l2
+l3
+== 2d;0r h.txt
+H1
+H2
+l1
+l3
+H1
+H2
+== n;0r h.txt
+l1
+l2
+l3
+== N;0r h.txt
+l1
+l2
+l3
+== $!N;0r h.txt;P;D
+l1
+l2
+l3
+== x;0r h.txt
+H1
+H2
+
+l1
+l2
+H1
+H2
+== p;0r h.txt
+l1
+H1
+H2
+l1
+l2
+l2
+l3
+l3
+l1
+H1
+H2
+l2
+l3
+== =;0r h.txt
+1
+H1
+H2
+l1
+2
+l2
+3
+l3
+1
+H1
+H2
+2
+3
+== i\X
+0r h.txt
+X
+H1
+H2
+l1
+X
+l2
+X
+l3
+X
+H1
+H2
+X
+X
+== 0r h.txt
+i\X
+H1
+H2
+X
+l1
+X
+l2
+X
+l3
+H1
+H2
+X
+X
+X
+== a A
+0r h.txt
+H1
+H2
+l1
+A
+l2
+A
+l3
+A
+H1
+H2
+A
+A
+A
+== 0r h.txt
+a A
+H1
+H2
+l1
+A
+l2
+A
+l3
+A
+H1
+H2
+A
+A
+A
+== r h.txt
+0r h.txt
+H1
+H2
+l1
+H1
+H2
+l2
+H1
+H2
+l3
+H1
+H2
+H1
+H2
+H1
+H2
+H1
+H2
+H1
+H2
+== 0r h.txt
+r h.txt
+H1
+H2
+l1
+H1
+H2
+l2
+H1
+H2
+l3
+H1
+H2
+H1
+H2
+H1
+H2
+H1
+H2
+H1
+H2
+== 0r h.txt
+0r h.txt
+H1
+H2
+H1
+H2
+l1
+l2
+l3
+H1
+H2
+H1
+H2
+== c\C
+0r h.txt
+C
+C
+C
+C
+C
+C
+== 2q;0r h.txt
+H1
+H2
+l1
+l2
+H1
+H2
+== 0r h.txt
+2q
+H1
+H2
+l1
+l2
+H1
+H2
+== 0r h.txt
+$!d
+H1
+H2
+l3
+H1
+H2
+== 1{
+0r h.txt
+}
+H1
+H2
+l1
+l2
+l3
+H1
+H2
+== 2{
+0r h.txt
+}
+l1
+l2
+l3
+== 0~0r h.txt
+H1
+H2
+l1
+l2
+l3
+H1
+H2
+== 0~0r h.txt
+1d
+H1
+H2
+l2
+l3
+H1
+H2
+== s
+H1
+H2
+l1
+l2
+l3
+H1
+H2
+l1
+l2
+l3
+l2
+l3
+l2
+l3
+H1
+H2
+l1
+l2
+l3
+l1
+l2
+l3
+== i
+l2
+l3
+l2
+l3
+== empty
+H1
+H2
+l1
+l2
+l3

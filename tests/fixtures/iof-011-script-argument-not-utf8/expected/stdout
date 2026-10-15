@@ -1,0 +1,26 @@
+cafE
+cafE
+0000000   c   a 351 351  \n
+0000005
+0000000   c   a   f 351  \n
+0000005
+cafE
+cafE
+SED PROGRAM:
+  s/\o37777777751/E/
+INPUT:   'in' line 1
+PATTERN: caf\o37777777751
+COMMAND: s/\o37777777751/E/
+MATCHED REGEX REGISTERS
+  regex[0] = 3-4 'é'
+PATTERN: cafE
+END-OF-CYCLE:
+cafE
+0000000   c   a   f 351  \n 351  \n
+0000007
+café
+in
+oé
+s.sed
+café
+café

@@ -74,7 +74,7 @@ fn command_local(command: &Command) -> Result<(), Reason> {
         Kind::Get | Kind::GetAppend | Kind::Hold | Kind::HoldAppend | Kind::Exchange => Err(Reason::Construct("the hold space")),
         Kind::Quit(_) | Kind::QuitSilent(_) => Err(Reason::Construct("q or Q")),
         Kind::FileName => Err(Reason::Construct("F")),
-        Kind::ReadFile(_) | Kind::ReadLine(_) | Kind::WriteFile(_) | Kind::WriteFirstLine(_) => {
+        Kind::ReadFile(_) | Kind::ReadFileNow(_) | Kind::ReadLine(_) | Kind::WriteFile(_) | Kind::WriteFirstLine(_) => {
             Err(Reason::Construct("a file command"))
         }
         Kind::Execute(_) => Err(Reason::Construct("e")),
@@ -85,7 +85,7 @@ fn command_local(command: &Command) -> Result<(), Reason> {
 fn addr_local(addr: &Addr) -> Result<(), Reason> {
     match addr {
         Addr::Line(0) => Err(Reason::Construct("address 0")),
-        Addr::Line(_) | Addr::Step { .. } => Ok(()),
+        Addr::Line(_) | Addr::Step { .. } | Addr::Null => Ok(()),
         // `$` needs to know where the whole input ends.
         Addr::Last => Err(Reason::Construct("$")),
         Addr::Regex(p) if p.regex.is_none() => Err(Reason::Construct("an empty regexp")),

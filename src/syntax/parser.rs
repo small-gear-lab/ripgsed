@@ -161,12 +161,6 @@ impl Parser {
         self.pos -= 1;
     }
 
-    fn skip_whitespace(&mut self) {
-        while self.peek().is_some_and(|b| b.is_ascii_whitespace()) {
-            self.pos += 1;
-        }
-    }
-
     fn skip_blanks(&mut self) {
         while self.peek().is_some_and(|b| b == b' ' || b == b'\t') {
             self.pos += 1;
@@ -277,7 +271,7 @@ impl Parser {
                     return Err(self.error("invalid usage of +N or ~N as first address"));
                 }
                 // `+0` and `~0` (or a bare sign) as the first address select every line.
-                Ok(Some(AddrParsed::Step { first: 0, step: 1 }))
+                Ok(Some(AddrParsed::Null))
             }
             b'$' => {
                 self.pos += 1;
@@ -301,6 +295,8 @@ impl Parser {
                 };
                 let (mut icase, mut multiline) = (false, false);
                 while !self.options().posix {
+                    // Blanks may stand between the regexp and its flags, and between the flags.
+                    self.skip_blanks();
                     match self.peek() {
                         Some(b'I') => icase = true,
                         Some(b'M') => multiline = true,
@@ -335,7 +331,10 @@ impl Parser {
             glibc_compat: o.glibc_compat,
         };
         match Regex::compile(&normalize_escapes(text, o.posixly_correct), &syntax) {
-            Ok(re) => Ok(Pattern { regex: Some(Rc::new(re)), source: text.to_vec(), icase, multiline }),
+            Ok(re) => {
+                let source = normalize_escapes_for_debug(text, o.posixly_correct);
+                Ok(Pattern { regex: Some(Rc::new(re)), source, icase, multiline })
+            }
             Err(e) if !e.has_location() => Err(SyntaxError {
                 location: Location::Bare,
                 status: e.exit_status(),
@@ -448,10 +447,10 @@ impl Parser {
         let a1 = self.address(true)?;
         let mut selector = None;
         if let Some(a1) = a1 {
-            self.skip_whitespace();
+            self.skip_blanks();
             if self.peek() == Some(b',') {
                 self.pos += 1;
-                self.skip_whitespace();
+                self.skip_blanks();
                 let Some(a2) = self.address(false)? else {
                     self.next();
                     return Err(self.error("unexpected `,'"));
@@ -461,7 +460,7 @@ impl Parser {
                 selector = Some(self.single(a1)?);
             }
         }
-        self.skip_whitespace();
+        self.skip_blanks();
         if self.zero_address {
             // GNU sed reports line address 0 after reading the character that follows the address,
             // except for `r`, which accepts it (insert a file before the first line).
@@ -481,7 +480,7 @@ impl Parser {
         if self.peek() == Some(b'!') {
             self.pos += 1;
             negate = true;
-            self.skip_whitespace();
+            self.skip_blanks();
             if self.peek() == Some(b'!') {
                 self.pos += 1;
                 return Err(self.error("multiple `!'s"));
@@ -587,7 +586,7 @@ impl Parser {
             b'l' => {
                 self.skip_blanks();
                 let width = if !self.options().posix && self.peek().is_some_and(|b| b.is_ascii_digit()) {
-                    Some(self.read_number() as usize)
+                    int_argument(self.read_number())
                 } else {
                     None
                 };
@@ -596,7 +595,7 @@ impl Parser {
             }
             b'L' if !self.options().posix => {
                 self.skip_blanks();
-                let width = if self.peek().is_some_and(|b| b.is_ascii_digit()) { Some(self.read_number() as usize) } else { None };
+                let width = if self.peek().is_some_and(|b| b.is_ascii_digit()) { int_argument(self.read_number()) } else { None };
                 self.end_of_command()?;
                 Kind::Removed(width)
             }
@@ -606,9 +605,9 @@ impl Parser {
                 }
                 self.skip_blanks();
                 let code = if !self.options().posix && self.peek().is_some_and(|b| b.is_ascii_digit()) {
-                    self.read_number() as i32
+                    int_argument(self.read_number())
                 } else {
-                    0
+                    None
                 };
                 self.end_of_command()?;
                 if ch == b'q' { Kind::Quit(code) } else { Kind::QuitSilent(code) }
@@ -633,11 +632,8 @@ impl Parser {
                     return Err(self.error("e/r/w commands disabled in sandbox mode"));
                 }
                 self.skip_blanks();
-                let start = self.pos;
-                while self.peek().is_some_and(|b| b != b'\n') {
-                    self.pos += 1;
-                }
-                Kind::Execute(self.src[start..self.pos].to_vec())
+                // The command is read like the text of `a`, `i` and `c`, newline included.
+                if self.peek().is_none_or(|b| b == b'\n') { Kind::Execute(Vec::new()) } else { Kind::Execute(self.read_text()?) }
             }
             b's' => self.substitute()?,
             b'y' => self.transliterate()?,
@@ -651,6 +647,12 @@ impl Parser {
             other => {
                 return Err(self.error(&format!("unknown command: `{}'", other as char)));
             }
+        };
+        let (selector, kind) = match (selector, kind) {
+            (Some(Selector::Single(Addr::Line(0) | Addr::Step { first: 0, step: 0 })), Kind::ReadFile(name)) => {
+                (Some(Selector::Single(Addr::Line(1))), Kind::ReadFileNow(name))
+            }
+            (selector, kind) => (selector, kind),
         };
         self.script.commands.push(Command { selector, negate, kind });
         Ok(())
@@ -692,6 +694,7 @@ impl Parser {
             AddrParsed::Line(n) => Ok(Selector::Single(Addr::Line(n))),
             AddrParsed::Last => Ok(Selector::Single(Addr::Last)),
             AddrParsed::Step { first, step } => Ok(Selector::Single(Addr::Step { first, step })),
+            AddrParsed::Null => Ok(Selector::Single(Addr::Null)),
             AddrParsed::Regex(p) => Ok(Selector::Single(Addr::Regex(p))),
             AddrParsed::Plus(_) | AddrParsed::Multiple(_) => unreachable!("rejected as a first address"),
         }
@@ -709,6 +712,7 @@ impl Parser {
             AddrParsed::Line(n) => Addr::Line(n),
             AddrParsed::Last => Addr::Last,
             AddrParsed::Step { first, step } => Addr::Step { first, step },
+            AddrParsed::Null => Addr::Null,
             AddrParsed::Regex(p) => Addr::Regex(p),
             AddrParsed::Plus(_) | AddrParsed::Multiple(_) => unreachable!("rejected as a first address"),
         };
@@ -719,6 +723,7 @@ impl Parser {
             AddrParsed::Plus(n) => Addr2::Plus(n),
             AddrParsed::Multiple(n) => Addr2::Multiple(n),
             AddrParsed::Step { first, step } => Addr2::Step { first, step },
+            AddrParsed::Null => unreachable!("only a first address can be null"),
         };
         Ok(Selector::Range(first, second))
     }
@@ -923,7 +928,7 @@ impl Parser {
     }
 
     fn parse_replacement(&self, text: &[u8], pattern: &Pattern) -> Result<Vec<ReplacementPart>> {
-        let text = normalize_escapes_for(text, self.options().posixly_correct, true);
+        let text = normalize_escapes_for(text, self.options().posixly_correct, true, false);
         let mut parts = Vec::new();
         let mut literal = Vec::new();
         let flush = |parts: &mut Vec<ReplacementPart>, literal: &mut Vec<u8>| {
@@ -1002,6 +1007,7 @@ enum AddrParsed {
     Last,
     Step { first: u64, step: u64 },
     Regex(Pattern),
+    Null,
     Plus(u64),
     Multiple(u64),
 }
@@ -1042,15 +1048,30 @@ fn utf8_len(first: u8) -> usize {
     }
 }
 
+/// The number after `l`, `L`, `q` or `Q` as GNU sed keeps it: an `int`, where -1 means that there was
+/// no number.
+fn int_argument(n: u64) -> Option<i32> {
+    match n as u32 as i32 {
+        -1 => None,
+        v => Some(v),
+    }
+}
+
 fn normalize_escapes(text: &[u8], posixly_correct: bool) -> Vec<u8> {
-    normalize_escapes_for(text, posixly_correct, false)
+    normalize_escapes_for(text, posixly_correct, false, false)
+}
+
+/// The regexp text as GNU sed keeps it, which `--debug` writes: `\n` is a newline character, and a
+/// backslash made by `\x5c` stays in front of the letter after it.
+fn normalize_escapes_for_debug(text: &[u8], posixly_correct: bool) -> Vec<u8> {
+    normalize_escapes_for(text, posixly_correct, false, true)
 }
 
 /// Resolves the GNU escapes `\a \f \v \t \r \cX \dNNN \oNNN \xHH` into the
 /// bytes they stand for. Other escapes are kept for the next stage. Inside a
 /// bracket expression they are left alone under POSIXLY_CORRECT. In a replacement
 /// a produced `&` or backslash stays literal.
-fn normalize_escapes_for(text: &[u8], posixly_correct: bool, replacement: bool) -> Vec<u8> {
+fn normalize_escapes_for(text: &[u8], posixly_correct: bool, replacement: bool, debug: bool) -> Vec<u8> {
     let mut out = Vec::with_capacity(text.len());
     let mut i = 0;
     let mut in_bracket = false;
@@ -1104,6 +1125,10 @@ fn normalize_escapes_for(text: &[u8], posixly_correct: bool, replacement: bool) 
                 out.push(0x0b);
                 i += 2;
             }
+            b'n' if debug => {
+                out.push(b'\n');
+                i += 2;
+            }
             b't' => {
                 out.push(b'\t');
                 i += 2;
@@ -1145,7 +1170,7 @@ fn normalize_escapes_for(text: &[u8], posixly_correct: bool, replacement: bool) 
                     // A backslash made by `\x5c` is an ordinary regexp escape: the escape
                     // letters sed itself converts are not converted again, so `\x5cn` and
                     // `\x5ct` match a plain `n` and `t`.
-                    if !replacement && produced == b'\\' && opens_escape {
+                    if !replacement && !debug && produced == b'\\' && opens_escape {
                         if let Some(&next @ (b'n' | b't' | b'a' | b'f' | b'v' | b'r')) = text.get(i) {
                             out.pop();
                             out.push(next);

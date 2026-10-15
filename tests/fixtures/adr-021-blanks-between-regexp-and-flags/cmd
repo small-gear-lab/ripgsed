@@ -1,0 +1,13 @@
+printf 'a\nA\nb\nB\nx\n' > in
+sed -n '/a/ I p' in; echo ==
+sed -n '/a/ I p;/B/ I p' in; echo ==
+sed -n '/a/I M p' in; echo ==
+sed -n '/a/ I , /b/ I p' in; echo ==
+sed -n '/a/I , /b/ I p' in; echo ==
+sed -n '/a/ M I ! p' in; echo ==
+sed -n '\,a, I p' in; echo ==
+sed -n '/a/ J p' in 2>&1; echo $?
+sed -n '/a/ I
+p' in 2>&1; echo $?
+sed --posix -n '/a/ I p' in 2>&1; echo $?
+sed -n '/a/	I	p' in; echo ==

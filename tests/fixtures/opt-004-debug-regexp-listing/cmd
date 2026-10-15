@@ -1,0 +1,7 @@
+for s in 's/a\/b/x/;/a\/b/p' 's|a\|b|x|' 's/\x5cn/X/;s/a\x5cb/X/' 's/\n/X/;s/[\n]/Y/;/a\nb/p' 's/\t\x41\o102\d067/x/;s/\cA/y/' 's/\x5e/x/;s/\x26/y/;s/\x2e/z/' '/\./p;/a\+/p;/\(a\)\1/p;/[[:alpha:]]\{2,3\}/p' '/a/I,/b/Mp;/a/ I ,/b/ M p;\,a,Ip;\,a\,b,p' '/\\n/p;/a\\\\b/p;s/\\/x/' 's/a*/x/g;/^$/d;/\$/p;/\^/p'; do
+  sed --debug -n "$s" /dev/null 2>&1
+done
+sed --debug -n -E '/a|b/p;/(a)\1/p;s/a+?/x/;/a{2}/p' /dev/null
+printf 'caf\303\251\n' | sed --debug -n 's/\xc3\xa9/x/;s/[\x80-\xff]/_/g'
+printf 'a\\nb\n' | sed --debug -n 's/\x5cn/X/;/\x5cn/p'
+printf 'a\nb\n' | sed --debug -n 'N;s/\n/X/;s/[\n]/Y/'

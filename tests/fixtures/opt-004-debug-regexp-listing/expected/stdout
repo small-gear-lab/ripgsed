@@ -1,0 +1,82 @@
+SED PROGRAM:
+  s/a\/b/x/
+  /a\/b/ p
+SED PROGRAM:
+  s/a|b/x/
+SED PROGRAM:
+  s/\\n/X/
+  s/a\\b/X/
+SED PROGRAM:
+  s/\n/X/
+  s/[\n]/Y/
+  /a\nb/ p
+SED PROGRAM:
+  s/\tABC/x/
+  s/\o001/y/
+SED PROGRAM:
+  s/^/x/
+  s/&/y/
+  s/./z/
+SED PROGRAM:
+  /\\./ p
+  /a\\+/ p
+  /\\(a\\)\\1/ p
+  /[[:alpha:]]\\{2,3\\}/ p
+SED PROGRAM:
+  /a/I,/b/M p
+  /a/I,/b/M p
+  /a/I p
+  /a,b/ p
+SED PROGRAM:
+  /\\\\n/ p
+  /a\\\\\\\\b/ p
+  s/\\\\/x/
+SED PROGRAM:
+  s/a*/x/g
+  /^$/ d
+  /\\$/ p
+  /\\^/ p
+SED PROGRAM:
+  /a|b/ p
+  /(a)\\1/ p
+  s/a+?/x/
+  /a{2}/ p
+SED PROGRAM:
+  s/\o37777777703\o37777777651/x/
+  s/[\o37777777600-\o37777777777]/_/g
+INPUT:   'STDIN' line 1
+PATTERN: caf\o37777777703\o37777777651
+COMMAND: s/\o37777777703\o37777777651/x/
+MATCHED REGEX REGISTERS
+  regex[0] = 3-5 'é'
+PATTERN: cafx
+COMMAND: s/[\o37777777600-\o37777777777]/_/g
+PATTERN: cafx
+END-OF-CYCLE:
+SED PROGRAM:
+  s/\\n/X/
+  /\\n/ p
+INPUT:   'STDIN' line 1
+PATTERN: a\\nb
+COMMAND: s/\\n/X/
+MATCHED REGEX REGISTERS
+  regex[0] = 2-3 'n'
+PATTERN: a\\Xb
+COMMAND: /\\n/ p
+END-OF-CYCLE:
+SED PROGRAM:
+  N
+  s/\n/X/
+  s/[\n]/Y/
+INPUT:   'STDIN' line 1
+PATTERN: a
+COMMAND: N
+PATTERN: a\nb
+COMMAND: s/\n/X/
+MATCHED REGEX REGISTERS
+  regex[0] = 1-2 '
+'
+PATTERN: aXb
+COMMAND: s/[\n]/Y/
+PATTERN: aXb
+END-OF-CYCLE:
