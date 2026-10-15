@@ -15,7 +15,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Toolchain
         run: rustup toolchain install 1.85 --profile minimal && rustup default 1.85
-      - run: cargo test
+      # The runner starts jobs with SIGPIPE ignored; the fixtures expect the default.
+      - run: python3 -c 'import os,signal,sys; signal.signal(signal.SIGPIPE, signal.SIG_DFL); os.execvp(sys.argv[1], sys.argv[1:])' cargo test
       - name: Compatibility summary
         run: tools/compat-summary.sh
 
@@ -26,6 +27,6 @@ jobs:
       - name: The reference sed must be GNU sed 4.9
         run: sed --version | sed -n '1p'
       - name: Regenerate the expected results
-        run: ls tests/fixtures | xargs tools/gen-fixtures.sh > /dev/null
+        run: ls tests/fixtures | python3 -c 'import os,signal,sys; signal.signal(signal.SIGPIPE, signal.SIG_DFL); os.execvp(sys.argv[1], sys.argv[1:])' xargs tools/gen-fixtures.sh > /dev/null
       - name: Expected results must be up to date
         run: git diff --exit-code -- tests/fixtures tests/reference.json

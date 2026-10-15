@@ -886,7 +886,8 @@ fn random_input(rng: &mut Rng, utf8: bool) -> Vec<u8> {
         } else {
             &[b"a", b"b", b"c", b"a", b"b", b"A", b"B", b" ", b"-", b"\n", b"_", b"*"]
         };
-        v.extend_from_slice(rng.pick(alphabet));
+        let piece: &&[u8] = rng.pick::<&[u8]>(alphabet);
+        v.extend_from_slice(piece);
     }
     v
 }
