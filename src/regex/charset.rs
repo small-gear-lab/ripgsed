@@ -291,6 +291,9 @@ impl CharSet {
         }
         if let Some(lib) = &self.lib {
             let u = c as u32;
+            if self.icase_singles && (0x1c80..=0x1c88).contains(&u) && !self.ranges.iter().any(|&(lo, hi)| lo <= u && u <= hi) {
+                return false;
+            }
             return lib.0.contains_seq(bytes) || self.lib_or.iter().any(|&(lo, hi)| lo <= u && u <= hi);
         }
         self.matches_char(c)

@@ -4,8 +4,8 @@ What the literature and existing engines suggest for making ripgsed faster than 
 
 ## Where we are
 
-- The engine finds the leftmost-longest match with a breadth-first (Pike-style) simulation that is linear in the input when there are no back-references, then finds group positions in a second pass. Back-references use memoized depth-first search, which is polynomial.
-- Input is cut into numbered chunks of whole records, and scripts proven record-local run on a worker pool. A single reader thread and a single writer thread are the current limits of scaling.
+- The engine is a meta engine in the sense below: a literal prefilter, lazy DFAs for the match bounds (UTF-8 characters spelled out as bytes), and a breadth-first (Pike-style) simulation that is linear in the input when there are no back-references, which also finds the group positions on the span. Back-references use memoized depth-first search, which is polynomial. Patterns of fixed width take their groups from the offsets without a second pass.
+- Input is cut into numbered chunks of whole records, and scripts proven record-local run on a worker pool, also when standard input is a large regular file. Line-number addresses skip records by counting separators. A single reader thread and a single writer thread are the current limits of scaling.
 
 ## Engines and how they are combined
 
@@ -47,8 +47,8 @@ What the literature and existing engines suggest for making ripgsed faster than 
 1. (Done) Own SIMD (with portable fallback) `memchr`, `memmem` with rare-byte selection, and newline counting; no dependency.
 2. (Done, except the chunk-level skip of unmatched lines) Literal extraction from the AST and a prefilter; skip the engine for pure literals.
 3. (Done, without state acceleration) A lazy DFA for match bounds (forward, and reverse for the start) with a fallback to the existing engine, which remains the capture pass and the reference.
-4. (Partly done: record buffers are reused; line-number seeks skip records by counting separators) Fewer allocations per record and a cheaper output path.
-5. Parallel reading of regular files by byte ranges, then a lighter ordered writer.
+4. (Done: record buffers are reused; line-number addresses skip records by counting separators) Fewer allocations per record and a cheaper output path.
+5. (Not done: the reader is still one thread) Parallel reading of regular files by byte ranges, then a lighter ordered writer.
 6. Only then, research-grade options: a POSIX tagged DFA for the capture pass, or RE#-style derivatives for the span pass.
 
 Every step is measured with `tools/bench.sh` before and after, and none may change an output byte (fixtures, regex differential tests, and the execution fuzz test run in sequential and forced-parallel modes).

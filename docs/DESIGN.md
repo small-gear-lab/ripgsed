@@ -4,8 +4,7 @@
 
 ## How to read this
 
-- The first deliverable is a sequential reference implementation for a deliberately small subset, not a fast, feature-complete editor.
-- Each "to decide" item should be resolved, and the supported scope and acceptance criteria recorded in the repository, before optimization work starts.
+- The sed-compatible core is built and verified item by item against GNU sed 4.9 (`compat/sed.tsv`, [COMPATIBILITY.md](COMPATIBILITY.md)); the decisions it needed are in [DECISIONS.md](DECISIONS.md). The "to decide" items below belong to the parts that are not built (the grep mode, PCRE2, the public API, editor integration): each should be resolved, and its scope and acceptance criteria recorded in the repository, before that part is built.
 - Priorities: **P0** sequential core, **P1** correctness and public boundaries, **P2** optimization, **P3** extensions and integrations. A priority label does not mean "implemented".
 
 ## Goals and non-goals
@@ -440,7 +439,7 @@ This document contains no GNU sed implementation code.
 | --- | --- | --- |
 | PCRE2 | opt-in only, after the own engine | JIT |
 | explain | plan-only, fixed output stream | machine-readable schema |
-| workers / chunks | sequential only at first | thresholds, auto-tuning |
+| workers / chunks | built: record-local scripts run in parallel over ordered chunks (D9) | thresholds, auto-tuning |
 | Named hold | specify grammar and initial state separately | the full extension commands |
 | API stability | internal API shared with the CLI | compatibility guarantees for a public crate |
 | Editor | subprocess plus preview | FFI or a custom UI |

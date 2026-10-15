@@ -10,21 +10,21 @@ A stream editor in Rust that keeps the sed language but separates syntax, semant
 
 | workload | GNU sed | ripgsed, 1 thread | ratio | ripgsed, auto | ratio |
 |---|---:|---:|---:|---:|---:|
-| `s/alpha/X/g` | 0.31 | 0.22 | 0.71 | 0.05 | 0.16 |
-| `-E s/[0-9]+/N/g` | 1.21 | 0.66 | 0.55 | 0.14 | 0.12 |
-| `s/[a-z]*a$/END/` | 1.70 | 1.04 | 0.61 | 0.22 | 0.13 |
-| `/ERROR/d` | 0.16 | 0.12 | 0.75 | 0.03 | 0.19 |
-| `-n /user=beta.*id=1/p` | 0.14 | 0.11 | 0.79 | 0.03 | 0.21 |
-| `y/abc/xyz/` | 1.43 | 1.06 | 0.74 | 0.22 | 0.15 |
-| `s/\(a\)\(l\)/\2\1/g` | 0.40 | 0.22 | 0.55 | 0.04 | 0.10 |
-| `$!N;P;D` (not parallelizable) | 0.20 | 0.18 | 0.90 | 0.18 | 0.90 |
-| `-n 1000000p` (2,000,000 lines) | 0.06 | 0.04 | 0.67 | 0.02 | 0.33 |
-| one 20 MB line, `s/alpha/X/g` | 0.12 | 0.05 | 0.42 | 0.07 | 0.58 |
-| Japanese text (500,000 lines), `s/ユーザー/U/g` | 0.18 | 0.12 | 0.67 | 0.03 | 0.17 |
-| Japanese text, `-E s/[0-9]+/N/g` | 4.47 | 0.40 | 0.09 | 0.07 | 0.02 |
-| Japanese text, `s/\w\+/<&>/g` | 5.63 | 0.68 | 0.12 | 0.21 | 0.04 |
+| `s/alpha/X/g` | 0.42 | 0.27 | 0.64 | 0.05 | 0.12 |
+| `-E s/[0-9]+/N/g` | 1.39 | 0.85 | 0.61 | 0.16 | 0.12 |
+| `s/[a-z]*a$/END/` | 1.94 | 1.25 | 0.64 | 0.23 | 0.12 |
+| `/ERROR/d` | 0.18 | 0.13 | 0.72 | 0.04 | 0.22 |
+| `-n /user=beta.*id=1/p` | 0.16 | 0.13 | 0.81 | 0.03 | 0.19 |
+| `y/abc/xyz/` | 1.88 | 1.52 | 0.81 | 0.26 | 0.14 |
+| `s/\(a\)\(l\)/\2\1/g` | 0.46 | 0.28 | 0.61 | 0.06 | 0.13 |
+| `$!N;P;D` (not parallelizable) | 0.23 | 0.21 | 0.91 | 0.21 | 0.91 |
+| `-n 1000000p` (2,000,000 lines) | 0.06 | 0.05 | 0.83 | 0.02 | 0.33 |
+| one 20 MB line, `s/alpha/X/g` | 0.13 | 0.06 | 0.46 | 0.08 | 0.62 |
+| Japanese text (500,000 lines), `s/ユーザー/U/g` | 0.22 | 0.14 | 0.64 | 0.03 | 0.14 |
+| Japanese text, `-E s/[0-9]+/N/g` | 1.30 | 0.53 | 0.41 | 0.10 | 0.08 |
+| Japanese text, `s/\w\+/<&>/g` | 2.65 | 0.79 | 0.30 | 0.25 | 0.09 |
 
-Memory use is higher than GNU sed's (tens of MiB against about 3 MiB), because input is read in blocks. A script that reads other records, uses the hold space, or touches files runs sequentially; the sequential path is faster than GNU sed on every workload above.
+Memory use is higher than GNU sed's (4 to 70 MiB against 2 MiB, and 172 MiB for the Japanese `\w` workload; one 20 MB line takes about 60 MiB in both), because input is read in blocks. A script that reads other records, uses the hold space, or touches files runs sequentially; the sequential path is faster than GNU sed on every workload above.
 
 ## Plan
 
