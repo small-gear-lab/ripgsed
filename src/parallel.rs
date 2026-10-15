@@ -205,6 +205,7 @@ mod tests {
         let files = vec![path.to_string_lossy().into_owned()];
         let result = run(script("s/some/any/"), &Options::default(), &files, 1, 16, &mut outputs);
         assert!(result.is_err());
+        assert!(Failing.flush().is_ok());
         let _ = std::fs::remove_dir_all(&dir);
     }
 }
