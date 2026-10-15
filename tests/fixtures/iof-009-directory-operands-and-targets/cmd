@@ -1,0 +1,43 @@
+mkdir d
+sed p d 2>&1; echo $?
+sed -n p d a.txt 2>&1; echo $?
+sed -n p a.txt d a.txt 2>&1; echo $?
+sed -n '$p' a.txt d 2>&1; echo $?
+sed -s -n '$p' a.txt d 2>&1; echo $?
+sed p . 2>&1; echo $?
+sed -n p ./d 2>&1; echo $?
+sed -i s/o/0/ d 2>&1; echo $?
+sed -i s/o/0/ a.txt d 2>&1; echo $?
+cat a.txt
+sed -i.bak s/o/0/ d 2>&1; echo $?
+ls
+sed -n 'F' d 2>&1; echo $?
+sed -n '$=' d 2>&1; echo $?
+sed -n '$=' a.txt d 2>&1; echo $?
+sed 'r d' a.txt 2>&1; echo $?
+sed 'R d' a.txt 2>&1; echo $?
+sed '1r d' a.txt 2>&1; echo $?
+sed '2R d' a.txt 2>&1; echo $?
+sed 'r .' a.txt 2>&1; echo $?
+sed 'w d' a.txt 2>&1; echo $?
+sed 'W d' a.txt 2>&1; echo $?
+sed 's/o/0/w d' a.txt 2>&1; echo $?
+sed -n 'p;w .' a.txt 2>&1; echo $?
+sed -f d a.txt 2>&1; echo $?
+sed -n 'p' - < d 2>&1; echo $?
+sed -n 'p' < d 2>&1; echo $?
+sed 'R /dev/stdin' a.txt < d 2>&1; echo $?
+sed 'r /dev/stdin' a.txt < d 2>&1; echo $?
+sed -z -n p d 2>&1; echo $?
+sed -s -n '$p' a.txt d 2>&1; echo $?
+sed -s -n '$p' a.txt d a.txt 2>&1; echo $?
+sed -s '$d' a.txt d 2>&1; echo $?
+sed -n '$p' a.txt d 2>&1; echo $?
+sed -i '$d' a.txt d 2>&1; echo $?
+cat a.txt
+printf 'one\ntwo\nthree\n' > a.txt
+sed -i '$d' a.txt a.txt 2>&1; echo $?
+cat a.txt
+printf 'one\ntwo\nthree\n' > a.txt
+sed -i '$d' a.txt nosuch a.txt 2>&1; echo $?
+cat a.txt

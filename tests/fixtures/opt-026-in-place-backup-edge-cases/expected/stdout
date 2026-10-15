@@ -1,0 +1,29 @@
+sed: couldn't edit d: not a regular file
+4
+sed: couldn't edit d: not a regular file
+4
+one
+two
+three
+sed: cannot rename a.txt: No such file or directory
+4
+one
+two
+three
+sed: cannot rename sub/f.txt: No such file or directory
+4
+bak:
+
+sub:
+f.txt
+sed: cannot rename sub/f.txt: No such file or directory
+4
+f.txt
+0
+1
+2
+0
+1
+1
+2
+3

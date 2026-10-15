@@ -1,0 +1,6 @@
+sed -i 's/o/0/' 2>&1; echo $?
+sed -i.bak 's/o/0/' 2>&1; echo $?
+sed -n -i p < a.txt 2>&1; echo $?
+sed -i 's/o/0/' - 2>&1 < a.txt; echo $?
+cat a.txt
+ls

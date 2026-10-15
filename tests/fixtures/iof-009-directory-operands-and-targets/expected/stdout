@@ -1,0 +1,93 @@
+sed: read error on d: Is a directory
+4
+sed: read error on d: Is a directory
+4
+sed: read error on d: Is a directory
+one
+two
+three
+4
+three
+0
+sed: read error on d: Is a directory
+three
+4
+sed: read error on .: Is a directory
+4
+sed: read error on ./d: Is a directory
+4
+sed: couldn't edit d: not a regular file
+4
+sed: couldn't edit d: not a regular file
+4
+0ne
+tw0
+three
+sed: couldn't edit d: not a regular file
+4
+a.txt
+d
+sed: read error on d: Is a directory
+4
+sed: read error on d: Is a directory
+4
+3
+0
+sed: read error on d: Is a directory
+0ne
+4
+sed: read error on d: Is a directory
+4
+sed: read error on d: Is a directory
+0ne
+4
+sed: read error on d: Is a directory
+0ne
+4
+sed: read error on .: Is a directory
+0ne
+4
+sed: couldn't open file d: Is a directory
+4
+sed: couldn't open file d: Is a directory
+4
+sed: couldn't open file d: Is a directory
+4
+sed: couldn't open file .: Is a directory
+4
+0ne
+tw0
+three
+0
+sed: read error on stdin: Is a directory
+4
+sed: read error on stdin: Is a directory
+4
+sed: read error on stdin: Is a directory
+4
+sed: read error on /dev/stdin: Is a directory
+0ne
+4
+sed: read error on d: Is a directory
+4
+sed: read error on d: Is a directory
+three
+4
+sed: read error on d: Is a directory
+three
+4
+sed: read error on d: Is a directory
+0ne
+tw0
+4
+three
+0
+sed: couldn't edit d: not a regular file
+4
+0ne
+tw0
+0
+one
+sed: can't read nosuch: No such file or directory
+2
+one

@@ -241,6 +241,11 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
     /// Returns `false` at the end of the input. Pending output is flushed first.
     fn read_line(&mut self, append: bool) -> Result<bool, Fatal> {
         self.flush_pending()?;
+        if self.options.in_place.is_some() && self.out.is_in_place() && self.input.is_last(true)? {
+            // The file being edited has no more lines: it is complete before the next one is opened
+            // (which may fail, or be the same file again).
+            self.out.finish_in_place(self.options.in_place.as_deref())?;
+        }
         let Some(Fetched { record, new_file, file_name }) = self.input.next_record()? else {
             return Ok(false);
         };
@@ -842,7 +847,7 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
         use std::io::BufRead;
         if name == b"/dev/stdin" {
             let record = crate::io::stdin_record(self.options.separator, self.options.unbuffered)
-                .map_err(|e| Fatal::new(format!("read error on /dev/stdin: {}", crate::io::strerror(&e)), 4))?;
+                .map_err(|e| Fatal::new(format!("read error on stdin: {}", crate::io::strerror(&e)), 4))?;
             return Ok(record.map(|r| {
                 let mut line = r.body;
                 if r.terminated {

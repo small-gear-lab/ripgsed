@@ -328,23 +328,9 @@ impl FileInputs {
                 if self.follow_symlinks {
                     // Follow the chain one link at a time, as GNU sed does; a link that cannot be
                     // read (a missing target, for example) stops the run.
-                    let mut current = std::path::PathBuf::from(&name);
-                    for _ in 0..40 {
-                        match std::fs::read_link(&current) {
-                            Ok(target) => {
-                                current = if target.is_absolute() {
-                                    target
-                                } else {
-                                    current.parent().unwrap_or_else(|| std::path::Path::new("")).join(target)
-                                };
-                            }
-                            Err(e) if e.raw_os_error() == Some(22) => break,
-                            Err(e) => {
-                                let shown = current.display().to_string();
-                                self.fatal = Some(Fatal::new(format!("couldn't readlink {}: {}", shown, strerror(&e)), 4));
-                                return false;
-                            }
-                        }
+                    if let Err((shown, e)) = follow_link_chain(std::path::Path::new(&name)) {
+                        self.fatal = Some(Fatal::new(format!("couldn't readlink {}: {}", shown.display(), strerror(&e)), 4));
+                        return false;
                     }
                 }
                 if let Ok(m) = std::fs::metadata(&name) {
@@ -397,7 +383,7 @@ impl FileInputs {
                         self.current = None;
                         continue;
                     }
-                    return Err(Fatal::new(format!("read error on {}: {}", name, strerror(&e)), 4));
+                    return Err(Fatal::new(format!("read error on {}: {}", display_name(name), strerror(&e)), 4));
                 }
             }
         }
@@ -440,7 +426,7 @@ impl RecordSource for FileInputs {
                         self.current = None;
                     }
                 }
-                Err(e) => return Err(Fatal::new(format!("read error on {}: {}", name, strerror(&e)), 4)),
+                Err(e) => return Err(Fatal::new(format!("read error on {}: {}", display_name(name), strerror(&e)), 4)),
             }
         }
         Ok(done)
@@ -453,6 +439,28 @@ impl RecordSource for FileInputs {
     }
 
     fn is_last(&mut self, separate: bool) -> Result<bool, Fatal> {
+        if separate && self.peeked.is_none() {
+            // Only the current file matters: the next one is not opened (nor its errors found)
+            // before sed gets there.
+            let Some((source, name)) = self.current.as_mut() else { return Ok(true) };
+            let read = match source {
+                Source::Chunked(source) => source.next_record_into(std::mem::take(&mut self.spare)),
+                Source::Stdin => stdin_record_into(std::mem::take(&mut self.spare), self.separator, self.unbuffered),
+            };
+            return match read {
+                Ok(Some(record)) => {
+                    let new_file = !self.started_file;
+                    self.started_file = true;
+                    self.peeked = Some(Fetched { record, new_file, file_name: name.clone() });
+                    Ok(false)
+                }
+                // The end of the file, or an error that only shows once sed reads on.
+                Ok(None) | Err(_) => {
+                    self.current = None;
+                    Ok(true)
+                }
+            };
+        }
         self.fill(true)?;
         Ok(match &self.peeked {
             None => true,
@@ -633,7 +641,7 @@ impl Outputs {
         use std::os::unix::fs::OpenOptionsExt;
         let mut original = std::path::PathBuf::from(path);
         if follow_symlinks {
-            if let Ok(resolved) = std::fs::canonicalize(&original) {
+            if let Ok(resolved) = follow_link_chain(&original) {
                 original = resolved;
             }
         }
@@ -806,6 +814,32 @@ pub fn write_error(name: &str, e: &io::Error) -> Fatal {
     Fatal::new(format!("couldn't write 1 item to {}: {}", name, strerror(e)), 4)
 }
 
+/// How GNU sed names an input in its read errors: standard input is `stdin`, not `-`.
+pub fn display_name(name: &str) -> &str {
+    if name == "-" { "stdin" } else { name }
+}
+
+/// Follows a chain of symbolic links one link at a time, as `--follow-symlinks` does: a
+/// relative target is joined to the directory part of the link as written (no
+/// canonicalization). The error carries the path whose link could not be read.
+pub fn follow_link_chain(path: &std::path::Path) -> Result<std::path::PathBuf, (std::path::PathBuf, io::Error)> {
+    let mut current = path.to_path_buf();
+    for _ in 0..40 {
+        match std::fs::read_link(&current) {
+            Ok(target) => {
+                current = if target.is_absolute() {
+                    target
+                } else {
+                    current.parent().unwrap_or_else(|| std::path::Path::new("")).join(target)
+                };
+            }
+            Err(e) if e.raw_os_error() == Some(22) => break,
+            Err(e) => return Err((current, e)),
+        }
+    }
+    Ok(current)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -829,3 +863,4 @@ mod tests {
         assert!(src.is_last(false).unwrap());
     }
 }
+

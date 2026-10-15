@@ -90,7 +90,7 @@ pub fn run(
                         }
                         Ok(None) => break,
                         Err(e) => {
-                            let error = Fatal::new(format!("read error on {name}: {}", strerror(&e)), 4);
+                            let error = Fatal::new(format!("read error on {}: {}", crate::io::display_name(&name), strerror(&e)), 4);
                             let _ = work_tx.send(Work::Failed { seq, error });
                             return;
                         }

@@ -1,0 +1,18 @@
+mkdir d
+sed -i.bak 's/o/0/' d 2>&1; echo $?
+sed -i 's/o/0/' d a.txt 2>&1; echo $?
+cat a.txt
+sed -i'nodir/*' 's/e/E/' a.txt 2>&1; echo $?
+cat a.txt
+mkdir sub bak
+printf 'x\ny\n' > sub/f.txt
+sed -i'bak/*' 's/x/X/' sub/f.txt 2>&1; echo $?
+ls bak sub
+sed -i'bk_*' 's/y/Y/' sub/f.txt 2>&1; echo $?
+ls sub
+printf '1\n2\n3\n' > q.txt
+sed -i 2q q.txt; echo $?
+cat q.txt
+printf '1\n2\n3\n' > q.txt
+sed -i.orig 2Q q.txt; echo $?
+cat q.txt q.txt.orig
