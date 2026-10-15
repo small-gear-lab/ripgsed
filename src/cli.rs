@@ -346,6 +346,7 @@ fn parse_args(args: Vec<String>, program: &str) -> Result<Result<Invocation, ()>
         }
         return Ok(Err(()));
     }
+    crate::io::GLIBC_COMPAT.store(state.parse_base.glibc_compat, std::sync::atomic::Ordering::Relaxed);
     let _ = state.posix_mode;
 
     if state.chunks.is_empty() {

@@ -376,6 +376,9 @@ fn known_divergence(flags: Flags, pattern: &[u8]) -> Option<&'static str> {
     if stacked {
         return Some("group under stacked quantifiers or {0,n}");
     }
+    if flags.z && has(b"$") && pattern.windows(2).any(|w| w == b"[^") {
+        return Some("$ before a newline the match consumes under -z");
+    }
     if has(b"\\B") {
         return Some("\\B after a repetition");
     }

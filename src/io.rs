@@ -869,12 +869,17 @@ pub fn follow_link_chain(path: &std::path::Path) -> Result<std::path::PathBuf, F
     }
 }
 
+/// Set by `--glibc-compat`: the quirks of GNU sed that are bugs are reproduced (D10).
+pub static GLIBC_COMPAT: AtomicBool = AtomicBool::new(false);
+
 /// The path a relative link target names: the directory part of the link as written (up to
 /// and including its last slash) followed by the target. GNU sed keeps the result in a buffer
 /// that does not grow with it: a result longer than the buffer is cut, and the cut path is what
-/// is read next (not the first one, which the buffer is made for). The buffer holds 121 bytes, or 185 when the directory part is longer than
+/// is read next (not the first one, which the buffer is made for). Only with `--glibc-compat`:
+/// by default the whole path is used. The buffer holds 121 bytes, or 185 when the directory part is longer than
 /// that, or just the directory part when that is longer still.
 fn join_link_target(link: &std::path::Path, target: &std::path::Path, bounded: bool) -> std::path::PathBuf {
+    let bounded = bounded && GLIBC_COMPAT.load(std::sync::atomic::Ordering::Relaxed);
     use std::os::unix::ffi::{OsStrExt, OsStringExt};
     let link = link.as_os_str().as_bytes();
     let dir_len = link.iter().rposition(|&b| b == b'/').map_or(0, |i| i + 1);

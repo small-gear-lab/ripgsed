@@ -37,3 +37,29 @@ fn the_environment_variable_does_the_same() {
     assert_eq!(run(&["-E", "s/(a+)+\\1/<&>/"], Some("0"), "aaaa\n"), "<aaaa>\n");
     assert_eq!(run(&["-E", "s/(a+)+\\1/<&>/"], Some(""), "aaaa\n"), "<aaaa>\n");
 }
+
+/// GNU sed cuts the path of a relative link target that is too long for a fixed buffer; that is
+/// a bug, so without `--glibc-compat` the whole path is used (the fixture `cmd-059` holds the
+/// GNU result and runs with the option).
+#[test]
+fn a_long_symlink_chain_is_followed_in_full_by_default() {
+    let dir = std::env::temp_dir().join(format!("ripgsed-glibc-compat-{}", std::process::id()));
+    let bin = dir.join("bin");
+    std::fs::create_dir_all(&bin).unwrap();
+    let _ = std::os::unix::fs::symlink(BIN, bin.join("sed"));
+    let script = std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/fixtures/cmd-059-probe-follow-symlink/cmd")).unwrap();
+    let run = |compat: bool| {
+        let work = dir.join(if compat { "on" } else { "off" });
+        std::fs::create_dir_all(&work).unwrap();
+        let mut cmd = Command::new("sh");
+        cmd.arg("-c").arg(&script).current_dir(&work).env("PATH", format!("{}:/usr/bin:/bin", bin.display())).env("LC_ALL", "C");
+        cmd.env_remove("RIPGSED_GLIBC_COMPAT");
+        if compat {
+            cmd.env("RIPGSED_GLIBC_COMPAT", "1");
+        }
+        String::from_utf8_lossy(&cmd.output().unwrap().stdout).into_owned()
+    };
+    assert_eq!(run(false), "sed exit=0\nnew\n");
+    assert_eq!(run(true), "sed exit=4\nold\n");
+    let _ = std::fs::remove_dir_all(&dir);
+}
