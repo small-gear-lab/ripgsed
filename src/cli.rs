@@ -74,6 +74,7 @@ fn parse_args(args: Vec<String>, program: &str) -> Result<Invocation, i32> {
             "-z" | "--null-data" | "--zero-terminated" => options.separator = 0,
             "--posix" => {
                 parse_base.posix = true;
+                options.posixly_correct = true;
             }
             "--sandbox" => parse_base.sandbox = true,
             "-e" | "--expression" => {

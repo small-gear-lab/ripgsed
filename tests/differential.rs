@@ -12,6 +12,7 @@
 //! Environment:
 //! - `RIPGSED_FIXTURES=name1,name2` runs only the named fixtures.
 //! - `RIPGSED_SHOW_PENDING=1` also lists pending fixtures that already pass.
+//! - `RIPGSED_SHOW_FAILURES=1` prints the differences of pending fixtures that fail.
 //! - `RIPGSED_UPDATE_PASSING=1` rewrites `tests/passing.txt` with every fixture
 //!   that passes (only valid for a full run).
 
@@ -206,7 +207,7 @@ fn compare(want: &Outcome, got: &Outcome) -> Vec<String> {
 enum Verdict {
     Pass,
     PendingPass,
-    PendingFail,
+    PendingFail(String),
     Fail(String),
 }
 
@@ -247,7 +248,7 @@ fn evaluate(
     match (diffs.is_empty(), pending) {
         (true, false) => Verdict::Pass,
         (true, true) => Verdict::PendingPass,
-        (false, true) => Verdict::PendingFail,
+        (false, true) => Verdict::PendingFail(format!("{name}\n  {}", diffs.join("\n  "))),
         (false, false) => Verdict::Fail(format!("{name}\n  {}", diffs.join("\n  "))),
     }
 }
@@ -262,6 +263,7 @@ fn fixtures_match_gnu_sed() {
         .ok()
         .map(|v| v.split(',').map(str::to_string).collect());
     let show_pending = std::env::var("RIPGSED_SHOW_PENDING").is_ok_and(|v| v == "1");
+    let show_failures = std::env::var("RIPGSED_SHOW_FAILURES").is_ok_and(|v| v == "1");
 
     let mut dirs: Vec<PathBuf> = fs::read_dir(root().join("tests/fixtures"))
         .unwrap()
@@ -318,7 +320,12 @@ fn fixtures_match_gnu_sed() {
                 all_passing.push(name.clone());
                 promotable.push(name);
             }
-            Verdict::PendingFail => pending_fail += 1,
+            Verdict::PendingFail(msg) => {
+                pending_fail += 1;
+                if show_failures {
+                    eprintln!("pending failure: {msg}");
+                }
+            }
             Verdict::Fail(msg) => failures.push(msg),
         }
     }

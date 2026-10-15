@@ -141,12 +141,16 @@ pub enum CaseConversion {
 pub struct SyntaxError {
     pub location: Location,
     pub message: String,
+    /// Exit status: 1 for syntax errors, 4 for the "serious" errors GNU sed panics on.
+    pub status: i32,
 }
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Location {
     Expression { number: usize, position: usize },
     File { name: String, line: usize },
+    /// No location: the message is printed as it is.
+    Bare,
 }
 
 impl fmt::Display for SyntaxError {
@@ -156,6 +160,7 @@ impl fmt::Display for SyntaxError {
                 write!(f, "-e expression #{number}, char {position}: {}", self.message)
             }
             Location::File { name, line } => write!(f, "file {name} line {line}: {}", self.message),
+            Location::Bare => f.write_str(&self.message),
         }
     }
 }

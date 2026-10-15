@@ -60,6 +60,8 @@ struct Parser {
     labels: HashMap<Vec<u8>, usize>,
     /// Branch commands waiting for their label: (command index, label, error position).
     pending_jumps: Vec<(usize, Vec<u8>, usize)>,
+    /// An address used line 0 where it is not allowed; reported after the command character.
+    zero_address: bool,
 }
 
 /// Parses all chunks. `options_for` gives the options in effect for each chunk,
@@ -83,6 +85,7 @@ pub fn parse(chunks: &[(Chunk, ParseOptions)]) -> std::result::Result<Script, Sy
         blocks: Vec::new(),
         labels: HashMap::new(),
         pending_jumps: Vec::new(),
+        zero_address: false,
     };
     parser.detect_quiet_comment();
     parser.program()?;
@@ -116,7 +119,7 @@ impl Parser {
                 Location::File { name: name.clone(), line }
             }
         };
-        SyntaxError { location, message: message.to_string() }
+        SyntaxError { location, message: message.to_string(), status: 1 }
     }
 
     fn error(&self, message: &str) -> SyntaxError {
@@ -195,7 +198,11 @@ impl Parser {
                 }
                 None => {
                     let _ = pos;
-                    return Err(self.error_at(0, &format!("can't find label for jump to `{}'", String::from_utf8_lossy(&label))));
+                    return Err(SyntaxError {
+                        location: Location::Bare,
+                        message: format!("can't find label for jump to `{}'", String::from_utf8_lossy(&label)),
+                        status: 4,
+                    });
                 }
             }
         }
@@ -370,6 +377,9 @@ impl Parser {
             return Err(self.error("missing command"));
         };
         let _ = start_of_command;
+        if std::mem::take(&mut self.zero_address) {
+            return Err(self.error("invalid usage of line address 0"));
+        }
 
         let kind = match ch {
             b'#' => {
@@ -530,7 +540,10 @@ impl Parser {
 
     fn single(&mut self, a: AddrParsed) -> Result<Selector> {
         match a {
-            AddrParsed::Line(0) => Err(self.error("invalid usage of line address 0")),
+            AddrParsed::Line(0) => {
+                self.zero_address = true;
+                Ok(Selector::Single(Addr::Line(0)))
+            }
             AddrParsed::Line(n) => Ok(Selector::Single(Addr::Line(n))),
             AddrParsed::Last => Ok(Selector::Single(Addr::Last)),
             AddrParsed::Step { first, step } => Ok(Selector::Single(Addr::Step { first, step })),
@@ -544,7 +557,7 @@ impl Parser {
             AddrParsed::Line(0) => {
                 // `0,/regexp/` is the only use of line 0 as a range start.
                 if !matches!(a2, AddrParsed::Regex(_)) {
-                    return Err(self.error("invalid usage of line address 0"));
+                    self.zero_address = true;
                 }
                 Addr::Line(0)
             }
@@ -555,7 +568,10 @@ impl Parser {
             AddrParsed::Plus(_) | AddrParsed::Multiple(_) => unreachable!("rejected as a first address"),
         };
         let second = match a2 {
-            AddrParsed::Line(0) => return Err(self.error("invalid usage of line address 0")),
+            AddrParsed::Line(0) => {
+                self.zero_address = true;
+                Addr2::Line(0)
+            }
             AddrParsed::Line(n) => Addr2::Line(n),
             AddrParsed::Last => Addr2::Last,
             AddrParsed::Regex(p) => Addr2::Regex(p),
@@ -591,8 +607,11 @@ impl Parser {
         Ok(self.src[start..self.pos].to_vec())
     }
 
-    /// Text of `a`, `i`, `c`: either the one-liner form (`a text`) or the
-    /// classic form (`a\` newline `text`), with backslash continuation lines.
+    /// Text of `a`, `i`, `c`: the one-liner form (`a text`, or `a\text` which keeps
+    /// the whitespace after the backslash) or the classic form (`a\` newline `text`),
+    /// with backslash-newline continuation lines. `\t`, `\n` and the other GNU
+    /// escapes are resolved. The text always ends with a newline, except that an
+    /// empty `a\` at the very end of the script appends nothing.
     fn read_text(&mut self) -> Result<Vec<u8>> {
         self.skip_blanks();
         let Some(first) = self.peek() else {
@@ -600,32 +619,43 @@ impl Parser {
         };
         if first == b'\\' {
             self.pos += 1;
-            self.skip_blanks();
             match self.peek() {
-                Some(b'\n') => {
-                    self.pos += 1;
-                }
-                None => {
-                    // `a\` at the end of a chunk: the text follows in the next chunk (already
-                    // joined by a newline) or is missing.
-                    return Err(self.error("expected \\ after `a', `c' or `i'"));
-                }
+                None => return Ok(Vec::new()),
+                Some(b'\n') => self.pos += 1,
                 Some(_) => {}
             }
         } else if first == b'\n' {
             return Err(self.error("expected \\ after `a', `c' or `i'"));
         }
-        let mut text = Vec::new();
+        let mut raw = Vec::new();
         loop {
             let Some(ch) = self.next() else { break };
             match ch {
                 b'\\' => match self.next() {
-                    Some(b'\n') => text.push(b'\n'),
-                    Some(other) => text.push(other),
+                    Some(b'\n') => raw.extend_from_slice(b"\\\n"),
+                    Some(other) => {
+                        raw.push(b'\\');
+                        raw.push(other);
+                    }
                     None => break,
                 },
                 b'\n' => break,
-                other => text.push(other),
+                other => raw.push(other),
+            }
+        }
+        let mut text = Vec::with_capacity(raw.len() + 1);
+        let resolved = normalize_escapes(&raw, false);
+        let mut i = 0;
+        while i < resolved.len() {
+            if resolved[i] == b'\\' && i + 1 < resolved.len() {
+                text.push(match resolved[i + 1] {
+                    b'n' => b'\n',
+                    other => other,
+                });
+                i += 2;
+            } else {
+                text.push(resolved[i]);
+                i += 1;
             }
         }
         text.push(b'\n');

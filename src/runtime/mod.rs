@@ -76,6 +76,7 @@ struct Machine<'a, S: RecordSource + ?Sized> {
     pattern: Vec<u8>,
     terminated: bool,
     hold: Vec<u8>,
+    hold_terminated: bool,
     line: u64,
     file_name: Rc<str>,
     ranges: Vec<RangeState>,
@@ -117,6 +118,7 @@ pub fn run<S: RecordSource + ?Sized>(
         pattern: Vec::new(),
         terminated: true,
         hold: Vec::new(),
+        hold_terminated: true,
         line: 0,
         file_name: Rc::from("-"),
         ranges: vec![RangeState::Inactive; script.commands.len()],
@@ -147,6 +149,11 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
             for r in self.ranges.iter_mut() {
                 *r = RangeState::Inactive;
             }
+            self.zero_finished.clear();
+            // GNU sed also empties the hold space and rewinds the `R` files at each new file.
+            self.hold.clear();
+            self.hold_terminated = true;
+            self.read_files.clear();
         }
         self.line += 1;
         self.file_name = file_name;
@@ -177,6 +184,7 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                 Flow::Discard => {}
                 Flow::Restart => {
                     restart = true;
+                    continue;
                 }
                 Flow::Quit { code, print } => {
                     if print {
@@ -446,17 +454,27 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                     let first = self.pattern[..end].to_vec();
                     self.out.stdout.write_record(&first, true).map_err(|e| write_error("stdout", &e))?;
                 }
-                Kind::Get => self.pattern = self.hold.clone(),
+                Kind::Get => {
+                    self.pattern = self.hold.clone();
+                    self.terminated = self.hold_terminated;
+                }
                 Kind::GetAppend => {
                     self.pattern.push(b'\n');
                     self.pattern.extend_from_slice(&self.hold);
                 }
-                Kind::Hold => self.hold = self.pattern.clone(),
+                Kind::Hold => {
+                    self.hold = self.pattern.clone();
+                    self.hold_terminated = self.terminated;
+                }
                 Kind::HoldAppend => {
                     self.hold.push(b'\n');
                     self.hold.extend_from_slice(&self.pattern);
+                    self.hold_terminated = self.terminated;
                 }
-                Kind::Exchange => std::mem::swap(&mut self.pattern, &mut self.hold),
+                Kind::Exchange => {
+                    std::mem::swap(&mut self.pattern, &mut self.hold);
+                    std::mem::swap(&mut self.terminated, &mut self.hold_terminated);
+                }
                 Kind::Zap => self.pattern.clear(),
                 Kind::LineNumber => {
                     let text = format!("{}\n", self.line);
@@ -467,7 +485,10 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                     let text = list::list(&self.pattern, width, self.options.locale);
                     self.write_raw(&text)?;
                 }
-                Kind::Quit(code) => return Ok(Flow::Quit { code: *code, print: true }),
+                Kind::Quit(code) => {
+                    self.terminated = true;
+                    return Ok(Flow::Quit { code: *code, print: true });
+                }
                 Kind::QuitSilent(code) => return Ok(Flow::QuitNow { code: *code }),
                 Kind::FileName => {
                     let text = format!("{}\n", self.file_name);
