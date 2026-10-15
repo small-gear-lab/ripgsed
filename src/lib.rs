@@ -7,6 +7,7 @@ pub mod debug;
 pub mod io;
 pub mod regex;
 pub mod runtime;
+pub mod stream;
 pub mod syntax;
 
 /// A fatal error: the message to print (after the program name prefix) and the exit status.

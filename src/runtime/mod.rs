@@ -394,8 +394,7 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
 
     fn regex_matches(&mut self, pattern: &Pattern) -> Result<bool, Fatal> {
         let re = self.resolve(pattern)?;
-        let mut caps = Captures::default();
-        Ok(re.captures_at(&self.pattern, 0, &mut caps))
+        Ok(re.is_match(&self.pattern))
     }
 
     fn addr_matches(&mut self, addr: &Addr) -> Result<bool, Fatal> {

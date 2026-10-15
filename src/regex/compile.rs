@@ -34,12 +34,22 @@ pub struct Program {
     pub first_bytes: Option<ByteSet>,
     /// Epsilon predecessors of every instruction (for backward reachability).
     pub preds: Vec<Vec<u32>>,
+    /// UTF-8: matches start only at character boundaries (GNU sed does so
+    /// for patterns with multibyte-aware parts, and under `I`); otherwise
+    /// every byte offset is tried.
+    pub char_starts: bool,
 }
 
 /// Programs larger than this are refused, as an exhausted regcomp would.
 const MAX_INSTS: usize = 1 << 23;
 
-pub fn compile(node: &Node, ngroups: usize, referenced: Vec<bool>) -> Result<Program, CompileError> {
+pub fn compile(
+    node: &Node,
+    ngroups: usize,
+    referenced: Vec<bool>,
+    char_starts: bool,
+    utf8: bool,
+) -> Result<Program, CompileError> {
     let mut c = Compiler { insts: Vec::new(), units: Vec::new() };
     c.emit(node, false, false)?;
     c.insts.push(Inst::Match);
@@ -57,8 +67,21 @@ pub fn compile(node: &Node, ngroups: usize, referenced: Vec<bool>) -> Result<Pro
             Inst::Unit(_) | Inst::Backref(_) | Inst::Match => {}
         }
     }
+    // In UTF-8, GNU sed starts matches only at character boundaries when
+    // the pattern uses a class-like set or a word assertion.
+    let char_starts = char_starts
+        || c.units.iter().any(|u| matches!(u, Unit::Chars(cs) if cs.mb))
+        || (utf8
+            && c.insts.iter().any(|i| {
+                matches!(
+                    i,
+                    Inst::Assert(
+                        Assert::WordBoundary | Assert::NotWordBoundary | Assert::WordStart | Assert::WordEnd
+                    )
+                )
+            }));
     let mut prog =
-        Program { insts: c.insts, units: c.units, ngroups, referenced, has_backrefs, first_bytes: None, preds };
+        Program { insts: c.insts, units: c.units, ngroups, referenced, has_backrefs, first_bytes: None, preds, char_starts };
     prog.first_bytes = first_bytes(&prog);
     Ok(prog)
 }
@@ -111,11 +134,13 @@ impl Compiler {
                 }
             }
             Node::Alt(branches) => {
-                // A branch without any instruction (an empty alternative) is
-                // the least preferred one, wherever it is written.
-                let mut order: Vec<&Node> = branches.iter().filter(|b| !nodeless(b)).collect();
-                if order.len() < branches.len() {
-                    order.push(&Node::Empty);
+                // GNU sed nests alternatives to the left, ((b1|b2)|b3)|...,
+                // and prefers the left side of each, except that an empty
+                // first branch yields to a non-empty second one:
+                // `(|b|c)` tries b, empty, c; `(a||b)` tries a, empty, b.
+                let mut order: Vec<&Node> = branches.iter().collect();
+                if order.len() >= 2 && nodeless(order[0]) && !nodeless(order[1]) {
+                    order.swap(0, 1);
                 }
                 let mut jumps = Vec::new();
                 for (k, b) in order.iter().enumerate() {

@@ -167,10 +167,8 @@ fn run_sed(flags: Flags, pattern: &[u8], groups: usize, inputs: &[Vec<u8>]) -> O
     });
     let out = child.wait_with_output().expect("sed output");
     writer.join().unwrap();
-    if out.status.code().is_none() {
-        // GNU sed crashed (it does on some back-reference patterns).
-        return None;
-    }
+    // GNU sed crashes on some back-reference patterns: no verdict then.
+    out.status.code()?;
     if !out.status.success() || !out.stderr.is_empty() {
         let text = String::from_utf8_lossy(&out.stderr).trim_end().to_string();
         let msg = match text.find(": ") {
@@ -317,6 +315,7 @@ fn known_divergence(flags: Flags, pattern: &[u8]) -> Option<&'static str> {
     let p = strip_brackets(pattern);
     let has = |needle: &[u8]| p.windows(needle.len()).any(|w| w == needle);
     let mut quantified_group = false;
+    let mut stacked = false;
     for k in 0..p.len() {
         let close = if flags.ere {
             p[k] == b')' && (k == 0 || p[k - 1] != b'\\')
@@ -325,11 +324,28 @@ fn known_divergence(flags: Flags, pattern: &[u8]) -> Option<&'static str> {
         };
         if close {
             let next = &p[k + 1..];
-            quantified_group |= if flags.ere {
-                next.first().is_some_and(|c| b"*+?{".contains(c))
-            } else {
-                next.starts_with(b"*") || next.starts_with(b"\\{") || next.starts_with(b"\\+") || next.starts_with(b"\\?")
+            let quant_len = |n: &[u8]| -> usize {
+                if flags.ere {
+                    match n.first() {
+                        Some(b'*' | b'+' | b'?') => 1,
+                        Some(b'{') => n.iter().position(|&c| c == b'}').map_or(0, |k| k + 1),
+                        _ => 0,
+                    }
+                } else if n.starts_with(b"*") {
+                    1
+                } else if n.starts_with(b"\\+") || n.starts_with(b"\\?") {
+                    2
+                } else if n.starts_with(b"\\{") {
+                    n.windows(2).position(|w| w == b"\\}").map_or(0, |k| k + 2)
+                } else {
+                    0
+                }
             };
+            let q = quant_len(next);
+            quantified_group |= q > 0;
+            if q > 0 && (quant_len(&next[q..]) > 0 || next.starts_with(b"{0,") || next.starts_with(b"\\{0,")) {
+                stacked = true;
+            }
         }
     }
     let backref = (b'1'..=b'9').any(|d| has(&[b'\\', d]));
@@ -339,6 +355,9 @@ fn known_divergence(flags: Flags, pattern: &[u8]) -> Option<&'static str> {
     }
     if assertion && quantified_group {
         return Some("assertion inside a repeated group");
+    }
+    if stacked {
+        return Some("group under stacked quantifiers or {0,n}");
     }
     if has(b"\\B") {
         return Some("\\B after a repetition");
@@ -624,7 +643,12 @@ const TABLE: &[(&str, &str, &str)] = &[
     ("I", "abc", "xabcxABCx|aBc"),
     ("EI", "cat|dog", "Cat DOG cAt"),
     ("I", "\\w", "aBc 12"),
-    // Empty alternatives are the least preferred, wherever they are written.
+    // Alternatives nest to the left; an empty first branch yields to the second.
+    ("E", "(a||b)(b*)", "b"),
+    ("E", "(||b)(b*)", "b"),
+    ("E", "(|b|c)(b*)", "b"),
+    ("E", "(c||b)(b*)", "b"),
+    ("E", "(||a())(a{0,1})*", "AB"),
     ("E", "(|a)(|a)", "a"),
     ("E", "(|a)(a*)", "aa"),
     ("E", "(a|)(a*)", "aa"),
@@ -677,6 +701,37 @@ const TABLE: &[(&str, &str, &str)] = &[
     ("MZ", "..", "b\n_ A"),
     ("MZ", "[^x]*", "a\nb"),
     ("Z", "a.b", "a\nb"),
+    // UTF-8: classes, case folding, invalid bytes, starts inside characters.
+    ("U", "x*", "\u{e9}a\u{e9}"),
+    ("U", "a*", "\u{e9}a\u{e9}"),
+    ("U", "\\|", "\u{e9}a"),
+    ("UI", "\\|", "\u{e9}a"),
+    ("U", "x*\\|[a-c]", "\u{e9}a"),
+    ("U", "x*\\|[x]", "\u{e9}a"),
+    ("U", "x*\\|\\s", "\u{e9}a"),
+    ("U", "x*\\|[\u{e9}]", "\u{4e2d}a"),
+    ("U", "x*\\|\u{e9}", "\u{4e2d}a"),
+    ("U", "\\b", "caf \u{e9}|caf\u{e9} au|\u{e9}\u{4e2d} x"),
+    ("U", "\\B", "caf \u{e9}|\u{e9}a\u{4e2d}"),
+    ("U", "\\<\\|\\>", "caf\u{e9} au"),
+    ("U", ".", "\u{e9}\u{4e2d}a"),
+    ("U", ".*", "a\u{e9}b"),
+    ("EU", "(.)\\1", "\u{e9}\u{e9}\u{4e2d}\u{4e2d}"),
+    ("EUI", "(\u{e9})\\1", "\u{e9}\u{c9}"),
+    ("UI", "\u{e9}", "\u{e9}\u{c9}e"),
+    ("UI", "\u{df}", "\u{c0}\u{e0}\u{c7}\u{e7}\u{df} \u{1e9e}"),
+    ("UI", "\u{1c6}", "\u{1c4}\u{1c5}\u{1c6}"),
+    ("UI", "[[:lower:]]", "\u{e9}\u{c9}e|\u{4e2d}a"),
+    ("UI", "[^[:upper:]Ac]", "A\u{4e2d}"),
+    ("U", "[[:alpha:]]", "a\u{e9}b\u{4e2d} \u{a0}\u{c9}"),
+    ("U", "[[:punct:]]", "a\u{e9}b\u{4e2d} \u{a0}\u{c9}"),
+    ("U", "[[:space:]]", "a\u{a0}b\u{2003}c\u{3000}"),
+    ("U", "\\w\\+", "\u{e9}\u{4e2d}x \u{ab}x\u{bb}"),
+    ("U", "[\u{e0}\u{e9}]", "caf\u{e9}\u{e0}"),
+    ("U", "[\u{e0}-\u{e9}]", ""),
+    ("U", "[[=\u{e9}=]]", ""),
+    ("U", "[[.\u{e9}.]]", ""),
+    ("U", "[[=e=]]", "e\u{e9}"),
 ];
 
 fn table_cases(report: &mut Report) {
@@ -717,6 +772,7 @@ struct Gen<'r> {
     gnu: bool,
     groups: usize,
     budget: usize,
+    utf8: bool,
 }
 
 impl Gen<'_> {
@@ -776,6 +832,7 @@ impl Gen<'_> {
     fn atom(&mut self, depth: usize) -> String {
         let r = self.rng.below(100);
         match r {
+            0..=34 if self.utf8 => self.rng.pick(&["a", "b", "é", "É", "中", " "]).to_string(),
             0..=34 => self.rng.pick(&["a", "b", "c", "a", "b", " "]).to_string(),
             35..=41 => ".".into(),
             42..=53 => self.bracket(),
@@ -808,7 +865,7 @@ impl Gen<'_> {
         for _ in 0..n {
             let e = *self.rng.pick(&[
                 "a", "b", "c", "a-c", "b-c", "[:alpha:]", "[:space:]", "[:upper:]", "[:punct:]", "[.a.]", "[=b=]",
-                " ", "A",
+                " ", "A", "é", "É-é",
             ]);
             s.push_str(e);
         }
@@ -845,10 +902,10 @@ fn random_cases(report: &mut Report, count: usize, seed: u64) {
             posixly_correct: false,
             icase: !posix && rng.chance(15),
             multiline: !posix && rng.chance(15),
-            utf8: false,
+            utf8: rng.chance(20),
             z: rng.chance(5),
         };
-        let mut g = Gen { rng: &mut rng, ere, gnu: !posix, groups: 0, budget: 8 };
+        let mut g = Gen { rng: &mut rng, ere, gnu: !posix, groups: 0, budget: 8, utf8: flags.utf8 };
         let pattern = g.regex(0);
         let inputs: Vec<Vec<u8>> = (0..6).map(|_| random_input(&mut rng, flags.utf8)).collect();
         check(report, flags, pattern.as_bytes(), &inputs);

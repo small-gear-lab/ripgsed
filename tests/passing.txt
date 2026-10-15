@@ -72,6 +72,7 @@ adr-007-flag-m-caret-dollar
 adr-007-flag-m-custom-delim
 adr-007-flag-m-dot-no-newline
 adr-007-flag-m-empty-line
+adr-007-flag-m-first-last
 adr-007-flag-m-last-line-dollar
 adr-008-empty-regexp-address-uses-s
 adr-008-empty-regexp-after-address
@@ -1104,6 +1105,7 @@ loc-001-c-invalid-bytes-and-z
 loc-001-c-l-command-and-y
 loc-002-utf8-bracket-expressions
 loc-002-utf8-dot-is-one-character
+loc-002-utf8-hex-escape-single-bytes
 loc-002-utf8-l-command
 loc-002-utf8-multiple-characters-per-line
 loc-002-utf8-regex-structures
@@ -1118,6 +1120,7 @@ loc-005-c-locale-classes-ascii-only
 loc-005-collation-order-codepoint
 loc-005-utf8-character-classes
 loc-005-utf8-collation-order-codepoint
+loc-005-utf8-word-boundaries-and-shorthand
 loc-006-lang-only-utf8
 loc-006-lang-utf8-with-empty-lc-all
 loc-006-lc-all-c-explicit
@@ -1454,6 +1457,7 @@ rgx-020-extension-word-boundary-empty-regexp-global
 rgx-020-extension-word-boundary-ere
 rgx-020-extension-word-boundary-multiline
 rgx-020-extension-word-boundary-positions
+rgx-020-extension-word-boundary-utf8
 rgx-021-extension-space-all-whitespace-chars
 rgx-021-extension-space-case-insensitive
 rgx-021-extension-space-chars
@@ -1487,6 +1491,7 @@ rgx-025-i-mode-classes-ranges-brackets
 rgx-025-i-mode-combined-with-other-flags
 rgx-025-i-mode-empty-regexp-modifier-error
 rgx-025-i-mode-ere-alternation-and-intervals
+rgx-025-i-mode-utf8
 rgx-026-error-address-regexp-messages
 rgx-026-error-ere-messages
 rgx-026-error-invalid-regexp-at-runtime-vs-parse
@@ -1515,6 +1520,7 @@ rgx-029-posixly-correct-bracket-escapes
 rgx-029-posixly-correct-bre-extensions-still-active
 rgx-029-posixly-correct-empty-string-variants
 rgx-029-posixly-correct-ere
+rgx-029-posixly-correct-error-messages
 rgx-029-posixly-correct-vs-default-side-by-side
 rgx-029-posixly-correct-with-i-m-flags
 rgx-030-brackets-multibyte-c-locale
@@ -1522,6 +1528,7 @@ rgx-030-brackets-multibyte-ranges-utf8
 rgx-030-case-i-and-classes-locale-matrix
 rgx-030-dot-multibyte-c-vs-utf8-c
 rgx-030-dot-multibyte-c-vs-utf8-utf8
+rgx-030-empty-matches-global-multibyte
 rgx-030-empty-matches-global-multibyte-c
 rgx-030-ere-utf8-groups-and-backrefs
 rgx-030-invalid-utf8-sequences

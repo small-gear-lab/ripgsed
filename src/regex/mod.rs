@@ -23,29 +23,70 @@
 //! leftmost start and, for it, the longest end. Without back-references it
 //! is a breadth-first simulation of the program in which every thread
 //! carries the earliest start that reaches it, so it is linear in the input
-//! for a given pattern. With back-references the first pass is a
-//! depth-first search from each start that memoizes visited states (the
-//! instruction, the position, and the registers of the referenced groups),
-//! so it never takes exponential time either. The second pass assigns the
-//! subexpressions: GNU sed does not follow the POSIX subexpression rules but
-//! takes the first path, in priority order, that ends exactly at the overall
-//! match end (so `(a|ab)(c|bcd)(d*)` on `abcd` gives `a`, `bcd`, empty). A
-//! depth-first search in priority order with a visited set of (instruction,
-//! position) finds that path in linear time. One more rule completes the
-//! registers: when a group that is the whole body of an optional repetition
-//! matches empty after it had a value, the registers are restored to the
-//! snapshot taken at the last non-empty group end (`(a?){2,3}` on `a` gives
-//! `\1` = `a`).
+//! for a given pattern. With back-references it is a depth-first search from
+//! each start that memoizes the states reached after consuming input
+//! (instruction, position, and the registers back-references can read), so
+//! it stays polynomial. The second pass assigns the subexpressions. GNU sed
+//! does not follow the POSIX subexpression rules: it takes the first path,
+//! in priority order, that ends exactly at the overall end (so
+//! `(a|ab)(c|bcd)(d*)` on `abcd` gives `a`, `bcd`, empty). A table of states
+//! from which that end is reachable is computed backwards first, and the
+//! walk keeps to it, so this pass is linear too (with back-references it
+//! backtracks with the same memo instead).
+//!
+//! The capture rules that GNU sed showed, all reproduced in the walk:
+//!
+//! * Priority: greedy repetition; alternatives nest to the left and the
+//!   left one wins, except that an empty first alternative yields to the
+//!   second (`(|a)` tries `a` first, `(a||b)` tries `a`, empty, `b`).
+//! * Loops: coming back, without consuming input, to a `Split` whose
+//!   preferred branch was already taken since the last character takes the
+//!   other branch (an empty iteration ends the loop).
+//! * When a group that is the whole body of an optional repetition matches
+//!   empty after it had a value, all registers are restored from the
+//!   snapshot taken at the last non-empty group end (`(a?){2,3}` on `a`
+//!   gives `a`). Copies made by expanding `+` and intervals lose the marks
+//!   of the repetitions inside them, and with a minimum of 0 only the first
+//!   copy is marked.
+//! * A path with no assertion after its last character is preferred
+//!   (`(ab|a)(\b|b)` on `ab` gives `a`, `b`).
+//! * `^` inside a match also matches after a newline the match consumed,
+//!   and `$` before a newline it goes on to consume, but for `$` only when
+//!   the pattern has no groups: with groups, a start whose match needs that
+//!   is given up (not under `-z`).
+//!
+//! Addresses (`Regex::is_match`) follow GNU sed's other matcher: only the
+//! first pass, and in `M` mode `` \` `` and `\'` behave as `^` and `$`.
 //!
 //! Locales: in `C` every unit is a byte. In UTF-8 a unit is a character:
 //! `.` and bracket expressions consume one valid character and never an
 //! invalid byte, classes and case folding use the Unicode tables of `std`
-//! (adjusted toward glibc's `C.utf8`), and a search started inside a
-//! character may still match there (GNU sed's `s///g` steps by bytes).
+//! adjusted toward glibc's `C.utf8` (under `I` a literal matches characters
+//! with the same upper-case form, and `[:upper:]`/`[:lower:]` mean
+//! `[:alpha:]`), invalid bytes count as word characters for `\b` and
+//! friends, which never hold inside a character. Matches may start at any
+//! byte offset (GNU sed's `s/x*/-/g` splits `é`), except under `I` or when
+//! the pattern has a class-like set (`[a-c]`, `[^x]`, `[[:alpha:]]`, `[é]`,
+//! `\w`, `\s`...) or a word assertion: then only at character boundaries.
+//!
+//! # Known divergences
+//!
+//! Some GNU sed 4.9 results come from glibc regex quirks that are not
+//! reproduced; `tests/regex_differential.rs` lists them separately:
+//!
+//! * back-references to a repeated group: `(a+)+\1` on `aaaa` matches
+//!   `aa` twice in GNU sed (ripgsed: once, `aaaa`), `(a+){2}\1` never
+//!   matches, `(a*)*\1b` on `ab` gives an empty `\1`;
+//! * assertions inside a group repeated by `+` or an interval: `(^a)+`
+//!   never matches in GNU sed, `(|$.a){2}` matches `_a`;
+//! * groups under stacked quantifiers or `{0,n}`: `(c+){0,2}` on `ccc`
+//!   gives `\1` = `c` in GNU sed (ripgsed: `ccc`), `(b?)+*` on `b` gives empty;
+//! * `\B` after a repetition: `-*\B` on ` -b` matches at offset 2 in GNU sed.
 //!
 //! The pattern given to `Regex::compile` is the text between the delimiters
 //! after the sed parser has processed it: `\n`, `\t` and the other GNU escapes
-//! converted to bytes. They are accepted here too.
+//! converted to bytes. They are accepted here too. Backslashes inside
+//! bracket expressions are literal.
 
 mod ast;
 mod charset;
@@ -152,7 +193,7 @@ impl Regex {
     /// the delimiter from `syntax.null_data`.
     pub fn compile_with_delimiter(pattern: &[u8], syntax: &Syntax, delim: u8) -> Result<Regex, CompileError> {
         let parsed = parse::parse(pattern, syntax, delim)?;
-        let prog = compile::compile(&parsed.node, parsed.ngroups, parsed.referenced)?;
+        let prog = compile::compile(&parsed.node, parsed.ngroups, parsed.referenced, parsed.char_starts, parsed.utf8)?;
         Ok(Regex { prog, syntax: *syntax, delim })
     }
 
@@ -170,6 +211,7 @@ impl Regex {
             hay: haystack,
             multiline: self.syntax.multiline,
             delim: self.delim,
+            address: false,
             utf8: self.syntax.locale == Locale::Utf8,
             icase: self.syntax.icase,
         };
@@ -182,10 +224,23 @@ impl Regex {
         }
     }
 
-    /// Whether `haystack` contains a match (convenience for addresses).
+    /// Whether `haystack` contains a match, with the semantics GNU sed has
+    /// for addresses (`/re/`), which it decides without asking for match
+    /// positions and which differ slightly from `s`: in `M` mode `` \` ``
+    /// and `\'` match at line boundaries like `^` and `$`, and a `$` inside
+    /// the match may meet a newline the match consumes even when the pattern
+    /// has groups. Use this for addresses and `captures_at` for `s`.
     pub fn is_match(&self, haystack: &[u8]) -> bool {
-        let mut caps = Captures::default();
-        self.captures_at(haystack, 0, &mut caps)
+        let searcher = exec::Searcher {
+            prog: &self.prog,
+            hay: haystack,
+            multiline: self.syntax.multiline,
+            delim: self.delim,
+            address: true,
+            utf8: self.syntax.locale == Locale::Utf8,
+            icase: self.syntax.icase,
+        };
+        searcher.exists()
     }
 }
 

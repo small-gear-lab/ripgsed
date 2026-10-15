@@ -31,6 +31,10 @@ fn err(msg: &str) -> CompileError {
 
 pub struct Parsed {
     pub node: Node,
+    /// UTF-8 under `I`: matches start only at character boundaries (see
+    /// `Program::char_starts`, which adds the multibyte-aware sets).
+    pub char_starts: bool,
+    pub utf8: bool,
     pub ngroups: usize,
     /// `referenced[g]` is true when `\g` occurs in the pattern.
     pub referenced: Vec<bool>,
@@ -56,12 +60,17 @@ pub fn parse(pattern: &[u8], syntax: &Syntax, delim: u8) -> Result<Parsed, Compi
         // Only an unmatched close can stop the top level early.
         return Err(err(E_ERPAREN));
     }
-    if p.class_syntax_error {
+    // The POSIXLY_CORRECT environment variable makes `[:alpha:]` an
+    // ordinary bracket expression; `--posix` alone does not. (The sed layer
+    // also sets `posixly_correct` under `--posix`, so the two are told
+    // apart only when `posix` is off.)
+    if p.class_syntax_error && !(syntax.posixly_correct && !syntax.posix) {
         return Err(err(E_CLASS_SYNTAX));
     }
     let mut referenced = p.referenced;
     referenced.resize(p.ngroups + 1, false);
-    Ok(Parsed { node, ngroups: p.ngroups, referenced })
+    let char_starts = p.utf8 && p.icase;
+    Ok(Parsed { node, ngroups: p.ngroups, referenced, char_starts, utf8: p.utf8 })
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -436,12 +445,16 @@ impl<'a> Parser<'a> {
         if c.is_ascii() {
             return self.literal_byte(c as u8);
         }
+        if self.icase {
+            let u = super::charset::simple_upper(c) as u32;
+            return Node::Unit(Unit::Chars(Box::new(CharSet {
+                ranges: vec![(u, u)],
+                by_upper: true,
+                ..CharSet::default()
+            })));
+        }
         let u = c as u32;
-        Node::Unit(Unit::Chars(Box::new(CharSet {
-            ranges: vec![(u, u)],
-            icase: self.icase,
-            ..CharSet::default()
-        })))
+        Node::Unit(Unit::Chars(Box::new(CharSet { ranges: vec![(u, u)], ..CharSet::default() })))
     }
 
     fn literal_byte(&self, b: u8) -> Node {
@@ -476,6 +489,7 @@ impl<'a> Parser<'a> {
                 negated,
                 ranges,
                 classes,
+                mb: true,
                 ..CharSet::default()
             }));
         }
@@ -575,6 +589,7 @@ impl<'a> Parser<'a> {
                 }
             }
         }
+        cs.mb = negated || !cs.classes.is_empty() || cs.ranges.iter().any(|&(lo, hi)| lo != hi || hi > 0x7f);
         let content = &self.pat[content_start..self.pos];
         if content.len() >= 2 && content[0] == b':' && content[content.len() - 1] == b':' {
             self.class_syntax_error = true;

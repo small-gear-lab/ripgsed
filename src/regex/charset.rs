@@ -211,6 +211,13 @@ pub struct CharSet {
     pub icase: bool,
     /// A byte (the line delimiter) the set never matches (negated lists in `M` mode).
     pub exclude: Option<u8>,
+    /// A case-insensitive literal: the ranges hold upper-case forms and a
+    /// character matches when its upper-case form is in them (GNU sed: `ß`
+    /// with `I` does not match `ẞ`, `ǆ` matches `ǅ`).
+    pub by_upper: bool,
+    /// GNU sed treats this set as multibyte-aware: a pattern that uses one
+    /// starts matches only at character boundaries (`Program::char_starts`).
+    pub mb: bool,
 }
 
 impl CharSet {
@@ -219,12 +226,19 @@ impl CharSet {
         if self.ranges.iter().any(|&(lo, hi)| lo <= u && u <= hi) {
             return true;
         }
-        self.classes.iter().any(|cl| cl.contains_char(c))
+        self.classes.iter().any(|&cl| {
+            // Under `I`, [:upper:] and [:lower:] stand for [:alpha:].
+            let cl = if self.icase && matches!(cl, Class::Upper | Class::Lower) { Class::Alpha } else { cl };
+            cl.contains_char(c)
+        })
     }
 
     pub fn matches_char(&self, c: char) -> bool {
         if self.exclude.is_some_and(|b| c as u32 == b as u32 || c == '\n') {
             return false;
+        }
+        if self.by_upper {
+            return self.positive(simple_upper(c)) != self.negated;
         }
         let mut hit = self.positive(c);
         if !hit && self.icase {

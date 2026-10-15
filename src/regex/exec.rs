@@ -12,10 +12,13 @@
 use std::collections::HashSet;
 
 use super::ast::{Assert, Unit};
-use super::charset::{decode_utf8, decode_utf8_before, is_word_byte, is_word_char, simple_lower};
+use super::charset::{decode_utf8, decode_utf8_before, is_word_byte, is_word_char, simple_upper};
 use super::compile::{Inst, Program};
 
 const NONE: usize = usize::MAX;
+
+/// Group spans of a match (group 0 is the whole match).
+pub type Groups = Vec<Option<(usize, usize)>>;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Check {
@@ -24,6 +27,9 @@ enum Check {
     NeedNewline,
 }
 const RING: usize = 5;
+/// Above this many (instruction, position) pairs the capture pass uses no
+/// bit tables.
+const BIG_TABLE_BITS: usize = 1 << 27;
 
 pub struct Searcher<'a> {
     pub prog: &'a Program,
@@ -31,6 +37,9 @@ pub struct Searcher<'a> {
     pub multiline: bool,
     /// The line delimiter: `^` and `$` match next to it in `M` mode.
     pub delim: u8,
+    /// Address semantics (`Regex::is_match`): in `M` mode `\`` and `\'`
+    /// match at line boundaries like `^` and `$`.
+    pub address: bool,
     pub utf8: bool,
     pub icase: bool,
 }
@@ -60,9 +69,11 @@ impl<'a> Searcher<'a> {
             return false;
         }
         if self.utf8 {
+            // An invalid byte counts as a word character here (though `\w`
+            // does not match it).
             match decode_utf8(self.hay, pos) {
                 Some((c, _)) => is_word_char(c),
-                None => false,
+                None => true,
             }
         } else {
             is_word_byte(self.hay[pos])
@@ -76,7 +87,7 @@ impl<'a> Searcher<'a> {
         if self.utf8 {
             match decode_utf8_before(self.hay, pos) {
                 Some((c, _)) => is_word_char(c),
-                None => false,
+                None => true,
             }
         } else {
             is_word_byte(self.hay[pos - 1])
@@ -109,7 +120,13 @@ impl<'a> Searcher<'a> {
                     Check::Fail
                 }
             }
-            _ => hold(self.assert_ok(a, pos)),
+            Assert::BufStart if self.address && self.multiline => {
+                self.assert_check(Assert::LineStart, pos, start)
+            }
+            Assert::BufEnd if self.address && self.multiline => self.assert_check(Assert::LineEnd, pos, start),
+            Assert::BufStart | Assert::BufEnd => hold(self.assert_ok(a, pos)),
+            // Word assertions never hold inside a multibyte character.
+            _ => hold(!self.inside_char(pos) && self.assert_ok(a, pos)),
         }
     }
 
@@ -127,24 +144,51 @@ impl<'a> Searcher<'a> {
         }
     }
 
-    /// Length of the input unit at `pos` for stepping between candidate starts.
+    /// Distance to the next candidate start. GNU sed tries every byte
+    /// offset, also inside a multibyte character in UTF-8 (`s/\xa9/x/`
+    /// matches the second byte of `é`, `s/x*/-/g` splits it); units that
+    /// need a whole character simply fail there. Some patterns only start
+    /// at character boundaries (`Program::char_starts`).
     fn step_len(&self, pos: usize) -> usize {
-        if self.utf8 {
+        if self.prog.char_starts {
             decode_utf8(self.hay, pos).map_or(1, |(_, l)| l)
         } else {
             1
         }
     }
 
+    /// In UTF-8, whether `pos` falls inside a valid multibyte character.
+    fn inside_char(&self, pos: usize) -> bool {
+        if !self.utf8 || pos == 0 || pos >= self.hay.len() {
+            return false;
+        }
+        (1..=3).any(|back| {
+            pos >= back && decode_utf8(self.hay, pos - back).is_some_and(|(_, l)| l > back)
+        })
+    }
+
     fn may_start(&self, pos: usize) -> bool {
+        if self.prog.char_starts && self.inside_char(pos) {
+            return false;
+        }
         match &self.prog.first_bytes {
             None => true,
             Some(set) => pos < self.hay.len() && set.contains(self.hay[pos]),
         }
     }
 
+    /// Whether there is a match anywhere (address semantics, see `address`):
+    /// only the overall match matters, so the capture pass, with its
+    /// stricter reading of `$`, is skipped unless back-references need it.
+    pub fn exists(&self) -> bool {
+        if self.prog.has_backrefs {
+            return self.search(0).is_some();
+        }
+        self.longest(0).is_some()
+    }
+
     /// Finds the leftmost-longest match starting at or after `start`.
-    pub fn search(&self, start: usize) -> Option<(usize, Vec<Option<(usize, usize)>>)> {
+    pub fn search(&self, start: usize) -> Option<(usize, Groups)> {
         let len = self.hay.len();
         let mut from = start;
         loop {
@@ -178,10 +222,10 @@ impl<'a> Searcher<'a> {
             // it gives up this start and searches on.
             let mut bt = Backtracker::new(self, true);
             if bt.run(s, Some(e)).is_some() {
-                for g in 1..=self.prog.ngroups {
+                for (g, slot) in groups.iter_mut().enumerate().skip(1) {
                     let (a, b) = (bt.caps[2 * g], bt.caps[2 * g + 1]);
                     if a != NONE && b != NONE {
-                        groups[g] = Some((a, b));
+                        *slot = Some((a, b));
                     }
                 }
                 return Some((s, groups));
@@ -354,6 +398,8 @@ struct Backtracker<'s, 'a> {
     keyed: Vec<usize>,
     /// `$` only matches at a real line end (no newline consumed later).
     strict: bool,
+    /// The match is too long for the bit tables (see `run`).
+    big: bool,
 }
 
 #[derive(Clone, Copy)]
@@ -397,6 +443,7 @@ impl<'s, 'a> Backtracker<'s, 'a> {
             memo_set: HashSet::new(),
             keyed,
             strict,
+            big: false,
         }
     }
 
@@ -570,6 +617,9 @@ impl<'s, 'a> Backtracker<'s, 'a> {
     /// Marks a state reached right after consuming input; false if it was
     /// reached before.
     fn memo(&mut self, pc: u32, pos: usize) -> bool {
+        if self.big {
+            return self.memo_set.insert(vec![pc as usize, pos]);
+        }
         if self.s.prog.has_backrefs {
             let mut key = Vec::with_capacity(3 + 4 * self.keyed.len());
             key.push(pc as usize);
@@ -614,7 +664,7 @@ impl<'s, 'a> Backtracker<'s, 'a> {
         while i < b {
             match (decode_utf8(hay, i), decode_utf8(hay, j)) {
                 (Some((c1, l1)), Some((c2, l2))) => {
-                    if c1 != c2 && simple_lower(c1) != simple_lower(c2) {
+                    if c1 != c2 && simple_upper(c1) != simple_upper(c2) {
                         return None;
                     }
                     i += l1;
@@ -644,13 +694,19 @@ impl<'s, 'a> Backtracker<'s, 'a> {
         self.stack.clear();
         self.memo_set.clear();
         self.viable.clear();
+        self.big = false;
         if !prog.has_backrefs {
             let e = target.expect("only searched with back-references");
-            self.compute_viable(start, e);
             let nbits = (e - start + 1) * prog.insts.len();
-            self.memo_bits.clear();
-            self.memo_bits.resize(nbits.div_ceil(64), 0);
             self.base = start;
+            // Very long matches of large programs: no tables (they would
+            // take too much memory) and a hashed memo instead of a bitmap.
+            self.big = nbits > BIG_TABLE_BITS;
+            if !self.big {
+                self.compute_viable(start, e);
+                self.memo_bits.clear();
+                self.memo_bits.resize(nbits.div_ceil(64), 0);
+            }
         }
         let limit = target.unwrap_or(self.s.hay.len());
         let mut best: Option<usize> = None;

@@ -149,3 +149,53 @@ fn no_exponential_blowup() {
     let re = Regex::compile(b"\\(a*\\)*\\1b", &syn(false)).unwrap();
     assert!(!re.captures_at(&hay.as_bytes()[..40], 0, &mut caps));
 }
+
+#[test]
+fn address_semantics() {
+    let m = Syntax { multiline: true, ..syn(false) };
+    let re = Regex::compile(b"\\`b", &m).unwrap();
+    assert!(re.is_match(b"a\nb\nc"));
+    let mut caps = Captures::default();
+    assert!(!re.captures_at(b"a\nb\nc", 0, &mut caps));
+    let re = Regex::compile(b"b$(.)*", &syn(true)).unwrap();
+    assert!(re.is_match(b"ab\nbb"));
+    assert!(re.captures_at(b"ab\nbb", 0, &mut caps));
+    assert_eq!(caps.whole(), (4, 5));
+}
+
+#[test]
+fn null_data() {
+    let z = Syntax { multiline: true, null_data: true, ..syn(false) };
+    assert_eq!(sub_g("^.", "ab\ncd", &z), "<a>b\ncd");
+    assert_eq!(sub_g("^.", "ab\0cd", &z), "<a>b\0<c>d");
+    assert_eq!(sub_g("..", "b\n_ A", &z), "b\n<_ >A");
+}
+
+#[test]
+fn utf8() {
+    let u = Syntax { locale: Locale::Utf8, ..syn(false) };
+    assert_eq!(sub_g(".", "é中a", &u), "<é><中><a>");
+    assert_eq!(sub_g("\\w\\+", "é中x «x»", &u), "<é中x> «<x>»");
+    let ui = Syntax { icase: true, ..u };
+    assert_eq!(sub_g("ß", "ß ẞ", &ui), "<ß> ẞ");
+    assert_eq!(sub_g("ǆ", "Ǆǅǆ", &ui), "<Ǆ><ǅ><ǆ>");
+    assert_eq!(err("[à-é]", &u), "Invalid collation character");
+    // Raw bytes match inside a character; `.` does not match invalid bytes.
+    let re = Regex::compile(b"\xa9", &u).unwrap();
+    let mut caps = Captures::default();
+    assert!(re.captures_at("é".as_bytes(), 0, &mut caps));
+    assert_eq!(caps.whole(), (1, 2));
+    let re = Regex::compile(b"a.b", &u).unwrap();
+    assert!(!re.captures_at(b"a\xffb", 0, &mut caps));
+}
+
+#[test]
+fn long_lines_are_fast() {
+    let mut hay = "ab".repeat(20000);
+    hay.push('c');
+    let mut caps = Captures::default();
+    for (pat, ere) in [("(a|b)*c", true), ("\\(.*\\)c", false), ("([ab]+)+x", true), ("[a-z]*$", false)] {
+        let re = Regex::compile(pat.as_bytes(), &syn(ere)).unwrap();
+        re.captures_at(hay.as_bytes(), 0, &mut caps);
+    }
+}

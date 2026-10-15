@@ -106,7 +106,7 @@ ADR-003	address	first~step	verified	Addresses	step 0 equals first; first 0 allow
 ADR-004	address	/regexp/	verified	Addresses	
 ADR-005	address	\cREGEXPc custom delimiter	verified	Addresses	
 ADR-006	address	/regexp/I	verified	Addresses	
-ADR-007	address	/regexp/M	partial	Addresses	
+ADR-007	address	/regexp/M	verified	Addresses	
 ADR-008	address	empty regexp // reuses the last regexp used at run time	verified	Addresses	dynamic, not lexical
 ADR-009	address	regexp addresses see the current pattern space	verified	Addresses	
 ADR-010	address	addr1,addr2	verified	Addresses	range semantics: addr2 line number <= addr1 line gives one line; regexp end is checked from the next line
@@ -128,7 +128,7 @@ RGX-007	regex	BRE: \n and \\ and escaped special characters	verified	sed regular
 RGX-008	regex	ERE: + ? | ( ) { } unescaped	verified	sed regular expressions	backslash makes them literal
 RGX-009	regex	ERE: back-references \1 to \9 still need the backslash	partial	sed regular expressions	
 RGX-010	regex	ERE: ** accepted	verified	sed regular expressions	not affected by --posix
-RGX-011	regex	leftmost-longest matching	partial	sed regular expressions	POSIX semantics including alternation and subexpression rules
+RGX-011	regex	leftmost-longest matching	verified	sed regular expressions	POSIX semantics including alternation and subexpression rules
 RGX-012	regex	back-reference to a group that did not participate fails the match	partial	sed regular expressions	e.g. a(.)|b\1
 RGX-013	regex	back-references are local to each regexp	verified	sed regular expressions	a(.)|b\1 is a compile-time error ('Invalid back reference'), not a failed match; (x)|(y)\2 and (a)?b\1 are accepted
 RGX-014	regex	bracket expressions: lists, negation, ranges, placement of ] - ^	verified	sed regular expressions	
@@ -137,24 +137,24 @@ RGX-016	regex	bracket expressions: [.ch.] collating symbols and [=a=] equivalenc
 RGX-017	regex	bracket expressions: [:digit:] outside brackets is an error	verified	sed regular expressions	'character class syntax is [[:space:]], not [:space:]'
 RGX-018	regex	bracket expressions: \n \t and other escapes inside lists	verified	sed regular expressions	not recognized when POSIXLY_CORRECT is set
 RGX-019	regex	extension \w \W	verified	sed regular expressions	
-RGX-020	regex	extension \b \B	partial	sed regular expressions	
+RGX-020	regex	extension \b \B	verified	sed regular expressions	
 RGX-021	regex	extension \s \S	verified	sed regular expressions	
 RGX-022	regex	extension \< \>	verified	sed regular expressions	
 RGX-023	regex	extension \` \'	verified	sed regular expressions	buffer start and end, unlike ^ and $ in M mode
 RGX-024	regex	M mode: ^ and $ also match after and before newlines; . excludes newline	verified	sed regular expressions	
-RGX-025	regex	I mode: case-insensitive matching	partial	sed regular expressions	
-RGX-026	regex	regexp syntax errors reported as errors (exit 1)	partial	sed regular expressions	unterminated, unmatched ( or [, invalid back-reference, invalid interval
+RGX-025	regex	I mode: case-insensitive matching	verified	sed regular expressions	
+RGX-026	regex	regexp syntax errors reported as errors (exit 1)	verified	sed regular expressions	unterminated, unmatched ( or [, invalid back-reference, invalid interval
 ESC-001	escape	\a \f \n \r \t \v	verified	Escapes	
 ESC-002	escape	\cX control character	verified	Escapes	
 ESC-003	escape	\dNNN decimal, \oNNN octal, \xHH hexadecimal	verified	Escapes	one to three or two digits; only low 8 bits used
 ESC-004	escape	escapes processed before regexp compilation	verified	Escapes	\x5e behaves as ^ in s/\x5e/b/
 ESC-005	escape	\b is word boundary in regexps, not backspace	verified	Escapes	
 ESC-006	escape	escapes in replacement text, y strings, and a/i/c text	verified	Escapes	
-LOC-001	locale	C locale: byte-wise processing	partial	Locale Considerations	first target (D2)
-LOC-002	locale	UTF-8 and other multibyte locales: character-wise . and bracket expressions	partial	Locale Considerations	
+LOC-001	locale	C locale: byte-wise processing	verified	Locale Considerations	first target (D2)
+LOC-002	locale	UTF-8 and other multibyte locales: character-wise . and bracket expressions	verified	Locale Considerations	
 LOC-003	locale	invalid multibyte sequences in input	verified	Locale Considerations	may not match . or .*; z command clears them
 LOC-004	locale	case conversion \U \L \u \l with multibyte characters	verified	Locale Considerations	
-LOC-005	locale	character classes and collation in other locales	partial	Locale Considerations	
+LOC-005	locale	character classes and collation in other locales	verified	Locale Considerations	
 LOC-006	locale	LC_ALL, LC_CTYPE, LC_COLLATE, LANG selection	verified	Locale Considerations	
 CYC-001	cycle	read a line, strip the newline, run the script, auto-print, next cycle	verified	Execution Cycle	
 CYC-002	cycle	missing final newline preserved on output	verified	Execution Cycle	a newline is added only when more output follows on the same stream
@@ -178,8 +178,8 @@ ENV-001	env	POSIXLY_CORRECT	verified	Reporting Bugs	changes N at EOF and escapes
 ENV-002	env	v command overrides POSIXLY_CORRECT for extensions	verified	Reporting Bugs	
 RGX-027	regex	--posix BRE: GNU extensions \+ \? \| and repeated postfix operators are not special	verified	Command-Line Options; Reporting Bugs	Dialect: BRE with restrictions
 RGX-028	regex	--posix ERE: restrictions that --posix applies to ERE	verified	Command-Line Options; Reporting Bugs	the manual says ** in ERE is not affected by --posix
-RGX-029	regex	POSIXLY_CORRECT regex differences	partial	Command-Line Options; Reporting Bugs	escapes such as \n and \t inside bracket expressions are not recognized
-RGX-030	regex	dialect x locale combinations	partial	Command-Line Options; Reporting Bugs	each dialect must behave correctly in the C locale and in multibyte locales
+RGX-029	regex	POSIXLY_CORRECT regex differences	verified	Command-Line Options; Reporting Bugs	escapes such as \n and \t inside bracket expressions are not recognized
+RGX-030	regex	dialect x locale combinations	verified	Command-Line Options; Reporting Bugs	each dialect must behave correctly in the C locale and in multibyte locales
 OPT-020	option	-E/-r affects only scripts parsed after it	unsupported	tests	each -e/-f is compiled as it is parsed: sed -f s.sed -E can fail where sed -E -f s.sed works
 OPT-021	option	#n first line: any text after #n still forces -n	unsupported	tests	#no and '#n x' act as -n; ' #n' (leading space) does not; only the first script chunk counts (first -e or the start of -f)
 OPT-022	option	-l with invalid arguments	unsupported	tests	-l x and -l -1 are accepted silently, -l 3x reads as 3

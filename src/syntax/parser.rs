@@ -319,10 +319,10 @@ impl Parser {
         };
         match Regex::compile(&normalize_escapes(text, o.posixly_correct), &syntax) {
             Ok(re) => Ok(Pattern { regex: Some(Rc::new(re)), source: text.to_vec(), icase, multiline }),
-            Err(e) if e.message.starts_with("character class syntax is") => Err(SyntaxError {
+            Err(e) if !e.has_location() => Err(SyntaxError {
                 location: Location::Bare,
+                status: e.exit_status(),
                 message: e.message,
-                status: 4,
                 touched: self.touched.clone(),
             }),
             Err(e) => Err(self.error(&e.message)),
