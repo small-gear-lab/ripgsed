@@ -1,4 +1,4 @@
-mk() { localedef -f UTF-8 -i "${1%%.*}" "$PWD/loc/$1" > /dev/null 2>&1; }
+mk() { mkdir -p "$PWD/loc"; localedef -f UTF-8 -i "${1%%.*}" "$PWD/loc/$1" > /dev/null 2>&1; }
 mk en_US.UTF-8
 mk tr_TR.UTF-8
 export LOCPATH=$PWD/loc

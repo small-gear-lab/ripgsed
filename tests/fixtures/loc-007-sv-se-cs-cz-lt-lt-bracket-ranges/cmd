@@ -1,4 +1,4 @@
-mk() { localedef -f UTF-8 -i "${1%%.*}" "$PWD/loc/$1" > /dev/null 2>&1; }
+mk() { mkdir -p "$PWD/loc"; localedef -f UTF-8 -i "${1%%.*}" "$PWD/loc/$1" > /dev/null 2>&1; }
 mk sv_SE.UTF-8
 mk cs_CZ.UTF-8
 mk lt_LT.UTF-8

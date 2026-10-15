@@ -35,12 +35,6 @@ jobs:
       # definitions in /usr/share/i18n, so the `locales` package must be there.
       - name: Locale definitions and localedef
         run: sudo apt-get update && sudo apt-get install -y locales
-      - name: Diagnose localedef (temporary)
-        run: |
-          w=$(mktemp -d); cd "$w"
-          sed 's#> /dev/null 2>&1; }#; echo "localedef rc=$?"; }#' "$GITHUB_WORKSPACE/tests/fixtures/loc-009-tr-tr-turkish-case-rules/cmd" > cmd.sh
-          sed -n '1,3p' cmd.sh
-          env -i PATH=/usr/bin:/bin HOME=/nonexistent LC_ALL=C sh -x cmd.sh 2>&1 | sed -n '1,25p'
       - name: The reference sed must be GNU sed 4.9
         run: sed --version | sed -n '1p'
       - name: Regenerate the expected results
