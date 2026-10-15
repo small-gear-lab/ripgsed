@@ -205,7 +205,7 @@ fn long_lines_are_fast() {
 fn dfa_agrees_with_simulation() {
     let atoms = [
         "a", "b", "c", ".", "[ab]", "[^a]", "a*", "b+", "c?", "(a|b)", "(ab|a)", "x*", "^", "$", "\\b", "\\<", "\\>", "\\w", "\\W",
-        "a{2}", "[a-c]*", "(a*)b", "()", "(abc|c)", "(a*c|b)", "(ab|bca|c)",
+        "a{2}", "[a-c]*", "(a*)b", "()", "(abc|c)", "(a*c|b)", "(ab|bca|c)", "(a)(b)", "(a(b))c", "((a)b)(c)", "()a", ".(b)",
     ];
     let hays = ["", "a", "ab", "abc", "aab b", "cab ab", "xx a_b", "b a", "  ab", "abcabc", "a b", "bbbaaa", "ca"];
     let mut seed = 0x2545f4914f6cdd1du64;
@@ -233,9 +233,11 @@ fn dfa_agrees_with_simulation() {
                 let ra = re.captures_at(hay.as_bytes(), start, &mut a);
                 let ea = re.is_match(hay.as_bytes());
                 re.use_dfa = false;
+                let fixed = re.fixed.take();
                 let mut b = Captures::default();
                 let rb = re.captures_at(hay.as_bytes(), start, &mut b);
                 let eb = re.is_match(hay.as_bytes());
+                re.fixed = fixed;
                 assert_eq!((ra, &a.groups, ea), (rb, &b.groups, eb), "pattern {pat:?} ere={ere} hay {hay:?} start {start}");
             }
         }

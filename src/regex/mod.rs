@@ -186,6 +186,7 @@ pub struct Regex {
     scratch: std::cell::RefCell<exec::Scratch>,
     /// The syntax tree, kept to build the reversed program of the DFA.
     node: ast::Node,
+    fixed: Option<(usize, Vec<(usize, usize)>)>,
     dfa: std::cell::RefCell<dfa::DfaSlot>,
     /// Off to test the DFA against the simulation.
     use_dfa: bool,
@@ -204,8 +205,9 @@ impl Regex {
     pub fn compile_with_delimiter(pattern: &[u8], syntax: &Syntax, delim: u8) -> Result<Regex, CompileError> {
         let parsed = parse::parse(pattern, syntax, delim)?;
         let prog = compile::compile(&parsed.node, parsed.ngroups, parsed.referenced, parsed.char_starts, parsed.utf8)?;
+        let prog_has_no_backrefs = !prog.has_backrefs;
         let literals = literal::analyze(&parsed.node, syntax.locale == Locale::Utf8);
-        Ok(Regex { prog, syntax: *syntax, delim, literals, scratch: Default::default(), node: parsed.node, dfa: Default::default(), use_dfa: true })
+        Ok(Regex { prog, syntax: *syntax, delim, literals, scratch: Default::default(), fixed: if prog_has_no_backrefs { dfa::fixed_groups(&parsed.node, parsed.ngroups) } else { None }, node: parsed.node, dfa: Default::default(), use_dfa: true })
     }
 
     /// Number of parenthesized subexpressions.
@@ -239,6 +241,7 @@ impl Regex {
             scratch: &self.scratch,
             dfa: &self.dfa,
             node: &self.node,
+            fixed: self.fixed.as_ref(),
             use_dfa: self.use_dfa,
             prog: &self.prog,
             hay: haystack,
@@ -276,6 +279,7 @@ impl Regex {
             scratch: &self.scratch,
             dfa: &self.dfa,
             node: &self.node,
+            fixed: self.fixed.as_ref(),
             use_dfa: self.use_dfa,
             prog: &self.prog,
             hay: haystack,

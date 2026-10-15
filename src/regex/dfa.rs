@@ -427,3 +427,33 @@ impl DfaSlot {
         }
     }
 }
+
+/// For a pattern that is a fixed sequence of single bytes, with groups around parts of it, the
+/// offsets (from the match start) of every group: the match length and the sub-matches then need
+/// no search. `None` for anything else.
+pub fn fixed_groups(node: &super::ast::Node, ngroups: usize) -> Option<(usize, Vec<(usize, usize)>)> {
+    use super::ast::{Node, Unit};
+    fn walk(node: &Node, at: usize, groups: &mut [(usize, usize)]) -> Option<usize> {
+        match node {
+            Node::Empty => Some(at),
+            Node::Unit(Unit::Byte(_)) => Some(at + 1),
+            Node::Group(n, inner) => {
+                let end = walk(inner, at, groups)?;
+                *groups.get_mut(*n)? = (at, end);
+                Some(end)
+            }
+            Node::Concat(children) => {
+                let mut pos = at;
+                for child in children {
+                    pos = walk(child, pos, groups)?;
+                }
+                Some(pos)
+            }
+            _ => None,
+        }
+    }
+    let mut groups = vec![(usize::MAX, usize::MAX); ngroups + 1];
+    let width = walk(node, 0, &mut groups)?;
+    // Every group must be placed (a group number the walk never met would be unset).
+    groups.iter().skip(1).all(|g| g.0 != usize::MAX).then_some((width, groups))
+}

@@ -42,6 +42,12 @@ pub struct Scratch {
     generation: usize,
     stack: Vec<(u32, bool)>,
     consuming: Vec<(u32, usize)>,
+    /// Buffers of `Backtracker`, handed back when it is dropped.
+    bt_caps: Vec<usize>,
+    bt_snap: Vec<usize>,
+    bt_stamp: Vec<u64>,
+    bt_trail: Vec<Undo>,
+    bt_stack: Vec<Choice>,
 }
 
 impl Scratch {
@@ -73,6 +79,8 @@ pub struct Searcher<'a> {
     pub scratch: &'a std::cell::RefCell<Scratch>,
     pub dfa: &'a std::cell::RefCell<super::dfa::DfaSlot>,
     pub node: &'a super::ast::Node,
+    /// Offsets of the groups of a fixed-width pattern (see `dfa::fixed_groups`).
+    pub fixed: Option<&'a (usize, Vec<(usize, usize)>)>,
     /// Off in tests that compare the DFA with the simulation.
     pub use_dfa: bool,
     pub prog: &'a Program,
@@ -304,6 +312,14 @@ impl<'a> Searcher<'a> {
             if self.prog.ngroups == 0 {
                 return Some((s, groups));
             }
+            if let Some((width, offsets)) = self.fixed {
+                if e - s == *width {
+                    for (slot, &(a, b)) in groups.iter_mut().zip(offsets).skip(1) {
+                        *slot = Some((s + a, s + b));
+                    }
+                    return Some((s, groups));
+                }
+            }
             // GNU sed assigns the subexpressions with the strict reading of
             // `$` (see `assert_check`); when no such path reaches the end,
             // it gives up this start and searches on.
@@ -488,14 +504,14 @@ struct Backtracker<'s, 'a> {
     big: bool,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 enum Undo {
     Cap(u32, usize),
     Snap(u32, usize),
     Stamp(u32, u64),
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 struct Choice {
     pc: u32,
     pos: usize,
@@ -507,17 +523,47 @@ struct Choice {
     c: bool,
 }
 
+impl Drop for Backtracker<'_, '_> {
+    fn drop(&mut self) {
+        if let Ok(mut sc) = self.s.scratch.try_borrow_mut() {
+            sc.bt_caps = std::mem::take(&mut self.caps);
+            sc.bt_snap = std::mem::take(&mut self.snap);
+            sc.bt_stamp = std::mem::take(&mut self.stamp);
+            sc.bt_trail = std::mem::take(&mut self.trail);
+            sc.bt_stack = std::mem::take(&mut self.stack);
+        }
+    }
+}
+
 impl<'s, 'a> Backtracker<'s, 'a> {
     fn new(s: &'s Searcher<'a>, strict: bool) -> Self {
         let n = 2 * (s.prog.ngroups + 1);
         let keyed = (1..=s.prog.ngroups).filter(|&g| s.prog.referenced[g]).collect();
+        let (mut caps, mut snap, mut stamp, mut trail, mut stack) = {
+            let mut sc = s.scratch.borrow_mut();
+            (
+                std::mem::take(&mut sc.bt_caps),
+                std::mem::take(&mut sc.bt_snap),
+                std::mem::take(&mut sc.bt_stamp),
+                std::mem::take(&mut sc.bt_trail),
+                std::mem::take(&mut sc.bt_stack),
+            )
+        };
+        caps.clear();
+        caps.resize(n, NONE);
+        snap.clear();
+        snap.resize(n, NONE);
+        stamp.clear();
+        stamp.resize(s.prog.insts.len(), 0);
+        trail.clear();
+        stack.clear();
         Backtracker {
             s,
-            caps: vec![NONE; n],
-            snap: vec![NONE; n],
-            trail: Vec::new(),
-            stack: Vec::new(),
-            stamp: vec![0; s.prog.insts.len()],
+            caps,
+            snap,
+            trail,
+            stack,
+            stamp,
             seg: 1,
             next_seg: 2,
             viable: Vec::new(),
