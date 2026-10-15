@@ -1,0 +1,7 @@
+SED PROGRAM:
+  L
+  L 5
+INPUT:   'a.txt' line 1
+PATTERN: a
+COMMAND: L
+4

@@ -5,6 +5,7 @@ adr-001-line-number-big
 adr-001-line-number-grouped
 adr-001-line-number-multiple-commands
 adr-001-line-number-multiple-files
+adr-001-line-number-skip-across-input-chunks
 adr-001-line-number-spaces
 adr-001-line-number-substitute
 adr-002-last-line
@@ -463,6 +464,7 @@ cmd-018-q-pending-r-R
 cmd-018-q-quiet
 cmd-018-q-regex-address
 cmd-018-q-semicolon-brace
+cmd-018-q-stdin-lookahead-leaves-rest
 cmd-018-q-stdin-rest-unread
 cmd-018-q-z
 cmd-019-Q-basic
@@ -619,6 +621,8 @@ cmd-026-w-shared-handle
 cmd-026-w-shared-handle-in-order
 cmd-026-w-truncates-existing
 cmd-026-w-two-different-files
+cmd-026-w-unopenable-file
+cmd-026-w-unopenable-file-in-place
 cmd-026-w-unwritable-path
 cmd-027-W-address-range
 cmd-027-W-basic
@@ -1040,6 +1044,7 @@ ext-006-closed-stdout
 ext-006-pipe-reader-exits-early
 ext-006-w-dev-stdout-closed
 ext-006-write-error-dev-full
+ext-010-closed-stdout-with-p
 ext-012-in-place-temp-file-name
 inv-001-no-script-given
 inv-001-script-as-first-operand
@@ -1066,6 +1071,7 @@ inv-004-a-i-r-across-files
 inv-004-continuous-stream
 inv-004-last-file-empty-or-missing
 inv-004-missing-newline-between-files
+inv-004-read-error-on-directory-while-skipping-lines
 inv-005-output-no-trailing-newline-preserved
 inv-005-output-ordering-with-stdout-w
 inv-005-output-to-stdout
@@ -1137,12 +1143,16 @@ loc-003-invalid-utf8-dot
 loc-003-invalid-utf8-passthrough
 loc-003-invalid-utf8-z-command
 loc-003-truncated-and-overlong-sequences
+loc-003-utf8-truncated-sequence-at-end
 loc-004-utf8-case-conversion
 loc-004-utf8-case-insensitive-match
 loc-005-c-locale-classes-ascii-only
 loc-005-collation-order-codepoint
 loc-005-utf8-character-classes
 loc-005-utf8-collation-order-codepoint
+loc-005-utf8-nonascii-cntrl-graph-print
+loc-005-utf8-nonascii-digit-xdigit
+loc-005-utf8-nonascii-lower-upper-blank
 loc-005-utf8-word-boundaries-and-shorthand
 loc-006-lang-only-utf8
 loc-006-lang-utf8-with-empty-lc-all
@@ -1189,6 +1199,8 @@ opt-004-debug-19
 opt-004-debug-20
 opt-004-debug-21
 opt-004-debug-22
+opt-004-debug-23
+opt-004-debug-24
 opt-004-debug-command-listing
 opt-004-debug-e-command-trace
 opt-004-debug-extended-regex
@@ -1300,8 +1312,10 @@ opt-013-binary-long
 opt-013-binary-short
 opt-013-binary-stdin-nul
 opt-014-follow-symlinks-abbrev
+opt-014-follow-symlinks-absolute-target
 opt-014-follow-symlinks-basic
 opt-014-follow-symlinks-chain-and-broken
+opt-014-follow-symlinks-loop-after-line-skip
 opt-014-follow-symlinks-loops-and-limit
 opt-014-follow-symlinks-no-in-place
 opt-014-follow-symlinks-read-errors
@@ -1539,6 +1553,7 @@ rgx-025-i-mode-combined-with-other-flags
 rgx-025-i-mode-empty-regexp-modifier-error
 rgx-025-i-mode-ere-alternation-and-intervals
 rgx-025-i-mode-utf8
+rgx-025-utf8-titlecase-digraphs
 rgx-026-error-address-regexp-messages
 rgx-026-error-ere-messages
 rgx-026-error-invalid-regexp-at-runtime-vs-parse
@@ -1587,6 +1602,7 @@ rgx-032-posix-extension-variants
 rgx-033-posixly-correct-regexp-extensions
 rgx-033-posixly-correct-regexp-extensions-default-locale-compare
 rgx-034-multibyte-bracket-errors
+rgx-034-utf8-invalid-byte-in-bracket
 rgx-035-interval-limits
 rgx-036-empty-regexp-errors
 rgx-037-locale-dependent-classes
@@ -1805,6 +1821,7 @@ syn-016-y-command-errors
 syn-017-text-oneliner-rules
 syn-018-repeated-negation
 syn-019-brace-then-command-and-extra-chars
+syn-019-carriage-return-after-command
 syn-020-address-syntax-errors
 syn-021-label-rules
 syn-022-filename-to-end-of-line

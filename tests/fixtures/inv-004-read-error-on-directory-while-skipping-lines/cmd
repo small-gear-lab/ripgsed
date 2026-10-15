@@ -1,0 +1,1 @@
+mkdir d; sed -n "1p;9p" a.txt d; echo $?

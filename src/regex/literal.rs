@@ -38,11 +38,11 @@ impl ByteSet {
 pub fn analyze(node: &Node, ascii_only: bool) -> Literals {
     let mut lits = Literals::default();
     if let Some(bytes) = pure(node, ascii_only) {
-        if !bytes.is_empty() {
-            lits.pure = Some(Finder::new(&bytes));
-            lits.required = Some(Finder::new(&bytes));
-            return lits;
-        }
+        // The parser gives no empty concatenation.
+        debug_assert!(!bytes.is_empty());
+        lits.pure = Some(Finder::new(&bytes));
+        lits.required = Some(Finder::new(&bytes));
+        return lits;
     }
     if let Some(bytes) = literal_of(node, ascii_only).filter(|b| !b.is_empty()) {
         lits.grouped = Some(Finder::new(&bytes));
@@ -59,7 +59,6 @@ fn single(node: &Node, ascii_only: bool) -> Option<Vec<u8>> {
         Node::Unit(Unit::Chars(cs)) if ascii_only => {
             let plain = !cs.negated
                 && cs.classes.is_empty()
-                && cs.raw == ByteSet::empty()
                 && !cs.icase
                 && !cs.by_upper
                 && cs.exclude.is_none()

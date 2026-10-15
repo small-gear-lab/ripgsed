@@ -182,7 +182,7 @@ fn kind_text(kind: &Kind, utf8: bool, out: &mut Vec<u8>) {
             out.push(b'/');
         }
         Kind::Substitute(sub) => substitute_text(sub, out),
-        Kind::Version => simple(out, "v"),
+        Kind::Version => unreachable!("`v` is skipped by program() and never run in debug mode"),
     }
 }
 

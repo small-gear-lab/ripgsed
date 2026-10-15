@@ -75,19 +75,13 @@ fn convert(out: &mut Vec<u8>, ch: &[u8], how: Mode, locale: Locale) {
         return;
     }
     // One character maps to one character (like towupper): `ß` stays `ß`, not `SS`.
-    let converted = std::str::from_utf8(ch).ok().and_then(|s| {
-        let c = s.chars().next()?;
-        Some(match how {
-            Mode::Upper => crate::regex::simple_upper(c),
-            Mode::Lower => crate::regex::simple_lower(c),
-            Mode::None => c,
-        })
-    });
-    match converted {
-        Some(c) => {
-            let mut buf = [0u8; 4];
-            out.extend_from_slice(c.encode_utf8(&mut buf).as_bytes());
-        }
-        None => out.extend_from_slice(ch),
-    }
+    // `char_len` hands out whole, valid characters when it gives more than one byte.
+    let c = std::str::from_utf8(ch).ok().and_then(|s| s.chars().next()).expect("a valid UTF-8 character");
+    let c = match how {
+        Mode::Upper => crate::regex::simple_upper(c),
+        Mode::Lower => crate::regex::simple_lower(c),
+        Mode::None => c,
+    };
+    let mut buf = [0u8; 4];
+    out.extend_from_slice(c.encode_utf8(&mut buf).as_bytes());
 }

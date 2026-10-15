@@ -190,6 +190,36 @@ mod tests {
         }
     }
 
+    /// A reader that is interrupted once, then fails, around its data.
+    struct Flaky<'a> {
+        data: &'a [u8],
+        calls: usize,
+    }
+
+    impl Read for Flaky<'_> {
+        fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+            self.calls += 1;
+            match self.calls {
+                1 => Err(io::Error::from(io::ErrorKind::Interrupted)),
+                2 => {
+                    let n = self.data.len().min(buf.len());
+                    buf[..n].copy_from_slice(&self.data[..n]);
+                    self.data = &self.data[n..];
+                    Ok(n)
+                }
+                _ => Err(io::Error::from(io::ErrorKind::PermissionDenied)),
+            }
+        }
+    }
+
+    #[test]
+    fn an_interrupted_read_is_retried_and_other_errors_are_reported() {
+        let mut reader = ChunkReader::new(Flaky { data: b"a\nb\n", calls: 0 }, b'\n', 16);
+        let first = reader.next_chunk().unwrap().unwrap();
+        assert_eq!(first.data, b"a\nb\n");
+        assert_eq!(reader.next_chunk().unwrap_err().kind(), io::ErrorKind::PermissionDenied);
+    }
+
     #[test]
     fn a_terminated_input_has_no_unterminated_tail() {
         let got = chunks(b"a\nb\n", 3, vec![2]);

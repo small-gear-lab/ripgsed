@@ -167,8 +167,7 @@ impl RecordSource for ChunkRecords {
     }
 
     fn is_last(&mut self, _separate: bool) -> Result<bool, Fatal> {
-        // Scripts that ask are not run chunk by chunk (see `analysis`).
-        Ok(false)
+        unreachable!("scripts that ask are not run chunk by chunk (see `analysis`)")
     }
 }
 
@@ -656,11 +655,11 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
             }
             (None, Addr2::Last) => self.is_last()?,
             (None, Addr2::Regex(p)) => self.regex_matches(p)?,
-            (None, Addr2::Line(n)) => line >= *n,
             (None, Addr2::Step { first, step }) => {
                 line >= *first && if *step == 0 { line == *first } else { (line - *first) % *step == 0 }
             }
-            (None, _) => false,
+            // Line-number ends always carry their line in `until`.
+            (None, Addr2::Line(_) | Addr2::Plus(_) | Addr2::Multiple(_)) => unreachable!("an end line number is kept in `until`"),
         };
         self.ranges[index] = if ends { Self::ended(a1) } else { RangeState::Active { until, overshoot } };
         if matches!(a1, Addr::Line(0)) && ends {
@@ -745,17 +744,15 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                         return self.no_next_line(true);
                     }
                     self.autoprint()?;
-                    if !self.read_line(false)? {
-                        return Ok(Flow::Quit { code: 0, print: false, finish_line: false, trace_end: false });
-                    }
+                    let more = self.read_line(false)?;
+                    debug_assert!(more, "is_last said that a line follows");
                 }
                 Kind::NextAppend => {
                     if self.is_last()? {
                         return self.no_next_line(false);
                     }
-                    if !self.read_line(true)? {
-                        return Ok(Flow::Quit { code: 0, print: true, finish_line: false, trace_end: false });
-                    }
+                    let more = self.read_line(true)?;
+                    debug_assert!(more, "is_last said that a line follows");
                 }
                 Kind::Print => self.print_pattern()?,
                 Kind::PrintFirst => {
@@ -1073,6 +1070,3 @@ pub(crate) fn char_len(bytes: &[u8]) -> usize {
     };
     if bytes.len() >= want && std::str::from_utf8(&bytes[..want]).is_ok() { want } else { 1 }
 }
-
-#[allow(dead_code)]
-fn unused(_: &ReplacementPart, _: &mut dyn Write) {}

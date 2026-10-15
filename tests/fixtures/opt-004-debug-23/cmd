@@ -1,0 +1,1 @@
+sed --debug -n 'z;1,2~3p;F' a.txt

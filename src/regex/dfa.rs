@@ -176,7 +176,7 @@ impl Dfa {
                         self.stack.push(pc + 1);
                     }
                 }
-                Inst::Backref(_) => {}
+                Inst::Backref(_) => unreachable!("`supports` rejects programs with back-references"),
                 Inst::Match => matched = true,
             }
         }
@@ -450,7 +450,7 @@ impl DfaSlot {
 }
 
 /// The pattern with every character unit written as the UTF-8 byte sequences it matches, or
-/// `None` when it has something that cannot be (case folding, raw bytes, word assertions, which
+/// `None` when it has something that cannot be (case folding, word assertions, which
 /// depend on whole characters, or a set too large).
 fn expand_utf8(node: &super::ast::Node) -> Option<super::ast::Node> {
     use super::ast::Node;
@@ -458,7 +458,7 @@ fn expand_utf8(node: &super::ast::Node) -> Option<super::ast::Node> {
     fn walk(node: &Node, budget: &mut usize) -> Option<Node> {
         Some(match node {
             Node::Empty => Node::Empty,
-            Node::Backref(_) => return None,
+            Node::Backref(_) => unreachable!("`supports` rejects programs with back-references"),
             Node::Assert(a) => match a {
                 Assert::WordBoundary | Assert::NotWordBoundary | Assert::WordStart | Assert::WordEnd => return None,
                 _ => Node::Assert(*a),
@@ -481,7 +481,7 @@ fn expand_utf8(node: &super::ast::Node) -> Option<super::ast::Node> {
                 sequences(&ranges, budget)?
             }
             Node::Unit(Unit::Chars(cs)) => {
-                if cs.icase || cs.by_upper || cs.raw != super::charset::ByteSet::empty() {
+                if cs.icase || cs.by_upper {
                     return None;
                 }
                 let mut ranges = cs.ranges.clone();
@@ -577,9 +577,7 @@ fn sequences(ranges: &[(u32, u32)], budget: &mut usize) -> Option<super::ast::No
 
 /// Splits a range of scalar values into runs whose encodings are products of byte ranges.
 fn split_utf8(lo: u32, hi: u32, out: &mut Vec<Vec<(u8, u8)>>) {
-    if lo > hi {
-        return;
-    }
+    debug_assert!(lo <= hi);
     // One encoded length at a time.
     for &(top, _) in &[(0x7fu32, 1), (0x7ff, 2), (0xffff, 3)] {
         if lo <= top && hi > top {

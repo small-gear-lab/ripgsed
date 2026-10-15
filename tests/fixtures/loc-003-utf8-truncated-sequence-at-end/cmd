@@ -1,0 +1,1 @@
+printf 'a\343\201' | sed 's/./X/g'; echo; printf 'a\343\201' | sed 's/a./X/g'; echo; printf 'a\377\n' | sed 's/[^a]*/\U&/'; printf 'a\377b\n' | sed 's/\(a\)\(.\)/\U\1\2/'

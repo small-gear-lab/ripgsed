@@ -366,3 +366,298 @@ fn glibc_quirks_are_opt_in() {
         assert_eq!(span(pat, text, true), glibc, "glibc_compat: {pat} on {text}");
     }
 }
+
+fn utf8_syntax(ere: bool) -> Syntax {
+    Syntax { locale: Locale::Utf8, ..syn(ere) }
+}
+
+/// Whether the DFA path and the simulation path give the same answer for every start.
+fn assert_dfa_agrees(pat: &[u8], s: &Syntax, hay: &[u8]) {
+    let mut re = Regex::compile(pat, s).unwrap_or_else(|e| panic!("{}: {e}", String::from_utf8_lossy(pat)));
+    for start in 0..=hay.len() {
+        re.use_dfa = true;
+        let mut a = Captures::default();
+        let ra = re.captures_at(hay, start, &mut a);
+        let ea = re.is_match(hay);
+        re.use_dfa = false;
+        let fixed = re.fixed.take();
+        let mut b = Captures::default();
+        let rb = re.captures_at(hay, start, &mut b);
+        let eb = re.is_match(hay);
+        re.fixed = fixed;
+        assert_eq!((ra, &a.groups, ea), (rb, &b.groups, eb), "pattern {:?} hay {:?} start {start}", String::from_utf8_lossy(pat), String::from_utf8_lossy(hay));
+    }
+}
+
+/// The regexp parser takes the escapes that the sed parser has normally converted already.
+#[test]
+fn the_regex_parser_accepts_gnu_escapes() {
+    let b = syn(false);
+    for (pat, text, want) in [
+        ("a\\tb", "a\tb", "<a\tb>"),
+        ("a\\ab", "a\u{7}b", "<a\u{7}b>"),
+        ("a\\fb", "a\u{c}b", "<a\u{c}b>"),
+        ("a\\vb", "a\u{b}b", "<a\u{b}b>"),
+        ("a\\rb", "a\rb", "<a\rb>"),
+        ("a\\x41b", "aAb", "<aAb>"),
+        ("a\\d066b", "aBb", "<aBb>"),
+        ("a\\o103b", "aCb", "<aCb>"),
+        ("\\cA", "\u{1}", "<\u{1}>"),
+        ("\\ca", "\u{1}", "<\u{1}>"),
+        // Without digits the letter stands for itself.
+        ("a\\xg", "axg", "<axg>"),
+    ] {
+        assert_eq!(sub_g(pat, text, &b), want, "{pat:?}");
+    }
+    assert_eq!(err("a\\c", &b), "ok");
+}
+
+#[test]
+fn an_invalid_byte_in_a_bracket_expression() {
+    let u = utf8_syntax(false);
+    // The byte alone matches nothing; as the end of a range it is the character of that number.
+    assert_eq!(sub_g("[\u{fffd}]", "a", &u), "a");
+    let pat = |p: &[u8]| Regex::compile(p, &u).map(|_| ()).map_err(|e| e.message);
+    assert_eq!(pat(b"[\xff]"), Ok(()));
+    assert_eq!(pat(b"[\xffa]"), Ok(()));
+    assert_eq!(pat(b"[a-\xff]"), Ok(()));
+    assert_eq!(pat(b"[\xff-\xff]"), Ok(()));
+    assert_eq!(pat(b"[\xff-z]"), Err("Invalid range end".to_string()));
+    assert_eq!(pat("[é-\u{ff}]".as_bytes()), Err("Invalid collation character".to_string()));
+    assert_eq!(pat(b"[[:alpha:]-z]"), Err("Invalid range end".to_string()));
+    assert_eq!(pat(b"[a-c-e]"), Err("Invalid range end".to_string()));
+    assert_eq!(pat(b"[a-c-]"), Ok(()));
+    assert_eq!(pat(b"[[:alpha]"), Err("Unmatched [, [^, [:, [., or [=".to_string()));
+    assert_eq!(pat(b"[a-[:alpha:]]"), Err("Invalid range end".to_string()));
+    assert_eq!(pat(b"[a-[=b=]]"), Err("Invalid range end".to_string()));
+    // Matching: the range a-\xff holds ASCII letters and Latin-1 characters, never the invalid byte.
+    let re = Regex::compile(b"[a-\xff]", &u).unwrap();
+    let mut caps = Captures::default();
+    assert!(re.captures_at("é".as_bytes(), 0, &mut caps));
+    assert!(!re.captures_at(b"\xff", 0, &mut caps));
+    let re = Regex::compile(b"[\xff]", &u).unwrap();
+    assert!(!re.captures_at(b"\xff", 0, &mut caps));
+    assert!(!re.captures_at("\u{ff}".as_bytes(), 0, &mut caps));
+}
+
+#[test]
+fn a_regex_that_is_too_big() {
+    let e = syn(true);
+    assert_eq!(err("((a{1000}){1000}){10}", &e), "Regular expression too big");
+}
+
+#[test]
+fn small_api_corners() {
+    let e = syn(true);
+    // An empty pattern, and one with only an empty group, take no literal shortcut.
+    for pat in ["", "()", "(|)"] {
+        let re = Regex::compile(pat.as_bytes(), &e).unwrap();
+        let mut caps = Captures::default();
+        assert!(re.captures_at(b"abc", 1, &mut caps), "{pat:?}");
+        assert_eq!(caps.whole(), (1, 1));
+        // A start past the end finds nothing.
+        assert!(!re.captures_at(b"abc", 4, &mut caps));
+    }
+    let error = Regex::compile(b"a\\{", &syn(false)).unwrap_err();
+    assert_eq!(error.to_string(), "Unmatched \\{");
+    assert_eq!(format!("{error}"), error.message);
+}
+
+#[test]
+fn dfa_slot_is_a_cache() {
+    let re = Regex::compile(b"[0-9]+", &syn(true)).unwrap();
+    assert!(re.is_match(b"x 12"));
+    assert!(format!("{re:?}").contains("DfaSlot::Ready"));
+    // A clone starts without automata and builds its own.
+    let copy = re.clone();
+    assert!(format!("{copy:?}").contains("DfaSlot::Unbuilt"));
+    assert!(copy.is_match(b"x 12"));
+    // Back-references are out of the DFA's reach.
+    let with = Regex::compile(b"(a)\\1", &syn(true)).unwrap();
+    let mut slot = dfa::DfaSlot::default();
+    assert!(slot.get(&with.prog, &with.node, false, b'\n').is_none());
+    assert!(format!("{slot:?}").contains("DfaSlot::Disabled"));
+    assert!(slot.get(&with.prog, &with.node, false, b'\n').is_none());
+}
+
+/// A pattern with more than 2000 DFA states: the DFA gives up and the simulation answers.
+#[test]
+fn dfa_gives_up_on_too_many_states() {
+    let mut hay = Vec::new();
+    let mut x = 12345u32;
+    for _ in 0..30000 {
+        x = x.wrapping_mul(1103515245).wrapping_add(12345);
+        hay.push(if (x >> 16) & 1 == 0 { b'a' } else { b'b' });
+    }
+    hay.extend_from_slice(b"a");
+    hay.extend_from_slice(b"abbababbabaab");
+    hay.push(b'c');
+    for pat in ["[ab]*a[ab]{13}c", "a[ab]{14}c", "[ab]{13}a[ab]{2}c$"] {
+        let re = Regex::compile(pat.as_bytes(), &syn(true)).unwrap();
+        let mut caps = Captures::default();
+        let found = re.captures_at(&hay, 0, &mut caps);
+        assert_eq!(re.is_match(&hay), found, "{pat}");
+        let mut slow = re.clone();
+        slow.use_dfa = false;
+        let mut other = Captures::default();
+        assert_eq!(slow.captures_at(&hay, 0, &mut other), found, "{pat}");
+        assert_eq!(caps, other, "{pat}");
+    }
+}
+
+/// Starts before the earliest end are tried one by one within a budget; running out of it falls
+/// back to the simulation.
+#[test]
+fn dfa_gives_up_when_many_starts_fail_slowly() {
+    let mut hay = vec![b'a'; 3000];
+    hay.push(b'c');
+    assert_dfa_agrees(b"a*b|c", &syn(true), &hay);
+}
+
+#[test]
+fn dfa_stops_at_bytes_it_cannot_follow() {
+    // Case folding keeps a UTF-8 pattern from being spelled out as bytes: the DFA stops before
+    // the first non-ASCII byte and the search is redone by the simulation.
+    let mut s = utf8_syntax(true);
+    s.icase = true;
+    for hay in ["aé", "éa", "a éa", "xxa é"] {
+        assert_dfa_agrees(b"a", &s, hay.as_bytes());
+        assert_dfa_agrees(b"a+b?", &s, hay.as_bytes());
+    }
+}
+
+#[test]
+fn utf8_sets_in_the_dfa() {
+    // Word assertions and large or empty sets are not spelled out as bytes.
+    let mut hays: Vec<&[u8]> = vec![b"", b"a b", "é a ü".as_bytes(), "中文 abc".as_bytes(), b"\xff a"];
+    hays.push("\u{1f600}x".as_bytes());
+    for pat in [
+        "\\bé", "\\<a", "a\\>", "\\Bb", "[[:graph:]]+", "[[:alpha:][:punct:][:digit:]]+", "[^a]", "[^é]+", "\\W+", "[\u{ff}]", "[\u{ff}-\u{ff}]",
+        "[a-\u{ff}]+", "[^[:alpha:]]", ".",
+    ] {
+        for ere in [true, false] {
+            let s = utf8_syntax(ere);
+            if Regex::compile(pat.as_bytes(), &s).is_err() {
+                continue;
+            }
+            for hay in &hays {
+                assert_dfa_agrees(pat.as_bytes(), &s, hay);
+            }
+        }
+    }
+    // `[\xff]` holds no character at all.
+    let s = utf8_syntax(false);
+    let re = Regex::compile(b"[\xff]", &s).unwrap();
+    assert!(!re.is_match(b"a\xff"));
+    assert_dfa_agrees(b"[\xff]", &s, b"a\xff");
+}
+
+#[test]
+fn multiline_negated_sets_in_utf8() {
+    let mut s = utf8_syntax(true);
+    s.multiline = true;
+    for pat in ["[^a]+", "[^é]", "[^\\n]", ".", "[^a]b$"] {
+        for hay in ["xx\nyy", "é\né", "ab\nab\n", "\n"] {
+            assert_dfa_agrees(pat.as_bytes(), &s, hay.as_bytes());
+        }
+    }
+}
+
+#[test]
+fn case_insensitive_back_references_in_utf8() {
+    let mut s = utf8_syntax(true);
+    s.icase = true;
+    s.glibc_compat = false;
+    let cases: [(&str, &[u8]); 6] = [
+        ("(é+)\\1", "éÉéÉ".as_bytes()),
+        ("(.)\\1", "ǅǆ".as_bytes()),
+        ("(a.)\\1", b"a\xffA\xff"),
+        ("(a.)\\1", b"a\xffa\xfe"),
+        ("(a.)\\1", b"a\xc3A\xc3"),
+        ("(a.)\\1", "aéAÉ".as_bytes()),
+    ];
+    for (pat, hay) in cases {
+        let re = Regex::compile(pat.as_bytes(), &s).unwrap();
+        let mut caps = Captures::default();
+        let _ = re.captures_at(hay, 0, &mut caps);
+    }
+    // The ASCII fold in the C locale, and no fold at all.
+    let mut c = syn(true);
+    c.icase = true;
+    assert_eq!(sub_g("(a+)\\1", "aAaA", &c), "<aAaA>[aA]");
+    assert_eq!(sub_g("(a+)\\1", "aAaA", &syn(true)), "aAaA");
+}
+
+/// A very long match of a big program is searched with a hashed memo and without tables; the
+/// limit is lowered here so that a short input takes that path.
+#[test]
+fn large_programs_use_a_hashed_memo() {
+    for (pat, hay) in [("(a+)(b*)c", "xaabbc"), ("(a|ab)(c|bcd)(d*)", "abcd"), ("(a*)*b", "aab"), ("((a)|b)+c", "abac")] {
+        let e = syn(true);
+        let re = Regex::compile(pat.as_bytes(), &e).unwrap();
+        let mut normal = Captures::default();
+        let found = re.captures_at(hay.as_bytes(), 0, &mut normal);
+        exec::TEST_BIG_TABLE_BITS.with(|c| c.set(1));
+        let mut big = Captures::default();
+        let found_big = re.captures_at(hay.as_bytes(), 0, &mut big);
+        exec::TEST_BIG_TABLE_BITS.with(|c| c.set(1 << 27));
+        assert_eq!((found, normal), (found_big, big), "{pat}");
+    }
+}
+
+/// A thread that started later than the best match is dropped when the best one is found.
+#[test]
+fn later_starts_are_dropped_once_a_match_is_found() {
+    for (pat, hay, want) in [("ab|bcd", "abcd", "<ab>cd"), ("abc|b", "abc", "<abc>"), ("a.c|bcd|cde", "abcde", "<abc>de")] {
+        assert_eq!(sub_g(pat, hay, &syn(true)), want, "{pat}");
+        assert_dfa_agrees(pat.as_bytes(), &syn(true), hay.as_bytes());
+        let mut re = Regex::compile(pat.as_bytes(), &syn(true)).unwrap();
+        re.use_dfa = false;
+        let mut caps = Captures::default();
+        assert!(re.captures_at(hay.as_bytes(), 0, &mut caps));
+    }
+}
+
+/// A repetition of an empty-matching group meets the loop guard in the back-reference search.
+#[test]
+fn empty_iterations_with_back_references() {
+    for (pat, hay) in [("(a*)*\\1", "aab"), ("(|a)*\\1", "aab"), ("(()|a)+\\1", "aab"), ("(a?)*\\1b", "aab"), ("((a*)*)*\\1x", "aax"), ("(a*|b)*\\1c", "abc")] {
+        for glibc in [false, true] {
+            let s = Syntax { glibc_compat: glibc, ..syn(true) };
+            let re = Regex::compile(pat.as_bytes(), &s).unwrap();
+            let mut caps = Captures::default();
+            let _ = re.captures_at(hay.as_bytes(), 0, &mut caps);
+        }
+    }
+}
+
+#[test]
+fn back_reference_after_invalid_bytes_with_case_folding() {
+    let mut s = utf8_syntax(true);
+    s.icase = true;
+    for hay in [&b"a\xc3\xa9a\xc3"[..], b"a\xc3\xa9a\xc3\xa8", "aéAÉ".as_bytes(), b"a\xc3\xa9A"] {
+        let re = Regex::compile(b"(a.)\\1", &s).unwrap();
+        let mut caps = Captures::default();
+        let found = re.captures_at(hay, 0, &mut caps);
+        assert_eq!(found, hay == "aéAÉ".as_bytes(), "{hay:?}");
+    }
+}
+
+#[test]
+fn the_dfa_leaves_unspellable_sets_to_the_simulation() {
+    let s = utf8_syntax(true);
+    let hay = "aé中 \u{1f600}b".repeat(3);
+    // The sets are too large to be written out as byte sequences all at once.
+    for pat in ["[[:print:]][[:graph:]][[:alpha:]]+", "[[:alpha:]][[:alpha:]][[:alpha:]]", "[[:print:]]+[[:alnum:]]+[[:graph:]]+"] {
+        assert_dfa_agrees(pat.as_bytes(), &s, hay.as_bytes());
+    }
+    // Case folding leaves a set to the simulation; so does an invalid byte next to a match.
+    let mut f = utf8_syntax(true);
+    f.icase = true;
+    for pat in ["[a-c]", "[[:alpha:]]+", "é"] {
+        for hay in ["aé", "é", "xéa", "bÉ"] {
+            assert_dfa_agrees(pat.as_bytes(), &f, hay.as_bytes());
+        }
+        assert_dfa_agrees(pat.as_bytes(), &f, b"a\xff");
+    }
+}

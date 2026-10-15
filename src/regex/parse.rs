@@ -549,6 +549,9 @@ impl<'a> Parser<'a> {
             let is_range = self.at(0) == Some(b'-') && self.at(1).is_some() && self.at(1) != Some(b']');
             if is_range {
                 self.pos += 1;
+                // An invalid byte in a range stands for the character of the same number (as
+                // for `\b`); only a written non-ASCII character is a collation error.
+                let lo_wide = matches!(elem, Elem::Ch(c) if c > 0x7f);
                 let lo = match elem {
                     Elem::Ch(c) => c,
                     Elem::Raw(b) => b as u32,
@@ -567,12 +570,15 @@ impl<'a> Parser<'a> {
                     }
                 }
                 let end = self.parse_elem()?;
+                let hi_wide = matches!(end, Elem::Ch(c) if c > 0x7f);
                 let hi = match end {
                     Elem::Ch(c) => c,
                     Elem::Raw(b) => b as u32,
-                    _ => return Err(err(E_ERANGE)),
+                    // A class or an equivalence class ends a range only in a pattern that was
+                    // rejected above.
+                    Elem::Class(_) | Elem::Equiv(_) => unreachable!("rejected as the end of a range"),
                 };
-                if self.utf8 && (lo > 0x7f || hi > 0x7f) {
+                if self.utf8 && (lo_wide || hi_wide) {
                     return Err(err(E_ECOLLATE));
                 }
                 if hi < lo {
@@ -588,9 +594,6 @@ impl<'a> Parser<'a> {
                 }
                 continue;
             }
-            if self.at(0) == Some(b'-') && self.at(1).is_some() && self.at(1) != Some(b']') {
-                return Err(err(E_ERANGE));
-            }
             match elem {
                 Elem::Ch(c) | Elem::Equiv(c) => {
                     if self.utf8 {
@@ -599,13 +602,8 @@ impl<'a> Parser<'a> {
                         bytes.insert(c as u8);
                     }
                 }
-                Elem::Raw(b) => {
-                    if self.utf8 {
-                        cs.raw.insert(b);
-                    } else {
-                        bytes.insert(b);
-                    }
-                }
+                // An invalid byte alone in a bracket expression matches nothing (not even itself).
+                Elem::Raw(_) => {}
                 Elem::Class(cl) => {
                     if self.utf8 {
                         cs.classes.push(cl);
@@ -629,11 +627,6 @@ impl<'a> Parser<'a> {
             cs.negated = negated;
             cs.icase = self.icase;
             cs.exclude = (negated && self.multiline).then_some(self.delim);
-            if self.icase {
-                let mut raw = cs.raw;
-                raw.fold_ascii_case();
-                cs.raw = raw;
-            }
             return Ok(Unit::Chars(Box::new(cs)));
         }
         if self.icase {

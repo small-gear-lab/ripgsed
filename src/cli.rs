@@ -172,10 +172,6 @@ fn find_long(name: &str, program: &str) -> Result<(&'static str, Arg, Opt), Stri
         [] => Err(format!("{program}: unrecognized option '--{name}'")),
         [(n, a, o)] => Ok((n, *a, *o)),
         many => {
-            // Several spellings of the same option are not ambiguous.
-            if many.iter().all(|(_, _, o)| *o == many[0].2) {
-                return Ok((many[0].0, many[0].1, many[0].2));
-            }
             let list: Vec<String> = many.iter().map(|(n, ..)| format!("'--{n}'")).collect();
             Err(format!("{program}: option '--{name}' is ambiguous; possibilities: {}", list.join(" ")))
         }

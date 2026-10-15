@@ -6,7 +6,7 @@
 //! is conservative: anything not proven record-local runs sequentially.
 
 use crate::runtime::Options;
-use crate::syntax::{Addr, Addr2, Command, Kind, Script, Selector};
+use crate::syntax::{Addr, Command, Kind, Script, Selector};
 
 /// Why a script cannot run in parallel.
 #[derive(Debug, PartialEq, Eq)]
@@ -84,7 +84,7 @@ fn command_local(command: &Command) -> Result<(), Reason> {
 
 fn addr_local(addr: &Addr) -> Result<(), Reason> {
     match addr {
-        Addr::Line(0) => Err(Reason::Construct("address 0")),
+        // A single address 0 is rejected by the parser, so `Line(0)` only starts a range.
         Addr::Line(_) | Addr::Step { .. } | Addr::Null => Ok(()),
         // `$` needs to know where the whole input ends.
         Addr::Last => Err(Reason::Construct("$")),
@@ -92,9 +92,6 @@ fn addr_local(addr: &Addr) -> Result<(), Reason> {
         Addr::Regex(_) => Ok(()),
     }
 }
-
-#[allow(dead_code)]
-fn unused(_: &Addr2) {}
 
 #[cfg(test)]
 mod tests {

@@ -368,6 +368,13 @@ mod tests {
         }
     }
 
+    #[test]
+    fn empty_and_oversized_needles() {
+        assert_eq!(Finder::new(b"").find(b"abc"), Some(0));
+        assert_eq!(Finder::new(b"abc").find(b"ab"), None);
+        assert_eq!(memmem_scalar(b"ab", b"abc", 0), None);
+    }
+
     fn naive_memmem(hay: &[u8], needle: &[u8]) -> Option<usize> {
         if needle.is_empty() {
             return Some(0);

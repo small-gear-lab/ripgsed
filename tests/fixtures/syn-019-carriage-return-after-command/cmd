@@ -1,0 +1,1 @@
+sed -n -f crlf.sed a.txt; echo $?; sed -n -f crlf2.sed a.txt; echo $?; sed -n "$(printf "p\r")" a.txt; echo $?

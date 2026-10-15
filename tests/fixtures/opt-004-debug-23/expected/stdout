@@ -1,0 +1,22 @@
+SED PROGRAM:
+  z
+  1,2~3 p
+  F
+INPUT:   'a.txt' line 1
+PATTERN: a
+COMMAND: z
+PATTERN: 
+COMMAND: 1,2~3 p
+
+COMMAND: F
+a.txt
+END-OF-CYCLE:
+INPUT:   'a.txt' line 2
+PATTERN: b
+COMMAND: z
+PATTERN: 
+COMMAND: 1,2~3 p
+
+COMMAND: F
+a.txt
+END-OF-CYCLE:

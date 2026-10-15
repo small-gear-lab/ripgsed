@@ -31,6 +31,22 @@ const RING: usize = 5;
 /// bit tables.
 const BIG_TABLE_BITS: usize = 1 << 27;
 
+#[cfg(not(test))]
+fn big_table_bits() -> usize {
+    BIG_TABLE_BITS
+}
+
+#[cfg(test)]
+thread_local! {
+    /// Lets a test lower the limit to reach the large-program path with a small input.
+    pub static TEST_BIG_TABLE_BITS: std::cell::Cell<usize> = const { std::cell::Cell::new(BIG_TABLE_BITS) };
+}
+
+#[cfg(test)]
+fn big_table_bits() -> usize {
+    TEST_BIG_TABLE_BITS.with(|c| c.get())
+}
+
 /// Working memory of `Searcher::longest`, kept between searches so that a search allocates
 /// nothing once the buffers have grown to the size of the program.
 #[derive(Clone, Debug, Default)]
@@ -63,13 +79,9 @@ impl Scratch {
 
     /// Leaves the buffers ready for the next search: no seed is pending.
     fn reset(&mut self) {
-        let m = self.m;
-        for (r, seeds) in self.ring.iter_mut().enumerate() {
-            for &(pc, _) in seeds.iter() {
-                self.slot[r * m + pc as usize] = u32::MAX;
-            }
-            seeds.clear();
-        }
+        // A search consumes every seed it schedules (none goes past the end of the haystack), and
+        // clears the `slot` of each as it does.
+        debug_assert!(self.ring.iter().all(Vec::is_empty));
         self.stack.clear();
         self.consuming.clear();
     }
@@ -110,11 +122,9 @@ impl<'a> Searcher<'a> {
                 (exclude.is_none_or(|b| c as u32 != b as u32 && c != '\n')).then_some(len)
             }
             Unit::Chars(cs) => {
-                if let Some((c, len)) = decode_utf8(self.hay, pos) {
-                    return cs.matches_char(c).then_some(len);
-                }
-                // An invalid byte matches only a raw byte written in the pattern.
-                (!cs.negated && cs.raw.contains(b)).then_some(1)
+                // An invalid byte matches no set.
+                let (c, len) = decode_utf8(self.hay, pos)?;
+                cs.matches_char(c).then_some(len)
             }
         }
     }
@@ -188,8 +198,7 @@ impl<'a> Searcher<'a> {
     fn assert_ok(&self, a: Assert, pos: usize) -> bool {
         let len = self.hay.len();
         match a {
-            Assert::LineStart => pos == 0 || (self.multiline && self.hay[pos - 1] == self.delim),
-            Assert::LineEnd => pos == len || (self.multiline && self.hay[pos] == self.delim),
+            Assert::LineStart | Assert::LineEnd => unreachable!("`assert_check` decides `^` and `$`"),
             Assert::BufStart => pos == 0,
             Assert::BufEnd => pos == len,
             Assert::WordBoundary => self.word_before(pos) != self.word_after(pos),
@@ -286,10 +295,8 @@ impl<'a> Searcher<'a> {
     /// The empty match glibc reports instead of one at `s` when a leading repetition could consume
     /// a character there: it is put after that character (see `star_before_not_word_boundary`).
     fn end_of_star_run(&self, s: usize) -> (usize, usize) {
-        match self.unit_len(0, s).filter(|&l| l > 0) {
-            Some(l) => (s + l, s + l),
-            None => (s, s),
-        }
+        let l = self.unit_len(0, s).filter(|&l| l > 0).expect("the caller saw a character here");
+        (s + l, s + l)
     }
 
     /// Finds the leftmost-longest match starting at or after `start`.
@@ -297,9 +304,7 @@ impl<'a> Searcher<'a> {
         let len = self.hay.len();
         let mut from = start;
         loop {
-            if from > len {
-                return None;
-            }
+            debug_assert!(from <= len, "a search starts inside the haystack and steps by whole characters");
             let (s, e) = if self.prog.has_backrefs {
                 let mut bt = Backtracker::new(self, false);
                 let mut s = from;
@@ -337,12 +342,12 @@ impl<'a> Searcher<'a> {
                 return Some((s, groups));
             }
             if let Some((width, offsets)) = self.fixed {
-                if e - s == *width {
-                    for (slot, &(a, b)) in groups.iter_mut().zip(offsets).skip(1) {
-                        *slot = Some((s + a, s + b));
-                    }
-                    return Some((s, groups));
+                // Every unit of such a pattern takes exactly one byte.
+                debug_assert_eq!(e - s, *width);
+                for (slot, &(a, b)) in groups.iter_mut().zip(offsets).skip(1) {
+                    *slot = Some((s + a, s + b));
                 }
+                return Some((s, groups));
             }
             // GNU sed assigns the subexpressions with the strict reading of
             // `$` (see `assert_check`); when no such path reaches the end,
@@ -442,7 +447,7 @@ impl<'a> Searcher<'a> {
                             Check::NeedNewline => stack.push((pc + 1, true)),
                             Check::Fail => {}
                         },
-                        Inst::Backref(_) => {}
+                        Inst::Backref(_) => unreachable!("the simulation runs only without back-references"),
                         Inst::Match if nl => {}
                         Inst::Match => match best {
                             None => best = Some((st, p)),
@@ -474,10 +479,9 @@ impl<'a> Searcher<'a> {
                             ring[q].push((npc, st));
                             pending += 1;
                         } else {
-                            let e = &mut ring[q][slot[k] as usize];
-                            if st < e.1 {
-                                e.1 = st;
-                            }
+                            // The seeds are taken in order of their start, so the thread that is
+                            // already there started no later.
+                            debug_assert!(ring[q][slot[k] as usize].1 <= st);
                         }
                     }
                 }
@@ -1067,7 +1071,7 @@ impl<'s, 'a> Backtracker<'s, 'a> {
             self.base = start;
             // Very long matches of large programs: no tables (they would
             // take too much memory) and a hashed memo instead of a bitmap.
-            self.big = nbits > BIG_TABLE_BITS;
+            self.big = nbits > big_table_bits();
             if !self.big {
                 self.compute_viable(start, e);
                 self.memo_bits.clear();

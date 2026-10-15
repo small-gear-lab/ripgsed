@@ -231,9 +231,6 @@ pub struct CharSet {
     /// Inclusive code point ranges (single characters are ranges of one).
     pub ranges: Vec<(u32, u32)>,
     pub classes: Vec<Class>,
-    /// Bytes of invalid sequences written in the pattern; they match those
-    /// single bytes of the input.
-    pub raw: ByteSet,
     pub icase: bool,
     /// A byte (the line delimiter) the set never matches (negated lists in `M` mode).
     pub exclude: Option<u8>,
@@ -368,5 +365,45 @@ mod tests {
         assert_eq!(decode_utf8(b"\xe4\xb8", 0), None);
         assert_eq!(decode_utf8_before("aé".as_bytes(), 3), Some(('é', 2)));
         assert_eq!(decode_utf8_before("aé".as_bytes(), 2), None);
+    }
+
+    #[test]
+    fn decode_rejects_overlong_and_broken_forms() {
+        assert_eq!(decode_utf8(b"\xe0\x80\x80", 0), None);
+        assert_eq!(decode_utf8(b"\xf0\x80\x80\x80", 0), None);
+        assert_eq!(decode_utf8(b"\xe4\x41\x80", 0), None);
+        assert_eq!(decode_utf8(b"\xed\xa0\x80", 0), None);
+    }
+
+    #[test]
+    fn titlecase_digraphs() {
+        assert_eq!(titlecase_of(char::from_u32(0x1c4).unwrap()), Some('\u{1c5}'));
+        assert_eq!(titlecase_of(char::from_u32(0x1c7).unwrap()), Some('\u{1c8}'));
+        assert_eq!(titlecase_of(char::from_u32(0x1ca).unwrap()), Some('\u{1cb}'));
+        assert_eq!(titlecase_of(char::from_u32(0x1f1).unwrap()), Some('\u{1f2}'));
+        assert_eq!(titlecase_of(char::from_u32(0x41).unwrap()), None);
+    }
+
+    #[test]
+    fn non_ascii_membership_of_every_class() {
+        let classes = [
+            (Class::Alnum, 'é', true),
+            (Class::Alpha, 'é', true),
+            (Class::Blank, '\u{3000}', true),
+            (Class::Cntrl, '\u{85}', true),
+            (Class::Digit, '٣', false),
+            (Class::Graph, 'é', true),
+            (Class::Lower, 'é', true),
+            (Class::Print, 'é', true),
+            (Class::Punct, '½', true),
+            (Class::Space, '\u{3000}', true),
+            (Class::Upper, 'É', true),
+            (Class::Xdigit, 'é', false),
+        ];
+        for (class, c, want) in classes {
+            assert_eq!(class.contains_char(c), want, "{class:?} {c:?}");
+        }
+        assert_eq!(simple_lower('\u{130}'), 'i');
+        assert_eq!(simple_lower('É'), 'é');
     }
 }

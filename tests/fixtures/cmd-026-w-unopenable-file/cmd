@@ -1,0 +1,1 @@
+sed "w nodir/x" a.txt; echo $?

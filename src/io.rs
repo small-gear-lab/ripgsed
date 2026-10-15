@@ -887,6 +887,45 @@ mod tests {
         assert_eq!(r(&mut input), None);
     }
 
+    fn temp_dir(name: &str) -> std::path::PathBuf {
+        let dir = std::env::temp_dir().join(format!("ripgsed-io-{}-{name}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    /// Skipping records first uses up the record that was only looked at, then goes on over
+    /// the end of a file into the next one.
+    #[test]
+    fn skipping_takes_the_looked_at_record_and_crosses_files() {
+        let dir = temp_dir("skip");
+        let (a, b) = (dir.join("a"), dir.join("b"));
+        std::fs::write(&a, "a1\na2\na3\n").unwrap();
+        std::fs::write(&b, "b1\nb2\nb3\n").unwrap();
+        let names = vec![a.to_string_lossy().into_owned(), b.to_string_lossy().into_owned()];
+        let mut input = FileInputs::new(names, b'\n', "sed");
+        assert_eq!(input.next_record().unwrap().unwrap().record.body, b"a1");
+        assert!(!input.is_last(false).unwrap());
+        assert_eq!(input.skip_records(3).unwrap(), 3);
+        assert_eq!(input.next_record().unwrap().unwrap().record.body, b"b2");
+        // More than is left: what there is.
+        assert_eq!(input.skip_records(10).unwrap(), 1);
+        assert!(input.next_record().unwrap().is_none());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// A file that goes away is reported while skipping, and the rest is skipped on.
+    #[test]
+    fn skipping_reports_a_missing_file() {
+        let dir = temp_dir("skip-missing");
+        let a = dir.join("a");
+        std::fs::write(&a, "a1\na2\n").unwrap();
+        let names = vec![a.to_string_lossy().into_owned(), dir.join("nosuch").to_string_lossy().into_owned()];
+        let mut input = FileInputs::new(names, b'\n', "sed");
+        assert_eq!(input.skip_records(5).unwrap(), 2);
+        assert!(input.had_open_error);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
     #[test]
     fn lookahead_knows_the_last_record() {
         let mut src = ReaderSource::new(&b"a\nb\n"[..], b'\n');

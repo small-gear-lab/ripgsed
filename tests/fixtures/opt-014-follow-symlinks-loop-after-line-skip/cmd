@@ -1,0 +1,1 @@
+ln -s loop loop; sed --follow-symlinks -n "1p;9p" a.txt loop; echo $?

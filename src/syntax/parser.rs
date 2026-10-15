@@ -529,9 +529,7 @@ impl Parser {
                 if selector.is_some() {
                     return Err(self.error("`}' doesn't want any addresses"));
                 }
-                let Some(open) = self.blocks.pop() else {
-                    return Err(self.error("unexpected `}'"));
-                };
+                let open = self.blocks.pop().expect("blocks is not empty: checked above");
                 self.block_positions.pop();
                 let end = self.script.commands.len();
                 if let Kind::BlockStart(e) = &mut self.script.commands[open].kind {
@@ -615,10 +613,8 @@ impl Parser {
                 if ch == b'q' { Kind::Quit(code) } else { Kind::QuitSilent(code) }
             }
             b'r' | b'R' | b'w' | b'W' => {
+                // `--sandbox` has rejected these commands already (see above).
                 let name = self.read_filename()?;
-                if self.options().sandbox {
-                    return Err(self.error("e/r/w commands disabled in sandbox mode"));
-                }
                 if matches!(ch, b'w' | b'W') {
                     self.create_write_file(&name)?;
                 }
@@ -630,9 +626,6 @@ impl Parser {
                 }
             }
             b'e' => {
-                if self.options().sandbox {
-                    return Err(self.error("e/r/w commands disabled in sandbox mode"));
-                }
                 self.skip_blanks();
                 // The command is read like the text of `a`, `i` and `c`, newline included.
                 if self.peek().is_none_or(|b| b == b'\n') { Kind::Execute(Vec::new()) } else { Kind::Execute(self.read_text()?) }
@@ -676,10 +669,6 @@ impl Parser {
                 Ok(())
             }
             Some(b'}') | Some(b'#') => Ok(()),
-            Some(b'\r') if self.src.get(self.pos + 1) == Some(&b'\n') => {
-                self.pos += 1;
-                Ok(())
-            }
             Some(_) => {
                 self.pos += 1;
                 Err(self.error("extra characters after command"))
@@ -1042,7 +1031,7 @@ fn y_chars(text: &[u8], locale: Locale) -> Vec<Vec<u8>> {
             i += 2;
             out.push(vec![match n {
                 b'n' => b'\n',
-                b't' => b'\t',
+                // `\t` was turned into a tab before this point.
                 other => other,
             }]);
             continue;

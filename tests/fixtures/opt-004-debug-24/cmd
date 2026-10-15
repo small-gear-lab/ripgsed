@@ -1,0 +1,1 @@
+sed --debug -n 'L;L 5' a.txt; echo $?
