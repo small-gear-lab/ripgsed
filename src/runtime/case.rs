@@ -84,7 +84,15 @@ fn convert(out: &mut Vec<u8>, ch: &[u8], how: Mode, locale: Locale) {
         let mut buf = [0u8; 16];
         match crate::locale::mb_encode(c, &mut buf) {
             Some(n) => out.extend_from_slice(&buf[..n]),
-            None => out.extend_from_slice(ch),
+            None => {
+                // GNU sed aborts here (a character the set cannot write). By default the
+                // character stays as it is; `--glibc-compat` reproduces the abort.
+                if crate::io::GLIBC_COMPAT.load(std::sync::atomic::Ordering::Relaxed) {
+                    eprint!("case conversion produced an invalid character");
+                    std::process::abort();
+                }
+                out.extend_from_slice(ch)
+            }
         }
         return;
     }

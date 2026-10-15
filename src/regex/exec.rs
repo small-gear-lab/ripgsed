@@ -238,8 +238,12 @@ impl<'a> Searcher<'a> {
                 (exclude.is_none_or(|b| c as u32 != b as u32 && c != '\n')).then_some(len)
             }
             Unit::Chars(cs) => {
-                // An invalid byte matches no set.
-                let (c, len) = self.dec(pos)?;
+                // An invalid byte matches no set (`--glibc-compat`: but a negated set under `I`
+                // takes some pairs of bytes that the library reads as one character).
+                let Some((c, len)) = self.dec(pos) else {
+                    let pair = self.glibc && self.mb && cs.negated && cs.icase && cs.lib.is_some() && crate::locale::icase_pair(&self.hay[pos..]);
+                    return pair.then_some(2);
+                };
                 cs.matches_char(c).then_some(len)
             }
         }

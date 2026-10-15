@@ -252,6 +252,35 @@ mod sys {
         }
     }
 
+    /// Two bytes that `mbrtowc` rejects but that the matcher of the library reads as one
+    /// character under `I` (the negated bracket expression `[^a]` takes them): a bitmap over the
+    /// first and second byte, made on first use.
+    pub fn icase_pair(bytes: &[u8]) -> bool {
+        static TABLE: std::sync::OnceLock<Vec<u64>> = std::sync::OnceLock::new();
+        if bytes.len() < 2 || bytes[0] < 0x80 {
+            return false;
+        }
+        let table = TABLE.get_or_init(|| {
+            let mut bits = vec![0u64; 1024];
+            if let Ok(set) = LibSet::new(b"[^a]", true) {
+                for b1 in 0x80..=0xffu8 {
+                    for b2 in 0..=0xffu8 {
+                        if b2 == b'\n' || mb_decode(&[b1, b2], 0).is_some()  {
+                            continue;
+                        }
+                        if set.ask_bytes(&[b1, b2]) {
+                            let k = (b1 as usize) << 8 | b2 as usize;
+                            bits[k / 64] |= 1 << (k % 64);
+                        }
+                    }
+                }
+            }
+            bits
+        });
+        let k = (bytes[0] as usize) << 8 | bytes[1] as usize;
+        table[k / 64] >> (k % 64) & 1 == 1
+    }
+
     pub fn starts_multibyte(b: u8) -> bool {
         let mut st = MbState([0; 2]);
         let mut wc = 0u32;
@@ -463,6 +492,10 @@ mod sys {
         false
     }
 
+    pub fn icase_pair(_bytes: &[u8]) -> bool {
+        false
+    }
+
     pub fn mb_decode(_hay: &[u8], _pos: usize) -> Option<(char, usize)> {
         None
     }
@@ -510,6 +543,12 @@ pub use sys::{LibError, LibSet};
 /// The locale the environment selects, with the C library set up for it (call once, first).
 pub fn from_env() -> Locale {
     sys::from_env()
+}
+
+/// Whether the first two bytes are a pair that `mbrtowc` rejects but the matcher of the library
+/// reads as one character in a negated bracket expression under `I` (`--glibc-compat`).
+pub fn icase_pair(bytes: &[u8]) -> bool {
+    sys::icase_pair(bytes)
 }
 
 /// Whether the byte, alone, is the start of a longer character of a non-UTF-8 multibyte locale

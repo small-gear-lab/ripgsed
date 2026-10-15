@@ -30,6 +30,7 @@ EXTRA = {
     "euc_jp": ["あ", "ア", "漢", "ａ", "１", "ー", "ｱ", "。"],
     "shift_jis": ["あ", "ア", "漢", "ａ", "１", "ー", "ｱ", "。", "ソ", "表"],
     "gbk": ["中", "文", "ａ", "１", "。", "α", "я"],
+    "gb18030": ["中", "文", "ａ", "１", "。", "α", "я", "𠀀", "€"],
     "big5": ["中", "文", "ａ", "１", "。", "α", "功"],
     "euc_kr": ["한", "글", "ａ", "１", "。", "α"],
     "latin-1": ["é", "É", "ß", "ñ", "ÿ", "µ", "ª", "²", "½"],
@@ -135,6 +136,8 @@ def main():
             for i in range(args.cases):
                 pat = gen_pattern(rng, [c for c in chars if c not in (".",)] or ["a"])
                 flags = rng.choice(["", "", "", "I", "M"])
+                if codec == "gb18030" and flags == "I":
+                    flags = ""  # GNU sed's answers under I for some GB18030 letters vary from run to run
                 texts = b"\n".join(gen_text(rng, chars, args.invalid, raw) for _ in range(4)) + b"\n"
                 extended = rng.random() < 0.25
                 if extended:

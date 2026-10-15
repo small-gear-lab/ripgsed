@@ -89,6 +89,7 @@ KNOWN_LOCALE = {
     # matcher of the library reads their first byte as a character of its own, which a range
     # by collation takes.
     ("zh_TW.BIG5", "s/[[.a.]-z]/X/"): "eight Big5 codes read as two bytes by the library's matcher",
+    ("zh_CN.GB18030", "/^[^0-9]$/I="): "GNU sed's answer for the GB18030 letters 0xa8a1..0xa8bf under I varies from run to run",
     ("zh_TW.eucTW", "s/[[.a.]-z]/X/"): "EUC-TW characters of 0x8e read as a lone byte by the library's matcher",
 }
 # Scripts whose whole output is compared, line by line.
@@ -121,7 +122,7 @@ def write_lines(path, twice_path, pair_path, ctx_path, chars):
     return chars
 
 
-SAMPLE_LEADS = [0x80, 0x81, 0x83, 0x8E, 0x8F, 0x95, 0xA1, 0xA3, 0xA4, 0xA5, 0xB0, 0xC7, 0xD6, 0xE0, 0xFE, 0xFF]
+SAMPLE_LEADS = [0x80, 0x81, 0x83, 0x8E, 0x8F, 0x95, 0xA1, 0xA3, 0xA4, 0xA5, 0xB0, 0xC7, 0xD6, 0xE0, 0xFE, 0xFF, 0x84, 0x98, 0xA8]
 
 
 def charset_inputs(maxlen, sample=False):
@@ -221,6 +222,7 @@ def main():
     ap.add_argument("--sample", action="store_true", help="multibyte character sets: only some first bytes (and code set 3 rows)")
     ap.add_argument("--filter", default=None, help="only the cases whose label contains this text")
     ap.add_argument("--verbose", action="store_true", help="also list the matching cases")
+    ap.add_argument("--glibc-compat", action="store_true", help="run ours with --glibc-compat (the glibc quirks are reproduced)")
     ap.add_argument("--summary", action="store_true", help="per locale: the number of cases, characters and differences")
     args = ap.parse_args()
 
@@ -328,11 +330,21 @@ def main():
                     lines = open(src, "rb").read().split(b"\n")[:-1]
                     dead = set(aborting_lines(gnu_dir, loc, locpath, argv_b, lines))
                     kept = [i for i in range(len(lines)) if i not in dead]
+                    # With --glibc-compat ours aborts on those lines the same way.
+                    for i in sorted(dead):
+                        one = os.path.join(work, "one.txt")
+                        with open(one, "wb") as f:
+                            f.write(lines[i] + b"\n")
+                        g1 = run(gnu_dir, loc, locpath, argv_b, one)
+                        o1 = run(ours_dir, loc, locpath, ["--glibc-compat"] + argv_b, one)
+                        if (g1[0], g1[2]) != (o1[0], o1[2]):
+                            failed += 1
+                            print(f"  --glibc-compat does not abort like GNU sed on {lines[i]!r}: {g1[0]} {g1[2]!r} / {o1[0]} {o1[2]!r}", flush=True)
                     src = os.path.join(work, "kept.txt")
                     with open(src, "wb") as f:
                         f.write(b"".join(lines[i] + b"\n" for i in kept))
                     rg, og, eg = run(gnu_dir, loc, locpath, argv_b, src)
-                ro, oo, eo = run(ours_dir, loc, locpath, argv_b, src)
+                ro, oo, eo = run(ours_dir, loc, locpath, (["--glibc-compat"] if args.glibc_compat else []) + argv_b, src)
                 total = len(chars) if kept is None else len(kept)
                 diff = []  # the indexes of the input lines that differ
                 if kind == "error":
@@ -357,7 +369,9 @@ def main():
                 totals["bad_invalid"] += bad_invalid
                 known = bad != 0 and (label in KNOWN or (loc == "C.UTF-8" and label in KNOWN_C_UTF8))
                 why = KNOWN.get(label, "one-direction letter folding of C.UTF-8")
-                if bad and (loc, label) in KNOWN_LOCALE:
+                if bad and loc == "zh_CN.GB18030" and label.startswith("/^[^") and label.endswith("$/I="):
+                    known, why = True, KNOWN_LOCALE[("zh_CN.GB18030", "/^[^0-9]$/I=")]
+                elif bad and (loc, label) in KNOWN_LOCALE:
                     known, why = True, KNOWN_LOCALE[(loc, label)]
                 if bad and codec and bad_valid == 0 and label.startswith("/^[^") and label.endswith("$/I="):
                     # Unassigned two-byte codes (GBK 0xfe61..0xfe6f, Shift_JIS 0x8461..0x846f): the

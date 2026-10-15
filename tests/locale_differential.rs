@@ -48,10 +48,19 @@ fn other_character_sets_follow_the_c_library() {
         eprintln!("skipped: python3, localedef or /usr/share/i18n is missing");
         return;
     }
-    let locales = "ja_JP.eucJP,ja_JP.SJIS,zh_TW.BIG5,de_DE.ISO-8859-1,ru_RU.KOI8-R";
+    let locales = "ja_JP.eucJP,ja_JP.SJIS,zh_CN.GB18030,zh_TW.BIG5,de_DE.ISO-8859-1,ru_RU.KOI8-R";
     let script = concat!(env!("CARGO_MANIFEST_DIR"), "/tools/locale-diff.py");
     let out = Command::new("python3")
         .args(["-I", script, "--ours", env!("CARGO_BIN_EXE_ripgsed"), "--quick", "--sample", "--locales", locales])
+        .output()
+        .expect("run tools/locale-diff.py");
+    let text = String::from_utf8_lossy(&out.stdout);
+    assert!(out.status.success(), "{text}{}", String::from_utf8_lossy(&out.stderr));
+    // With --glibc-compat the quirks of the library that ripgsed can reproduce are exact: the abort
+    // of a case conversion to a character the set cannot write, and the pairs of bytes of an
+    // unassigned code that a negated bracket expression takes under `I`.
+    let out = Command::new("python3")
+        .args(["-I", script, "--ours", env!("CARGO_BIN_EXE_ripgsed"), "--quick", "--sample", "--glibc-compat", "--locales", "ja_JP.SJIS,zh_CN.GBK"])
         .output()
         .expect("run tools/locale-diff.py");
     let text = String::from_utf8_lossy(&out.stdout);
