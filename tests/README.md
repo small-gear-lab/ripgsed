@@ -38,10 +38,13 @@ The generator refuses to run unless `sed --version` reports `sed (GNU sed) 4.9`.
 
 ## Pending and enforced fixtures
 
-A fixture whose covered items are all `unsupported` in the matrix is pending: it runs, but a failure does not fail `cargo test`. As soon as an item becomes `partial` or `verified`, every fixture covering it must pass. `verified` items must have at least one fixture.
+A fixture is enforced, so that its failure fails `cargo test`, if it is listed in `tests/passing.txt` (the ratchet) or covers a `verified` item. Every other fixture is pending: it runs, but a failure does not fail `cargo test`. `verified` items must have at least one fixture.
 
 ```sh
 cargo test                                          # all fixtures
 RIPGSED_FIXTURES=sub-global cargo test              # selected fixtures
+RIPGSED_SHOW_FAILURES=1 cargo test -- --nocapture   # show why pending fixtures fail
 RIPGSED_SHOW_PENDING=1 cargo test -- --nocapture    # also list pending fixtures that already pass
+RIPGSED_UPDATE_PASSING=1 cargo test                 # rewrite tests/passing.txt from the results
+RIPGSED_UPDATE_MATRIX=1 cargo test                  # rewrite the status column of compat/sed.tsv
 ```

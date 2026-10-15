@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ripgsed \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-15 13:22+0900\n"
+"POT-Creation-Date: 2026-10-15 14:44+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ja\n"
@@ -108,20 +108,20 @@ msgid "Status rules"
 msgstr "状態の規則"
 
 #: ../../COMPATIBILITY.md:24
-msgid "`unsupported`: not implemented. The compiler rejects it with a compile-time error and never approximates it."
-msgstr "`unsupported`：未実装。コンパイラはコンパイル時エラーで拒否し、近似で済ませることはありません。"
+msgid "`unsupported`: no fixture passes. An unsupported construct is rejected with a compile-time error and is never approximated."
+msgstr "`unsupported`：通る fixture が一つもない。未対応の構文はコンパイル時エラーで拒否し、近似で済ませることはありません。"
 
 #: ../../COMPATIBILITY.md:25
-msgid "`partial`: implemented for some forms. The notes say which forms are missing."
-msgstr "`partial`：一部の形だけ実装済み。足りない形は notes に書きます。"
+msgid "`partial`: some of the fixtures covering the item pass and some do not."
+msgstr "`partial`：その項目を対象とする fixture の一部が通り、一部が通らない。"
 
 #: ../../COMPATIBILITY.md:26
-msgid "`verified`: fixtures that compare ripgsed with GNU sed cover the item, including its edge cases, and all pass. Nothing is `verified` by assertion."
-msgstr "`verified`：ripgsed と GNU sed を比較する fixture が、エッジケースを含めてその項目を網羅し、すべて通っている。主張だけで `verified` になることはありません。"
+msgid "`verified`: every fixture covering the item passes. Nothing is `verified` by assertion: the status is computed from the test results."
+msgstr "`verified`：その項目を対象とするすべての fixture が通る。主張だけで `verified` になることはなく、テスト結果から計算されます。"
 
 #: ../../COMPATIBILITY.md:28
-msgid "Every item starts as `unsupported`. The matrix is the order of work: items are implemented and promoted in groups, starting from the first vertical slice in DESIGN.md."
-msgstr "すべての項目は `unsupported` から始まります。この一覧が作業の順序です。DESIGN.md の最初の縦切り実装から始めて、項目をグループごとに実装し、状態を上げていきます。"
+msgid "The status column is rewritten by the test runner (`RIPGSED_UPDATE_MATRIX=1 cargo test`), not by hand. An item with no fixture keeps its status, and an item cannot be `verified` without fixtures. Fixtures covering a `verified` item are enforced by `cargo test`, so a verified item cannot silently regress."
+msgstr "status 列は手ではなくテストランナー（`RIPGSED_UPDATE_MATRIX=1 cargo test`）が書き換えます。fixture のない項目は状態が変わらず、fixture なしに `verified` にはなれません。`verified` の項目を対象とする fixture は `cargo test` で強制されるので、検証済みの項目が黙って退行することはありません。"
 
 #: ../../COMPATIBILITY.md:30
 msgid "Summary"
@@ -130,4 +130,13 @@ msgstr "集計"
 #: ../../COMPATIBILITY.md:36
 msgid "prints the number of items per area and status."
 msgstr "領域ごと・状態ごとの項目数を表示します。"
+
+#~ msgid "`partial`: implemented for some forms. The notes say which forms are missing."
+#~ msgstr "`partial`：一部の形だけ実装済み。足りない形は notes に書きます。"
+
+#~ msgid "`verified`: fixtures that compare ripgsed with GNU sed cover the item, including its edge cases, and all pass. Nothing is `verified` by assertion."
+#~ msgstr "`verified`：ripgsed と GNU sed を比較する fixture が、エッジケースを含めてその項目を網羅し、すべて通っている。主張だけで `verified` になることはありません。"
+
+#~ msgid "Every item starts as `unsupported`. The matrix is the order of work: items are implemented and promoted in groups, starting from the first vertical slice in DESIGN.md."
+#~ msgstr "すべての項目は `unsupported` から始まります。この一覧が作業の順序です。DESIGN.md の最初の縦切り実装から始めて、項目をグループごとに実装し、状態を上げていきます。"
 

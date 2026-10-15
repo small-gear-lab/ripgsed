@@ -21,11 +21,11 @@ Full GNU sed compatibility is the minimum requirement of the project (D4 in [DEC
 
 ## Status rules
 
-- `unsupported`: not implemented. The compiler rejects it with a compile-time error and never approximates it.
-- `partial`: implemented for some forms. The notes say which forms are missing.
-- `verified`: fixtures that compare ripgsed with GNU sed cover the item, including its edge cases, and all pass. Nothing is `verified` by assertion.
+- `unsupported`: no fixture passes. An unsupported construct is rejected with a compile-time error and is never approximated.
+- `partial`: some of the fixtures covering the item pass and some do not.
+- `verified`: every fixture covering the item passes. Nothing is `verified` by assertion: the status is computed from the test results.
 
-Every item starts as `unsupported`. The matrix is the order of work: items are implemented and promoted in groups, starting from the first vertical slice in DESIGN.md.
+The status column is rewritten by the test runner (`RIPGSED_UPDATE_MATRIX=1 cargo test`), not by hand. An item with no fixture keeps its status, and an item cannot be `verified` without fixtures. Fixtures covering a `verified` item are enforced by `cargo test`, so a verified item cannot silently regress.
 
 ## Summary
 

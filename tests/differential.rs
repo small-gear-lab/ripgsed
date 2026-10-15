@@ -1,9 +1,11 @@
 //! Differential tests: run every fixture against ripgsed and compare the
 //! result with the output recorded from GNU sed (see tests/README.md).
 //!
-//! A fixture whose covered compatibility items are all `unsupported` is
-//! pending: it is run and reported, but its failure does not fail the test.
-//! A fixture that covers any `partial` or `verified` item must pass.
+//! A fixture is enforced (its failure fails the test) if it is listed in
+//! `tests/passing.txt` or covers a `verified` item. Any other fixture is pending:
+//! it is run and reported, but its failure does not fail the test.
+//! `verified` is computed, not asserted: an item is `verified` when every fixture
+//! covering it passes (see `RIPGSED_UPDATE_MATRIX`).
 //!
 //! `tests/passing.txt` is a ratchet: every fixture listed there must pass, even
 //! if its matrix items are still `unsupported`. Progress is recorded by adding
@@ -15,6 +17,9 @@
 //! - `RIPGSED_SHOW_FAILURES=1` prints the differences of pending fixtures that fail.
 //! - `RIPGSED_UPDATE_PASSING=1` rewrites `tests/passing.txt` with every fixture
 //!   that passes (only valid for a full run).
+//! - `RIPGSED_UPDATE_MATRIX=1` rewrites the `status` column of `compat/sed.tsv`:
+//!   `verified` if every fixture covering an item passes, `partial` if some pass,
+//!   `unsupported` if none does (items without fixtures are left alone).
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
@@ -240,7 +245,22 @@ fn load_ratchet() -> BTreeSet<String> {
         .collect()
 }
 
+/// The verdict for one fixture, and the matrix items it covers.
 fn evaluate(
+    dir: &Path,
+    scratch: &Path,
+    matrix: &BTreeMap<String, String>,
+    ratchet: &BTreeSet<String>,
+) -> (Verdict, Vec<String>) {
+    let ids: Vec<String> = fs::read_to_string(dir.join("covers"))
+        .unwrap_or_default()
+        .split_whitespace()
+        .map(str::to_string)
+        .collect();
+    (judge(dir, scratch, matrix, ratchet), ids)
+}
+
+fn judge(
     dir: &Path,
     scratch: &Path,
     matrix: &BTreeMap<String, String>,
@@ -256,8 +276,8 @@ fn evaluate(
     for id in &ids {
         match matrix.get(*id).map(String::as_str) {
             None => return Verdict::Fail(format!("{name}: unknown compatibility item {id}")),
-            Some("unsupported") => {}
-            Some(_) => pending = false,
+            Some("verified") => pending = false,
+            Some(_) => {}
         }
     }
     let diffs = match run_fixture(dir, scratch) {
@@ -300,7 +320,7 @@ fn fixtures_match_gnu_sed() {
     fs::create_dir_all(&scratch).unwrap();
 
     let queue = Arc::new(Mutex::new(dirs.into_iter()));
-    let results: Arc<Mutex<Vec<(String, Verdict)>>> = Arc::new(Mutex::new(Vec::new()));
+    let results: Arc<Mutex<Vec<(String, Verdict, Vec<String>)>>> = Arc::new(Mutex::new(Vec::new()));
     let workers = std::thread::available_parallelism().map_or(4, |n| n.get());
     let handles: Vec<_> = (0..workers)
         .map(|_| {
@@ -311,8 +331,8 @@ fn fixtures_match_gnu_sed() {
                     let next = queue.lock().unwrap().next();
                     let Some(dir) = next else { break };
                     let name = dir.file_name().unwrap().to_string_lossy().to_string();
-                    let verdict = evaluate(&dir, &scratch, &matrix, &ratchet);
-                    results.lock().unwrap().push((name, verdict));
+                    let (verdict, ids) = evaluate(&dir, &scratch, &matrix, &ratchet);
+                    results.lock().unwrap().push((name, verdict, ids));
                 }
             })
         })
@@ -328,7 +348,15 @@ fn fixtures_match_gnu_sed() {
     let mut failures = Vec::new();
     let mut promotable = Vec::new();
     let mut all_passing = Vec::new();
-    for (name, verdict) in results {
+    // For each matrix item: (fixtures covering it, fixtures that pass).
+    let mut coverage: BTreeMap<String, (usize, usize)> = BTreeMap::new();
+    for (name, verdict, ids) in results {
+        let passes = matches!(verdict, Verdict::Pass | Verdict::PendingPass);
+        for id in ids {
+            let entry = coverage.entry(id).or_default();
+            entry.0 += 1;
+            entry.1 += usize::from(passes);
+        }
         match verdict {
             Verdict::Pass => {
                 passed += 1;
@@ -356,6 +384,10 @@ fn fixtures_match_gnu_sed() {
     if show_pending && !promotable.is_empty() {
         eprintln!("pending fixtures that already pass: {}", promotable.join(", "));
     }
+    if std::env::var("RIPGSED_UPDATE_MATRIX").is_ok_and(|v| v == "1") {
+        assert!(only.is_none(), "RIPGSED_UPDATE_MATRIX needs a full run");
+        update_matrix(&coverage);
+    }
     if std::env::var("RIPGSED_UPDATE_PASSING").is_ok_and(|v| v == "1") {
         assert!(only.is_none(), "RIPGSED_UPDATE_PASSING needs a full run");
         let mut text = String::from("# Fixtures that must pass. Updated with RIPGSED_UPDATE_PASSING=1 cargo test.\n");
@@ -366,6 +398,31 @@ fn fixtures_match_gnu_sed() {
         fs::write(root().join("tests/passing.txt"), text).unwrap();
     }
     assert!(failures.is_empty(), "fixture failures:\n{}", failures.join("\n"));
+}
+
+/// Rewrites the `status` column of compat/sed.tsv from the fixture results.
+fn update_matrix(coverage: &BTreeMap<String, (usize, usize)>) {
+    let path = root().join("compat/sed.tsv");
+    let text = fs::read_to_string(&path).unwrap();
+    let mut out = String::new();
+    for (i, line) in text.lines().enumerate() {
+        let mut cols: Vec<String> = line.split('\t').map(str::to_string).collect();
+        if i > 0 {
+            if let Some(&(total, passing)) = coverage.get(&cols[0]) {
+                cols[3] = if passing == total {
+                    "verified"
+                } else if passing > 0 {
+                    "partial"
+                } else {
+                    "unsupported"
+                }
+                .to_string();
+            }
+        }
+        out.push_str(&cols.join("\t"));
+        out.push('\n');
+    }
+    fs::write(path, out).unwrap();
 }
 
 /// Every `verified` matrix item must be covered by at least one fixture.

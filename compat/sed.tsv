@@ -1,185 +1,185 @@
 id	area	item	status	source	notes
-INV-001	invocation	sed SCRIPT INPUTFILE...	unsupported	Overview	first non-option argument is the script when no -e/-f
-INV-002	invocation	INPUTFILE '-' and no INPUTFILE read standard input	unsupported	Overview	
-INV-003	invocation	-e / -f combined and repeated; scripts concatenate in order	unsupported	Overview	-e fragments may split a command, e.g. -e 'a\' -e text
-INV-004	invocation	multiple input files form one continuous stream	unsupported	Overview	line numbers and $ span files unless -s or -i
-INV-005	invocation	output to standard output	unsupported	Overview	
-INV-006	invocation	option bundling and long-option abbreviation	unsupported	Overview	getopt_long behavior: unambiguous prefixes, --opt=value and --opt value
-INV-007	invocation	-- ends option parsing	unsupported	Overview	
-INV-008	invocation	options may follow operands (GNU getopt permutation)	unsupported	Overview	unless POSIXLY_CORRECT is set
-OPT-001	option	--version	unsupported	Command-Line Options	output text is deliberately different (see DESIGN.md)
-OPT-002	option	--help	unsupported	Command-Line Options	output text is deliberately different (see DESIGN.md)
-OPT-003	option	-n, --quiet, --silent	unsupported	Command-Line Options	
-OPT-004	option	--debug	unsupported	Command-Line Options	prints the canonical program and annotates execution; the output format (canonical program text, INPUT/PATTERN/COMMAND/END-OF-CYCLE lines) is compared with GNU sed
-OPT-005	option	-e script, --expression=script	unsupported	Command-Line Options	
-OPT-006	option	-f script-file, --file=script-file	unsupported	Command-Line Options	includes '-' for stdin and the leading #n rule
-OPT-007	option	-i[SUFFIX], --in-place[=SUFFIX]	unsupported	Command-Line Options	implies -s; temp file then rename; broken links and hard links
-OPT-008	option	-i backup suffix without '*' appended to the file name	unsupported	Command-Line Options	
-OPT-009	option	-i backup name with '*' replaced by the file name	unsupported	Command-Line Options	may include a directory that already exists
-OPT-010	option	-i optional argument parsing: -Ei vs -iE	unsupported	Command-Line Options	
-OPT-011	option	-l N, --line-length=N	unsupported	Command-Line Options	wrap length for the l command; 0 disables wrapping; default 70
-OPT-012	option	--posix	unsupported	Command-Line Options	disables GNU extensions; changes N at EOF and other behavior
-OPT-013	option	-b, --binary	unsupported	Command-Line Options	no effect on POSIX systems
-OPT-014	option	--follow-symlinks	unsupported	Command-Line Options	only with -i
-OPT-015	option	-E, -r, --regexp-extended	unsupported	Command-Line Options	
-OPT-016	option	-s, --separate	unsupported	Command-Line Options	ranges do not span files; line numbers and $ per file; R files rewound
-OPT-017	option	--sandbox	unsupported	Command-Line Options	rejects e/w/r commands before running
-OPT-018	option	-u, --unbuffered	unsupported	Command-Line Options	minimal buffering of input and output
-OPT-019	option	-z, --null-data, --zero-terminated	unsupported	Command-Line Options	NUL as the record separator; N, G, H and others use NUL where the manual says so
-EXT-001	exit-status	exit 0 on success	unsupported	Exit status	
-EXT-002	exit-status	exit 1 for invalid command, syntax, regex, or an extension used with --posix	unsupported	Exit status	
-EXT-003	exit-status	exit 2 when an input file cannot be opened; processing continues	unsupported	Exit status	
-EXT-004	exit-status	exit 4 for I/O error or serious runtime error; aborts immediately	unsupported	Exit status	
-EXT-005	exit-status	q and Q with an explicit exit code	unsupported	Exit status	
-EXT-006	exit-status	broken pipe and write errors on stdout	unsupported	Exit status	behavior to be pinned down by differential tests
-SYN-001	script-syntax	command form [addr]X[options]	unsupported	sed scripts	
-SYN-002	script-syntax	commands separated by ';' or newline	unsupported	sed scripts	
-SYN-003	script-syntax	whitespace before commands and addresses	unsupported	sed scripts	
-SYN-004	script-syntax	semicolon after }, {, b, t, T, : (GNU extension)	unsupported	sed scripts	
-SYN-005	script-syntax	labels read until ';' with surrounding whitespace ignored (GNU extension)	unsupported	sed scripts	
-SYN-006	script-syntax	a, c, i text to end of line (one-liner GNU form)	unsupported	sed scripts	leading whitespace skipped
-SYN-007	script-syntax	a\, c\, i\ text with continuation lines	unsupported	sed scripts	backslash removal and escape processing in text
-SYN-008	script-syntax	a, c, i split across -e arguments	unsupported	sed scripts	-e 'a\' -e text
-SYN-009	script-syntax	r, R, w, W file name to end of line	unsupported	sed scripts	
-SYN-010	script-syntax	e command to end of line	unsupported	sed scripts	
-SYN-011	script-syntax	s///w and s///e flags consume the rest of the line	unsupported	sed scripts	
-SYN-012	script-syntax	# comments	unsupported	sed scripts	
-SYN-013	script-syntax	#n on the first line of the script forces -n	unsupported	sed scripts	only when the first two characters of the script are exactly #n followed by newline or end
-SYN-014	script-syntax	{ } grouping and nesting	unsupported	sed scripts	
-SYN-015	script-syntax	! negation, repeated and with spaces after it	unsupported	sed scripts	
-SYN-016	script-syntax	error messages with expression and character position	unsupported	sed scripts	message text must match GNU sed in the C locale (D5)
-CMD-001	command	a	unsupported	sed commands list	append text at end of cycle or when the next line is read; two addresses allowed
-CMD-002	command	b	unsupported	sed commands list	branch to label or end of script
-CMD-003	command	c	unsupported	sed commands list	change; behavior with ranges and with ! differs from a plain delete
-CMD-004	command	d	unsupported	sed commands list	
-CMD-005	command	D	unsupported	sed commands list	restart the cycle without reading input when the pattern space has a newline
-CMD-006	command	e	unsupported	sed commands list	execute pattern space or an explicit command
-CMD-007	command	F	unsupported	sed commands list	print the current input file name; '-' for stdin
-CMD-008	command	g	unsupported	sed commands list	
-CMD-009	command	G	unsupported	sed commands list	
-CMD-010	command	h	unsupported	sed commands list	
-CMD-011	command	H	unsupported	sed commands list	
-CMD-012	command	i	unsupported	sed commands list	immediate output
-CMD-013	command	l	unsupported	sed commands list	unambiguous form with -l wrapping and optional argument
-CMD-014	command	n	unsupported	sed commands list	at EOF with no next input: GNU prints the pattern space unless POSIXLY_CORRECT
-CMD-015	command	N	unsupported	sed commands list	at EOF: GNU prints the pattern space unless --posix or POSIXLY_CORRECT
-CMD-016	command	p	unsupported	sed commands list	
-CMD-017	command	P	unsupported	sed commands list	
-CMD-018	command	q [exit-code]	unsupported	sed commands list	single address; prints the pattern space unless -n; flushes pending appends
-CMD-019	command	Q [exit-code]	unsupported	sed commands list	single address; no print
-CMD-020	command	r filename	unsupported	sed commands list	queued to the end of the cycle; unreadable file is silently ignored; /dev/stdin
-CMD-021	command	R filename	unsupported	sed commands list	one line per execution; file state kept across executions; /dev/stdin
-CMD-022	command	s	unsupported	sed commands list	see the s-command rows
-CMD-023	command	t [label]	unsupported	sed commands list	flag reset rules: new line read or branch taken
-CMD-024	command	T [label]	unsupported	sed commands list	
-CMD-025	command	v [version]	unsupported	sed commands list	fails if the requested version is newer than the emulated version
-CMD-026	command	w filename	unsupported	sed commands list	file created or truncated before reading input; shared handles; /dev/stdout and /dev/stderr
-CMD-027	command	W filename	unsupported	sed commands list	first line only
-CMD-028	command	x	unsupported	sed commands list	
-CMD-029	command	y/src/dst/	unsupported	sed commands list	escapes \\, \delim, \n; equal length after unescaping; custom delimiter
-CMD-030	command	z	unsupported	sed commands list	
-CMD-031	command	# (comment)	unsupported	sed commands list	no addresses allowed
-CMD-032	command	{ }	unsupported	sed commands list	grouping
-CMD-033	command	=	unsupported	sed commands list	prints the line number followed by a newline
-CMD-034	command	: label	unsupported	sed commands list	no addresses allowed; label syntax and trailing whitespace rules
-CMD-035	command	number of addresses accepted per command	unsupported	sed commands list	most commands accept two in GNU sed; =, a, i, r also; : and } none; q and Q one
-SUB-001	s-command	delimiter other than /	unsupported	The s Command	escaped delimiter inside regexp and replacement; special-meaning delimiters
-SUB-002	s-command	replacement: & (whole match)	unsupported	The s Command	
-SUB-003	s-command	replacement: \1 to \9	unsupported	The s Command	
-SUB-004	s-command	replacement: literal \\, \&, and escaped newline	unsupported	The s Command	
-SUB-005	s-command	replacement: multi-line replacement text	unsupported	The s Command	
-SUB-006	s-command	replacement: \L \U \l \u \E case conversion	unsupported	The s Command	does not propagate across g matches; \u and \l before an empty group
-SUB-007	s-command	flag g	unsupported	The s Command	
-SUB-008	s-command	flag N (number)	unsupported	The s Command	replace only the Nth match
-SUB-009	s-command	flags g and N combined	unsupported	The s Command	replace the Nth and all later matches
-SUB-010	s-command	flag p	unsupported	The s Command	also the interaction with the e flag when p is given before and after e
-SUB-011	s-command	flag w filename	unsupported	The s Command	/dev/stdout and /dev/stderr
-SUB-012	s-command	flag e	unsupported	The s Command	
-SUB-013	s-command	flag I or i	unsupported	The s Command	case-insensitive
-SUB-014	s-command	flag M or m	unsupported	The s Command	multi-line mode: ^ and $ at line boundaries, . does not match newline
-SUB-015	s-command	empty regexp reuses the last regexp	unsupported	The s Command	flags may not be given with an empty regexp
-SUB-016	s-command	matching empty strings with g	unsupported	The s Command	advance rules after an empty match
-SUB-017	s-command	special replacement cases	unsupported	The s Command	unmatched group in the replacement is empty
-ADR-001	address	N (line number)	unsupported	Addresses	
-ADR-002	address	$ (last line)	unsupported	Addresses	last line of the last file, or of each file with -s or -i
-ADR-003	address	first~step	unsupported	Addresses	step 0 equals first; first 0 allowed
-ADR-004	address	/regexp/	unsupported	Addresses	
-ADR-005	address	\cREGEXPc custom delimiter	unsupported	Addresses	
-ADR-006	address	/regexp/I	unsupported	Addresses	
-ADR-007	address	/regexp/M	unsupported	Addresses	
-ADR-008	address	empty regexp // reuses the last regexp used at run time	unsupported	Addresses	dynamic, not lexical
-ADR-009	address	regexp addresses see the current pattern space	unsupported	Addresses	
-ADR-010	address	addr1,addr2	unsupported	Addresses	range semantics: addr2 line number <= addr1 line gives one line; regexp end is checked from the next line
-ADR-011	address	addr1,+N	unsupported	Addresses	
-ADR-012	address	addr1,~N	unsupported	Addresses	
-ADR-013	address	0,/regexp/	unsupported	Addresses	only valid with a regexp as the second address
-ADR-014	address	0 address with r	unsupported	Addresses	inserts the file before the first line
-ADR-015	address	address 0 anywhere else is an error	unsupported	Addresses	
-ADR-016	address	! negation of addresses and ranges	unsupported	Addresses	
-ADR-017	address	ranges and multiple input files	unsupported	Addresses	ranges may span files unless -s or -i
-ADR-018	address	range state when addr2 is a number already passed	unsupported	Addresses	
-RGX-001	regex	BRE: ordinary characters, ., *, ^, $, [list]	unsupported	sed regular expressions	anchors are special only at the start or end of the regexp or subexpression
-RGX-002	regex	BRE: * at the start of a regexp or subexpression is literal	unsupported	sed regular expressions	
-RGX-003	regex	BRE: \+ \? \|	unsupported	sed regular expressions	GNU extensions; disabled by --posix
-RGX-004	regex	BRE: \{i\} \{i,j\} \{i,\}	unsupported	sed regular expressions	interval expressions
-RGX-005	regex	BRE: \( \) grouping and back-references \1 to \9	unsupported	sed regular expressions	
-RGX-006	regex	BRE: repeated postfix operators such as a** (GNU extension)	unsupported	sed regular expressions	GNU sed 4.9 rejects a** in BRE ('Invalid preceding regular expression'), also under --posix; ERE accepts **, *+, +*, ?*
-RGX-007	regex	BRE: \n and \\ and escaped special characters	unsupported	sed regular expressions	
-RGX-008	regex	ERE: + ? | ( ) { } unescaped	unsupported	sed regular expressions	backslash makes them literal
-RGX-009	regex	ERE: back-references \1 to \9 still need the backslash	unsupported	sed regular expressions	
-RGX-010	regex	ERE: ** accepted	unsupported	sed regular expressions	not affected by --posix
-RGX-011	regex	leftmost-longest matching	unsupported	sed regular expressions	POSIX semantics including alternation and subexpression rules
-RGX-012	regex	back-reference to a group that did not participate fails the match	unsupported	sed regular expressions	e.g. a(.)|b\1
-RGX-013	regex	back-references are local to each regexp	unsupported	sed regular expressions	a(.)|b\1 is a compile-time error ('Invalid back reference'), not a failed match; (x)|(y)\2 and (a)?b\1 are accepted
-RGX-014	regex	bracket expressions: lists, negation, ranges, placement of ] - ^	unsupported	sed regular expressions	
-RGX-015	regex	bracket expressions: [[:alpha:]] and the other POSIX classes	unsupported	sed regular expressions	alnum alpha blank cntrl digit graph lower print punct space upper xdigit
-RGX-016	regex	bracket expressions: [.ch.] collating symbols and [=a=] equivalence classes	unsupported	sed regular expressions	locale dependent
-RGX-017	regex	bracket expressions: [:digit:] outside brackets is an error	unsupported	sed regular expressions	'character class syntax is [[:space:]], not [:space:]'
-RGX-018	regex	bracket expressions: \n \t and other escapes inside lists	unsupported	sed regular expressions	not recognized when POSIXLY_CORRECT is set
-RGX-019	regex	extension \w \W	unsupported	sed regular expressions	
-RGX-020	regex	extension \b \B	unsupported	sed regular expressions	
-RGX-021	regex	extension \s \S	unsupported	sed regular expressions	
-RGX-022	regex	extension \< \>	unsupported	sed regular expressions	
-RGX-023	regex	extension \` \'	unsupported	sed regular expressions	buffer start and end, unlike ^ and $ in M mode
-RGX-024	regex	M mode: ^ and $ also match after and before newlines; . excludes newline	unsupported	sed regular expressions	
-RGX-025	regex	I mode: case-insensitive matching	unsupported	sed regular expressions	
-RGX-026	regex	regexp syntax errors reported as errors (exit 1)	unsupported	sed regular expressions	unterminated, unmatched ( or [, invalid back-reference, invalid interval
-ESC-001	escape	\a \f \n \r \t \v	unsupported	Escapes	
-ESC-002	escape	\cX control character	unsupported	Escapes	
-ESC-003	escape	\dNNN decimal, \oNNN octal, \xHH hexadecimal	unsupported	Escapes	one to three or two digits; only low 8 bits used
-ESC-004	escape	escapes processed before regexp compilation	unsupported	Escapes	\x5e behaves as ^ in s/\x5e/b/
-ESC-005	escape	\b is word boundary in regexps, not backspace	unsupported	Escapes	
-ESC-006	escape	escapes in replacement text, y strings, and a/i/c text	unsupported	Escapes	
-LOC-001	locale	C locale: byte-wise processing	unsupported	Locale Considerations	first target (D2)
-LOC-002	locale	UTF-8 and other multibyte locales: character-wise . and bracket expressions	unsupported	Locale Considerations	
-LOC-003	locale	invalid multibyte sequences in input	unsupported	Locale Considerations	may not match . or .*; z command clears them
-LOC-004	locale	case conversion \U \L \u \l with multibyte characters	unsupported	Locale Considerations	
-LOC-005	locale	character classes and collation in other locales	unsupported	Locale Considerations	
-LOC-006	locale	LC_ALL, LC_CTYPE, LC_COLLATE, LANG selection	unsupported	Locale Considerations	
-CYC-001	cycle	read a line, strip the newline, run the script, auto-print, next cycle	unsupported	Execution Cycle	
-CYC-002	cycle	missing final newline preserved on output	unsupported	Execution Cycle	a newline is added only when more output follows on the same stream
-CYC-003	cycle	hold space persists across cycles; pattern space is cleared	unsupported	Execution Cycle	
-CYC-004	cycle	D restarts the cycle without reading when a newline remains	unsupported	Execution Cycle	
-CYC-005	cycle	pending output queue from a, r, R flushed at end of cycle or when the next line is read	unsupported	Execution Cycle	
-CYC-006	cycle	n and N when there is no next line	unsupported	Execution Cycle	
-CYC-007	cycle	auto-print suppressed by -n and #n	unsupported	Execution Cycle	
-CYC-008	cycle	q flushes pending output and exits	unsupported	Execution Cycle	
-CYC-009	cycle	-z changes the record separator for the cycle	unsupported	Execution Cycle	
-CYC-010	cycle	-s and -i reset line numbers and ranges per file	unsupported	Execution Cycle	
-IOF-001	io	lines of any length	unsupported	Overview	no built-in limit
-IOF-002	io	NUL and arbitrary bytes in input	unsupported	Overview	
-IOF-003	io	w files: /dev/stdout and /dev/stderr special names	unsupported	Overview	
-IOF-004	io	r, R files: /dev/stdin special name	unsupported	Overview	
-IOF-005	io	write order between stdout, w /dev/stdout, and -i output	unsupported	Overview	as the manual footnote on -i describes
-IOF-006	io	e command and s///e subprocess handling	unsupported	Overview	stdout interleaving; NUL in commands undefined
-IOF-007	io	unreadable input file: message, continue, exit 2	unsupported	Overview	
-IOF-008	io	input is a directory or special file	unsupported	Overview	
-ENV-001	env	POSIXLY_CORRECT	unsupported	Reporting Bugs	changes N at EOF and escapes in bracket expressions (and makes s/[:alpha:]/x/ legal); an empty value still counts as set and stops option permutation; does not disable \+ \w \b
-ENV-002	env	v command overrides POSIXLY_CORRECT for extensions	unsupported	Reporting Bugs	
-RGX-027	regex	--posix BRE: GNU extensions \+ \? \| and repeated postfix operators are not special	unsupported	Command-Line Options; Reporting Bugs	Dialect: BRE with restrictions
-RGX-028	regex	--posix ERE: restrictions that --posix applies to ERE	unsupported	Command-Line Options; Reporting Bugs	the manual says ** in ERE is not affected by --posix
-RGX-029	regex	POSIXLY_CORRECT regex differences	unsupported	Command-Line Options; Reporting Bugs	escapes such as \n and \t inside bracket expressions are not recognized
-RGX-030	regex	dialect x locale combinations	unsupported	Command-Line Options; Reporting Bugs	each dialect must behave correctly in the C locale and in multibyte locales
+INV-001	invocation	sed SCRIPT INPUTFILE...	verified	Overview	first non-option argument is the script when no -e/-f
+INV-002	invocation	INPUTFILE '-' and no INPUTFILE read standard input	verified	Overview	
+INV-003	invocation	-e / -f combined and repeated; scripts concatenate in order	verified	Overview	-e fragments may split a command, e.g. -e 'a\' -e text
+INV-004	invocation	multiple input files form one continuous stream	verified	Overview	line numbers and $ span files unless -s or -i
+INV-005	invocation	output to standard output	verified	Overview	
+INV-006	invocation	option bundling and long-option abbreviation	verified	Overview	getopt_long behavior: unambiguous prefixes, --opt=value and --opt value
+INV-007	invocation	-- ends option parsing	verified	Overview	
+INV-008	invocation	options may follow operands (GNU getopt permutation)	verified	Overview	unless POSIXLY_CORRECT is set
+OPT-001	option	--version	verified	Command-Line Options	output text is deliberately different (see DESIGN.md)
+OPT-002	option	--help	verified	Command-Line Options	output text is deliberately different (see DESIGN.md)
+OPT-003	option	-n, --quiet, --silent	verified	Command-Line Options	
+OPT-004	option	--debug	verified	Command-Line Options	prints the canonical program and annotates execution; the output format (canonical program text, INPUT/PATTERN/COMMAND/END-OF-CYCLE lines) is compared with GNU sed
+OPT-005	option	-e script, --expression=script	verified	Command-Line Options	
+OPT-006	option	-f script-file, --file=script-file	verified	Command-Line Options	includes '-' for stdin and the leading #n rule
+OPT-007	option	-i[SUFFIX], --in-place[=SUFFIX]	verified	Command-Line Options	implies -s; temp file then rename; broken links and hard links
+OPT-008	option	-i backup suffix without '*' appended to the file name	verified	Command-Line Options	
+OPT-009	option	-i backup name with '*' replaced by the file name	verified	Command-Line Options	may include a directory that already exists
+OPT-010	option	-i optional argument parsing: -Ei vs -iE	verified	Command-Line Options	
+OPT-011	option	-l N, --line-length=N	verified	Command-Line Options	wrap length for the l command; 0 disables wrapping; default 70
+OPT-012	option	--posix	verified	Command-Line Options	disables GNU extensions; changes N at EOF and other behavior
+OPT-013	option	-b, --binary	verified	Command-Line Options	no effect on POSIX systems
+OPT-014	option	--follow-symlinks	verified	Command-Line Options	only with -i
+OPT-015	option	-E, -r, --regexp-extended	verified	Command-Line Options	
+OPT-016	option	-s, --separate	verified	Command-Line Options	ranges do not span files; line numbers and $ per file; R files rewound
+OPT-017	option	--sandbox	verified	Command-Line Options	rejects e/w/r commands before running
+OPT-018	option	-u, --unbuffered	verified	Command-Line Options	minimal buffering of input and output
+OPT-019	option	-z, --null-data, --zero-terminated	partial	Command-Line Options	NUL as the record separator; N, G, H and others use NUL where the manual says so
+EXT-001	exit-status	exit 0 on success	verified	Exit status	
+EXT-002	exit-status	exit 1 for invalid command, syntax, regex, or an extension used with --posix	verified	Exit status	
+EXT-003	exit-status	exit 2 when an input file cannot be opened; processing continues	verified	Exit status	
+EXT-004	exit-status	exit 4 for I/O error or serious runtime error; aborts immediately	verified	Exit status	
+EXT-005	exit-status	q and Q with an explicit exit code	verified	Exit status	
+EXT-006	exit-status	broken pipe and write errors on stdout	verified	Exit status	behavior to be pinned down by differential tests
+SYN-001	script-syntax	command form [addr]X[options]	verified	sed scripts	
+SYN-002	script-syntax	commands separated by ';' or newline	verified	sed scripts	
+SYN-003	script-syntax	whitespace before commands and addresses	verified	sed scripts	
+SYN-004	script-syntax	semicolon after }, {, b, t, T, : (GNU extension)	verified	sed scripts	
+SYN-005	script-syntax	labels read until ';' with surrounding whitespace ignored (GNU extension)	verified	sed scripts	
+SYN-006	script-syntax	a, c, i text to end of line (one-liner GNU form)	verified	sed scripts	leading whitespace skipped
+SYN-007	script-syntax	a\, c\, i\ text with continuation lines	verified	sed scripts	backslash removal and escape processing in text
+SYN-008	script-syntax	a, c, i split across -e arguments	verified	sed scripts	-e 'a\' -e text
+SYN-009	script-syntax	r, R, w, W file name to end of line	verified	sed scripts	
+SYN-010	script-syntax	e command to end of line	verified	sed scripts	
+SYN-011	script-syntax	s///w and s///e flags consume the rest of the line	verified	sed scripts	
+SYN-012	script-syntax	# comments	verified	sed scripts	
+SYN-013	script-syntax	#n on the first line of the script forces -n	verified	sed scripts	only when the first two characters of the script are exactly #n followed by newline or end
+SYN-014	script-syntax	{ } grouping and nesting	verified	sed scripts	
+SYN-015	script-syntax	! negation, repeated and with spaces after it	verified	sed scripts	
+SYN-016	script-syntax	error messages with expression and character position	partial	sed scripts	message text must match GNU sed in the C locale (D5)
+CMD-001	command	a	verified	sed commands list	append text at end of cycle or when the next line is read; two addresses allowed
+CMD-002	command	b	verified	sed commands list	branch to label or end of script
+CMD-003	command	c	verified	sed commands list	change; behavior with ranges and with ! differs from a plain delete
+CMD-004	command	d	verified	sed commands list	
+CMD-005	command	D	verified	sed commands list	restart the cycle without reading input when the pattern space has a newline
+CMD-006	command	e	verified	sed commands list	execute pattern space or an explicit command
+CMD-007	command	F	verified	sed commands list	print the current input file name; '-' for stdin
+CMD-008	command	g	verified	sed commands list	
+CMD-009	command	G	verified	sed commands list	
+CMD-010	command	h	verified	sed commands list	
+CMD-011	command	H	verified	sed commands list	
+CMD-012	command	i	verified	sed commands list	immediate output
+CMD-013	command	l	verified	sed commands list	unambiguous form with -l wrapping and optional argument
+CMD-014	command	n	verified	sed commands list	at EOF with no next input: GNU prints the pattern space unless POSIXLY_CORRECT
+CMD-015	command	N	verified	sed commands list	at EOF: GNU prints the pattern space unless --posix or POSIXLY_CORRECT
+CMD-016	command	p	verified	sed commands list	
+CMD-017	command	P	verified	sed commands list	
+CMD-018	command	q [exit-code]	verified	sed commands list	single address; prints the pattern space unless -n; flushes pending appends
+CMD-019	command	Q [exit-code]	verified	sed commands list	single address; no print
+CMD-020	command	r filename	verified	sed commands list	queued to the end of the cycle; unreadable file is silently ignored; /dev/stdin
+CMD-021	command	R filename	verified	sed commands list	one line per execution; file state kept across executions; /dev/stdin
+CMD-022	command	s	verified	sed commands list	see the s-command rows
+CMD-023	command	t [label]	verified	sed commands list	flag reset rules: new line read or branch taken
+CMD-024	command	T [label]	verified	sed commands list	
+CMD-025	command	v [version]	verified	sed commands list	fails if the requested version is newer than the emulated version
+CMD-026	command	w filename	verified	sed commands list	file created or truncated before reading input; shared handles; /dev/stdout and /dev/stderr
+CMD-027	command	W filename	verified	sed commands list	first line only
+CMD-028	command	x	verified	sed commands list	
+CMD-029	command	y/src/dst/	verified	sed commands list	escapes \\, \delim, \n; equal length after unescaping; custom delimiter
+CMD-030	command	z	verified	sed commands list	
+CMD-031	command	# (comment)	verified	sed commands list	no addresses allowed
+CMD-032	command	{ }	verified	sed commands list	grouping
+CMD-033	command	=	verified	sed commands list	prints the line number followed by a newline
+CMD-034	command	: label	verified	sed commands list	no addresses allowed; label syntax and trailing whitespace rules
+CMD-035	command	number of addresses accepted per command	verified	sed commands list	most commands accept two in GNU sed; =, a, i, r also; : and } none; q and Q one
+SUB-001	s-command	delimiter other than /	verified	The s Command	escaped delimiter inside regexp and replacement; special-meaning delimiters
+SUB-002	s-command	replacement: & (whole match)	verified	The s Command	
+SUB-003	s-command	replacement: \1 to \9	verified	The s Command	
+SUB-004	s-command	replacement: literal \\, \&, and escaped newline	verified	The s Command	
+SUB-005	s-command	replacement: multi-line replacement text	verified	The s Command	
+SUB-006	s-command	replacement: \L \U \l \u \E case conversion	verified	The s Command	does not propagate across g matches; \u and \l before an empty group
+SUB-007	s-command	flag g	verified	The s Command	
+SUB-008	s-command	flag N (number)	verified	The s Command	replace only the Nth match
+SUB-009	s-command	flags g and N combined	verified	The s Command	replace the Nth and all later matches
+SUB-010	s-command	flag p	verified	The s Command	also the interaction with the e flag when p is given before and after e
+SUB-011	s-command	flag w filename	verified	The s Command	/dev/stdout and /dev/stderr
+SUB-012	s-command	flag e	verified	The s Command	
+SUB-013	s-command	flag I or i	verified	The s Command	case-insensitive
+SUB-014	s-command	flag M or m	verified	The s Command	multi-line mode: ^ and $ at line boundaries, . does not match newline
+SUB-015	s-command	empty regexp reuses the last regexp	verified	The s Command	flags may not be given with an empty regexp
+SUB-016	s-command	matching empty strings with g	partial	The s Command	advance rules after an empty match
+SUB-017	s-command	special replacement cases	verified	The s Command	unmatched group in the replacement is empty
+ADR-001	address	N (line number)	verified	Addresses	
+ADR-002	address	$ (last line)	verified	Addresses	last line of the last file, or of each file with -s or -i
+ADR-003	address	first~step	verified	Addresses	step 0 equals first; first 0 allowed
+ADR-004	address	/regexp/	verified	Addresses	
+ADR-005	address	\cREGEXPc custom delimiter	verified	Addresses	
+ADR-006	address	/regexp/I	verified	Addresses	
+ADR-007	address	/regexp/M	partial	Addresses	
+ADR-008	address	empty regexp // reuses the last regexp used at run time	verified	Addresses	dynamic, not lexical
+ADR-009	address	regexp addresses see the current pattern space	verified	Addresses	
+ADR-010	address	addr1,addr2	verified	Addresses	range semantics: addr2 line number <= addr1 line gives one line; regexp end is checked from the next line
+ADR-011	address	addr1,+N	verified	Addresses	
+ADR-012	address	addr1,~N	verified	Addresses	
+ADR-013	address	0,/regexp/	verified	Addresses	only valid with a regexp as the second address
+ADR-014	address	0 address with r	verified	Addresses	inserts the file before the first line
+ADR-015	address	address 0 anywhere else is an error	verified	Addresses	
+ADR-016	address	! negation of addresses and ranges	verified	Addresses	
+ADR-017	address	ranges and multiple input files	verified	Addresses	ranges may span files unless -s or -i
+ADR-018	address	range state when addr2 is a number already passed	verified	Addresses	
+RGX-001	regex	BRE: ordinary characters, ., *, ^, $, [list]	verified	sed regular expressions	anchors are special only at the start or end of the regexp or subexpression
+RGX-002	regex	BRE: * at the start of a regexp or subexpression is literal	verified	sed regular expressions	
+RGX-003	regex	BRE: \+ \? \|	verified	sed regular expressions	GNU extensions; disabled by --posix
+RGX-004	regex	BRE: \{i\} \{i,j\} \{i,\}	verified	sed regular expressions	interval expressions
+RGX-005	regex	BRE: \( \) grouping and back-references \1 to \9	verified	sed regular expressions	
+RGX-006	regex	BRE: repeated postfix operators such as a** (GNU extension)	verified	sed regular expressions	GNU sed 4.9 rejects a** in BRE ('Invalid preceding regular expression'), also under --posix; ERE accepts **, *+, +*, ?*
+RGX-007	regex	BRE: \n and \\ and escaped special characters	verified	sed regular expressions	
+RGX-008	regex	ERE: + ? | ( ) { } unescaped	verified	sed regular expressions	backslash makes them literal
+RGX-009	regex	ERE: back-references \1 to \9 still need the backslash	partial	sed regular expressions	
+RGX-010	regex	ERE: ** accepted	verified	sed regular expressions	not affected by --posix
+RGX-011	regex	leftmost-longest matching	partial	sed regular expressions	POSIX semantics including alternation and subexpression rules
+RGX-012	regex	back-reference to a group that did not participate fails the match	partial	sed regular expressions	e.g. a(.)|b\1
+RGX-013	regex	back-references are local to each regexp	verified	sed regular expressions	a(.)|b\1 is a compile-time error ('Invalid back reference'), not a failed match; (x)|(y)\2 and (a)?b\1 are accepted
+RGX-014	regex	bracket expressions: lists, negation, ranges, placement of ] - ^	verified	sed regular expressions	
+RGX-015	regex	bracket expressions: [[:alpha:]] and the other POSIX classes	verified	sed regular expressions	alnum alpha blank cntrl digit graph lower print punct space upper xdigit
+RGX-016	regex	bracket expressions: [.ch.] collating symbols and [=a=] equivalence classes	verified	sed regular expressions	locale dependent
+RGX-017	regex	bracket expressions: [:digit:] outside brackets is an error	verified	sed regular expressions	'character class syntax is [[:space:]], not [:space:]'
+RGX-018	regex	bracket expressions: \n \t and other escapes inside lists	verified	sed regular expressions	not recognized when POSIXLY_CORRECT is set
+RGX-019	regex	extension \w \W	verified	sed regular expressions	
+RGX-020	regex	extension \b \B	verified	sed regular expressions	
+RGX-021	regex	extension \s \S	verified	sed regular expressions	
+RGX-022	regex	extension \< \>	verified	sed regular expressions	
+RGX-023	regex	extension \` \'	verified	sed regular expressions	buffer start and end, unlike ^ and $ in M mode
+RGX-024	regex	M mode: ^ and $ also match after and before newlines; . excludes newline	verified	sed regular expressions	
+RGX-025	regex	I mode: case-insensitive matching	partial	sed regular expressions	
+RGX-026	regex	regexp syntax errors reported as errors (exit 1)	partial	sed regular expressions	unterminated, unmatched ( or [, invalid back-reference, invalid interval
+ESC-001	escape	\a \f \n \r \t \v	verified	Escapes	
+ESC-002	escape	\cX control character	verified	Escapes	
+ESC-003	escape	\dNNN decimal, \oNNN octal, \xHH hexadecimal	verified	Escapes	one to three or two digits; only low 8 bits used
+ESC-004	escape	escapes processed before regexp compilation	verified	Escapes	\x5e behaves as ^ in s/\x5e/b/
+ESC-005	escape	\b is word boundary in regexps, not backspace	verified	Escapes	
+ESC-006	escape	escapes in replacement text, y strings, and a/i/c text	verified	Escapes	
+LOC-001	locale	C locale: byte-wise processing	partial	Locale Considerations	first target (D2)
+LOC-002	locale	UTF-8 and other multibyte locales: character-wise . and bracket expressions	partial	Locale Considerations	
+LOC-003	locale	invalid multibyte sequences in input	verified	Locale Considerations	may not match . or .*; z command clears them
+LOC-004	locale	case conversion \U \L \u \l with multibyte characters	verified	Locale Considerations	
+LOC-005	locale	character classes and collation in other locales	verified	Locale Considerations	
+LOC-006	locale	LC_ALL, LC_CTYPE, LC_COLLATE, LANG selection	verified	Locale Considerations	
+CYC-001	cycle	read a line, strip the newline, run the script, auto-print, next cycle	verified	Execution Cycle	
+CYC-002	cycle	missing final newline preserved on output	verified	Execution Cycle	a newline is added only when more output follows on the same stream
+CYC-003	cycle	hold space persists across cycles; pattern space is cleared	verified	Execution Cycle	
+CYC-004	cycle	D restarts the cycle without reading when a newline remains	verified	Execution Cycle	
+CYC-005	cycle	pending output queue from a, r, R flushed at end of cycle or when the next line is read	verified	Execution Cycle	
+CYC-006	cycle	n and N when there is no next line	verified	Execution Cycle	
+CYC-007	cycle	auto-print suppressed by -n and #n	verified	Execution Cycle	
+CYC-008	cycle	q flushes pending output and exits	verified	Execution Cycle	
+CYC-009	cycle	-z changes the record separator for the cycle	partial	Execution Cycle	
+CYC-010	cycle	-s and -i reset line numbers and ranges per file	verified	Execution Cycle	
+IOF-001	io	lines of any length	verified	Overview	no built-in limit
+IOF-002	io	NUL and arbitrary bytes in input	verified	Overview	
+IOF-003	io	w files: /dev/stdout and /dev/stderr special names	verified	Overview	
+IOF-004	io	r, R files: /dev/stdin special name	verified	Overview	
+IOF-005	io	write order between stdout, w /dev/stdout, and -i output	verified	Overview	as the manual footnote on -i describes
+IOF-006	io	e command and s///e subprocess handling	verified	Overview	stdout interleaving; NUL in commands undefined
+IOF-007	io	unreadable input file: message, continue, exit 2	verified	Overview	
+IOF-008	io	input is a directory or special file	verified	Overview	
+ENV-001	env	POSIXLY_CORRECT	verified	Reporting Bugs	changes N at EOF and escapes in bracket expressions (and makes s/[:alpha:]/x/ legal); an empty value still counts as set and stops option permutation; does not disable \+ \w \b
+ENV-002	env	v command overrides POSIXLY_CORRECT for extensions	verified	Reporting Bugs	
+RGX-027	regex	--posix BRE: GNU extensions \+ \? \| and repeated postfix operators are not special	verified	Command-Line Options; Reporting Bugs	Dialect: BRE with restrictions
+RGX-028	regex	--posix ERE: restrictions that --posix applies to ERE	verified	Command-Line Options; Reporting Bugs	the manual says ** in ERE is not affected by --posix
+RGX-029	regex	POSIXLY_CORRECT regex differences	partial	Command-Line Options; Reporting Bugs	escapes such as \n and \t inside bracket expressions are not recognized
+RGX-030	regex	dialect x locale combinations	partial	Command-Line Options; Reporting Bugs	each dialect must behave correctly in the C locale and in multibyte locales
 OPT-020	option	-E/-r affects only scripts parsed after it	unsupported	tests	each -e/-f is compiled as it is parsed: sed -f s.sed -E can fail where sed -E -f s.sed works
 OPT-021	option	#n first line: any text after #n still forces -n	unsupported	tests	#no and '#n x' act as -n; ' #n' (leading space) does not; only the first script chunk counts (first -e or the start of -f)
 OPT-022	option	-l with invalid arguments	unsupported	tests	-l x and -l -1 are accepted silently, -l 3x reads as 3

@@ -41,7 +41,7 @@ const MAX_INSTS: usize = 1 << 23;
 
 pub fn compile(node: &Node, ngroups: usize, referenced: Vec<bool>) -> Result<Program, CompileError> {
     let mut c = Compiler { insts: Vec::new(), units: Vec::new() };
-    c.emit(node, false)?;
+    c.emit(node, false, false)?;
     c.insts.push(Inst::Match);
     let has_backrefs = referenced.iter().any(|&r| r);
     let mut preds = vec![Vec::new(); c.insts.len()];
@@ -81,7 +81,12 @@ impl Compiler {
         Ok(self.pc() - 1)
     }
 
-    fn emit(&mut self, node: &Node, opt: bool) -> Result<(), CompileError> {
+    /// Emits `node`. `opt` marks a group that is the whole body of an
+    /// optional repetition; `dup` is true inside a copy made by expanding a
+    /// repetition (every copy but the first), where the marks of inner
+    /// repetitions are not kept (GNU sed behaves so: in `((a?)*b){2}` the
+    /// second copy of group 2 does not restore an earlier iteration).
+    fn emit(&mut self, node: &Node, opt: bool, dup: bool) -> Result<(), CompileError> {
         match node {
             Node::Empty => {}
             Node::Unit(u) => {
@@ -97,25 +102,31 @@ impl Compiler {
             }
             Node::Group(g, inner) => {
                 self.push(Inst::Open(*g as u32))?;
-                self.emit(inner, false)?;
+                self.emit(inner, false, dup)?;
                 self.push(Inst::Close(*g as u32, opt))?;
             }
             Node::Concat(items) => {
                 for it in items {
-                    self.emit(it, false)?;
+                    self.emit(it, false, dup)?;
                 }
             }
             Node::Alt(branches) => {
+                // A branch without any instruction (an empty alternative) is
+                // the least preferred one, wherever it is written.
+                let mut order: Vec<&Node> = branches.iter().filter(|b| !nodeless(b)).collect();
+                if order.len() < branches.len() {
+                    order.push(&Node::Empty);
+                }
                 let mut jumps = Vec::new();
-                for (k, b) in branches.iter().enumerate() {
-                    if k + 1 < branches.len() {
+                for (k, b) in order.iter().enumerate() {
+                    if k + 1 < order.len() {
                         let split = self.push(Inst::Split(0, 0))?;
-                        self.emit(b, false)?;
+                        self.emit(b, false, dup)?;
                         jumps.push(self.push(Inst::Jmp(0))?);
                         let next = self.pc();
                         self.insts[split as usize] = Inst::Split(split + 1, next);
                     } else {
-                        self.emit(b, false)?;
+                        self.emit(b, false, dup)?;
                     }
                 }
                 let end = self.pc();
@@ -124,14 +135,16 @@ impl Compiler {
                 }
             }
             Node::Repeat(body, min, max) => {
-                let is_group = matches!(**body, Node::Group(..));
+                let mark = matches!(**body, Node::Group(..)) && !dup;
+                let mut copy = 0u32;
                 for _ in 0..*min {
-                    self.emit(body, false)?;
+                    self.emit(body, false, dup || copy > 0)?;
+                    copy += 1;
                 }
                 match max {
                     None => {
                         let l = self.push(Inst::Split(0, 0))?;
-                        self.emit(body, is_group)?;
+                        self.emit(body, mark, dup || copy > 0)?;
                         self.push(Inst::Jmp(l))?;
                         let end = self.pc();
                         self.insts[l as usize] = Inst::Split(l + 1, end);
@@ -140,7 +153,8 @@ impl Compiler {
                         let mut holes = Vec::new();
                         for _ in *min..*max {
                             holes.push(self.push(Inst::Split(0, 0))?);
-                            self.emit(body, is_group)?;
+                            self.emit(body, mark, dup || copy > 0)?;
+                            copy += 1;
                         }
                         let end = self.pc();
                         for h in holes {
@@ -151,6 +165,17 @@ impl Compiler {
             }
         }
         Ok(())
+    }
+}
+
+/// Whether a node compiles to no instruction at all.
+fn nodeless(node: &Node) -> bool {
+    match node {
+        Node::Empty => true,
+        Node::Concat(items) => items.iter().all(nodeless),
+        Node::Alt(branches) => branches.iter().all(nodeless),
+        Node::Repeat(body, _, max) => *max == Some(0) || nodeless(body),
+        Node::Unit(_) | Node::Assert(_) | Node::Group(..) | Node::Backref(_) => false,
     }
 }
 

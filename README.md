@@ -2,11 +2,11 @@
 
 A stream editor in Rust that keeps the sed language but separates syntax, semantics, and execution strategy.
 
-**Status: early design stage. Nothing is implemented yet**; `ripgsed` currently exits with "not implemented". There are no performance numbers and no compatibility claims.
+**Status: work in progress.** The sed language is implemented (parser, sequential VM, options including `-i` and `--debug`) and checked against GNU sed 4.9 by 1,700+ differential fixtures; the regular expression engine is being written. Compatibility is only claimed where fixtures verify it (see [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) and `tools/compat-summary.sh`). There are no performance numbers.
 
 ## Plan
 
-The first milestone (P0) is a sequential reference implementation of a small subset (literal `s/old/new/g`, LF-delimited, stdin to stdout), verified by differential tests against GNU sed. Parallelism, PCRE2, and editor integration come only after that.
+The first milestone is full GNU sed 4.9 compatibility, verified by differential tests (D4 in [docs/DECISIONS.md](docs/DECISIONS.md)). Parallelism, PCRE2, the grep mode, and editor integration come only after that.
 
 - [docs/DESIGN.md](docs/DESIGN.md): goals, semantics, open decisions
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): current module layout and policies

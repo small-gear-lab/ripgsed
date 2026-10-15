@@ -21,11 +21,11 @@ GNU sed の完全互換は、このプロジェクトの最低要件です（[DE
 
 ## 状態の規則
 
-- `unsupported`：未実装。コンパイラはコンパイル時エラーで拒否し、近似で済ませることはありません。
-- `partial`：一部の形だけ実装済み。足りない形は notes に書きます。
-- `verified`：ripgsed と GNU sed を比較する fixture が、エッジケースを含めてその項目を網羅し、すべて通っている。主張だけで `verified` になることはありません。
+- `unsupported`：通る fixture が一つもない。未対応の構文はコンパイル時エラーで拒否し、近似で済ませることはありません。
+- `partial`：その項目を対象とする fixture の一部が通り、一部が通らない。
+- `verified`：その項目を対象とするすべての fixture が通る。主張だけで `verified` になることはなく、テスト結果から計算されます。
 
-すべての項目は `unsupported` から始まります。この一覧が作業の順序です。DESIGN.md の最初の縦切り実装から始めて、項目をグループごとに実装し、状態を上げていきます。
+status 列は手ではなくテストランナー（`RIPGSED_UPDATE_MATRIX=1 cargo test`）が書き換えます。fixture のない項目は状態が変わらず、fixture なしに `verified` にはなれません。`verified` の項目を対象とする fixture は `cargo test` で強制されるので、検証済みの項目が黙って退行することはありません。
 
 ## 集計
 
