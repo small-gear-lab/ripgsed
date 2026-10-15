@@ -29,7 +29,11 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::time::{Duration, Instant};
 
-const TIMEOUT: Duration = Duration::from_secs(15);
+/// How long one fixture may run. `RIPGSED_FIXTURE_TIMEOUT` (seconds) raises it, for instrumented
+/// builds (coverage) that are much slower.
+fn timeout() -> Duration {
+    Duration::from_secs(std::env::var("RIPGSED_FIXTURE_TIMEOUT").ok().and_then(|v| v.parse().ok()).unwrap_or(15))
+}
 
 fn root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -153,10 +157,10 @@ fn run_fixture(dir: &Path, scratch: &Path) -> Result<Outcome, String> {
         if let Some(s) = child.try_wait().unwrap() {
             break s.code().unwrap_or(-1);
         }
-        if start.elapsed() > TIMEOUT {
+        if start.elapsed() > timeout() {
             child.kill().ok();
             child.wait().ok();
-            return Err(format!("{name}: timed out after {TIMEOUT:?}"));
+            return Err(format!("{name}: timed out after {:?}", timeout()));
         }
         std::thread::sleep(Duration::from_millis(5));
     };
