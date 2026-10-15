@@ -123,14 +123,14 @@ RGX-002	regex	BRE: * at the start of a regexp or subexpression is literal	unsupp
 RGX-003	regex	BRE: \+ \? \|	unsupported	sed regular expressions	GNU extensions; disabled by --posix
 RGX-004	regex	BRE: \{i\} \{i,j\} \{i,\}	unsupported	sed regular expressions	interval expressions
 RGX-005	regex	BRE: \( \) grouping and back-references \1 to \9	unsupported	sed regular expressions	
-RGX-006	regex	BRE: repeated postfix operators such as a** (GNU extension)	unsupported	sed regular expressions	
+RGX-006	regex	BRE: repeated postfix operators such as a** (GNU extension)	unsupported	sed regular expressions	GNU sed 4.9 rejects a** in BRE ('Invalid preceding regular expression'), also under --posix; ERE accepts **, *+, +*, ?*
 RGX-007	regex	BRE: \n and \\ and escaped special characters	unsupported	sed regular expressions	
 RGX-008	regex	ERE: + ? | ( ) { } unescaped	unsupported	sed regular expressions	backslash makes them literal
 RGX-009	regex	ERE: back-references \1 to \9 still need the backslash	unsupported	sed regular expressions	
 RGX-010	regex	ERE: ** accepted	unsupported	sed regular expressions	not affected by --posix
 RGX-011	regex	leftmost-longest matching	unsupported	sed regular expressions	POSIX semantics including alternation and subexpression rules
 RGX-012	regex	back-reference to a group that did not participate fails the match	unsupported	sed regular expressions	e.g. a(.)|b\1
-RGX-013	regex	back-references are local to each regexp	unsupported	sed regular expressions	
+RGX-013	regex	back-references are local to each regexp	unsupported	sed regular expressions	a(.)|b\1 is a compile-time error ('Invalid back reference'), not a failed match; (x)|(y)\2 and (a)?b\1 are accepted
 RGX-014	regex	bracket expressions: lists, negation, ranges, placement of ] - ^	unsupported	sed regular expressions	
 RGX-015	regex	bracket expressions: [[:alpha:]] and the other POSIX classes	unsupported	sed regular expressions	alnum alpha blank cntrl digit graph lower print punct space upper xdigit
 RGX-016	regex	bracket expressions: [.ch.] collating symbols and [=a=] equivalence classes	unsupported	sed regular expressions	locale dependent
@@ -174,9 +174,63 @@ IOF-005	io	write order between stdout, w /dev/stdout, and -i output	unsupported	
 IOF-006	io	e command and s///e subprocess handling	unsupported	Overview	stdout interleaving; NUL in commands undefined
 IOF-007	io	unreadable input file: message, continue, exit 2	unsupported	Overview	
 IOF-008	io	input is a directory or special file	unsupported	Overview	
-ENV-001	env	POSIXLY_CORRECT	unsupported	Reporting Bugs	changes N at EOF, escapes in brackets, and other behavior
+ENV-001	env	POSIXLY_CORRECT	unsupported	Reporting Bugs	changes N at EOF and escapes in bracket expressions (and makes s/[:alpha:]/x/ legal); an empty value still counts as set and stops option permutation; does not disable \+ \w \b
 ENV-002	env	v command overrides POSIXLY_CORRECT for extensions	unsupported	Reporting Bugs	
 RGX-027	regex	--posix BRE: GNU extensions \+ \? \| and repeated postfix operators are not special	unsupported	Command-Line Options; Reporting Bugs	Dialect: BRE with restrictions
 RGX-028	regex	--posix ERE: restrictions that --posix applies to ERE	unsupported	Command-Line Options; Reporting Bugs	the manual says ** in ERE is not affected by --posix
 RGX-029	regex	POSIXLY_CORRECT regex differences	unsupported	Command-Line Options; Reporting Bugs	escapes such as \n and \t inside bracket expressions are not recognized
 RGX-030	regex	dialect x locale combinations	unsupported	Command-Line Options; Reporting Bugs	each dialect must behave correctly in the C locale and in multibyte locales
+OPT-020	option	-E/-r affects only scripts parsed after it	unsupported	tests	each -e/-f is compiled as it is parsed: sed -f s.sed -E can fail where sed -E -f s.sed works
+OPT-021	option	#n first line: any text after #n still forces -n	unsupported	tests	#no and '#n x' act as -n; ' #n' (leading space) does not; only the first script chunk counts (first -e or the start of -f)
+OPT-022	option	-l with invalid arguments	unsupported	tests	-l x and -l -1 are accepted silently, -l 3x reads as 3
+OPT-023	option	-f with a directory or a missing file	unsupported	tests	directory: empty script, exit 0; missing file: exit 4 with a message
+OPT-024	option	--sandbox rejection details	unsupported	tests	checked at parse time with a character position; also rejects w /dev/stdout, s///e, s///w; message 'e/r/w commands disabled in sandbox mode'; option order matters
+OPT-025	option	--posix: which GNU extensions are rejected	unsupported	tests	rejects a text, l N, first~step, s///I, v; still accepts y/o/\n/, s///w, \U, \+, \|
+OPT-026	option	-i error cases	unsupported	tests	directory operand ('couldn't edit d: not a regular file', exit 4); missing backup directory; 'bak/*' resolved relative to the input file's directory; no input files ('no input files', exit 4); -i with q truncates the file
+OPT-027	option	-z with the M flag and with $a	unsupported	tests	s/^./X/Mg does not match after a newline under -z; $a x appends 'x' plus a newline, not a NUL
+OPT-028	option	-s and -i with F and $ at file boundaries	unsupported	tests	
+EXT-007	exit-status	read error on a directory as input	unsupported	tests	'read error on d: Is a directory', exit 4 (not 2)
+EXT-008	exit-status	q and Q exit codes wrap modulo 256	unsupported	tests	q 256 exits 0, q 300 exits 44; a negative code is an error
+EXT-009	exit-status	missing label	unsupported	tests	'can't find label for jump to ...', exit 4 (no character position)
+EXT-010	exit-status	stdout failures	unsupported	tests	default SIGPIPE death (141); SIGPIPE ignored: exit 4; closed stdout: couldn't close stdout; /dev/full: couldn't flush stdout (exit 4); w /dev/full names '<unknown>'
+EXT-011	exit-status	stdout and w /dev/stderr ordering	unsupported	tests	GNU buffers stdout fully when it is not a terminal; the observable interleaving with 2>&1 must match
+EXT-012	exit-status	-i temporary file name in error messages	unsupported	tests	the name has a random part; decide whether it must match
+SYN-017	script-syntax	a/i/c one-liner text rules	unsupported	tests	leading whitespace stripped; 'a\  text' keeps it; \t and \\ in text; text runs to end of line so '2{a foo; p}' is 'unmatched {'; 'a\ttext' gives 'ttext'
+SYN-018	script-syntax	repeated ! is an error	unsupported	tests	'multiple !'s' even though the manual allows repeats
+SYN-019	script-syntax	} directly after a command and extra characters	unsupported	tests	{p}p and {p} p give 'extra characters after command' (exit 1)
+SYN-020	script-syntax	address-related syntax errors	unsupported	tests	too many addresses (1,2,3p): unknown command ','; comments, ':' and '}' with addresses; 'command only uses one address'
+SYN-021	script-syntax	label rules	unsupported	tests	duplicate labels are accepted; the label ends at ';' or whitespace or '}'; ':' without a label is an error ('":" lacks a label')
+SYN-022	script-syntax	w/r file name to end of line, including '}' ','; and trailing spaces	unsupported	tests	1{w out.txt} is 'unmatched {' and creates a file named 'out.txt}'
+SYN-023	script-syntax	v command version comparison	unsupported	tests	v 4.9.1 is newer than 4.9 (error), v 4.8.1 passes, v 4..9 passes, v bogus fails; rejected under --posix; not changed by POSIXLY_CORRECT
+SYN-024	script-syntax	y command details	unsupported	tests	\t is accepted as a tab; y/// is accepted; multibyte characters give a length mismatch in the C locale but work in C.utf8
+SYN-025	script-syntax	deprecated or removed commands	unsupported	tests	the command L reports 'INTERNAL ERROR: Bad cmd L'
+SYN-026	script-syntax	bracket expressions are scanned by sed itself	unsupported	tests	unterminated [ is reported as "unterminated `s' command" or 'unterminated address regex', never as a regex error
+SYN-027	script-syntax	s command spanning -e arguments	unsupported	tests	-e 's/,/\' -e '/' is an error (unlike a/i/c)
+CMD-036	command	c with ranges, !, and incomplete ranges	unsupported	tests	prints only at the end of a range; changes with $!N, with 4,10c when the range never ends, and with 3,1c
+CMD-037	command	D edge cases	unsupported	tests	without a newline acts as d; empty pattern space does not loop; G;D and 1{s/^/\n/;D} loop forever (do not fixture)
+CMD-038	command	e and i immediate output versus a/r/R deferred output	unsupported	tests	order relative to n, N, d, and the end of the cycle
+CMD-039	command	l wrapping precedence	unsupported	tests	l N overrides -l N; l 0, l 1, and -l 0 disable wrapping; COLS sets the default width; l N is an error under --posix; multibyte output with -n in C.utf8
+CMD-040	command	q and Q with pending output and unread stdin	unsupported	tests	q flushes pending a/r/R output, Q drops it and does not print i text queued earlier; q on a file stdin leaves the unread input to the next process; N at EOF flushes pending appends
+CMD-041	command	r and R details	unsupported	tests	two addresses accepted; directory target: 'read error on .: Is a directory' with exit 0 on r; R file whose last line lacks a newline; R /dev/stdin shares stdin; 1{r f} is 'unmatched {'
+CMD-042	command	= and a/i/c with -z and with -s/-i	unsupported	tests	G and H use a newline under -z, not NUL
+SUB-018	s-command	empty match with g inside multibyte characters	unsupported	tests	in C.utf8, s/x*/-/g on 'é a' splits the character (-\303-\251-a-)
+SUB-019	s-command	\u and \L ordering	unsupported	tests	\u\L& lowercases everything; \L\u& capitalizes the first character
+SUB-020	s-command	special backslash cases in the replacement	unsupported	tests	a trailing \c is literal; \d \x \o not followed by a digit are literal characters; s with \c before the delimiter does not close
+SUB-021	s-command	number flag limits	unsupported	tests	very large numbers (65535, 99999999999999999999) are accepted; 0 is an error
+SUB-022	s-command	flag combinations	unsupported	tests	s/a/b/IM and s/a/b/ig are accepted; m is accepted as an s flag but is not an address flag (only I and M)
+SUB-023	s-command	w /dev/stderr ordering with stdout	unsupported	tests	depends on stdout buffering
+ESC-007	escape	\x5e acts as ^ but \x5b\x5d is parsed as []	unsupported	tests	s/\x5e/b/ anchors at the line start; s/\x5b\x5d/X/ gives an unmatched bracket error; \xc3 matches one byte of a multibyte character in UTF-8
+RGX-031	regex	leading quantifiers	unsupported	tests	ERE: leading * + ? {1} are errors; BRE: leading \+ \? \{2\} are errors, a leading * is literal; ^* is literal in BRE and an error in ERE; \b* is an error in BRE; \< and \> followed by * treat the * literally
+RGX-032	regex	--posix variants of the extensions	unsupported	tests	--posix BRE: \+ \? \| \w \s \b \< \` become literals while intervals and groups work; --posix ERE: + ? | {} stay special but \w \s \b \< are literal letters; [\n] matches a backslash or n under --posix
+RGX-033	regex	POSIXLY_CORRECT does not disable \+ \w \b	unsupported	tests	it only changes bracket escapes and makes s/[:alpha:]/x/ legal
+RGX-034	regex	multibyte bracket expression errors in C.utf8	unsupported	tests	[[=é=]], [[.é.]], [à-é], [あ-ん] give 'Invalid collation character'; a plain multibyte [é] works
+RGX-035	regex	interval limits	unsupported	tests	\{32767\} accepted, \{32768\} 'Regular expression too big'; a\{256\} accepted; huge nested intervals may exhaust memory
+RGX-036	regex	empty regexp runtime and modifier errors	unsupported	tests	s//x/ without a previous regexp fails at run time ('no previous regular expression'); //I and //M give 'cannot specify modifiers on empty regexp'
+RGX-037	regex	locale-dependent classes	unsupported	tests	in C.utf8 \w matches é and 中 but not «; \s matches U+00A0 in C.utf8 only; I mode with ß and ǆ
+IOF-009	io	directory as input or -i target and r/R target	unsupported	tests	message and exit code differ per command
+IOF-010	io	e command and s///e use sh; shell error text is not normalized	unsupported	tests	fixtures must not depend on the shell's wording
+ADR-019	address	invalid address forms and their errors	unsupported	tests	+2,4p: 'invalid usage of +N or ~N as first address'; 0,~2p and 0~0p: 'invalid usage of line address 0'; 2~-1p: "unknown command: `-'"; 2~p and 2,~p
+ADR-020	address	q and Q accept at most one address	unsupported	tests	2,4q: 'command only uses one address'; qx: 'extra characters after command'
+CYC-011	cycle	D restarts the cycle without reading input and keeps the line number	unsupported	tests	
+CYC-012	cycle	order of pending a/r/R output relative to n, N, and autoprint	unsupported	tests	n and N flush pending output before reading
+CYC-013	cycle	#n at the start of the script also works for the first -e and the first line of -f	unsupported	tests	the same looseness as OPT: '#nx' forces -n, '# n' and '#N' do not

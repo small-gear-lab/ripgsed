@@ -58,10 +58,14 @@ for name in "${names[@]}"; do
   (
     cd "$w/cwd"
     env -i "PATH=$w/bin:/usr/bin:/bin" HOME=/nonexistent LC_ALL=C "${extra[@]}" \
-      sh "$d/cmd" < "$stdin" > "$w/stdout" 2> "$w/stderr"
+      timeout 20 sh "$d/cmd" < "$stdin" > "$w/stdout" 2> "$w/stderr"
   )
   status=$?
   set -e
+  if [ "$status" -eq 124 ]; then
+    echo "$name: the reference run timed out (an endless loop?)" >&2
+    exit 1
+  fi
 
   rm -rf "$d/expected"
   mkdir -p "$d/expected"
