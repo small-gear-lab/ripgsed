@@ -37,14 +37,13 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y locales
       - name: Diagnose localedef (temporary)
         run: |
-          set -x
           which localedef; localedef --version | sed -n '1p'
-          ls /usr/share/i18n/locales | sed -n '1,3p'; ls /usr/share/i18n/charmaps | rg -c . || true
-          ls /usr/share/i18n/charmaps | rg '^UTF-8' || true
+          ls /usr/share/i18n/charmaps | wc -l
+          ls /usr/share/i18n/charmaps | sed -n '/^UTF-8/p'
           mkdir -p "$PWD/loc"
           localedef -f UTF-8 -i tr_TR "$PWD/loc/tr_TR.UTF-8"; echo "localedef rc=$?"
           ls "$PWD/loc" "$PWD/loc/tr_TR.UTF-8" || true
-          printf 'i\n' | LOCPATH="$PWD/loc" LC_ALL=tr_TR.UTF-8 sed 's/I/X/I'
+          printf 'i\n' | LOCPATH="$PWD/loc" LC_ALL=tr_TR.UTF-8 sed 's/I/X/I'; echo "sed rc=$?"
           locale -a | sed -n '1,8p'
       - name: The reference sed must be GNU sed 4.9
         run: sed --version | sed -n '1p'
