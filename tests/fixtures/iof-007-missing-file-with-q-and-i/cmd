@@ -1,0 +1,16 @@
+printf 'a\nb\n' > ok.txt
+sed q missing.txt ok.txt
+echo "status=$?"
+sed q5 missing.txt ok.txt
+echo "status=$?"
+sed -i s/a/X/ missing.txt ok.txt
+echo "status=$?"
+cat ok.txt
+sed -n p ok.txt - < /dev/null
+echo "status=$?"
+sed -n p -- missing.txt
+echo "status=$?"
+sed -f missing.sed ok.txt
+echo "status=$?"
+sed -n -s '$p' missing.txt ok.txt
+echo "status=$?"

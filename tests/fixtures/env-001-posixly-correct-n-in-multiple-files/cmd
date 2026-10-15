@@ -1,0 +1,9 @@
+printf 'a1\na2\na3\n' > a.txt
+printf 'b1\nb2\n' > b.txt
+sed N a.txt b.txt
+echo ---
+sed -s N a.txt b.txt
+echo ---
+sed 'N;N' a.txt
+echo ---
+sed '$!N;P;D' a.txt b.txt

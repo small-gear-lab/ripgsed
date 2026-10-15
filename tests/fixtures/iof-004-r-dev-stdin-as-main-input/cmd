@@ -1,0 +1,7 @@
+printf 'main1\nmain2\n' | sed 'r /dev/stdin'
+echo ---
+printf 'main1\nmain2\n' | sed 'R /dev/stdin'
+echo ---
+printf 'main1\nmain2\n' | sed -n 'p;r /dev/stdin'
+echo ---
+printf 'x\ny\n' | sed 'r /dev/stdin' -

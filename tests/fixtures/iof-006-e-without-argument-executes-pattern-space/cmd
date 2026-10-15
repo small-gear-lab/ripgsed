@@ -1,0 +1,13 @@
+printf 'echo one\necho two\nplain\n' | sed '1e'
+printf 'echo one\necho two\n' | sed 'e'
+printf 'echo one\necho two\n' | sed -n 'e'
+printf 'echo one\necho two\n' | sed 'e
+s/o/0/'
+printf 'printf "no newline"\n' | sed 'e' | od -An -c
+printf 'printf "a\\nb\\n"\n' | sed 'e
+s/^/>/'
+printf 'true\n' | sed 'e' | od -An -c
+printf 'echo hi\n' | sed 'e
+p'
+printf 'echo hi\n' | sed -e 'e' -e 'p'
+printf 'echo hi\n' | sed '1!e'

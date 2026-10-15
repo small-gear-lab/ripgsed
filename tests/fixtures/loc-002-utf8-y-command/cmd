@@ -1,0 +1,10 @@
+printf 'café\n' | sed 'y/é/e/'
+printf 'café\n' | sed 'y/abcdefé/ABCDEFÉ/'
+printf 'あいう\n' | sed 'y/あいう/アイウ/'
+printf 'abc\n' | sed 'y/abc/日本語/'
+printf '日本語\n' | sed 'y/日本語/abc/'
+printf 'aéb\n' | sed 'y/éa/ae/'
+printf 'a€b\n' | sed 'y/€/EUR/' 2>&1
+printf 'a\\b\n' | sed 'y/\\/é/'
+printf 'é\n' | sed 'y/é/\n/' | od -An -c
+printf 'aéb\n' | sed 'y,é,\,,'

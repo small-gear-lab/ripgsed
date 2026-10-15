@@ -1,0 +1,6 @@
+printf 'a\0b\0c\0' | sed -z 's/b/X/' | od -An -c
+printf 'a\0b\0c' | sed -z '$!d' | od -An -c
+printf 'a\nb\0c\nd\0' | sed -z 's/\n/,/g' | od -An -c
+printf 'a\nb\0c\nd\0' | sed -z -n 'l'
+printf 'a\0b\0' | sed -z '=' | od -An -c
+printf 'a\0b\0' | sed -z 'N;s/\x00/+/' | od -An -c

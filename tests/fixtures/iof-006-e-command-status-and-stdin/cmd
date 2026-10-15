@@ -1,0 +1,6 @@
+printf 'a\nb\n' | sed '1e false'
+printf 'a\nb\n' | sed '1e exit 3'
+echo "status=$?"
+printf 'a\nb\n' | sed '1e cat'
+printf 'a\nb\n' | sed '1e nonexistent-command-xyz' 2>&1 | sed 's/^.*: //'
+printf 'a\nb\n' | sed '1e echo ok >/dev/null'

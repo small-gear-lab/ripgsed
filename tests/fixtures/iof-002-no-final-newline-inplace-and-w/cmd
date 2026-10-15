@@ -1,0 +1,9 @@
+printf 'a1\na2' > a.txt
+sed -i 's/a2/A2/' a.txt
+od -An -c a.txt
+printf 'x\ny' | sed -n 'w out.txt'
+od -An -c out.txt
+printf 'x\ny' | sed -n 'w /dev/stdout' | od -An -c
+printf 'x\ny' | sed 'w /dev/stdout' | od -An -c
+printf 'x\ny' | sed -n 's/y/Y/w out2.txt'
+od -An -c out2.txt

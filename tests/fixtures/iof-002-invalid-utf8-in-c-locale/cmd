@@ -1,0 +1,6 @@
+printf 'caf\351\n\377\376 ok\n' | sed 's/./X/g'
+printf 'caf\351\n\377\376 ok\n' | sed 's/\xe9/E/'
+printf 'caf\351\n\377\376 ok\n' | sed -n l
+printf 'caf\351\n\377\376 ok\n' | sed 'y/\xff/Y/' | od -An -c
+printf 'caf\351\n\377\376 ok\n' | sed 's/[^a-z ]/?/g'
+printf '\200\201\202\n' | sed 's/.*/<&>/' | od -An -c

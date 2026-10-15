@@ -1,0 +1,28 @@
+printf 'a b\n' | sed 's/a\|b/X/g'
+echo ---
+printf 'aaa\n' | sed 's/a\+/X/'
+echo ---
+printf 'a\n' | sed '1~2d'
+echo ---
+printf 'a\nb\n' | sed '0,/a/d'
+echo ---
+printf 'a\nb\n' | sed 'a\
+text'
+echo ---
+printf 'a\nb\n' | sed 'a text'
+echo ---
+printf 'a\nb\n' | sed '2q;s/a/\n/'
+echo ---
+printf 'a b\n' | sed 's/\s/_/'
+echo ---
+printf 'a b\n' | sed 's/./\U&/'
+echo ---
+printf 'abc\n' | sed 's/B/x/I'
+echo ---
+printf 'a\n' | sed -n '$='
+echo ---
+printf 'a\nb\n' | sed -n '2{p;p}'
+echo ---
+printf 'a\nb\n' | sed '1d;;p'
+echo ---
+printf 'a\n' | sed 'p;p'

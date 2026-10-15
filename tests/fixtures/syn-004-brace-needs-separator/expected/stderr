@@ -1,0 +1,3 @@
+sed: -e expression #1, char 5: extra characters after command
+sed: -e expression #1, char 5: unexpected `}'
+sed: -e expression #1, char 0: unmatched `{'

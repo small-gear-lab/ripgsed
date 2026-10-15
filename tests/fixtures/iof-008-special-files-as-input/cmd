@@ -1,0 +1,14 @@
+sed p /dev/null
+echo "status=$?"
+printf 'a\nb\n' | sed p /dev/stdin
+echo "status=$?"
+printf 'a\nb\n' | sed -n p -
+echo "status=$?"
+printf 'a\nb\n' | sed -n p /dev/fd/0
+echo "status=$?"
+printf 'a\n' > ok.txt
+printf 'x\ny\n' | sed -n '$p' ok.txt - ok.txt
+echo "status=$?"
+printf 'x\ny\n' | sed -s -n '1p' ok.txt - ok.txt
+echo "status=$?"
+sed -n p /dev/null ok.txt /dev/null

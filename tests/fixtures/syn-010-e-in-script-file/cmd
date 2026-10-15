@@ -1,0 +1,5 @@
+printf '1e echo from file\n2e echo second; echo third\n' > e.sed
+printf 'a\nb\n' | sed -f e.sed
+printf '1e echo no-newline-at-eof' > e2.sed
+printf 'a\nb\n' | sed -f e2.sed
+printf 'a\nb\n' | sed -e 's/a/A/' -e '2e echo second-e'

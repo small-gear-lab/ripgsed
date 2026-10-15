@@ -1,0 +1,8 @@
+printf 'É\n' | sed 's/é/x/I'
+printf 'é\n' | sed 's/É/x/I'
+printf 'Ω\n' | sed 's/ω/x/I'
+printf 'ПРИВЕТ\n' | sed 's/привет/x/I'
+printf 'É\n' | sed 's/[é]/x/I'
+printf 'É\n' | sed -n '/é/Ip'
+printf 'É\n' | sed 's/é/x/'
+printf 'straße STRASSE\n' | sed 's/ß/x/Ig'

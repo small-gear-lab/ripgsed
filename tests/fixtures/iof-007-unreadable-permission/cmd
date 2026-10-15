@@ -1,0 +1,11 @@
+printf 'a\nb\n' > ok.txt
+printf 'secret\n' > noperm.txt
+chmod 000 noperm.txt
+if [ -r noperm.txt ]; then echo "SKIP running as root"; exit 0; fi
+sed p noperm.txt
+echo "status=$?"
+sed p ok.txt noperm.txt ok.txt
+echo "status=$?"
+sed -n '$=' ok.txt noperm.txt
+echo "status=$?"
+chmod 644 noperm.txt

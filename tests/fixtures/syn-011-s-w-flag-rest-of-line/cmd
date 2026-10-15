@@ -1,0 +1,11 @@
+printf 'a\nb\n' | sed 's/a/X/w out;1.txt'
+cat 'out;1.txt'
+printf 'a\nb\n' | sed -n 's/a/X/gw o ut.txt
+s/b/Y/w o2.txt'
+cat 'o ut.txt' o2.txt
+printf 'a\nb\n' | sed 's/a/X/w'
+printf 'a\nb\n' | sed 's/a/X/pw p.txt'
+cat p.txt
+printf 'a\nb\n' | sed -n '/a/{s/a/Z/w braces.txt
+}'
+cat braces.txt

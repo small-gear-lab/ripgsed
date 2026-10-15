@@ -1,0 +1,5 @@
+printf '1\n2\n3\n4\n' | sed '2,3c changed'
+printf '1\n2\n3\n4\n' | sed '2,3!c changed'
+printf '1\n2\n3\n4\n' | sed '$!N;c both'
+printf '1\n2\n3\n4\n' | sed '2,3{c changed
+}'

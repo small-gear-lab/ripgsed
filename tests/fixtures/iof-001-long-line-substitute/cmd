@@ -1,0 +1,10 @@
+s=abcdefghij
+i=0
+while [ $i -lt 13 ]; do s=$s$s; i=$((i+1)); done
+printf '%s\n' "$s" > long.txt
+wc -c < long.txt
+sed 's/a/A/g' long.txt | tr -cd 'A' | wc -c
+sed 's/\(abc\)\(def\)/\2\1/g' long.txt | wc -c
+sed 's/.*j//' long.txt | wc -c
+sed -n 's/j$/J/p' long.txt | tail -c 5
+sed 'y/abc/xyz/' long.txt | tr -cd 'x' | wc -c

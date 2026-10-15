@@ -1,0 +1,5 @@
+printf 'abc\n' | sed 's/a/X/ ; s/b/Y/   '
+printf 'abc\n' | sed 's/a/X/ g'
+printf 'abc\n' | sed 'y/abc/xyz/ ;p'
+printf 'abc\n' | sed 's/a/ X /'
+printf 'abc\n' | sed -n 's/a/X/ p'

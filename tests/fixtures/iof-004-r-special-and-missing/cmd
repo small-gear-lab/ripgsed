@@ -1,0 +1,13 @@
+printf 'a\nb\n' | sed 'r /dev/null'
+printf 'a\nb\n' | sed 'r no-such-file'
+printf 'a\nb\n' | sed 'R no-such-file'
+printf 'a\nb\n' > f.txt
+printf 'a\nb\n' | sed 'r f.txt' | cat
+printf 'a\nb\n' | sed '1r f.txt
+1r f.txt'
+mkdir d
+printf 'a\nb\n' | sed 'r d'
+echo "status=$?"
+printf 'a\nb\n' | sed -n 'r f.txt'
+printf 'a' | sed 'r f.txt' | od -An -c
+printf 'a\n' | sed 'R f.txt' f.txt | od -An -c

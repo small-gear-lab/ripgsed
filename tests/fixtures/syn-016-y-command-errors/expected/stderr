@@ -1,0 +1,9 @@
+sed: -e expression #1, char 1: unterminated `y' command
+sed: -e expression #1, char 2: unterminated `y' command
+sed: -e expression #1, char 3: unterminated `y' command
+sed: -e expression #1, char 4: unterminated `y' command
+sed: -e expression #1, char 5: unterminated `y' command
+sed: -e expression #1, char 7: strings for `y' command are different lengths
+sed: -e expression #1, char 7: strings for `y' command are different lengths
+sed: -e expression #1, char 7: extra characters after command
+sed: -e expression #1, char 7: unterminated `y' command

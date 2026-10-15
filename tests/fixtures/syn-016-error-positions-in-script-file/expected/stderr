@@ -1,0 +1,10 @@
+sed: file one.sed line 2: unknown command: `k'
+sed: file two.sed line 4: unterminated `s' command
+sed: file three.sed line 2: strings for `y' command are different lengths
+sed: file four.sed line 2: unmatched `{'
+sed: can't find label for jump to `nolabel'
+sed: file six.sed line 1: unknown command: `k'
+sed: file one.sed line 2: unknown command: `k'
+sed: file one.sed line 2: unknown command: `k'
+sed: couldn't open file missing.sed: No such file or directory
+sed: file eight.sed line 2: unknown command: `u'

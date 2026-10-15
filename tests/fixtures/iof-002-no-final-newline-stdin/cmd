@@ -1,0 +1,10 @@
+printf 'a\nb' | sed 's/b/B/' | od -An -c
+printf 'a\nb' | sed -n p | od -An -c
+printf 'a\nb' | sed p | od -An -c
+printf 'a\nb' | sed '$!d' | od -An -c
+printf 'a\nb' | sed 'a x' | od -An -c
+printf 'a\nb' | sed 'i x' | od -An -c
+printf 'a\nb' | sed '$d' | od -An -c
+printf 'b' | sed G | od -An -c
+printf 'a\nb' | sed -n '$=' | od -An -c
+printf 'a' | sed 'r /dev/null' | od -An -c

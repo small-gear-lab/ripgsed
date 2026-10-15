@@ -1,0 +1,15 @@
+echo a | sed --sandbox 'e echo hi'
+echo "status=$?"
+echo a | sed --sandbox 's/a/echo/e'
+echo "status=$?"
+echo a | sed --sandbox 'r f'
+echo "status=$?"
+echo a | sed --sandbox 'w f'
+echo "status=$?"
+echo a | sed --sandbox 's/a/b/w f'
+echo "status=$?"
+echo a | sed --sandbox 'R f'
+echo "status=$?"
+echo a | sed --sandbox 's/a/b/'
+echo "status=$?"
+echo a | sed -e p -e 'e true' --sandbox

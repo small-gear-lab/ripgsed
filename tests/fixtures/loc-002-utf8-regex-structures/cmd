@@ -1,0 +1,13 @@
+printf 'ééé\n' | sed 's/é*/<&>/'
+printf 'ééé\n' | sed 's/\(é\)\1/<&>/'
+printf 'ééé\n' | sed -E 's/é{2}/<&>/'
+printf 'ééé\n' | sed 's/é\{2\}/<&>/'
+printf 'aébc\n' | sed 's/.b/X/'
+printf 'aébc\n' | sed 's/^.\{2\}b/X/'
+printf 'éa\n' | sed 's/^\(.\)\(.\)$/\2\1/'
+printf 'xéy\n' | sed 's/é\?y/Z/'
+printf 'xéy\n' | sed -n '/x.y/p'
+printf 'éé\n' | sed 's/é/e/2'
+printf 'aéb\n' | sed 's/\bé/X/'
+printf 'aéb\n' | sed 's/./&&/g'
+printf 'é\n' | sed 's//x/' 2>&1

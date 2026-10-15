@@ -1,0 +1,6 @@
+printf 'a\nb\n' | sed '1{e echo in-block
+}'
+printf 'a\nb\n' | sed '1e   echo   spaced   args'
+printf 'a\nb\n' | sed '1e echo }'
+printf 'a\nb\n' | sed -e '1{' -e 'e echo split' -e '}'
+printf 'a\nb\n' | sed '1e echo "semi;colon" # not a comment'

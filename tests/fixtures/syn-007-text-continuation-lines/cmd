@@ -1,0 +1,14 @@
+printf 'x\ny\n' | sed '1a\
+line one\
+line two'
+printf 'x\ny\n' | sed '1i\
+first\
+second
+2d'
+printf 'x\ny\n' | sed '2c\
+changed\
+again'
+printf 'x\n' | sed 'a\
+  keep leading whitespace'
+printf 'x\n' | sed 'a\
+\  backslash keeps leading whitespace'

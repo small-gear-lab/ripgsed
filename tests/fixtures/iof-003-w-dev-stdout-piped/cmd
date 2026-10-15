@@ -1,0 +1,6 @@
+printf 'a\nb\nc\n' | sed 'w /dev/stdout' | cat
+printf 'a\nb\nc\n' | sed 'w /dev/stdout' > out.txt
+cat out.txt
+printf 'a\nb\nc\n' | sed -n '2w /dev/stdout' > out.txt
+cat out.txt
+printf 'a\nb\nc\n' | sed 'w /dev/stdout' 2> err.txt | od -An -c

@@ -1,0 +1,13 @@
+sed: -e expression #1, char 1: unknown command: `k'
+sed: -e expression #1, char 1: missing command
+sed: -e expression #1, char 3: missing command
+sed: -e expression #1, char 3: missing command
+sed: -e expression #1, char 5: missing command
+sed: -e expression #1, char 3: unknown command: `k'
+sed: -e expression #1, char 4: unknown command: `k'
+sed: -e expression #1, char 2: unexpected `,'
+sed: -e expression #1, char 1: missing command
+sed: -e expression #1, char 1: unknown command: `*'
+sed: -e expression #1, char 1: unknown command: `@'
+sed: -e expression #1, char 2: missing command
+sed: -e expression #1, char 3: missing command

@@ -1,0 +1,7 @@
+printf 'a\nb\nc\nd\n' | sed -n '2p'
+printf 'a\nb\nc\nd\n' | sed -n '2,3p'
+printf 'a\nb\nc\nd\n' | sed '2d'
+printf 'a\nb\nc\nd\n' | sed '$!d'
+printf 'a\nb\nc\nd\n' | sed '/b/,/c/s/$/!/'
+printf 'a\nb\nc\nd\n' | sed 'y/abc/xyz/'
+printf 'a\nb\n' | sed '='

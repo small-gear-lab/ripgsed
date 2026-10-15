@@ -1,0 +1,8 @@
+printf 'café\n日本\n' | sed 's/./X/g'
+printf 'café\n日本\n' | sed 's/./X/'
+printf 'café\n' | sed 's/caf.$/Z/'
+printf 'café\n' | sed 's/caf..$/Z/'
+printf 'café\n' | sed -n '/^.\{5\}$/p'
+printf 'café\n' | sed -n '/^.\{4\}$/p'
+printf '日\n' | sed 's/^.\{3\}$/three bytes/'
+printf 'café\n' | sed 's/.*/[&]/;s/é/E/'

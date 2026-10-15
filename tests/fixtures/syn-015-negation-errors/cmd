@@ -1,0 +1,8 @@
+printf 'a\n' | sed '1!'
+printf 'a\n' | sed '1! '
+printf 'a\n' | sed '1!}'
+printf 'a\n' | sed '1!;p'
+printf 'a\n' | sed '1!#c'
+printf 'a\n' | sed -n '1!!'
+printf 'a\n' | sed ':a!b'
+printf 'a\n' | sed '1!:a'

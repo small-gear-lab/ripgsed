@@ -1,0 +1,7 @@
+printf 'echo hello\nkeep\n' | sed 's/hello/world/e'
+printf 'echo hello\nkeep\n' | sed '1s/hello/world/e;2d'
+printf 'echo hello\n' | sed 's/hello/world/ep'
+printf 'echo hello\n' | sed -n 's/hello/world/pe'
+printf 'echo hello\n' | sed 's/hello/world/e;s/world/X/'
+printf 'echo a\n' | sed 's/a/b/ew e.txt'
+cat e.txt

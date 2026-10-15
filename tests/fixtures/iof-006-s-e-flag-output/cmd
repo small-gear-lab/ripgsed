@@ -1,0 +1,9 @@
+printf 'x\n' | sed 's/x/echo run/e'
+printf 'x\ny\n' | sed 's/x/echo run/e'
+printf 'x\ny\n' | sed -n 's/x/echo run/ep'
+printf 'x\ny\n' | sed 's/x/printf "l1\\nl2\\n"/e'
+printf 'x\ny\n' | sed 's/x/printf "no-nl"/e' | od -An -c
+printf 'x\ny\n' | sed 's/y/true/e' | od -An -c
+printf 'x\ny\n' | sed 's/x/echo A; echo B/e;s/A/a/'
+printf 'x\n' | sed 's/x/echo run/2e'
+printf 'x x\n' | sed 's/x/echo run/ge'

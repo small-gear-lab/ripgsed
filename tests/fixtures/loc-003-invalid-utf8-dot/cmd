@@ -1,0 +1,10 @@
+printf 'a\377b\n' | sed 's/./X/g'
+printf 'a\377b\n' | sed 's/.*/[&]/' | od -An -c
+printf 'a\377b\n' | sed 's/^.*$/[&]/' | od -An -c
+printf 'a\377b\n' | sed -n '/^.\{3\}$/p' | od -An -c
+printf 'a\377b\n' | sed -n '/a.b/p' | od -An -c
+printf 'a\377b\n' | sed 's/[^a]/X/g' | od -An -c
+printf 'a\377b\n' | sed 's/\xff/F/' | od -An -c
+printf 'ab\200\n' | sed 's/b.*/X/' | od -An -c
+printf '\200abc\n' | sed 's/.*/X/' | od -An -c
+printf 'a\377b\n' | sed -n l

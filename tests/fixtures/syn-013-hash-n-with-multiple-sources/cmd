@@ -1,0 +1,9 @@
+printf '#n\n1p\n' > first.sed
+printf '2p\n' > second.sed
+printf 'a\nb\n' | sed -f first.sed -f second.sed
+printf 'a\nb\n' | sed -f second.sed -f first.sed
+printf 'a\nb\n' | sed -e '2p' -f first.sed
+printf 'a\nb\n' | sed -f first.sed -e '2p'
+printf 'a\nb\n' | sed -s -f first.sed
+printf 'a\nb\n' | sed --expression='#n' --expression=2p
+printf 'a\nb\n' | sed -n -e '#n' -e 2p

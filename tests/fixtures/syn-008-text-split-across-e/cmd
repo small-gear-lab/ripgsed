@@ -1,0 +1,7 @@
+printf 'x\ny\n' | sed -e '1a\' -e 'hello'
+printf 'x\ny\n' | sed -e '1i\' -e 'hello'
+printf 'x\ny\n' | sed -e '1c\' -e 'hello'
+printf 'x\ny\n' | sed -e '1a\' -e 'line1\' -e 'line2'
+printf 'x\ny\n' | sed -e '1a hello' -e '2a world'
+printf 'x\ny\n' | sed -e '1a\' -e '  spaced'
+printf 'x\ny\n' | sed -e 'a\' -e 'foo' -e 's/x/X/'

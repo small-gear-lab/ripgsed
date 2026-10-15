@@ -1,0 +1,4 @@
+printf 'a\nb\nc\n' | sed 's/./X/'
+printf 'a\nb\nc\n' | sed '1,2s/./X/'
+printf 'a\nb\nc\n' | sed '1,2,3p'
+echo "status=$?"

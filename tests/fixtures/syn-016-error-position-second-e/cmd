@@ -1,0 +1,7 @@
+echo a | sed -e 'p' -e 'k'
+echo a | sed -e 'p' -e 'p' -e 'k'
+echo a | sed -e 'p' -e 's/a/b'
+echo a | sed -e 'p;p' -e 'p;k'
+echo a | sed -e 'p' -e '' -e '2,'
+echo a | sed --expression=p --expression='y/a/'
+echo a | sed -e p -e '1,2,3p'

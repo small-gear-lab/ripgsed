@@ -1,0 +1,9 @@
+s=0123456789
+i=0
+while [ $i -lt 14 ]; do s=$s$s; i=$((i+1)); done
+printf '%s\n' "$s" > long.txt
+wc -c < long.txt
+sed -n '$=' long.txt
+sed 's/^/X/' long.txt | wc -c
+sed -n 'p' long.txt | cmp - long.txt && echo same
+sed 's/9$/END/' long.txt | tail -c 6

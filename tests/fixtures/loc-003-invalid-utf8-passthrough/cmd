@@ -1,0 +1,8 @@
+printf 'a\377b\nc\200d\n' | sed p | od -An -c
+printf 'a\377b\nc\200d\n' | sed 's/c/C/' | od -An -c
+printf 'a\377b\nc\200d\n' | sed -n '2p' | od -An -c
+printf 'a\377b\nc\200d\n' | sed 'N;s/\n/+/' | od -An -c
+printf 'a\377b\nc\200d\n' | sed 'G;h' | od -An -c
+printf 'a\377b\nc\200d\n' | sed 'y/ab/AB/' | od -An -c
+printf 'a\377b\n' | sed 's/b/\xe9/' | od -An -c
+printf 'a\377b\n' | sed 's/\xff/&&/' | od -An -c

@@ -1,0 +1,13 @@
+printf 'x\n' | sed 'a\
+tab\there'
+printf 'x\n' | sed 'a hello\nworld'
+printf 'x\n' | sed 'a back\\slash'
+printf 'x\n' | sed 'a trailing\'
+printf 'x\n' | sed 'a\
+a\qb\
+c\\d'
+printf 'x\n' | sed 'a one\
+two'
+printf 'x\n' | sed 'a \  lead'
+printf 'x\n' | sed 'a\ttext'
+printf 'x\n' | sed 'a \ttext'

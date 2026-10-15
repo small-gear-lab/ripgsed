@@ -1,0 +1,11 @@
+printf 'é\n' | sed 's/\xc3\xa9/E/'
+printf 'é\n' | sed 's/\xc3/<c3>/' | od -An -c
+printf 'é\n' | sed 's/\xa9/<a9>/' | od -An -c
+printf 'E\n' | sed 's/E/\xc3\xa9/'
+printf 'E\n' | sed 's/E/\xc3/' | od -An -c
+printf 'E\n' | sed 's/E/\xc3\xa9/' | od -An -c
+printf 'é\n' | sed 's/\xc3./X/' | od -An -c
+printf 'é\n' | sed 's/\o303\o251/O/'
+printf 'é\n' | sed 's/\d195\d169/D/'
+printf 'é\n' | sed 's/[\xc3\xa9]/B/g' | od -An -c
+printf 'aé\n' | sed 's/./&-/g'

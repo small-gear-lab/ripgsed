@@ -1,0 +1,9 @@
+printf 'a\nb\n' > f.txt
+sed p f.txt -n
+echo "status=$?"
+sed f.txt -n p
+echo "status=$?"
+sed -e p f.txt -n
+echo "status=$?"
+sed -n -e p f.txt --expression=p
+echo "status=$?"

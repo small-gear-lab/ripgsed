@@ -1,0 +1,9 @@
+s=0123456789
+i=0
+while [ $i -lt 12 ]; do s=$s$s; i=$((i+1)); done
+printf '%s\n%s\n%s\n' "$s" "$s" "$s" > long3.txt
+wc -c < long3.txt
+sed -n 'H;${x;s/\n//g;p}' long3.txt | wc -c
+sed -n 'N;N;s/\n/+/gp' long3.txt | wc -c
+sed 'G' long3.txt | wc -l
+sed 'N;P;D' long3.txt | wc -c

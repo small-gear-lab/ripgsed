@@ -1,0 +1,11 @@
+   a  \0   X  \n   c  \0  \0   d  \n
+a\000b$
+c\000\000d$
+   Y  \n   c  \0  \0   d  \n
+aNb
+cNNd
+aNb
+cNNd
+a_b
+c__d
+  \0  \n  \0  \n  \0  \n  \0

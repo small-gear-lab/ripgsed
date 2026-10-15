@@ -1,0 +1,9 @@
+printf 'café 日本\n' | sed -n l
+printf 'café 日本\n' | sed -n 'l 8'
+printf 'café 日本\n' | sed -n 'l 1'
+printf 'a😀b\n' | sed -n l
+printf 'é\té\\\n' | sed -n l
+printf '\302\240\n' | sed -n l
+printf 'é\n' | sed -n 'l 2'
+printf 'éééé\n' | sed -n 'l 4'
+printf 'abcdééé\n' | sed -n 'l 6'

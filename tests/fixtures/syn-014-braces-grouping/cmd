@@ -1,0 +1,14 @@
+printf 'a\nb\nc\nd\n' | sed -n '2,3{p;p}'
+printf 'a\nb\nc\nd\n' | sed -n '2,3{
+p
+p
+}'
+printf 'a\nb\nc\nd\n' | sed -n '/b/,/c/{/c/!p}'
+printf 'a\nb\nc\nd\n' | sed '2,3{s/./X/;s/$/!/}'
+printf 'a\nb\nc\nd\n' | sed -n '$!{n;p}'
+printf 'a\nb\nc\nd\n' | sed '2{}'
+printf 'a\nb\nc\nd\n' | sed '{}'
+printf 'a\nb\nc\nd\n' | sed -n '{p}'
+printf 'a\nb\nc\nd\n' | sed -n '{
+}'
+printf 'a\nb\nc\nd\n' | sed -n '2{ p ; }'

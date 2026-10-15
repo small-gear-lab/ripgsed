@@ -1,0 +1,10 @@
+printf 'x\ny\n' | sed '1a hello'
+printf 'x\ny\n' | sed '1i hello'
+printf 'x\ny\n' | sed '1c hello'
+printf 'x\ny\n' | sed '1a    leading spaces skipped'
+printf 'x\ny\n' | sed '1a\    one-liner backslash keeps spaces'
+printf 'x\ny\n' | sed '$a end; with semicolon } and spaces  '
+printf 'x\ny\n' | sed '1a hello
+2d'
+printf 'x\ny\n' | sed '2a\
+'

@@ -1,0 +1,4 @@
+printf 'é日\n' | sed 's/./X/g'
+printf 'é日\n' | sed 's/.*/\U&/'
+printf 'éÉ\n' | sed 's/[[:upper:]]/U/g'
+printf 'é\n' | sed -n l

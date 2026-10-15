@@ -1,0 +1,14 @@
+printf 'data\n' > 'a;b'
+printf 'with space\n' > 'c d'
+printf 'x\ny\n' | sed 'r a;b'
+printf 'x\ny\n' | sed '1r c d'
+printf 'x\ny\n' | sed '1r a;b
+2r c d'
+printf 'x\ny\n' | sed -n 'w o;1.txt'
+cat 'o;1.txt'
+printf 'x\ny\n' | sed -n '1w out file.txt
+2w out2.txt'
+cat 'out file.txt' out2.txt
+printf 'x\ny\n' | sed '1r a;b}'
+printf 'x\ny\n' | sed '1{r a;b
+}'

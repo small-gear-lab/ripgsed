@@ -1,0 +1,10 @@
+printf 'a\303\n' | sed 's/./X/g' | od -An -c
+printf 'a\303b\n' | sed 's/./X/g' | od -An -c
+printf '\343\201\n' | sed 's/./X/g' | od -An -c
+printf '\300\200\n' | sed 's/./X/g' | od -An -c
+printf '\355\240\200\n' | sed 's/./X/g' | od -An -c
+printf '\364\220\200\200\n' | sed 's/./X/g' | od -An -c
+printf '\200\200\n' | sed 's/./X/g' | od -An -c
+printf 'a\303\251\377\303\251b\n' | sed 's/./X/g' | od -An -c
+printf 'a\303\251\377\303\251b\n' | sed 's/\(.\)\(.\)/\2\1/' | od -An -c
+printf 'a\303\251\377\303\251b\n' | sed -n l

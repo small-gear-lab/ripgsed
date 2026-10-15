@@ -1,0 +1,10 @@
+printf 'a\nb\nc\n' | sed -n -e 'w out.txt' -e 'w /dev/stdout'
+cat out.txt
+printf 'a\nb\nc\n' | sed -n 'W /dev/stdout'
+printf 'a\nb\nc\n' | sed -n 'N;W /dev/stdout'
+printf 'a\nb\nc\n' | sed 'x;w /dev/stdout
+x'
+printf 'a\nb\nc\n' | sed -n 'w /dev/stdout
+p'
+printf 'a\nb\nc\n' | sed 'w /dev/stdout
+w /dev/stdout'

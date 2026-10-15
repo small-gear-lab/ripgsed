@@ -1,0 +1,14 @@
+printf 'a1\na2\n' > a.txt
+printf 'b1\nb2\n' > b.txt
+sed -i 's/^/X/' a.txt b.txt
+cat a.txt b.txt
+sed -i -n '$p' a.txt b.txt
+cat a.txt b.txt
+printf '1\n2\n' > a.txt
+printf '3\n4\n' > b.txt
+sed -i '1i top' a.txt b.txt
+cat a.txt b.txt
+sed -i 'w /dev/stdout' a.txt b.txt
+echo ---
+sed -i -n '$=' a.txt b.txt
+cat a.txt b.txt

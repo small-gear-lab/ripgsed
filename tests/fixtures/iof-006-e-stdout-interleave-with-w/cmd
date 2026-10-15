@@ -1,0 +1,12 @@
+printf 'a\nb\n' | sed -e 'w /dev/stdout' -e 'e echo cmd' | cat
+echo ---
+printf 'a\nb\n' | sed 'e echo cmd
+p'
+echo ---
+printf 'a\nb\n' | sed '1e echo cmd
+$!d'
+echo ---
+printf 'a\nb\n' | sed 'e echo to-stderr >&2' 2>&1
+echo ---
+printf 'a\nb\n' | sed 'e echo cmd1 >&2
+w /dev/stderr' 2>&1

@@ -1,0 +1,12 @@
+sed: -e expression #1, char 0: unmatched `{'
+sed: -e expression #1, char 1: unexpected `}'
+sed: -e expression #1, char 0: unmatched `{'
+sed: -e expression #1, char 2: unexpected `}'
+sed: -e expression #1, char 0: unmatched `{'
+sed: -e expression #1, char 4: unexpected `}'
+sed: -e expression #1, char 2: unexpected `}'
+sed: -e expression #1, char 5: unexpected `}'
+sed: -e expression #1, char 0: unmatched `{'
+sed: -e expression #3, char 1: unexpected `}'
+sed: -e expression #1, char 4: unexpected `}'
+sed: -e expression #1, char 4: extra characters after command

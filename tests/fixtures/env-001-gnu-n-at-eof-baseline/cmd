@@ -1,0 +1,11 @@
+printf 'a\nb\nc\n' | sed N
+echo ---
+printf 'a\nb\nc\n' | sed 'N;N;N'
+echo ---
+printf 'a\nb\nc\n' | sed -n 'N;p'
+echo ---
+printf 'a\nb\nc\n' | sed 'N;s/\n/+/'
+echo ---
+printf 'a\n' | sed N
+echo ---
+printf 'a\nb\nc\n' | sed --posix N

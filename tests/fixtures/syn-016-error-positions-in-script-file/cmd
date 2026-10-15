@@ -1,0 +1,19 @@
+printf 'p\nk\n' > one.sed
+echo a | sed -f one.sed
+printf 'p\n\n\ns/a/b\n' > two.sed
+echo a | sed -f two.sed
+printf '# comment\ny/a/bc/\n' > three.sed
+echo a | sed -f three.sed
+printf 'p\n{\np\n' > four.sed
+echo a | sed -f four.sed
+printf 'b nolabel\n' > five.sed
+echo a | sed -f five.sed
+printf 'p;k' > six.sed
+echo a | sed -f six.sed
+echo a | sed -e p -f one.sed
+echo a | sed -f one.sed -e k
+printf 'a\\\n' > seven.sed
+echo a | sed -f seven.sed
+echo a | sed -f missing.sed
+printf 's/a/b/\nu\n' > eight.sed
+echo a | sed -f eight.sed -e 'p;k'

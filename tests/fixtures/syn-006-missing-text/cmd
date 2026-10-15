@@ -1,0 +1,6 @@
+printf 'x\n' | sed 'a'
+printf 'x\n' | sed 'i'
+printf 'x\n' | sed 'c'
+printf 'x\n' | sed 'a '
+printf 'x\n' | sed 'a\'
+printf 'x\n' | sed '$!a'

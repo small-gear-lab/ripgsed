@@ -1,0 +1,11 @@
+printf 'x\n' | sed -e 'a\' -e 'one' -e 'i\' -e 'two'
+printf 'x\n' | sed 'a\
+one
+i\
+two'
+printf 'x\n' | sed 'a\
+one\
+two
+s/x/X/'
+printf 'x\n' | sed '$!d;a\
+done'

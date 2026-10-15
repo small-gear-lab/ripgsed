@@ -1,0 +1,15 @@
+printf 'a\nb\n' > ok.txt
+sed p missing.txt
+echo "status=$?"
+sed p missing.txt ok.txt
+echo "status=$?"
+sed p ok.txt missing.txt
+echo "status=$?"
+sed p missing1.txt missing2.txt
+echo "status=$?"
+sed -n '$p' ok.txt missing.txt
+echo "status=$?"
+sed -n '$p' missing.txt ok.txt
+echo "status=$?"
+sed -s -n '$p' ok.txt missing.txt ok.txt
+echo "status=$?"

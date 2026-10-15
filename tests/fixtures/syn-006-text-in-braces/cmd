@@ -1,0 +1,8 @@
+printf 'x\ny\n' | sed '1{a hello
+}'
+printf 'x\ny\n' | sed '1{i before
+a after
+}'
+printf 'x\ny\n' | sed '1{a hello}'
+echo "status=$?"
+printf 'x\ny\n' | sed -e '1{a hello' -e '}'

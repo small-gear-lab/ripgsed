@@ -1,0 +1,5 @@
+printf 'a\nb\n' | sed -n '1{p}p'
+echo "status=$?"
+printf 'a\nb\n' | sed -n '1{p};p'
+printf 'a\nb\n' | sed -n '1{p}}'
+printf 'a\nb\n' | sed -n '1{p'

@@ -1,0 +1,9 @@
+printf 'a\tb\nc\\nd\n' | sed -E 's/[\t]/T/'
+echo ---
+printf 'a\tb\nc\\nd\n' | sed -E 's/[\n]/N/'
+echo ---
+printf 'a\tb\nc\\nd\n' | sed -E 's/[\\]/B/'
+echo ---
+printf 'a\tb\nc\\nd\n' | sed -E 's/[^\t]/X/g'
+echo ---
+printf 'a\tb\nc\\nd\n' | sed -E 's/\t/T/'

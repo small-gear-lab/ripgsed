@@ -1,0 +1,20 @@
+printf 'a\nb\n' > f.txt
+sed -i 'w /dev/stdout' f.txt
+echo ---
+cat f.txt
+printf 'a\nb\n' > f.txt
+sed -i -n 'w /dev/stdout' f.txt
+echo ---
+od -An -c f.txt
+printf 'a\nb\n' > f.txt
+sed -i 's/a/X/w /dev/stdout' f.txt
+echo ---
+cat f.txt
+printf 'a\nb\n' > f.txt
+sed -i '1e echo hello' f.txt
+echo ---
+cat f.txt
+printf 'a\nb\n' > f.txt
+sed -i 'p;w /dev/stdout' f.txt
+echo ---
+cat f.txt

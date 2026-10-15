@@ -1,0 +1,8 @@
+printf 'aé1_Ω-日 \n' | sed 's/[[:alpha:]]/A/g'
+printf 'aÉ1_ω-日 \n' | sed 's/[[:upper:]]/U/g;s/[[:lower:]]/L/g'
+printf 'a b\302\240c\n' | sed 's/[[:space:]]/S/g'
+printf 'a-é«»\n' | sed 's/[[:punct:]]/P/g'
+printf 'café au lait\n' | sed 's/\w\+/W/g'
+printf 'café au lait\n' | sed 's/\b/|/g'
+printf 'aé\n' | sed 's/[[:print:]]/P/g'
+printf 'aé\n' | sed 's/[[:graph:]]/G/g'

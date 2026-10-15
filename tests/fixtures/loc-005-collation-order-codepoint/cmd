@@ -1,0 +1,10 @@
+printf 'a\nB\nz\nA\n' | sed -n '/[a-z]/p'
+printf 'a\nB\nz\nA\n' | sed -n '/[A-Z]/p'
+printf 'a\nB\nz\nA\n' | sed -n '/[a-B]/p' 2>&1
+printf 'a\nB\nz\nA\n' | sed -n '/[B-a]/p'
+printf 'é\ne\nf\n' | sed -n '/[a-f]/p'
+printf 'é\ne\nf\n' | sed -n '/[e-f]/p'
+printf 'a\n-\n.\n' | sed -n '/[[=a=]]/p'
+printf 'a\n-\n.\n' | sed -n '/[[.-.]]/p'
+printf 'a\n-\n.\n' | sed -n '/[[.hyphen.]]/p' 2>&1
+printf 'e\né\n' | sed -n '/[[=e=]]/p'

@@ -1,0 +1,15 @@
+a
+z
+B
+A
+sed: -e expression #1, char 7: Invalid range end
+a
+B
+e
+f
+e
+f
+a
+-
+sed: -e expression #1, char 14: Invalid collation character
+e

@@ -1,0 +1,13 @@
+printf 'a\nb\nc\n' | sed -n '/a/w one.txt
+/b/w two.txt
+/c/w one.txt'
+cat one.txt two.txt
+printf 'a\nb\nc\n' | sed -n -e 'w same.txt' -e 'w same.txt'
+cat same.txt
+printf 'old\n' > pre.txt
+printf 'new\n' | sed -n 'w pre.txt'
+cat pre.txt
+printf 'a\nb\n' | sed 'w   spaced-leading.txt'
+cat spaced-leading.txt
+printf 'a\n' | sed 'w trailing.txt '
+ls

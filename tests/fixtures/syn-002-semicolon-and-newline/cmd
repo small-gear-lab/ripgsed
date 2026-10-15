@@ -1,0 +1,10 @@
+printf 'one\ntwo\n' | sed 's/o/0/;s/e/3/'
+printf 'one\ntwo\n' | sed 's/o/0/
+s/e/3/'
+printf 'one\ntwo\n' | sed -e 's/o/0/' -e 's/e/3/'
+printf 'one\ntwo\n' | sed -n 'p;p'
+printf 'one\ntwo\n' | sed ';;p;;'
+printf 'one\ntwo\n' | sed -n '1p;;2p'
+printf 'one\ntwo\n' | sed -n 'p
+
+p'

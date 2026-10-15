@@ -1,0 +1,7 @@
+printf 'one\ntwo\nthree\n' > in.txt
+printf 'S1\nS2\n' | sed '2r /dev/stdin' in.txt
+printf 'S1\nS2\n' | sed 'r /dev/stdin' in.txt
+printf 'S1\nS2\n' | sed '$r /dev/stdin' in.txt
+printf 'S1\nS2\n' | sed '1r /dev/stdin
+3r /dev/stdin' in.txt
+printf 'S1\nS2' | sed '1r /dev/stdin' in.txt | od -An -c

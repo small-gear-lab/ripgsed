@@ -1,0 +1,14 @@
+sed: can't find label for jump to `b'
+sed: -e expression #1, char 3: ":" lacks a label
+sed: can't find label for jump to `x'
+sed: -e expression #1, char 2: : doesn't want any addresses
+sed: -e expression #1, char 4: : doesn't want any addresses
+sed: -e expression #1, char 2: unexpected `}'
+sed: -e expression #1, char 4: command only uses one address
+sed: -e expression #1, char 4: command only uses one address
+sed: -e expression #1, char 1: missing filename in r/R/w/W commands
+sed: -e expression #1, char 5: extra characters after command
+sed: -e expression #1, char 3: extra characters after command
+sed: -e expression #1, char 3: extra characters after command
+sed: -e expression #1, char 3: extra characters after command
+sed: -e expression #1, char 3: expected newer version of sed

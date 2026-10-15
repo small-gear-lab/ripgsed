@@ -1,0 +1,7 @@
+printf 'a\0b\nc\0\0d\n' | sed 's/b/X/' | od -An -c
+printf 'a\0b\nc\0\0d\n' | sed -n l
+printf 'a\0b\nc\0\0d\n' | sed 's/a.b/Y/' | od -An -c
+printf 'a\0b\nc\0\0d\n' | sed 's/\x00/N/g'
+printf 'a\0b\nc\0\0d\n' | sed 's/\o0/N/g'
+printf 'a\0b\nc\0\0d\n' | sed 'y/\x00/_/'
+printf '\0\n\0' | sed 'p' | od -An -c

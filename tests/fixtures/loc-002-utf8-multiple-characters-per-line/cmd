@@ -1,0 +1,8 @@
+printf 'a\nあ\né\n😀\n' | sed -n '/^.$/p'
+printf 'a\nあ\né\n😀\n' | sed -n '/^..$/p'
+printf 'a\nあ\né\n😀\n' | sed 's/./<&>/g'
+printf 'a\nあ\né\n😀\n' | sed -n '$='
+printf '日本語\n' | sed 's/./&\n/g'
+printf '日本語\n' | sed 's/./&\n/g;s/\n$//' | sed -n '$='
+printf 'ab\n' | sed 's/\(.\)\(.\)/\2\1/;s/$/é/'
+printf 'あ い\n' | sed 's/ /　/' | od -An -c

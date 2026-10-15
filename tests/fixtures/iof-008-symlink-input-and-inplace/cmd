@@ -1,0 +1,16 @@
+printf 'a\nb\n' > real.txt
+ln -s real.txt link.txt
+sed p link.txt
+sed -i s/a/X/ link.txt
+[ -L link.txt ] && echo "still link" || echo "replaced by file"
+cat real.txt
+printf 'a\nb\n' > real.txt
+rm link.txt
+ln -s real.txt link.txt
+sed -i --follow-symlinks s/a/X/ link.txt
+[ -L link.txt ] && echo "still link" || echo "replaced by file"
+cat real.txt
+ln -s nowhere.txt dangling.txt
+sed p dangling.txt
+echo "status=$?"
+rm -f link.txt dangling.txt

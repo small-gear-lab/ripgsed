@@ -1,0 +1,11 @@
+printf 'a1\na2' > a.txt
+printf 'b1\nb2' > b.txt
+printf 'c1\nc2\n' > c.txt
+sed p a.txt b.txt | od -An -c
+sed -n p a.txt c.txt | od -An -c
+sed -n p c.txt a.txt | od -An -c
+sed -s -n p a.txt b.txt | od -An -c
+sed -s -n '$p' a.txt b.txt c.txt | od -An -c
+sed -n '$p' a.txt b.txt | od -An -c
+sed 'N;s/\n/+/' a.txt b.txt | od -An -c
+cat a.txt b.txt | sed -n '$=' | od -An -c

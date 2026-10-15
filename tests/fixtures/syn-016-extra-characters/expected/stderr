@@ -1,0 +1,14 @@
+sed: -e expression #1, char 2: extra characters after command
+sed: -e expression #1, char 3: extra characters after command
+sed: -e expression #1, char 4: extra characters after command
+sed: -e expression #1, char 2: extra characters after command
+sed: -e expression #1, char 3: extra characters after command
+sed: -e expression #1, char 5: extra characters after command
+sed: -e expression #1, char 4: extra characters after command
+sed: -e expression #1, char 5: extra characters after command
+sed: -e expression #1, char 7: extra characters after command
+sed: -e expression #1, char 19: extra characters after command
+sed: -e expression #1, char 1: missing filename in r/R/w/W commands
+sed: -e expression #1, char 5: expected newer version of sed
+sed: -e expression #1, char 1: expected \ after `a', `c' or `i'
+sed: -e expression #1, char 3: extra characters after command

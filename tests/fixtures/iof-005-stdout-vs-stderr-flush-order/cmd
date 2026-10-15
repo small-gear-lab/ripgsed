@@ -1,0 +1,11 @@
+printf 'a\nb\n' | sed -e 'w /dev/stderr' 2>&1
+echo ---
+printf 'a\nb\n' | sed -e 'p;w /dev/stderr' 2>&1
+echo ---
+printf 'a\nb\n' | sed -n -e 'p;w /dev/stderr' 2>&1
+echo ---
+printf 'a\nb\n' | sed -e 'w /dev/stderr' -e 'w /dev/stdout' 2>&1
+echo ---
+printf 'a\nb\n' | sed -u -e 'w /dev/stderr' 2>&1
+echo ---
+printf 'a\nb\n' | sed -e 'w /dev/stderr' 2>&1 | cat

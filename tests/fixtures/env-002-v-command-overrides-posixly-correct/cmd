@@ -1,0 +1,14 @@
+printf 'a\nb\nc\n' | sed N
+echo ---
+printf 'a\nb\nc\n' | sed 'v;N'
+echo ---
+printf 'a\nb\nc\n' | sed 'v 4.2
+N'
+echo ---
+printf 'a\tb\n' | sed 'v
+s/[\t]/T/'
+echo ---
+printf 'a\tb\n' | sed 's/[\t]/T/'
+echo ---
+printf 'a\nb\nc\n' | sed -n 'v 4.9
+$!N;p'

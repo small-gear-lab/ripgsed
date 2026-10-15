@@ -1,0 +1,15 @@
+printf 'a\nb\n' | sed '# whole line comment
+s/a/X/'
+printf 'a\nb\n' | sed 's/a/X/ # trailing comment'
+printf 'a\nb\n' | sed 's/a/X/;# after semicolon
+s/b/Y/'
+printf 'a\nb\n' | sed '1{ # comment after brace
+p
+}'
+printf 'a\nb\n' | sed -n '1p # comment; p'
+printf 'a\nb\n' | sed '#'
+printf 'a\nb\n' | sed 'p # comment' | cat
+printf 'a\nb\n' | sed -e '# c1' -e 's/a/X/'
+printf 'a\nb\n' | sed '1d#comment'
+printf 'a\nb\n' | sed '1 # comment
+d'

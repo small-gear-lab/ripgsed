@@ -1,0 +1,6 @@
+printf 'a\\\nfrom file\n' > s.sed
+printf 'x\n' | sed -e '1a\' -f s.sed
+printf 'x\n' | sed -f s.sed
+printf 'x\n' | sed -f s.sed -e 's/x/X/'
+printf '1a\\' > noeol.sed
+printf 'x\n' | sed -f noeol.sed -e 'text'

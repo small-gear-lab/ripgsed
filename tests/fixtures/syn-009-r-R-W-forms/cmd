@@ -1,0 +1,11 @@
+printf 'L1\nL2\n' > in.txt
+printf 'x\ny\nz\n' | sed 'R in.txt'
+printf 'x\ny\nz\n' | sed 'R   in.txt'
+printf 'x\ny\nz\n' | sed -n 'N;W w.txt'
+cat w.txt
+printf 'x\ny\n' | sed 'r nonexistent-file'
+printf 'x\ny\n' | sed '1r in.txt' | cat
+printf 'x\ny\n' | sed 'r'
+printf 'x\ny\n' | sed 'w'
+printf 'x\ny\n' | sed 'R'
+printf 'x\ny\n' | sed 'W'

@@ -1,0 +1,22 @@
+sed: -e expression #1, char 1: unterminated `s' command
+sed: -e expression #1, char 2: unterminated `s' command
+sed: -e expression #1, char 3: unterminated `s' command
+sed: -e expression #1, char 4: unterminated `s' command
+sed: -e expression #1, char 5: unterminated `s' command
+sed: -e expression #1, char 7: unknown option to `s'
+sed: -e expression #1, char 8: multiple `g' options to `s' command
+sed: -e expression #1, char 8: multiple `p' options to `s' command
+sed: -e expression #1, char 9: multiple number options to `s' command
+sed: -e expression #1, char 7: number option to `s' command may not be zero
+sed: -e expression #1, char 9: multiple number options to `s' command
+sed: -e expression #1, char 8: Unmatched ( or \(
+sed: -e expression #1, char 8: Unmatched ) or \)
+sed: -e expression #1, char 8: Unmatched ( or \(
+sed: -e expression #1, char 7: invalid reference \1 on `s' command's RHS
+sed: -e expression #1, char 11: invalid reference \2 on `s' command's RHS
+sed: -e expression #1, char 8: Invalid preceding regular expression
+sed: -e expression #1, char 7: unterminated `s' command
+sed: -e expression #1, char 9: Unmatched \{
+sed: -e expression #1, char 13: Invalid content of \{\}
+sed: -e expression #1, char 5: unterminated `s' command
+sed: -e expression #1, char 3: unterminated `s' command

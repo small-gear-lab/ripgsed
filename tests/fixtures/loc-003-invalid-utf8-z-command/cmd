@@ -1,0 +1,8 @@
+printf 'a\377b\n' | sed 'z;s/^$/empty/'
+printf 'a\377b\nc\n' | sed '1z'
+printf 'a\377b\n' | sed 'z;s/.*/[&]/'
+printf 'a\377b\n' | sed 's/.*/[&]/;z' | od -An -c
+printf 'a\377b\n' | sed 'h;z;G' | od -An -c
+printf 'a\377b\n' | sed -n 'z;p;$='
+printf 'ok\n' | sed 'z;G;s/\n/NL/'
+printf '\377\n\377\n' | sed 's/.*/X/'

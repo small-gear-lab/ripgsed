@@ -1,0 +1,3 @@
+sed: file open.sed line 1: unmatched `{'
+sed: file close.sed line 2: unexpected `}'
+sed: file close2.sed line 3: unexpected `}'

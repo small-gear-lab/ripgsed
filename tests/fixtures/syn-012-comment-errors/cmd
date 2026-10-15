@@ -1,0 +1,6 @@
+printf 'a\n' | sed '1#comment'
+printf 'a\n' | sed 'y/a/b/#c'
+printf 'a\n' | sed 's/a/b/#c'
+printf 'a\n' | sed 'a text # not a comment'
+printf 'a\n' | sed 'b # not a label comment'
+printf 'a\n' | sed '1{#}'

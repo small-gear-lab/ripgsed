@@ -1,0 +1,7 @@
+printf 'a\nb\nc\n' | sed 'w /dev/stdout'
+printf 'a\nb\nc\n' | sed -n 'w /dev/stdout'
+printf 'a\nb\nc\n' | sed '2w /dev/stdout'
+printf 'a\nb\nc\n' | sed 's/b/B/w /dev/stdout'
+printf 'a\nb\nc\n' | sed '$!N;w /dev/stdout'
+printf 'a\nb\nc\n' | sed 'p;w /dev/stdout'
+printf 'a\nb\nc\n' | sed '1d;w /dev/stdout'

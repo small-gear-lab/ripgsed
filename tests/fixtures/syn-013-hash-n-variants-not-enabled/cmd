@@ -1,0 +1,15 @@
+printf 'a\nb\n' | sed '#n 
+2p'
+printf 'a\nb\n' | sed '#no
+2p'
+printf 'a\nb\n' | sed '#nn
+2p'
+printf 'a\nb\n' | sed ' #n
+2p'
+printf 'a\nb\n' | sed '#N
+2p'
+printf 'a\nb\n' | sed '# n
+2p'
+printf 'a\nb\n' | sed '#n;2p'
+printf 'a\nb\n' | sed '#n  # comment
+2p'

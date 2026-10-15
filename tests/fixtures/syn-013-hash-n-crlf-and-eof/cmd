@@ -1,0 +1,7 @@
+printf '#n\r\n2p\n' > crlf.sed
+printf 'a\nb\n' | sed -f crlf.sed
+printf '#n\n' > nl.sed
+printf 'a\nb\n' | sed -f nl.sed
+printf 'a\nb\n' | sed -e '#n
+' 
+printf 'a\nb\n' | sed -e '#n' -e ''

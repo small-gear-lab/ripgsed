@@ -1,0 +1,6 @@
+printf 'a\n' | sed ': '
+printf 'a\n' | sed ':'
+printf 'a\n' | sed 'b nowhere'
+printf 'a\n' | sed ':a;:a;p'
+printf 'a\n' | sed ':a b;b a b'
+printf 'a\n' | sed '{:a}'

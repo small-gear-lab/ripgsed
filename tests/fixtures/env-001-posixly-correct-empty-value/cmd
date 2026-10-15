@@ -1,0 +1,5 @@
+printf 'a\nb\nc\n' | sed N
+echo ---
+printf 'a\tb\n' | sed 's/[\t]/T/'
+echo ---
+printf 'a\nb\n' | sed p x -n 2>&1

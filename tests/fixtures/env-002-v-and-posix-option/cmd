@@ -1,0 +1,14 @@
+printf 'a\nb\nc\n' | sed --posix 'v;N'
+echo "status=$?"
+printf 'a\nb\nc\n' | sed --posix N
+echo ---
+printf 'a\nb\nc\n' | sed --posix 'a x'
+echo ---
+printf 'a\nb\n' | sed --posix 'v 4.9
+s/a\|b/X/'
+echo ---
+printf 'a\nb\n' | sed --posix 's/a\+/X/'
+echo ---
+printf 'a\nb\n' | sed --posix '0~2d'
+echo ---
+printf 'a\nb\n' | sed --posix 'y/a/b/;l;='

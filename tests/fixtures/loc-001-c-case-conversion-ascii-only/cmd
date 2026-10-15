@@ -1,0 +1,6 @@
+printf 'café ÀÉ straße\n' | sed 's/.*/\U&/'
+printf 'café ÀÉ straße\n' | sed 's/.*/\L&/'
+printf 'élan\n' | sed 's/^./\u&/'
+printf 'ÉLAN\n' | sed 's/^./\l&/'
+printf 'élan\n' | sed 's/\(.\)\(.\)/\u\1\2/' | od -An -c
+printf 'abc ÀB\n' | sed 's/\(.*\)/\U\1\E-\1/'

@@ -1,0 +1,8 @@
+printf 'café 日本\n' | sed -n l
+printf 'café 日本\n' | sed -n 'l 8'
+printf 'café\n' | sed 'y/é/e/' 2>&1
+printf 'café\n' | sed 'y/\xc3/C/' | od -An -c
+printf 'café\n' | sed 'y/ab/xy/'
+printf 'a\tb\\c\001\n' | sed -n l
+printf '\r\f\v\a\b\n' | sed -n l
+printf '\177\200\n' | sed -n l

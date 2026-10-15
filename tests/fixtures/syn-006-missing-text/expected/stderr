@@ -1,0 +1,5 @@
+sed: -e expression #1, char 1: expected \ after `a', `c' or `i'
+sed: -e expression #1, char 1: expected \ after `a', `c' or `i'
+sed: -e expression #1, char 1: expected \ after `a', `c' or `i'
+sed: -e expression #1, char 2: expected \ after `a', `c' or `i'
+sed: -e expression #1, char 3: expected \ after `a', `c' or `i'

@@ -1,0 +1,8 @@
+printf 'a\nb\n' | sed '#n
+2p'
+printf 'a\nb\n' | sed -e '#n' -e '2p'
+printf '#n\n2p\n' > n.sed
+printf 'a\nb\n' | sed -f n.sed
+printf '#n' > only.sed
+printf 'a\nb\n' | sed -f only.sed
+printf 'a\nb\n' | sed '#n'

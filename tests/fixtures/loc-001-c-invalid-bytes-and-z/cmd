@@ -1,0 +1,6 @@
+printf 'a\377b\n' | sed 's/./X/g'
+printf 'a\377b\n' | sed 's/.*/[&]/' | od -An -c
+printf 'a\377b\n' | sed 'z;s/^$/empty/'
+printf 'a\377b\n' | sed -n l
+printf 'a\377b\n' | sed 's/\xff/F/'
+printf 'a\200\n' | sed 's/[^a]/X/'

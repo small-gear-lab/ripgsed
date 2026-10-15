@@ -1,0 +1,8 @@
+s=abcdefghijklmnopqrstuvwxyz
+i=0
+while [ $i -lt 6 ]; do s=$s$s; i=$((i+1)); done
+printf '%s\n' "$s" > l.txt
+sed -n l l.txt
+sed -n 'l 0' l.txt | wc -l
+sed -n 'l 1' l.txt | wc -l
+sed -n 'l 200' l.txt | wc -l

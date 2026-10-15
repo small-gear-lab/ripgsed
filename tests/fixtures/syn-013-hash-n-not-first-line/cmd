@@ -1,0 +1,7 @@
+printf 'a\nb\n' | sed '2p
+#n'
+printf 'a\nb\n' | sed -e '2p' -e '#n'
+printf 'a\nb\n' | sed -e '2p;#n'
+printf 'a\nb\n' | sed -e 's/a/X/' -e '#n' -e '2p'
+printf '2p\n#n\n' > late.sed
+printf 'a\nb\n' | sed -f late.sed

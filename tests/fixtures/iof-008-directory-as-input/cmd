@@ -1,0 +1,17 @@
+mkdir d
+printf 'a\nb\n' > ok.txt
+sed p d
+echo "status=$?"
+sed p d ok.txt
+echo "status=$?"
+sed p ok.txt d
+echo "status=$?"
+sed -n '$=' ok.txt d ok.txt
+echo "status=$?"
+sed -s -n '$p' d ok.txt
+echo "status=$?"
+sed -i s/a/X/ d ok.txt
+echo "status=$?"
+cat ok.txt
+sed p .
+echo "status=$?"

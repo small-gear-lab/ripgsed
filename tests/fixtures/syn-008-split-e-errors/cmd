@@ -1,0 +1,4 @@
+printf 'x\n' | sed -e 'a\'
+printf 'x\n' | sed -e 'a\' -e ''
+printf 'x\n' | sed -e 'p' -e 'a\'
+printf 'x\n' | sed -e 'a\' -e 'text' -e 'k'

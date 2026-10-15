@@ -1,0 +1,5 @@
+printf 'one\n' | sed 'p p'
+printf 'one\n' | sed 'dp'
+printf 'one\n' | sed 'p;p x'
+printf 'one\n' | sed '=p'
+printf 'one\n' | sed 'ss/o/0/;s/e/3/'

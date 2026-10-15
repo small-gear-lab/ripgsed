@@ -1,0 +1,7 @@
+printf 'x\ny\n' | sed '1e echo one; echo two'
+printf 'x\ny\n' | sed '1e echo "a b"   '
+printf 'x\ny\n' | sed '2e echo hi
+1d'
+printf 'echo from-pattern\n' | sed 'e'
+printf 'echo from-pattern\nkeep\n' | sed '1e'
+printf 'x\n' | sed -n '1e echo hello'

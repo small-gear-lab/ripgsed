@@ -1,0 +1,15 @@
+caf\303\251 \346\227\245\346\234\254$
+caf\303\
+\251 \
+\346\
+\227\
+\245\
+\346\
+\234\
+\254$
+sed: -e expression #1, char 7: strings for `y' command are different lengths
+   c   a   f   C 251  \n
+cxfé
+a\tb\\c\001$
+\r\f\v\a\b$
+\177\200$

@@ -1,0 +1,22 @@
+x
+hello
+y
+hello
+x
+y
+hello
+y
+x
+leading spaces skipped
+y
+x
+    one-liner backslash keeps spaces
+y
+x
+y
+end; with semicolon } and spaces  
+x
+hello
+x
+y
+

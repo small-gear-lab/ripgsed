@@ -1,0 +1,6 @@
+printf '{\np\n' > open.sed
+printf 'a\n' | sed -f open.sed
+printf 'p\n}\n' > close.sed
+printf 'a\n' | sed -f close.sed
+printf 'p\n\n{p}}\n' > close2.sed
+printf 'a\n' | sed -f close2.sed

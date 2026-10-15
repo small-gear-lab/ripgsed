@@ -1,0 +1,16 @@
+echo a | sed
+echo "status=$?"
+echo a | sed -e
+echo "status=$?"
+echo a | sed -f
+echo "status=$?"
+echo a | sed --bogus p
+echo "status=$?"
+echo a | sed -k p
+echo "status=$?"
+echo a | sed -l x p
+echo "status=$?"
+echo a | sed --line-length=x p
+echo "status=$?"
+echo a | sed -z -s -n -E -r --posix p
+echo "status=$?"

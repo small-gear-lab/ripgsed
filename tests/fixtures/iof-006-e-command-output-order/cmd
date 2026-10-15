@@ -1,0 +1,11 @@
+printf 'a\nb\nc\n' | sed '2e echo cmd-output'
+printf 'a\nb\nc\n' | sed -n '2e echo cmd-output'
+printf 'a\nb\nc\n' | sed '2{e echo before
+p}'
+printf 'a\nb\nc\n' | sed '1e echo one
+3e echo three'
+printf 'a\nb\n' | sed 'e echo X; echo Y'
+printf 'a\nb\n' | sed 'e echo X; echo Y' | cat
+printf 'a\nb\n' | sed 'i before
+e echo mid
+a after'

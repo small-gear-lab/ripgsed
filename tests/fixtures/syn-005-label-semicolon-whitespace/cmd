@@ -1,0 +1,8 @@
+printf 'a\n' | sed ':a;s/^.\{1,3\}$/&x/;ta'
+printf 'a\n' | sed ': a ;s/^.\{1,3\}$/&x/;t a ;'
+printf 'a\n' | sed -e ':a' -e 's/^.\{1,3\}$/&x/' -e 'ta'
+printf 'a\n' | sed ':a
+s/^.\{1,3\}$/&x/
+ta'
+printf 'a\n' | sed 's/a/b/;b end;s/b/c/;:end'
+printf 'a\n' | sed 's/a/b/;b end ;s/b/c/;: end'

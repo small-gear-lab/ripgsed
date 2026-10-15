@@ -1,0 +1,7 @@
+a
+b
+---
+a	b
+---
+sed: can't read x: No such file or directory
+sed: can't read -n: No such file or directory
