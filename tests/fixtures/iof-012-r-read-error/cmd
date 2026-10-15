@@ -1,0 +1,5 @@
+# A read error on the file of r, R, or 0r (not a failure to open it) stops sed with status 4.
+for c in 'r /proc/self/mem' 'R /proc/self/mem' '0r /proc/self/mem' 'r /proc/1/mem'; do
+  printf 'a\nb\n' | sed "$c"
+  echo "rc=$?"
+done

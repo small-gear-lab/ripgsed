@@ -11,6 +11,9 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-24.04
+    env:
+      # The debug build is slow: one fixture starts sed about 240 times.
+      RIPGSED_FIXTURE_TIMEOUT: "120"
     steps:
       - uses: actions/checkout@v4
       - name: Toolchain

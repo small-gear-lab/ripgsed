@@ -167,10 +167,25 @@ fn run_sed(flags: Flags, pattern: &[u8], groups: usize, inputs: &[Vec<u8>]) -> O
     let writer = std::thread::spawn(move || {
         let _ = stdin.write_all(&data);
     });
+    // Some patterns take GNU sed exponential time: stop it after a while (no verdict then).
+    let pid = child.id();
+    let (done, waiting) = std::sync::mpsc::channel::<()>();
+    let watchdog = std::thread::spawn(move || {
+        if let Err(std::sync::mpsc::RecvTimeoutError::Timeout) = waiting.recv_timeout(std::time::Duration::from_secs(20)) {
+            let _ = Command::new("kill").arg("-9").arg(pid.to_string()).status();
+        }
+    });
     let out = child.wait_with_output().expect("sed output");
+    let _ = done.send(());
+    watchdog.join().unwrap();
     writer.join().unwrap();
-    // GNU sed crashes on some back-reference patterns: no verdict then.
+    // GNU sed crashes on some back-reference patterns, or is stopped above: no verdict then.
     out.status.code()?;
+    // Some back-reference patterns make GNU sed print garbage with NUL bytes (undefined behavior,
+    // as the input has none): no verdict either.
+    if !flags.z && out.stdout.contains(&0) {
+        return None;
+    }
     if !out.status.success() || !out.stderr.is_empty() {
         let text = String::from_utf8_lossy(&out.stderr).trim_end().to_string();
         let msg = match text.find(": ") {

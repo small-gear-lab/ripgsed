@@ -75,7 +75,7 @@ pub fn argument_bytes(arg: &str) -> Vec<u8> {
 }
 
 /// The name this program was run as, used as the prefix of every message.
-fn program_name() -> String {
+pub fn program_name() -> String {
     std::env::args_os()
         .next()
         .and_then(|a| std::path::Path::new(&a).file_name().map(|n| n.to_string_lossy().into_owned()))

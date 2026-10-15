@@ -74,3 +74,46 @@ fn a_missing_file_falls_back_to_the_sequential_messages() {
     assert_eq!(String::from_utf8_lossy(&err), "ripgsed: can't read /nonexistent/file: No such file or directory\n");
     assert_eq!(status, Some(2));
 }
+
+/// A reader that stops after the first bytes (as `head -c` does) must end the whole parallel run:
+/// the worker threads and the reader notice that the writer is gone and the process exits.
+#[test]
+fn parallel_run_ends_when_the_output_is_closed() {
+    use std::io::Read;
+    use std::process::Stdio;
+    use std::time::{Duration, Instant};
+
+    let dir = std::env::temp_dir().join(format!("ripgsed-parallel-close-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let big = dir.join("big.txt");
+    std::fs::write(&big, lines(200_000, true)).unwrap();
+
+    let mut child = Command::new(BIN)
+        .args(["s/alpha/X/g"])
+        .arg(&big)
+        .env("RIPGSED_JOBS", "4")
+        .env("RIPGSED_BLOCK", "4096")
+        .env("LC_ALL", "C")
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn()
+        .expect("run ripgsed");
+    let mut stdout = child.stdout.take().unwrap();
+    let mut first = [0u8; 16];
+    stdout.read_exact(&mut first).unwrap();
+    drop(stdout);
+
+    let start = Instant::now();
+    loop {
+        if child.try_wait().unwrap().is_some() {
+            break;
+        }
+        if start.elapsed() > Duration::from_secs(20) {
+            child.kill().ok();
+            child.wait().ok();
+            panic!("the run did not end after its output was closed");
+        }
+        std::thread::sleep(Duration::from_millis(10));
+    }
+    let _ = std::fs::remove_dir_all(&dir);
+}

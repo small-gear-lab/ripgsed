@@ -1,0 +1,4 @@
+# When memory runs out, sed says so and exits with status 1.
+( ulimit -v 200000
+  echo a | sed 'H;H;H;H;H;H;H;H;H;H;x;G;G;G;G;G;G;G;G;G;G;h;:a;G;ba' > /dev/null
+  echo "rc=$?" ) 2>&1

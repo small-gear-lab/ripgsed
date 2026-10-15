@@ -2,6 +2,7 @@
 //!
 //! See docs/ARCHITECTURE.md for the module layout.
 
+pub mod alloc;
 pub mod analysis;
 pub mod cli;
 pub mod debug;

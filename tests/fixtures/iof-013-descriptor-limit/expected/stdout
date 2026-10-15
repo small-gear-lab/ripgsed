@@ -1,0 +1,6 @@
+== ulimit -n 4
+sed: couldn't open file x2: Too many open files
+rc=4
+== ulimit -n 5
+sed: can't read f: Too many open files
+rc=2

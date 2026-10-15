@@ -1047,6 +1047,7 @@ ext-006-w-dev-stdout-closed
 ext-006-write-error-dev-full
 ext-010-closed-stdout-with-p
 ext-012-in-place-temp-file-name
+ext-013-memory-exhausted
 inv-001-no-script-given
 inv-001-script-as-first-operand
 inv-001-script-looks-like-file
@@ -1128,6 +1129,8 @@ iof-008-special-files-as-input
 iof-008-symlink-input-and-inplace
 iof-009-directory-operands-and-targets
 iof-011-script-argument-not-utf8
+iof-012-r-read-error
+iof-013-descriptor-limit
 loc-001-c-bracket-and-classes-bytes
 loc-001-c-case-conversion-ascii-only
 loc-001-c-dot-is-one-byte

@@ -506,11 +506,10 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                 Ok(0) => return Ok(()),
                 Ok(n) => self.write_raw(&buffer[..n])?,
                 Err(e) if e.kind() == std::io::ErrorKind::Interrupted => {}
-                Err(e) if e.raw_os_error() == Some(21) => {
+                Err(e) => {
                     let path = String::from_utf8_lossy(name).into_owned();
-                    return Err(Fatal::new(format!("read error on {path}: Is a directory"), 4));
+                    return Err(Fatal::new(format!("read error on {path}: {}", crate::io::strerror(&e)), 4));
                 }
-                Err(_) => return Ok(()),
             }
         }
     }

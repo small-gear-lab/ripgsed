@@ -1,0 +1,8 @@
+# With no file descriptor left, opening a w file or the input fails with 'Too many open files'.
+printf 'a\n' > f
+for n in 4 5; do
+  echo "== ulimit -n $n"
+  ( ulimit -n $n; sed 'w x1
+w x2' f; echo "rc=$?" ) 2>&1
+done
+rm -f f x1 x2
