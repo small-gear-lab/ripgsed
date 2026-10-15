@@ -1,0 +1,2 @@
+sed 'a\
+A\cIB' | od -An -c

@@ -1,0 +1,1 @@
+sed 's/x/printf "a\\nb\\n"/e'

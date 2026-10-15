@@ -1,0 +1,5 @@
+IN=$(cat; echo .); IN=${IN%.}
+sed() { printf %s "$IN" | command sed "$@"; }
+sed -E 's/(x?)b/\u\1[&]/'
+sed -E 's/(x?)(b)/\u\1\2/'
+sed -E 's/(x?)(b)/\U\1\2/'

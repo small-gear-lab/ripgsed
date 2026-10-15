@@ -1,0 +1,1 @@
+sed 's/x/\t\x41\o102\d067\cI|/' | od -An -c

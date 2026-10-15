@@ -1,0 +1,2 @@
+sed -n 's/a/X/gw out.txt'
+cat out.txt

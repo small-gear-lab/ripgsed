@@ -1,0 +1,6 @@
+IN=$(cat; echo .); IN=${IN%.}
+sed() { printf %s "$IN" | command sed "$@"; }
+sed 'y/a/\q/'; echo "status=$?"
+sed 'y/ab/x/'; echo "status=$?"
+sed 'y/a\/b/xyz/' ; echo "status=$?"
+sed 'y,a\,b,xyz,' ; echo "status=$?"

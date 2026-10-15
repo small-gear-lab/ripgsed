@@ -1,0 +1,6 @@
+IN=$(cat; echo .); IN=${IN%.}
+sed() { printf %s "$IN" | command sed "$@"; }
+sed 'a\
+\x41\x42\
+\o103\d068'
+sed -e 'a one\' -e 'two'

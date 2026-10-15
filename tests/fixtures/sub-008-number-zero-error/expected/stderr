@@ -1,0 +1,2 @@
+sed: -e expression #1, char 7: number option to `s' command may not be zero
+sed: -e expression #1, char 8: number option to `s' command may not be zero

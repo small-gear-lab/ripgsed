@@ -1,0 +1,5 @@
+IN=$(cat; echo .); IN=${IN%.}
+sed() { printf %s "$IN" | command sed "$@"; }
+sed 's/\bcat\b/X/g'
+sed 's/\bcat/X/g'
+sed 's/cat\b/X/g'

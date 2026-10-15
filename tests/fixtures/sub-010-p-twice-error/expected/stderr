@@ -1,0 +1,2 @@
+sed: -e expression #1, char 8: multiple `p' options to `s' command
+sed: -e expression #1, char 8: multiple `g' options to `s' command

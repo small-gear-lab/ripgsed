@@ -1,0 +1,3 @@
+echo old > out.txt
+sed 's/zzz/X/w out.txt'
+echo "size: $(wc -c < out.txt)"

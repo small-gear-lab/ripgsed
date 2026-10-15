@@ -1,0 +1,5 @@
+IN=$(cat; echo .); IN=${IN%.}
+sed() { printf %s "$IN" | command sed "$@"; }
+sed 's/[\x61-\x63]/_/g'
+sed 's/[\d65\o102]/_/g'
+sed 's/[^\x41-\x5a]/_/g'

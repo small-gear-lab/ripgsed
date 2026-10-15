@@ -1,0 +1,2 @@
+sed 's/x/true/e'
+echo "status=$?"

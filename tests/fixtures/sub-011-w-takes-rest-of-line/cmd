@@ -1,0 +1,2 @@
+sed -e 's/a/X/w o1.txt' -e 's/b/Y/w o2.txt'
+for f in o1.txt o2.txt; do echo "== $f"; cat $f; done

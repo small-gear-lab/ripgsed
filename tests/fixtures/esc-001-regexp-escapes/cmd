@@ -1,0 +1,6 @@
+IN=$(cat; echo .); IN=${IN%.}
+sed() { printf %s "$IN" | command sed "$@"; }
+sed 's/\t/<TAB>/'
+sed 's/a\tb/X/'
+sed 's/[\t]/<T>/'
+sed -E 's/\t+/_/'

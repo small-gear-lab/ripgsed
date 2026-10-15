@@ -1,0 +1,2 @@
+sed: -e expression #1, char 9: cannot specify modifiers on empty regexp
+sed: -e expression #1, char 9: cannot specify modifiers on empty regexp

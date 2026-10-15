@@ -1,0 +1,3 @@
+sed 's/foo/X/w out.txt'
+echo ---
+cat out.txt

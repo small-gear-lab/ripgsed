@@ -1,0 +1,1 @@
+sed 's/a/X/w nodir/out.txt'; echo "status=$?"

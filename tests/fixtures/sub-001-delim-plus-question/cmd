@@ -1,0 +1,4 @@
+IN=$(cat; echo .); IN=${IN%.}
+sed() { printf %s "$IN" | command sed "$@"; }
+sed 's+a\+b+X+g'
+sed -E 's+a\+b+Y+g'
