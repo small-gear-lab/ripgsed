@@ -2,7 +2,7 @@
 
 A stream editor in Rust that keeps the sed language but separates syntax, semantics, and execution strategy.
 
-**Status: work in progress.** The sed language and its own regular expression engine are implemented (BRE/ERE, `--posix`, C and UTF-8 locales, `-i`, `--debug`, `-z`, `-s`, `w`/`r`/`R`/`W`, ...) and checked against GNU sed 4.9 by 1,700+ differential fixtures plus random differential tests. Compatibility is only claimed where fixtures verify it (see [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) and `tools/compat-summary.sh`); one fixture is known to differ (a glibc quirk with a back-reference to a group inside a repetition).
+**Status: work in progress.** The sed language and its own regular expression engine are implemented (BRE/ERE, `--posix`, C and UTF-8 locales, `-i`, `--debug`, `-z`, `-s`, `w`/`r`/`R`/`W`, ...) and checked against GNU sed 4.9 by 1,700+ differential fixtures plus random differential tests. Compatibility is only claimed where fixtures verify it (see [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) and `tools/compat-summary.sh`); the few known differences, all of them glibc regular expression quirks, are listed in [docs/KNOWN-DIFFERENCES.md](docs/KNOWN-DIFFERENCES.md).
 
 ## Performance
 

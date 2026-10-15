@@ -1,0 +1,41 @@
+# GNU sed 4.9 との既知の差分
+
+ripgsed は GNU sed 4.9 と完全に同じ動作（同じ出力、C ロケールでの同じエラーメッセージ、同じ終了状態）を目指しています（[DECISIONS.md](DECISIONS.md) の D4）。このページは、そうなっていない点と、バグのように見えても glibc の挙動をそのまま真似ている点を挙げます。
+
+## 意図的な差分
+
+- `--version` and `--help` print ripgsed's own text. The first line of the usage message and the `sed:` lines of option errors are the same as GNU sed's.
+- 実装しているロケールは `C` と UTF-8 のみです。その他のマルチバイトエンコーディングはバイト列として読みます。
+- メモリ使用量は多めです。入力を 256 KiB のブロック単位で読み、並列実行では複数のブロックを同時に保持します。
+
+## 再現している glibc の挙動
+
+GNU sed は C ライブラリの正規表現マッチャーを使っています。そのマッチャーが仕様にない動きをする場合、スクリプトが同じ出力になるよう ripgsed も同じ動きをします。
+
+- パターンが1文字の繰り返し（`b*`、`[ab]*`、`(a*)*`、`a*\+`）で始まり、その直後に `\B` がある場合、その位置で繰り返しが1文字を消費できるときの空マッチは、その文字の後ろで報告されます。`echo ab | sed 's/b*\B/<&>/'` は `a<>b` ではなく `ab<>` を出力します。バッファの先頭では起きず、`\b`、`\<`、`\>` にも当てはまりません。fixture は `rgx-039` です。
+- UTF-8 ロケールの文字クラス（`[[:alpha:]]`、`\w` など）は glibc の `C.utf8` の表に従います。表は C ライブラリから生成しており（`tools/gen-classes.py`）、Rust の標準ライブラリではなく glibc の Unicode バージョンに従います。
+
+## 再現していない glibc の挙動
+
+glibc のマッチャーが、最左最長の規則や後方参照の定義と食い違う結果を返す場合です。差分テスト（`tests/regex_differential.rs`）のランダムなパターンの約 0.2% が該当しますが、通常のパターンでは起きません。ripgsed は定義どおりの結果を返します。
+
+| パターン（ERE）   | 入力       | glibc                 | ripgsed      |
+|-------------|----------|-----------------------|--------------|
+| `(a+)+\1`   | `aaaa`   | `aa` に一致              | `aaaa` に一致   |
+| `(a+)+\1b`  | `aaab`   | `aab` に一致（オフセット 1 から） | `aaab` に一致   |
+| `(a*)+\1`   | `aaa`    | `aa` に一致              | `aaa` に一致    |
+| `(a*){2}\1` | `aaaaaa` | 一致なし                  | `aaaaaa` に一致 |
+
+4つとも、繰り返しの中にある可変幅のグループへの後方参照です。固定幅のグループ（`(ab)+\1`）と `(a*)*\1b` は仕様どおりに動きます。重ねた量指定子の下のキャプチャ（`((b?)+*|c){1}`）や、パターンの先頭でない繰り返しの後ろの `\B` でも差が出ることがあります。一覧上の項目は `compat/sed.tsv` の RGX-009 と RGX-012、保留中の fixture は `rgx-012-backref-group-in-star-iteration` です。
+
+## glibc への報告
+
+上の4行は、sed を使わず素の `regcomp`/`regexec`（`REG_EXTENDED`）でも再現します。
+
+```c
+regcomp(&re, "(a+)+\\1", REG_EXTENDED);   /* "aaaa": reports [0,2), the longest is [0,4) */
+regcomp(&re, "(a*){2}\\1", REG_EXTENDED); /* "aaaaaa": no match, [0,6) is one */
+regcomp(&re, "b*\\B", REG_EXTENDED);      /* "ab": reports the empty match at 2, not at 1 */
+```
+
+glibc 2.43（Ubuntu 2.43-2ubuntu2.4）で確認しました。glibc のバグトラッカー（コンポーネント `regex`）への報告では、POSIX が最左最長のマッチを求めていること、`\B` はマッチの位置で成り立たなければならないことを書きます。
