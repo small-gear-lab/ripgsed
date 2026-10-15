@@ -228,7 +228,7 @@ fn run_from<S: RecordSource + ?Sized>(
         executed_e: std::collections::HashSet::new(),
     };
     if machine.options.debug {
-        let listing = debug::program(script, machine.options.locale.is_utf8());
+        let listing = debug::program(script, machine.options.locale.is_chars());
         machine.debug_write(&listing)?;
     }
     machine.cycles()
@@ -424,7 +424,7 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
         }
         let mut line = b"COMMAND: ".to_vec();
         line.extend(std::iter::repeat_n(b' ', self.debug_depth * 2));
-        line.extend(debug::command_text(command, self.options.locale.is_utf8()));
+        line.extend(debug::command_text(command, self.options.locale.is_chars()));
         if matches!(&command.kind, Kind::Execute(c) if !c.is_empty()) && self.executed_e.contains(&pc) {
             // GNU sed overwrote the newline that ends the text of the command when it ran it.
             let last = line.len() - 1;
@@ -908,15 +908,16 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
     fn translate(&mut self, pairs: &[(Vec<u8>, Vec<u8>)]) {
         let mut out = Vec::with_capacity(self.pattern.len());
         let mut i = 0;
-        let utf8 = self.options.locale.is_utf8();
+        let locale = self.options.locale;
+        let utf8 = locale.is_chars();
         while i < self.pattern.len() {
-            let len = if utf8 { char_len(&self.pattern[i..]) } else { 1 };
+            let len = locale.char_len(&self.pattern[i..]);
             let ch = &self.pattern[i..i + len];
             // A single-byte locale keeps a table, so the last of two equal characters wins; a
             // multibyte locale searches the list, so the first does.
             // A byte that is not a character of its own (a lead byte without its continuation
             // bytes, or a stray one) is compared with the start of each character instead.
-            let partial = utf8 && len == 1 && ch[0] >= 0x80;
+            let partial = utf8 && len == 1 && !locale.is_valid_char(ch);
             let found = if partial {
                 pairs.iter().find(|(from, _)| from.starts_with(ch))
             } else if utf8 {
@@ -966,6 +967,9 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
             }
         }
         let locale = self.options.locale;
+        // After an empty match the search goes on one character further (one byte in UTF-8,
+        // where GNU sed's matcher starts inside characters too).
+        let step = |text: &[u8], at: usize| if locale == crate::regex::Locale::Mb { locale.char_len(&text[at..]) } else { 1 };
         let mut caps = Captures::default();
         let mut result = Vec::with_capacity(self.pattern.len());
         let mut copied = 0;
@@ -981,7 +985,7 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                 if start >= self.pattern.len() {
                     break;
                 }
-                pos = start + 1;
+                pos = start + step(&self.pattern, start);
                 previous_end = None;
                 continue;
             }
@@ -1003,7 +1007,7 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                 if start >= self.pattern.len() {
                     break;
                 }
-                pos = start + 1;
+                pos = start + step(&self.pattern, start);
             } else {
                 pos = end;
             }

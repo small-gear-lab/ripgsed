@@ -107,13 +107,53 @@ pub struct Searcher<'a> {
     /// Address semantics (`Regex::is_match`): in `M` mode `\`` and `\'`
     /// match at line boundaries like `^` and `$`.
     pub address: bool,
+    /// Text is read as characters (UTF-8 or a multibyte character set), not as bytes.
     pub utf8: bool,
-    /// The characters are those of a locale of the C library (`Locale::Libc`).
+    /// The characters are those of a locale of the C library (`Locale::Libc`, `Locale::Mb`).
     pub libc: bool,
+    /// The characters are those of a multibyte character set other than UTF-8 (`Locale::Mb`):
+    /// they are read with `mbrtowc`, and every search starts at a character boundary.
+    pub mb: bool,
+    /// A single-byte locale of the C library (`Locale::Sb`).
+    pub sb: bool,
     pub icase: bool,
+    /// A position known to be a character boundary at or before the one asked about (`Mb`).
+    pub bhint: std::cell::Cell<usize>,
 }
 
 impl<'a> Searcher<'a> {
+    /// The character at `pos` and its length (UTF-8 or the character set of the locale).
+    #[inline]
+    fn dec(&self, pos: usize) -> Option<(char, usize)> {
+        if self.mb { crate::locale::mb_decode(self.hay, pos) } else { decode_utf8(self.hay, pos) }
+    }
+
+    /// The character that ends exactly at `pos`, if there is one.
+    fn dec_before(&self, pos: usize) -> Option<(char, usize)> {
+        if !self.mb {
+            return decode_utf8_before(self.hay, pos);
+        }
+        // The set can have second bytes that look like first bytes, so the line is read forward
+        // from a position known to be a boundary.
+        let mut p = if self.bhint.get() <= pos { self.bhint.get() } else { 0 };
+        let mut last = None;
+        while p < pos {
+            let (step, ch) = match crate::locale::mb_decode(self.hay, p) {
+                Some((c, l)) => (l, Some((c, l))),
+                None => (1, None),
+            };
+            last = Some((p, ch));
+            p += step;
+        }
+        match last {
+            Some((start, ch)) => {
+                self.bhint.set(start);
+                if p == pos { ch } else { None }
+            }
+            None => None,
+        }
+    }
+
     fn word_char(&self, c: char) -> bool {
         if self.libc { is_word_char_libc(c) } else { is_word_char(c) }
     }
@@ -128,12 +168,12 @@ impl<'a> Searcher<'a> {
         match &self.prog.units[u as usize] {
             Unit::Byte(set) => set.contains(b).then_some(1),
             Unit::Any { exclude } => {
-                let (c, len) = decode_utf8(self.hay, pos)?;
+                let (c, len) = self.dec(pos)?;
                 (exclude.is_none_or(|b| c as u32 != b as u32 && c != '\n')).then_some(len)
             }
             Unit::Chars(cs) => {
                 // An invalid byte matches no set.
-                let (c, len) = decode_utf8(self.hay, pos)?;
+                let (c, len) = self.dec(pos)?;
                 cs.matches_char(c).then_some(len)
             }
         }
@@ -146,7 +186,7 @@ impl<'a> Searcher<'a> {
         if self.utf8 {
             // An invalid byte counts as the character of the same number (glibc reads it
             // that way), though `\w` does not match it.
-            match decode_utf8(self.hay, pos) {
+            match self.dec(pos) {
                 Some((c, _)) => self.word_char(c),
                 None => self.word_char(self.hay[pos] as char),
             }
@@ -160,7 +200,7 @@ impl<'a> Searcher<'a> {
             return false;
         }
         if self.utf8 {
-            match decode_utf8_before(self.hay, pos) {
+            match self.dec_before(pos) {
                 Some((c, _)) => self.word_char(c),
                 None => self.word_char(self.hay[pos - 1] as char),
             }
@@ -225,7 +265,7 @@ impl<'a> Searcher<'a> {
     /// at character boundaries (`Program::char_starts`).
     fn step_len(&self, pos: usize) -> usize {
         if self.prog.char_starts {
-            decode_utf8(self.hay, pos).map_or(1, |(_, l)| l)
+            self.dec(pos).map_or(1, |(_, l)| l)
         } else {
             1
         }
@@ -234,6 +274,19 @@ impl<'a> Searcher<'a> {
     /// In UTF-8, whether `pos` falls inside a valid multibyte character.
     fn inside_char(&self, pos: usize) -> bool {
         if !self.utf8 || pos == 0 || pos >= self.hay.len() {
+            return false;
+        }
+        if self.mb {
+            // Searches start at boundaries and step by characters, so a position inside a
+            // character is only asked about by the assertions after a byte unit; read the line.
+            let mut p = if self.bhint.get() <= pos { self.bhint.get() } else { 0 };
+            while p < pos {
+                let step = self.dec(p).map_or(1, |(_, l)| l);
+                if p + step > pos {
+                    return true;
+                }
+                p += step;
+            }
             return false;
         }
         (1..=3).any(|back| {
@@ -260,7 +313,7 @@ impl<'a> Searcher<'a> {
         }
         if self.use_dfa {
             let mut slot = self.dfa.borrow_mut();
-            if let Some(set) = slot.get(self.prog, self.node, self.utf8, self.delim) {
+            if let Some(set) = slot.get(self.prog, self.node, self.utf8, self.mb, self.delim) {
                 if let Ok(found) = set.unanchored.is_match(self.hay) {
                     return found;
                 }
@@ -277,7 +330,7 @@ impl<'a> Searcher<'a> {
             return None;
         }
         let mut slot = self.dfa.borrow_mut();
-        let set = slot.get(self.prog, self.node, self.utf8, self.delim)?;
+        let set = slot.get(self.prog, self.node, self.utf8, self.mb, self.delim)?;
         // The earliest end of any match, then the leftmost start of a match ending there. A match
         // that starts earlier must end later: try those starts one by one (within a budget).
         let hay = self.hay;
@@ -1031,13 +1084,18 @@ impl<'s, 'a> Backtracker<'s, 'a> {
         if !self.s.icase {
             return hay[pos..].starts_with(sub).then_some(sub.len());
         }
+        if self.s.sb {
+            let end = pos + sub.len();
+            let same = |x: &u8, y: &u8| x == y || crate::locale::byte_upper(*x) == crate::locale::byte_upper(*y);
+            return (end <= hay.len() && hay[pos..end].iter().zip(sub).all(|(x, y)| same(x, y))).then_some(sub.len());
+        }
         if !self.s.utf8 {
             let end = pos + sub.len();
             return (end <= hay.len() && hay[pos..end].eq_ignore_ascii_case(sub)).then_some(sub.len());
         }
         let (mut i, mut j) = (a, pos);
         while i < b {
-            match (decode_utf8(hay, i), decode_utf8(hay, j)) {
+            match (self.s.dec(i), self.s.dec(j)) {
                 (Some((c1, l1)), Some((c2, l2))) => {
                     if c1 != c2 && self.s.upper(c1) != self.s.upper(c2) {
                         return None;

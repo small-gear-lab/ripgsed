@@ -5,6 +5,15 @@ use super::ast::{Node, Unit};
 use super::charset::ByteSet;
 use crate::search::Finder;
 
+/// How the bytes of a pattern are read: as they are, as UTF-8, or as a multibyte character set
+/// of the locale (only ASCII characters are looked for).
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum Mode {
+    Bytes,
+    Utf8,
+    Mb,
+}
+
 /// What the pattern tells about literal text.
 #[derive(Debug, Clone, Default)]
 pub struct Literals {
@@ -35,8 +44,20 @@ impl ByteSet {
 
 /// `ascii_only`: in UTF-8 a byte of 0x80 or more may be part of a character, so only ASCII
 /// bytes are used as literals there.
-pub fn analyze(node: &Node, ascii_only: bool) -> Literals {
+pub fn analyze(node: &Node, utf8: bool, mb: bool) -> Literals {
+    let ascii_only = if mb { Mode::Mb } else if utf8 { Mode::Utf8 } else { Mode::Bytes };
     let mut lits = Literals::default();
+    if ascii_only == Mode::Mb {
+        // Only the necessary literal: a match of literal bytes may be part of another character
+        // (the second byte of Shift_JIS, GBK or Big5), so a match is never decided by it, but
+        // a text without the bytes of an ASCII character cannot match.
+        lits.required = required(node, ascii_only).filter(|l| !l.is_empty()).map(|l| Finder::new(&l));
+        if !crate::locale::ascii_is_identity() {
+            // An ASCII byte need not be the ASCII character (Shift_JIS 0x5c): look for nothing.
+            lits.required = None;
+        }
+        return lits;
+    }
     if let Some(bytes) = pure(node, ascii_only) {
         // The parser gives no empty concatenation.
         debug_assert!(!bytes.is_empty());
@@ -53,10 +74,10 @@ pub fn analyze(node: &Node, ascii_only: bool) -> Literals {
 
 /// The bytes a node matches when it is one literal character: a byte, or (in UTF-8) a single
 /// non-ASCII character written without `I`, whose encoding cannot start inside another one.
-fn single(node: &Node, ascii_only: bool) -> Option<Vec<u8>> {
+fn single(node: &Node, ascii_only: Mode) -> Option<Vec<u8>> {
     match node {
-        Node::Unit(Unit::Byte(set)) => set.single_member().filter(|&b| !ascii_only || b < 0x80).map(|b| vec![b]),
-        Node::Unit(Unit::Chars(cs)) if ascii_only => {
+        Node::Unit(Unit::Byte(set)) => set.single_member().filter(|&b| ascii_only == Mode::Bytes || b < 0x80).map(|b| vec![b]),
+        Node::Unit(Unit::Chars(cs)) if ascii_only == Mode::Utf8 => {
             let plain = !cs.negated
                 && cs.classes.is_empty()
                 && !cs.icase
@@ -78,7 +99,7 @@ fn single(node: &Node, ascii_only: bool) -> Option<Vec<u8>> {
 }
 
 /// The literal, if the node is only single-byte units.
-fn pure(node: &Node, ascii_only: bool) -> Option<Vec<u8>> {
+fn pure(node: &Node, ascii_only: Mode) -> Option<Vec<u8>> {
     match node {
         Node::Concat(children) => {
             let mut out = Vec::new();
@@ -93,7 +114,7 @@ fn pure(node: &Node, ascii_only: bool) -> Option<Vec<u8>> {
 
 /// The longest literal that every match must contain.
 /// The text of a node that is nothing but literal bytes (groups included).
-fn literal_of(node: &Node, ascii_only: bool) -> Option<Vec<u8>> {
+fn literal_of(node: &Node, ascii_only: Mode) -> Option<Vec<u8>> {
     match node {
         Node::Empty => Some(Vec::new()),
         Node::Unit(_) => single(node, ascii_only),
@@ -109,7 +130,7 @@ fn literal_of(node: &Node, ascii_only: bool) -> Option<Vec<u8>> {
     }
 }
 
-fn required(node: &Node, ascii_only: bool) -> Option<Vec<u8>> {
+fn required(node: &Node, ascii_only: Mode) -> Option<Vec<u8>> {
     match node {
         Node::Unit(_) => single(node, ascii_only),
         Node::Group(_, inner) => required(inner, ascii_only),
@@ -143,3 +164,4 @@ fn required(node: &Node, ascii_only: bool) -> Option<Vec<u8>> {
         _ => None,
     }
 }
+

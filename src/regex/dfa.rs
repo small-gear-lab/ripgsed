@@ -407,9 +407,9 @@ impl std::fmt::Debug for DfaSlot {
 }
 
 impl DfaSlot {
-    pub fn get(&mut self, prog: &Program, node: &super::ast::Node, utf8: bool, delim: u8) -> Option<&mut DfaSet> {
+    pub fn get(&mut self, prog: &Program, node: &super::ast::Node, utf8: bool, mb: bool, delim: u8) -> Option<&mut DfaSet> {
         if matches!(self, DfaSlot::Unbuilt) {
-            *self = Self::build(prog, node, utf8, delim).map_or(DfaSlot::Disabled, |set| DfaSlot::Ready(Box::new(set)));
+            *self = Self::build(prog, node, utf8, mb, delim).map_or(DfaSlot::Disabled, |set| DfaSlot::Ready(Box::new(set)));
         }
         match self {
             DfaSlot::Ready(set) => Some(set),
@@ -417,7 +417,7 @@ impl DfaSlot {
         }
     }
 
-    fn build(prog: &Program, node: &super::ast::Node, utf8: bool, delim: u8) -> Option<DfaSet> {
+    fn build(prog: &Program, node: &super::ast::Node, utf8: bool, mb: bool, delim: u8) -> Option<DfaSet> {
         if !Dfa::supports(prog) {
             return None;
         }
@@ -427,7 +427,7 @@ impl DfaSlot {
         // In UTF-8, characters are spelled out as byte sequences when the pattern allows it; the
         // DFAs then run on bytes and can pass non-ASCII text. Otherwise they stop at the first
         // non-ASCII byte and the caller falls back.
-        if utf8 {
+        if utf8 && !mb {
             // A pattern that starts only at character boundaries could match empty in the middle
             // of a character here, so those are expanded only if no match can be empty.
             if let Some(bytes) = expand_utf8(node).filter(|b| !prog.char_starts || !nullable(b)) {

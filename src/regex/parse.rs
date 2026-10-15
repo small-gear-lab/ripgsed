@@ -68,8 +68,10 @@ fn parse_with(pattern: &[u8], syntax: &Syntax, delim: u8, digit_exact: bool) -> 
         icase: syntax.icase,
         multiline: syntax.multiline,
         delim,
-        utf8: syntax.locale.is_utf8(),
-        libc: syntax.locale == Locale::Libc,
+        utf8: syntax.locale.is_chars(),
+        libc: matches!(syntax.locale, Locale::Libc | Locale::Mb),
+        mb: syntax.locale == Locale::Mb,
+        sb: syntax.locale == Locale::Sb,
         ngroups: 0,
         completed: 0,
         referenced: vec![false; 10],
@@ -89,7 +91,7 @@ fn parse_with(pattern: &[u8], syntax: &Syntax, delim: u8, digit_exact: bool) -> 
     }
     let mut referenced = p.referenced;
     referenced.resize(p.ngroups + 1, false);
-    let char_starts = p.utf8 && p.icase;
+    let char_starts = p.mb || (p.utf8 && p.icase);
     Ok(Parsed { node, ngroups: p.ngroups, referenced, char_starts, utf8: p.utf8, digit_sets: p.digit_sets })
 }
 
@@ -123,8 +125,13 @@ struct Parser<'a> {
     /// The line delimiter of `M` mode (a newline, or NUL under `sed -z`).
     delim: u8,
     utf8: bool,
-    /// `Locale::Libc`: the library decides what the classes, ranges and case rules mean.
+    /// `Locale::Libc` or `Locale::Mb`: the library decides what the classes, ranges and case
+    /// rules mean (and the characters are read with `mbrtowc` in `Mb`).
     libc: bool,
+    /// A multibyte character set other than UTF-8.
+    mb: bool,
+    /// `Locale::Sb`: a byte is a character, and the library decides what a set of them holds.
+    sb: bool,
     /// See `parse_filter`.
     digit_exact: bool,
     digit_sets: bool,
@@ -136,6 +143,11 @@ struct Parser<'a> {
 }
 
 impl<'a> Parser<'a> {
+    /// The character of the pattern at `pos`: UTF-8 or the character set of the locale.
+    fn dec(&self, pos: usize) -> Option<(char, usize)> {
+        if self.mb { crate::locale::mb_decode(self.pat, pos) } else { decode_utf8(self.pat, pos) }
+    }
+
     fn at(&self, k: usize) -> Option<u8> {
         self.pat.get(self.pos + k).copied()
     }
@@ -459,7 +471,7 @@ impl<'a> Parser<'a> {
     /// The literal character at `pos` (one byte, or one UTF-8 character).
     fn literal_here(&mut self) -> Node {
         if self.utf8 {
-            if let Some((c, len)) = decode_utf8(self.pat, self.pos) {
+            if let Some((c, len)) = self.dec(self.pos) {
                 self.pos += len;
                 return self.literal_char(c);
             }
@@ -493,8 +505,14 @@ impl<'a> Parser<'a> {
     /// A character that is read under `I` in a locale of the C library: the set of characters the
     /// library's matcher takes for it.
     fn lib_literal(&self, c: char) -> Option<Node> {
-        let mut buf = [0u8; 4];
-        let set = LibSet::new(c.encode_utf8(&mut buf).as_bytes(), true).ok()?;
+        let mut buf = [0u8; 16];
+        let text: &[u8] = if self.mb {
+            let n = crate::locale::mb_encode(c, &mut buf)?;
+            &buf[..n]
+        } else {
+            c.encode_utf8((&mut buf[..4]).try_into().ok()?).as_bytes()
+        };
+        let set = LibSet::new(text, true).ok()?;
         Some(Node::Unit(Unit::Chars(Box::new(CharSet {
             ranges: vec![(c as u32, c as u32)],
             lib: Some(std::rc::Rc::new(LibHandle(set))),
@@ -504,6 +522,14 @@ impl<'a> Parser<'a> {
     }
 
     fn literal_byte(&self, b: u8) -> Node {
+        if self.icase && self.sb && (b.is_ascii_alphabetic() || b >= 0x80) {
+            // The library knows which bytes this one stands for under `I`.
+            if let Ok(set) = LibSet::new(&[b], true) {
+                let mut bytes = ByteSet::single(b);
+                (0..=255u8).filter(|&x| set.contains_byte(x)).for_each(|x| bytes.insert(x));
+                return Node::Unit(Unit::Byte(bytes));
+            }
+        }
         if self.icase && self.libc && b.is_ascii_alphabetic() {
             // `I` is `ı` as well as `i` in most locales, and `i` is `İ` in Turkish.
             if let Some(node) = self.lib_literal(b as char) {
@@ -569,9 +595,17 @@ impl<'a> Parser<'a> {
                 ..CharSet::default()
             }));
         }
+        let lib = if self.sb {
+            let text: &[u8] = if word { b"[_[:alnum:]]" } else { b"[[:space:]]" };
+            LibSet::new(text, false).ok()
+        } else {
+            None
+        };
         let mut set = ByteSet::empty();
         for b in 0..=255u8 {
-            let hit = if word { super::charset::is_word_byte(b) } else { Class::Space.contains_byte(b) };
+            let hit = if let Some(lib) = &lib {
+                lib.contains_byte(b)
+            } else if word { super::charset::is_word_byte(b) } else { Class::Space.contains_byte(b) };
             if hit {
                 set.insert(b);
             }
@@ -594,7 +628,7 @@ impl<'a> Parser<'a> {
         let content_start = self.pos;
         let bracket_start = content_start - 1 - usize::from(negated);
         // In a locale of the C library, whether the library has to be asked about this set.
-        let mut needs_lib = self.libc && self.icase;
+        let mut needs_lib = (self.libc || self.sb) && self.icase;
         let mut raw_seen = false;
         // GNU sed also runs the pattern through a second matcher (gnulib's dfa) that reads a
         // bracket expression of single characters and ranges between ASCII digits by code point
@@ -658,7 +692,7 @@ impl<'a> Parser<'a> {
                 if self.utf8 && !self.libc && (lo_wide || hi_wide) {
                     return Err(err(E_ECOLLATE));
                 }
-                if !self.libc && hi < lo {
+                if !(self.libc || self.sb) && hi < lo {
                     return Err(err(E_ERANGE));
                 }
                 if self.at(0) == Some(b'-') && self.at(1).is_some() && self.at(1) != Some(b']') {
@@ -679,7 +713,9 @@ impl<'a> Parser<'a> {
                 continue;
             }
             kept.push((elem_start, self.pos));
-            code_point_set &= matches!(elem, Elem::Ch(_) | Elem::Raw(_) | Elem::Class(Class::Digit));
+            // In a single-byte locale GNU sed's first matcher reads a class itself (`isalpha`), so
+            // it is exact there; in UTF-8 it leaves a class to the library.
+            code_point_set &= matches!(elem, Elem::Ch(_) | Elem::Raw(_) | Elem::Class(Class::Digit)) || (self.sb && matches!(elem, Elem::Class(_)));
             match elem {
                 Elem::Lib => needs_lib = true,
                 Elem::Ch(c) | Elem::Equiv(c) => {
@@ -709,7 +745,8 @@ impl<'a> Parser<'a> {
             }
         }
         cs.mb = negated || !cs.classes.is_empty() || cs.ranges.iter().any(|&(lo, hi)| lo != hi || hi > 0x7f);
-        if self.libc && needs_lib && !raw_seen {
+        let mut sb_bytes = None;
+        if (self.libc || self.sb) && needs_lib && !raw_seen {
             // The library compiles the whole bracket expression, as GNU sed does, and decides
             // the range ends, the classes and the case rules.
             let set = LibSet::new(&self.pat[bracket_start..=self.pos], self.icase).map_err(|e| {
@@ -721,6 +758,35 @@ impl<'a> Parser<'a> {
                     LibError::Other => E_BADPAT,
                 })
             })?;
+            if self.sb {
+                // One byte at a time, from the library's answer.
+                let digit_set = code_point_set && !negated && !digit_ranges.is_empty();
+                self.digit_sets |= digit_set;
+                let mut text = vec![b'['];
+                kept.iter().for_each(|&(a, b)| text.extend_from_slice(&self.pat[a..b]));
+                text.push(b']');
+                let mut set_bytes = ByteSet::empty();
+                if digit_set && self.digit_exact {
+                    for &(lo, hi) in &digit_ranges {
+                        set_bytes.insert_range(lo as u8, hi as u8);
+                    }
+                    if !kept.is_empty() {
+                        if let Ok(rest) = LibSet::new(&text, self.icase) {
+                            (0..=255u8).filter(|&x| rest.contains_byte(x)).for_each(|x| set_bytes.insert(x));
+                        } else {
+                            set_bytes = ByteSet::empty();
+                            (0..=255u8).filter(|&x| set.contains_byte(x)).for_each(|x| set_bytes.insert(x));
+                        }
+                    }
+                } else {
+                    (0..=255u8).filter(|&x| set.contains_byte(x)).for_each(|x| set_bytes.insert(x));
+                }
+                if negated && self.multiline {
+                    set_bytes.remove(self.delim);
+                    set_bytes.remove(b'\n');
+                }
+                sb_bytes = Some(set_bytes);
+            }
             cs.mb = true;
             cs.icase_singles = self.icase && !negated && cs.classes.is_empty() && cs.ranges.iter().all(|&(lo, hi)| lo == hi) && kept.len() == cs.ranges.len();
             let digit_set = code_point_set && !negated && !digit_ranges.is_empty();
@@ -748,6 +814,9 @@ impl<'a> Parser<'a> {
             self.class_syntax_error = true;
         }
         self.pos += 1; // the closing ]
+        if let Some(set) = sb_bytes {
+            return Ok(Unit::Byte(set));
+        }
         if self.utf8 {
             cs.negated = negated;
             cs.icase = self.icase;
@@ -789,11 +858,11 @@ impl<'a> Parser<'a> {
                 if kind == b':' {
                     return match Class::from_name(name) {
                         Some(class) => Ok(Elem::Class(class)),
-                        None if self.libc => Ok(Elem::Lib),
+                        None if self.libc || self.sb => Ok(Elem::Lib),
                         None => Err(err(E_ECTYPE)),
                     };
                 }
-                if self.libc {
+                if self.libc || self.sb {
                     return Ok(if kind == b'.' { Elem::Lib } else { Elem::Equiv(0) });
                 }
                 // A collating symbol or equivalence class: one single-byte character.
@@ -805,7 +874,7 @@ impl<'a> Parser<'a> {
             }
         }
         if self.utf8 {
-            if let Some((ch, len)) = decode_utf8(self.pat, self.pos) {
+            if let Some((ch, len)) = self.dec(self.pos) {
                 self.pos += len;
                 return Ok(Elem::Ch(ch as u32));
             }

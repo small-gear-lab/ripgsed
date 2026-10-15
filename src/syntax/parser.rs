@@ -363,6 +363,12 @@ impl Parser {
                 self.pos -= 1;
                 return None;
             }
+            if let Some(tail) = self.multibyte_tail(ch, limit) {
+                // The rest of a multibyte character is never a delimiter, a backslash or a bracket.
+                out.push(ch);
+                out.extend_from_slice(&tail);
+                continue;
+            }
             if ch == delim {
                 return Some(out);
             }
@@ -391,6 +397,25 @@ impl Parser {
         }
     }
 
+    /// In a multibyte character set other than UTF-8, the bytes after `first` (just read) when it
+    /// starts a character of two bytes or more; they are consumed. GNU sed reads the script
+    /// character by character there, so a second byte that is `]`, `\` or the delimiter is
+    /// part of the character.
+    fn multibyte_tail(&mut self, first: u8, limit: usize) -> Option<Vec<u8>> {
+        if first < 0x80 || self.options().locale != Locale::Mb {
+            return None;
+        }
+        let end = limit.min(self.src.len());
+        let start = self.pos - 1;
+        let len = Locale::Mb.char_len(&self.src[start..end]);
+        if len <= 1 {
+            return None;
+        }
+        let tail = self.src[start + 1..start + len].to_vec();
+        self.pos = start + len;
+        Some(tail)
+    }
+
     /// Copies a bracket expression (after its `[`) up to and including the `]`, so that a
     /// delimiter inside it does not end the regexp. `None` if it is not closed on the line.
     fn copy_bracket(&mut self, out: &mut Vec<u8>, limit: usize) -> Option<()> {
@@ -405,6 +430,11 @@ impl Parser {
         }
         loop {
             out.push(ch);
+            if let Some(tail) = self.multibyte_tail(ch, limit) {
+                out.extend_from_slice(&tail);
+                ch = self.bracket_char(limit)?;
+                continue;
+            }
             match ch {
                 b']' => return Some(()),
                 b'[' => {
@@ -820,7 +850,8 @@ impl Parser {
 
     /// In a UTF-8 locale the byte that starts a multibyte character cannot delimit a regexp.
     fn check_delimiter(&self, delim: u8) -> Result<()> {
-        if self.options().locale.is_utf8() && (0xc2..=0xfd).contains(&delim) {
+        let locale = self.options().locale;
+        if (locale.is_utf8() && (0xc2..=0xfd).contains(&delim)) || (locale == Locale::Mb && crate::locale::starts_multibyte(delim)) {
             return Err(self.error("delimiter character is not a single-byte character"));
         }
         Ok(())
@@ -1064,10 +1095,7 @@ fn y_chars(text: &[u8], locale: Locale) -> Vec<Vec<u8>> {
             }]);
             continue;
         }
-        let len = match locale {
-            Locale::Utf8 | Locale::Libc => crate::runtime::char_len(&text[i..]),
-            Locale::C => 1,
-        };
+        let len = locale.char_len(&text[i..]);
         out.push(text[i..i + len].to_vec());
         i += len;
     }

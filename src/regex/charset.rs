@@ -185,7 +185,7 @@ fn in_table(table: &[(u32, u32)], u: u32) -> bool {
 /// `\w` in the `C` locale: ASCII alphanumerics and `_`.
 #[inline]
 pub fn is_word_byte(b: u8) -> bool {
-    b.is_ascii_alphanumeric() || b == b'_'
+    b.is_ascii_alphanumeric() || b == b'_' || (b >= 0x80 && crate::locale::word_byte_high(b))
 }
 
 /// `\w` in a UTF-8 locale.

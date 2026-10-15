@@ -116,12 +116,48 @@ pub enum Locale {
     /// UTF-8 character-wise matching in any other UTF-8 locale: the classes, the letter case
     /// rules and the order of ranges come from the C library (see `crate::locale`).
     Libc,
+    /// A single-byte character set other than ASCII (ISO-8859-x, KOI8-R, Windows-125x): text is
+    /// read byte by byte, and the classes, the case rules, and the order of ranges come from the
+    /// C library.
+    Sb,
+    /// A multibyte character set other than UTF-8 (EUC-JP, Shift_JIS, GBK, Big5, EUC-KR):
+    /// characters are decoded with `mbrtowc`, and everything else is the C library's, as in `Libc`.
+    Mb,
 }
 
 impl Locale {
-    /// Whether text is read as UTF-8 characters rather than bytes.
+    /// Whether text is read as UTF-8 characters.
     pub fn is_utf8(self) -> bool {
-        !matches!(self, Locale::C)
+        matches!(self, Locale::Utf8 | Locale::Libc)
+    }
+
+    /// Whether text is read as multibyte characters (UTF-8 or another set) rather than bytes.
+    pub fn is_chars(self) -> bool {
+        matches!(self, Locale::Utf8 | Locale::Libc | Locale::Mb)
+    }
+
+    /// Whether the C library answers the questions about characters (classes, ranges, case).
+    pub fn is_lib(self) -> bool {
+        !matches!(self, Locale::C | Locale::Utf8)
+    }
+
+    /// The length of the character at the start of `bytes` (1 for a byte that is not part of a
+    /// valid character).
+    pub fn char_len(self, bytes: &[u8]) -> usize {
+        match self {
+            Locale::Utf8 | Locale::Libc => crate::runtime::char_len(bytes),
+            Locale::Mb => crate::locale::mb_decode(bytes, 0).map_or(1, |(_, l)| l),
+            Locale::C | Locale::Sb => 1,
+        }
+    }
+
+    /// Whether the character at the start of `bytes` is a valid one.
+    pub fn is_valid_char(self, bytes: &[u8]) -> bool {
+        match self {
+            Locale::Utf8 | Locale::Libc => crate::runtime::char_len(bytes) > 1 || bytes.first().is_some_and(|&b| b < 0x80),
+            Locale::Mb => crate::locale::mb_decode(bytes, 0).is_some(),
+            Locale::C | Locale::Sb => !bytes.is_empty(),
+        }
     }
 }
 
@@ -243,8 +279,8 @@ impl Regex {
     fn from_parsed(parsed: parse::Parsed, syntax: &Syntax, delim: u8, filter: Option<Box<Regex>>) -> Result<Regex, CompileError> {
         let prog = compile::compile(&parsed.node, parsed.ngroups, parsed.referenced, parsed.char_starts, parsed.utf8, syntax.glibc_compat)?;
         let prog_has_no_backrefs = !prog.has_backrefs;
-        let literals = literal::analyze(&parsed.node, syntax.locale.is_utf8());
-        Ok(Regex { prog, syntax: *syntax, delim, literals, scratch: Default::default(), quirk_stars: if syntax.glibc_compat { star_before_not_word_boundary(&parsed.node) } else { 0 }, fixed: if prog_has_no_backrefs { dfa::fixed_groups(&parsed.node, parsed.ngroups) } else { None }, node: parsed.node, dfa: Default::default(), use_dfa: true, filter })
+        let literals = literal::analyze(&parsed.node, syntax.locale.is_chars(), syntax.locale == Locale::Mb);
+        Ok(Regex { prog, syntax: *syntax, delim, literals, scratch: Default::default(), quirk_stars: if syntax.glibc_compat { star_before_not_word_boundary(&parsed.node) } else { 0 }, fixed: if prog_has_no_backrefs { dfa::fixed_groups(&parsed.node, parsed.ngroups) } else { None }, node: parsed.node, dfa: Default::default(), use_dfa: syntax.locale != Locale::Mb || crate::locale::ascii_bytes_are_characters(), filter })
     }
 
     /// Number of parenthesized subexpressions.
@@ -300,9 +336,12 @@ impl Regex {
             multiline: self.syntax.multiline,
             delim: self.delim,
             address: false,
-            utf8: self.syntax.locale.is_utf8(),
-            libc: self.syntax.locale == Locale::Libc,
+            utf8: self.syntax.locale.is_chars(),
+            libc: matches!(self.syntax.locale, Locale::Libc | Locale::Mb),
+            mb: self.syntax.locale == Locale::Mb,
+            sb: self.syntax.locale == Locale::Sb,
             icase: self.syntax.icase,
+            bhint: std::cell::Cell::new(0),
         };
         match searcher.search(start) {
             Some((_, groups)) => {
@@ -344,9 +383,12 @@ impl Regex {
             multiline: self.syntax.multiline,
             delim: self.delim,
             address: true,
-            utf8: self.syntax.locale.is_utf8(),
-            libc: self.syntax.locale == Locale::Libc,
+            utf8: self.syntax.locale.is_chars(),
+            libc: matches!(self.syntax.locale, Locale::Libc | Locale::Mb),
+            mb: self.syntax.locale == Locale::Mb,
+            sb: self.syntax.locale == Locale::Sb,
             icase: self.syntax.icase,
+            bhint: std::cell::Cell::new(0),
         };
         searcher.exists()
     }

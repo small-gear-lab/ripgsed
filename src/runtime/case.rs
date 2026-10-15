@@ -51,14 +51,11 @@ fn push(out: &mut Vec<u8>, text: &[u8], mode: &mut Mode, next: &mut Mode, locale
     }
     let mut i = 0;
     while i < text.len() {
-        let len = match locale {
-            Locale::Utf8 | Locale::Libc => super::char_len(&text[i..]),
-            Locale::C => 1,
-        };
+        let len = locale.char_len(&text[i..]);
         // In a multibyte locale GNU sed converts a piece of text up to the first NUL or the first
         // byte that is not part of a character; the rest of the piece is copied as it is. The
         // character where it stops still uses up a pending `\u` or `\l`.
-        if locale.is_utf8() && (text[i] == 0 || (len == 1 && text[i] >= 0x80)) {
+        if locale.is_chars() && (text[i] == 0 || (len == 1 && !locale.is_valid_char(&text[i..]))) {
             *next = Mode::None;
             out.extend_from_slice(&text[i..]);
             return;
@@ -71,6 +68,21 @@ fn push(out: &mut Vec<u8>, text: &[u8], mode: &mut Mode, next: &mut Mode, locale
 }
 
 fn convert(out: &mut Vec<u8>, ch: &[u8], how: Mode, locale: Locale) {
+    if locale == Locale::Sb && how != Mode::None {
+        let b = ch[0];
+        out.push(if how == Mode::Upper { crate::locale::byte_upper(b) } else { crate::locale::byte_lower(b) });
+        return;
+    }
+    if locale == Locale::Mb && how != Mode::None {
+        let (c, _) = crate::locale::mb_decode(ch, 0).expect("a valid character");
+        let c = if how == Mode::Upper { crate::locale::upper(c) } else { crate::locale::lower(c) };
+        let mut buf = [0u8; 16];
+        match crate::locale::mb_encode(c, &mut buf) {
+            Some(n) => out.extend_from_slice(&buf[..n]),
+            None => out.extend_from_slice(ch),
+        }
+        return;
+    }
     if locale == Locale::Libc && how != Mode::None {
         // The C library decides, also for ASCII (in Turkish `i` becomes `İ`).
         let c = std::str::from_utf8(ch).ok().and_then(|s| s.chars().next()).expect("a valid UTF-8 character");

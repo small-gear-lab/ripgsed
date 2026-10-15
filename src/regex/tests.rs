@@ -475,9 +475,9 @@ fn dfa_slot_is_a_cache() {
     // Back-references are out of the DFA's reach.
     let with = Regex::compile(b"(a)\\1", &syn(true)).unwrap();
     let mut slot = dfa::DfaSlot::default();
-    assert!(slot.get(&with.prog, &with.node, false, b'\n').is_none());
+    assert!(slot.get(&with.prog, &with.node, false, false, b'\n').is_none());
     assert!(format!("{slot:?}").contains("DfaSlot::Disabled"));
-    assert!(slot.get(&with.prog, &with.node, false, b'\n').is_none());
+    assert!(slot.get(&with.prog, &with.node, false, false, b'\n').is_none());
 }
 
 /// A pattern with more than 2000 DFA states: the DFA gives up and the simulation answers.

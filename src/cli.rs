@@ -518,7 +518,7 @@ pub fn main() -> i32 {
         if options.debug {
             // GNU sed has listed the program by then.
             use std::io::Write;
-            let _ = io::stdout().write_all(&crate::debug::program(&script, options.locale.is_utf8()));
+            let _ = io::stdout().write_all(&crate::debug::program(&script, options.locale.is_chars()));
         }
         return EXIT_PANIC;
     }
