@@ -91,6 +91,7 @@
 mod ast;
 mod charset;
 mod compile;
+mod dfa;
 mod exec;
 mod literal;
 mod parse;
@@ -183,6 +184,11 @@ pub struct Regex {
     literals: literal::Literals,
     /// Working memory for the breadth-first search, reused by every search.
     scratch: std::cell::RefCell<exec::Scratch>,
+    /// The syntax tree, kept to build the reversed program of the DFA.
+    node: ast::Node,
+    dfa: std::cell::RefCell<dfa::DfaSlot>,
+    /// Off to test the DFA against the simulation.
+    use_dfa: bool,
 }
 
 impl Regex {
@@ -199,7 +205,7 @@ impl Regex {
         let parsed = parse::parse(pattern, syntax, delim)?;
         let prog = compile::compile(&parsed.node, parsed.ngroups, parsed.referenced, parsed.char_starts, parsed.utf8)?;
         let literals = literal::analyze(&parsed.node, syntax.locale == Locale::Utf8);
-        Ok(Regex { prog, syntax: *syntax, delim, literals, scratch: Default::default() })
+        Ok(Regex { prog, syntax: *syntax, delim, literals, scratch: Default::default(), node: parsed.node, dfa: Default::default(), use_dfa: true })
     }
 
     /// Number of parenthesized subexpressions.
@@ -231,6 +237,9 @@ impl Regex {
         }
         let searcher = exec::Searcher {
             scratch: &self.scratch,
+            dfa: &self.dfa,
+            node: &self.node,
+            use_dfa: self.use_dfa,
             prog: &self.prog,
             hay: haystack,
             multiline: self.syntax.multiline,
@@ -265,6 +274,9 @@ impl Regex {
         }
         let searcher = exec::Searcher {
             scratch: &self.scratch,
+            dfa: &self.dfa,
+            node: &self.node,
+            use_dfa: self.use_dfa,
             prog: &self.prog,
             hay: haystack,
             multiline: self.syntax.multiline,

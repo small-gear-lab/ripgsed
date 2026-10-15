@@ -71,6 +71,10 @@ impl Scratch {
 
 pub struct Searcher<'a> {
     pub scratch: &'a std::cell::RefCell<Scratch>,
+    pub dfa: &'a std::cell::RefCell<super::dfa::DfaSlot>,
+    pub node: &'a super::ast::Node,
+    /// Off in tests that compare the DFA with the simulation.
+    pub use_dfa: bool,
     pub prog: &'a Program,
     pub hay: &'a [u8],
     pub multiline: bool,
@@ -223,7 +227,32 @@ impl<'a> Searcher<'a> {
         if self.prog.has_backrefs {
             return self.search(0).is_some();
         }
+        if self.use_dfa {
+            let mut slot = self.dfa.borrow_mut();
+            if let Some(set) = slot.get(self.prog, self.node, self.utf8, self.delim) {
+                if let Ok(found) = set.unanchored.is_match(self.hay) {
+                    return found;
+                }
+            }
+        }
         self.longest(0).is_some()
+    }
+
+    /// The leftmost-longest match span from `from` by the DFAs; `None` if they do not apply
+    /// (the haystack has bytes they do not handle, or the program is out of their reach), and
+    /// `Some(None)` for "no match".
+    fn dfa_span(&self, from: usize) -> Option<Option<(usize, usize)>> {
+        if !self.use_dfa {
+            return None;
+        }
+        let mut slot = self.dfa.borrow_mut();
+        let set = slot.get(self.prog, self.node, self.utf8, self.delim)?;
+        let start = set.reverse.leftmost_start(self.hay, from).ok()?;
+        let Some(s) = start else { return Some(None) };
+        match set.forward.longest_from(self.hay, s) {
+            Ok(Some(e)) => Some(Some((s, e))),
+            _ => None,
+        }
     }
 
     /// Finds the leftmost-longest match starting at or after `start`.
@@ -249,7 +278,10 @@ impl<'a> Searcher<'a> {
                     s += self.step_len(s);
                 }
             } else {
-                self.longest(from)?
+                match self.dfa_span(from) {
+                    Some(span) => span?,
+                    None => self.longest(from)?,
+                }
             };
             let mut groups = vec![None; self.prog.ngroups + 1];
             groups[0] = Some((s, e));

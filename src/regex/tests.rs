@@ -199,3 +199,54 @@ fn long_lines_are_fast() {
         re.captures_at(hay.as_bytes(), 0, &mut caps);
     }
 }
+
+/// The DFA scans and the NFA simulation find the same matches.
+#[test]
+fn dfa_agrees_with_simulation() {
+    let atoms = [
+        "a", "b", "c", ".", "[ab]", "[^a]", "a*", "b+", "c?", "(a|b)", "(ab|a)", "x*", "^", "$", "\\b", "\\<", "\\>", "\\w", "\\W",
+        "a{2}", "[a-c]*", "(a*)b", "()",
+    ];
+    let hays = ["", "a", "ab", "abc", "aab b", "cab ab", "xx a_b", "b a", "  ab", "abcabc", "a b", "bbbaaa", "ca"];
+    let mut seed = 0x2545f4914f6cdd1du64;
+    let mut next = move |n: usize| {
+        seed ^= seed << 13;
+        seed ^= seed >> 7;
+        seed ^= seed << 17;
+        (seed % n as u64) as usize
+    };
+    for round in 0..4000 {
+        let ere = round % 2 == 0;
+        let k = 1 + next(4);
+        let mut pat = String::new();
+        for _ in 0..k {
+            let a = atoms[next(atoms.len())];
+            pat.push_str(&if ere { a.to_string() } else { a.replace('(', "\\(").replace(')', "\\)").replace('|', "\\|").replace('{', "\\{").replace('}', "\\}").replace('+', "\\+").replace('?', "\\?") });
+        }
+        let mut s = syn(ere);
+        s.icase = next(5) == 0;
+        let Ok(mut re) = Regex::compile(pat.as_bytes(), &s) else { continue };
+        for hay in hays {
+            for start in 0..=hay.len() {
+                re.use_dfa = true;
+                let mut a = Captures::default();
+                let ra = re.captures_at(hay.as_bytes(), start, &mut a);
+                let ea = re.is_match(hay.as_bytes());
+                re.use_dfa = false;
+                let mut b = Captures::default();
+                let rb = re.captures_at(hay.as_bytes(), start, &mut b);
+                let eb = re.is_match(hay.as_bytes());
+                assert_eq!((ra, &a.groups, ea), (rb, &b.groups, eb), "pattern {pat:?} ere={ere} hay {hay:?} start {start}");
+            }
+        }
+    }
+}
+
+#[test]
+fn dfa_is_used_for_plain_patterns() {
+    let re = Regex::compile(b"[0-9]+", &syn(true)).unwrap();
+    let mut caps = Captures::default();
+    assert!(re.captures_at(b"ab 123", 0, &mut caps));
+    assert_eq!(caps.whole(), (3, 6));
+    assert!(matches!(*re.dfa.borrow(), dfa::DfaSlot::Ready(_)));
+}

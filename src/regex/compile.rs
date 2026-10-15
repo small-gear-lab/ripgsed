@@ -38,6 +38,8 @@ pub struct Program {
     /// for patterns with multibyte-aware parts, and under `I`); otherwise
     /// every byte offset is tried.
     pub char_starts: bool,
+    /// The instruction index of every unit (units and `Inst::Unit` correspond one to one).
+    pub unit_pcs: Vec<u32>,
 }
 
 /// Programs larger than this are refused, as an exhausted regcomp would.
@@ -80,8 +82,23 @@ pub fn compile(
                     )
                 )
             }));
-    let mut prog =
-        Program { insts: c.insts, units: c.units, ngroups, referenced, has_backrefs, first_bytes: None, preds, char_starts };
+    let mut unit_pcs = vec![0u32; c.units.len()];
+    for (pc, inst) in c.insts.iter().enumerate() {
+        if let Inst::Unit(k) = *inst {
+            unit_pcs[k as usize] = pc as u32;
+        }
+    }
+    let mut prog = Program {
+        insts: c.insts,
+        units: c.units,
+        ngroups,
+        referenced,
+        has_backrefs,
+        first_bytes: None,
+        preds,
+        char_starts,
+        unit_pcs,
+    };
     prog.first_bytes = first_bytes(&prog);
     Ok(prog)
 }
