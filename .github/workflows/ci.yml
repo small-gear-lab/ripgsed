@@ -37,14 +37,10 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y locales
       - name: Diagnose localedef (temporary)
         run: |
-          which localedef; localedef --version | sed -n '1p'
-          ls /usr/share/i18n/charmaps | wc -l
-          ls /usr/share/i18n/charmaps | sed -n '/^UTF-8/p'
-          mkdir -p "$PWD/loc"
-          localedef -f UTF-8 -i tr_TR "$PWD/loc/tr_TR.UTF-8"; echo "localedef rc=$?"
-          ls "$PWD/loc" "$PWD/loc/tr_TR.UTF-8" || true
-          printf 'i\n' | LOCPATH="$PWD/loc" LC_ALL=tr_TR.UTF-8 sed 's/I/X/I'; echo "sed rc=$?"
-          locale -a | sed -n '1,8p'
+          w=$(mktemp -d); cd "$w"
+          sed 's#> /dev/null 2>&1; }#; echo "localedef rc=$?"; }#' "$GITHUB_WORKSPACE/tests/fixtures/loc-009-tr-tr-turkish-case-rules/cmd" > cmd.sh
+          sed -n '1,3p' cmd.sh
+          env -i PATH=/usr/bin:/bin HOME=/nonexistent LC_ALL=C sh -x cmd.sh 2>&1 | sed -n '1,25p'
       - name: The reference sed must be GNU sed 4.9
         run: sed --version | sed -n '1p'
       - name: Regenerate the expected results
