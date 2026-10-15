@@ -350,9 +350,7 @@ impl Parser {
                     return None;
                 }
                 let next = self.next()?;
-                if next == b'n' && regex {
-                    out.push(b'\n');
-                } else if next == b'\n' {
+                if (next == b'n' && regex) || next == b'\n' {
                     out.push(b'\n');
                 } else if next == delim && !(next == b'&' && !regex) {
                     // `\` and the delimiter: just the delimiter, which then has its usual meaning.
@@ -738,8 +736,7 @@ impl Parser {
             return Err(self.error("expected \\ after `a', `c' or `i'"));
         }
         let mut raw = Vec::new();
-        loop {
-            let Some(ch) = self.next() else { break };
+        while let Some(ch) = self.next() {
             match ch {
                 b'\\' => match self.next() {
                     Some(b'\n') => raw.extend_from_slice(b"\\\n"),

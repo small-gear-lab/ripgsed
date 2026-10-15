@@ -16,6 +16,13 @@ use super::charset::{decode_utf8, decode_utf8_before, is_word_byte, is_word_char
 use super::compile::{Inst, Program};
 
 const NONE: usize = usize::MAX;
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Check {
+    Fail,
+    Pass,
+    NeedNewline,
+}
 const RING: usize = 5;
 
 pub struct Searcher<'a> {
@@ -71,6 +78,34 @@ impl<'a> Searcher<'a> {
             }
         } else {
             is_word_byte(self.hay[pos - 1])
+        }
+    }
+
+    /// Checks an assertion at `pos` for a match that started at `start`.
+    ///
+    /// Outside `M` mode GNU sed still lets `^` match after a newline that the
+    /// match itself consumed, and `$` before a newline that the match goes
+    /// on to consume (`a\n^b` and `a$\nb` match "a\nb"). `^` and `$` at the
+    /// edges of a match only match at the buffer edges. `Pass` means the
+    /// assertion holds; `NeedNewline` that it holds only if the next step
+    /// consumes the newline at `pos`.
+    fn assert_check(&self, a: Assert, pos: usize, start: usize) -> Check {
+        let len = self.hay.len();
+        let hold = |b: bool| if b { Check::Pass } else { Check::Fail };
+        match a {
+            Assert::LineStart => {
+                hold(pos == 0 || (self.hay[pos - 1] == b'\n' && (self.multiline || pos > start)))
+            }
+            Assert::LineEnd => {
+                if pos == len || (self.multiline && self.hay[pos] == b'\n') {
+                    Check::Pass
+                } else if self.hay[pos] == b'\n' {
+                    Check::NeedNewline
+                } else {
+                    Check::Fail
+                }
+            }
+            _ => hold(self.assert_ok(a, pos)),
         }
     }
 
@@ -150,11 +185,12 @@ impl<'a> Searcher<'a> {
         let len = self.hay.len();
         let mut ring: Vec<Vec<(u32, usize)>> = (0..RING).map(|_| Vec::new()).collect();
         let mut slot = vec![u32::MAX; RING * m];
-        let mut stamp = vec![0usize; m];
+        let mut stamp = vec![0usize; 2 * m];
         let mut generation = 0usize;
         let mut pending = 0usize;
         let mut best: Option<(usize, usize)> = None;
-        let mut stack: Vec<u32> = Vec::new();
+        // Closure entries carry whether the path must consume a newline next.
+        let mut stack: Vec<(u32, bool)> = Vec::new();
         let mut consuming: Vec<(u32, usize)> = Vec::new();
         let mut next_cand = start;
         let mut p = start;
@@ -192,27 +228,29 @@ impl<'a> Searcher<'a> {
                         continue;
                     }
                 }
-                stack.push(pc0);
-                while let Some(pc) = stack.pop() {
+                stack.push((pc0, false));
+                while let Some((pc, nl)) = stack.pop() {
                     let pcu = pc as usize;
-                    if stamp[pcu] == generation {
+                    let si = pcu + if nl { m } else { 0 };
+                    if stamp[si] == generation {
                         continue;
                     }
-                    stamp[pcu] = generation;
+                    stamp[si] = generation;
                     match prog.insts[pcu] {
                         Inst::Unit(_) => consuming.push((pc, st)),
                         Inst::Split(a, b) => {
-                            stack.push(b);
-                            stack.push(a);
+                            stack.push((b, nl));
+                            stack.push((a, nl));
                         }
-                        Inst::Jmp(a) => stack.push(a),
-                        Inst::Open(_) | Inst::Close(..) => stack.push(pc + 1),
-                        Inst::Assert(a) => {
-                            if self.assert_ok(a, p) {
-                                stack.push(pc + 1);
-                            }
-                        }
+                        Inst::Jmp(a) => stack.push((a, nl)),
+                        Inst::Open(_) | Inst::Close(..) => stack.push((pc + 1, nl)),
+                        Inst::Assert(a) => match self.assert_check(a, p, st) {
+                            Check::Pass => stack.push((pc + 1, nl)),
+                            Check::NeedNewline => stack.push((pc + 1, true)),
+                            Check::Fail => {}
+                        },
                         Inst::Backref(_) => {}
+                        Inst::Match if nl => {}
                         Inst::Match => match best {
                             None => best = Some((st, p)),
                             Some((bs, be)) => {
@@ -310,6 +348,8 @@ struct Choice {
     pos: usize,
     trail: usize,
     seg: u64,
+    /// The path must consume the newline at `pos` next (see `assert_check`).
+    nl: bool,
 }
 
 impl<'s, 'a> Backtracker<'s, 'a> {
@@ -427,8 +467,11 @@ impl<'s, 'a> Backtracker<'s, 'a> {
                         continue;
                     }
                     if let Inst::Assert(a) = prog.insts[p as usize] {
-                        if !self.s.assert_ok(a, pos) {
-                            continue;
+                        match self.s.assert_check(a, pos, start) {
+                            Check::Pass => {}
+                            // The newline is consumed next unless the match ends here.
+                            Check::NeedNewline if pos != end => {}
+                            _ => continue,
                         }
                     }
                     self.viable[k / 64] |= 1 << (k % 64);
@@ -527,11 +570,11 @@ impl<'s, 'a> Backtracker<'s, 'a> {
         let mut best: Option<usize> = None;
         self.new_segment();
         self.memo(0, start);
-        self.stack.push(Choice { pc: 0, pos: start, trail: 0, seg: self.seg });
+        self.stack.push(Choice { pc: 0, pos: start, trail: 0, seg: self.seg, nl: false });
         while let Some(ch) = self.stack.pop() {
             self.undo(ch.trail);
             self.seg = ch.seg;
-            let (mut pc, mut pos) = (ch.pc, ch.pos);
+            let (mut pc, mut pos, mut nl) = (ch.pc, ch.pos, ch.nl);
             loop {
                 if pos > limit || !self.is_viable(pc, pos) {
                     break;
@@ -542,6 +585,7 @@ impl<'s, 'a> Backtracker<'s, 'a> {
                         Some(l) => {
                             pos += l;
                             pc += 1;
+                            nl = false;
                             self.new_segment();
                             if !self.memo(pc, pos) {
                                 break;
@@ -556,7 +600,7 @@ impl<'s, 'a> Backtracker<'s, 'a> {
                             }
                             pc = b;
                         } else {
-                            self.stack.push(Choice { pc: b, pos, trail: self.trail.len(), seg: self.seg });
+                            self.stack.push(Choice { pc: b, pos, trail: self.trail.len(), seg: self.seg, nl });
                             pc = a;
                         }
                     }
@@ -588,8 +632,10 @@ impl<'s, 'a> Backtracker<'s, 'a> {
                         pc += 1;
                     }
                     Inst::Assert(a) => {
-                        if !self.s.assert_ok(a, pos) {
-                            break;
+                        match self.s.assert_check(a, pos, start) {
+                            Check::Pass => {}
+                            Check::NeedNewline => nl = true,
+                            Check::Fail => break,
                         }
                         pc += 1;
                     }
@@ -598,6 +644,7 @@ impl<'s, 'a> Backtracker<'s, 'a> {
                             pos += l;
                             pc += 1;
                             if l > 0 {
+                                nl = false;
                                 self.new_segment();
                                 if !self.memo(pc, pos) {
                                     break;
@@ -606,6 +653,7 @@ impl<'s, 'a> Backtracker<'s, 'a> {
                         }
                         None => break,
                     },
+                    Inst::Match if nl => break,
                     Inst::Match => {
                         match target {
                             Some(e) => {

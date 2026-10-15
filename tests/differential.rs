@@ -320,7 +320,8 @@ fn fixtures_match_gnu_sed() {
     fs::create_dir_all(&scratch).unwrap();
 
     let queue = Arc::new(Mutex::new(dirs.into_iter()));
-    let results: Arc<Mutex<Vec<(String, Verdict, Vec<String>)>>> = Arc::new(Mutex::new(Vec::new()));
+    type Results = Vec<(String, Verdict, Vec<String>)>;
+    let results: Arc<Mutex<Results>> = Arc::new(Mutex::new(Vec::new()));
     let workers = std::thread::available_parallelism().map_or(4, |n| n.get());
     let handles: Vec<_> = (0..workers)
         .map(|_| {

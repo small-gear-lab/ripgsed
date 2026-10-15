@@ -231,7 +231,7 @@ fn parse_args(args: Vec<String>, program: &str) -> Result<Result<Invocation, ()>
                 Some((n, v)) => (n, Some(v.to_string())),
                 None => (long, None),
             };
-            let (full, kind, opt) = find_long(name, program).map_err(&usage_error)?;
+            let (full, kind, opt) = find_long(name, program).map_err(usage_error)?;
             let value = match (kind, inline) {
                 (Arg::No, Some(_)) => {
                     return Err(usage_error(format!("{program}: option '--{full}' doesn't allow an argument")));

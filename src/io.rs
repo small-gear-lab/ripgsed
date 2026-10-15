@@ -56,6 +56,8 @@ pub fn stdin_record(separator: u8, unbuffered: bool) -> io::Result<Option<Record
 pub fn restore_stdin_offset() {
     STDIN.with(|cell| {
         if let Some(reader) = cell.borrow_mut().as_mut() {
+            // Unlike `stream_position`, this really moves the descriptor back past the read-ahead.
+            #[allow(clippy::seek_from_current)]
             let _ = reader.seek(SeekFrom::Current(0));
         }
     });
