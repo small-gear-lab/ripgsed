@@ -1,0 +1,48 @@
+== a x\$y\
+q
+x\$y
+0
+== a x\qy\
+q
+x\qy
+0
+== a xy\
+q
+xy
+0
+== a x\ty\
+q
+x\ty
+0
+== a x\\y\
+q
+x\\y
+0
+== a x\\\
+q
+x\\
+0
+== i\
+x\qy\
+x\qy
+q
+0
+== c x\ty\
+x\ty
+0
+== a x\qy\
+
+q
+xqy
+
+0
+== a x\qy\
+z
+q
+xqy
+z
+0
+== a x\ty
+q
+x	y
+0

@@ -1,0 +1,59 @@
+== bfoo#c
+sed: can't find label for jump to `foo'
+4
+== t0*#c
+sed: can't find label for jump to `0*'
+4
+== b foo#c
+sed: can't find label for jump to `foo'
+4
+== b foo bar
+sed: can't find label for jump to `ar'
+4
+== ta#x
+:a
+abc
+0
+== b a
+sed: can't find label for jump to `a'
+4
+== b ax
+sed: can't find label for jump to `ax'
+4
+== {b a#x
+}
+sed: can't find label for jump to `a'
+4
+== bx;by
+sed: can't find label for jump to `y'
+4
+== bx
+by
+bz
+sed: can't find label for jump to `z'
+4
+== bx;by;bz;:y
+sed: can't find label for jump to `z'
+4
+== bx;:x;by
+sed: can't find label for jump to `y'
+4
+== bx;by;:y;:x
+abc
+0
+== :a#x;ba
+abc
+0
+== :ab;ta
+sed: can't find label for jump to `a'
+4
+== : a b
+abc
+0
+== b	foo
+:foo
+abc
+0
+== v 4.2#c
+abc
+0

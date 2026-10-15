@@ -1,0 +1,10 @@
+printf 'abc\n' > in
+for s in 'bfoo#c' 't0*#c' 'b foo#c' 'b foo bar' 'ta#x
+:a' "$(printf 'b a\r')" "$(printf 'b a\014x')" '{b a#x
+}' 'bx;by' 'bx
+by
+bz' 'bx;by;bz;:y' 'bx;:x;by' 'bx;by;:y;:x' ':a#x;ba' "$(printf ':a\rb;ta')" ': a b' 'b	foo
+:foo' 'v 4.2#c'; do
+  printf '== %s\n' "$s"
+  sed "$s" in 2>&1; echo $?
+done

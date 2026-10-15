@@ -201,7 +201,8 @@ impl Parser {
                 e
             });
         }
-        for (index, label, pos) in std::mem::take(&mut self.pending_jumps) {
+        // GNU sed checks the jumps from the last one written back to the first.
+        for (index, label, pos) in std::mem::take(&mut self.pending_jumps).into_iter().rev() {
             match self.labels.get(&label) {
                 Some(&target) => {
                     if let Kind::Branch { target: t, .. } = &mut self.script.commands[index].kind {
@@ -738,7 +739,8 @@ impl Parser {
             return Vec::new();
         }
         let start = self.pos;
-        while self.peek().is_some_and(|b| !b.is_ascii_whitespace() && b != b';' && b != b'}') {
+        // Only a space, a tab, a newline, `;` or `#` ends a label (not a carriage return or a form feed).
+        while self.peek().is_some_and(|b| !matches!(b, b' ' | b'\t' | b'\n' | b';' | b'}') && b != b'#') {
             self.pos += 1;
         }
         self.src[start..self.pos].to_vec()
@@ -801,7 +803,11 @@ impl Parser {
                         raw.push(b'\\');
                         raw.push(other);
                     }
-                    None => break,
+                    None => {
+                        // A backslash that ends the script leaves the text as it was written.
+                        raw.push(b'\n');
+                        return Ok(raw);
+                    }
                 },
                 b'\n' => break,
                 other => raw.push(other),

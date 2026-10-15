@@ -1,0 +1,8 @@
+printf 'q\n' > in
+for s in 'a x\$y\' 'a x\qy\' 'a xy\' 'a x\ty\' 'a x\\y\' 'a x\\\' 'i\
+x\qy\' 'c x\ty\' 'a x\qy\
+' 'a x\qy\
+z' 'a x\ty'; do
+  printf '== %s\n' "$s"
+  sed "$s" in 2>&1; echo $?
+done
