@@ -401,8 +401,16 @@ fn parallel_jobs(script: &crate::syntax::Script, options: &Options, files: &[Str
     }
     let cores = std::thread::available_parallelism().map_or(1, |n| n.get());
     let min_bytes: u64 = std::env::var("RIPGSED_PARALLEL_MIN_BYTES").ok().and_then(|v| v.parse().ok()).unwrap_or(8 << 20);
+    // Standard input counts when it is a regular file (`sed ... < big.txt`); a pipe or a
+    // terminal has no known size, and stays sequential.
     let reads_stdin = files.is_empty() || files.iter().any(|n| n == "-");
-    (cores >= 2 && !reads_stdin && total >= min_bytes).then_some(cores.min(16))
+    if reads_stdin {
+        match std::fs::metadata("/dev/stdin") {
+            Ok(m) if m.is_file() => total += m.len(),
+            _ => return None,
+        }
+    }
+    (cores >= 2 && total >= min_bytes).then_some(cores.min(16))
 }
 
 /// Returns the process exit status.
