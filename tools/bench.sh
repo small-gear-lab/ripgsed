@@ -12,13 +12,19 @@
 set -euo pipefail
 
 root=$(cd "$(dirname "$0")/.." && pwd)
+# Both programs run in one fixed locale. The default is glibc's C.UTF-8, the path of ripgsed
+# that uses its own tables; BENCH_LOCALE=en_US.UTF-8 measures the path through the C library.
+export LC_ALL=${BENCH_LOCALE:-C.UTF-8}
 runs=${RUNS:-5}
 size=${SIZE:-1000000}
 scratch=$(mktemp -d)
 trap 'rm -rf "$scratch"' EXIT
 
-cargo build --release --manifest-path "$root/Cargo.toml" > /dev/null 2>&1
-ours="$root/target/release/ripgsed"
+# OURS=path measures another binary (for example a build from an earlier commit).
+if [ -z "${OURS:-}" ]; then
+  cargo build --release --manifest-path "$root/Cargo.toml" > /dev/null 2>&1
+fi
+ours=${OURS:-$root/target/release/ripgsed}
 gnu=$(command -v sed)
 
 # Deterministic input: mixed log-like lines, about $size lines.
