@@ -12,6 +12,9 @@ pub struct Literals {
     pub pure: Option<Finder>,
     /// Every match contains this literal.
     pub required: Option<Finder>,
+    /// The pattern is this literal with groups around parts of it (no repetition, alternation,
+    /// or assertion): the match is the literal, and the groups are fixed offsets of it.
+    pub grouped: Option<Finder>,
 }
 
 impl ByteSet {
@@ -40,6 +43,9 @@ pub fn analyze(node: &Node, ascii_only: bool) -> Literals {
             lits.required = Some(Finder::new(&bytes));
             return lits;
         }
+    }
+    if let Some(bytes) = literal_of(node, ascii_only).filter(|b| !b.is_empty()) {
+        lits.grouped = Some(Finder::new(&bytes));
     }
     lits.required = required(node, ascii_only).filter(|l| !l.is_empty()).map(|l| Finder::new(&l));
     lits

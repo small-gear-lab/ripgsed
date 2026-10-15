@@ -233,6 +233,16 @@ impl Regex {
                 None => false,
             };
         }
+        if let (Some(lit), Some((_, offsets))) = (&self.literals.grouped, &self.fixed) {
+            return match lit.find(&haystack[start..]) {
+                Some(i) => {
+                    let s0 = start + i;
+                    caps.groups = offsets.iter().enumerate().map(|(g, &(a, b))| Some(if g == 0 { (s0, s0 + lit.needle().len()) } else { (s0 + a, s0 + b) })).collect();
+                    true
+                }
+                None => false,
+            };
+        }
         if let Some(lit) = &self.literals.required {
             if lit.find(&haystack[start..]).is_none() {
                 return false;
