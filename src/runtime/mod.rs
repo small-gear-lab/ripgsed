@@ -95,6 +95,8 @@ struct Machine<'a, S: RecordSource + ?Sized> {
     file_name: Rc<str>,
     ranges: Vec<RangeState>,
     last_regex: Option<Rc<Regex>>,
+    /// The regexp last used was written in an address (`s//\N/` is checked against it).
+    last_regex_from_address: bool,
     substituted: bool,
     pending: Vec<Pending>,
     read_files: HashMap<Vec<u8>, Option<std::io::BufReader<std::fs::File>>>,
@@ -212,6 +214,7 @@ fn run_from<S: RecordSource + ?Sized>(
         file_name: Rc::from("-"),
         ranges: vec![RangeState::Inactive; script.commands.len()],
         last_regex: None,
+        last_regex_from_address: false,
         substituted: false,
         pending: Vec::new(),
         read_files: HashMap::new(),
@@ -504,10 +507,11 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
         self.input.is_last(self.options.separate)
     }
 
-    fn resolve(&mut self, pattern: &Pattern) -> Result<Rc<Regex>, Fatal> {
+    fn resolve(&mut self, pattern: &Pattern, from_address: bool) -> Result<Rc<Regex>, Fatal> {
         match &pattern.regex {
             Some(re) => {
                 self.last_regex = Some(re.clone());
+                self.last_regex_from_address = from_address;
                 Ok(re.clone())
             }
             None => self
@@ -518,7 +522,7 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
     }
 
     fn regex_matches(&mut self, pattern: &Pattern) -> Result<bool, Fatal> {
-        let re = self.resolve(pattern)?;
+        let re = self.resolve(pattern, true)?;
         Ok(re.is_match(&self.pattern))
     }
 
@@ -916,8 +920,9 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
     }
 
     fn substitute(&mut self, sub: &Substitute) -> Result<(), Fatal> {
-        let re = self.resolve(&sub.pattern)?;
-        if sub.pattern.regex.is_none() {
+        let re = self.resolve(&sub.pattern, false)?;
+        // GNU sed checks the group references of `s//.../` only against a regexp written in an address.
+        if sub.pattern.regex.is_none() && self.last_regex_from_address {
             for part in &sub.replacement {
                 if let ReplacementPart::Group(g) = part {
                     if *g > re.group_count() {

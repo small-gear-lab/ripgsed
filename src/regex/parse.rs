@@ -13,6 +13,8 @@ pub const E_BADRPT: &str = "Invalid preceding regular expression";
 pub const E_EPAREN: &str = "Unmatched ( or \\(";
 pub const E_ERPAREN: &str = "Unmatched ) or \\)";
 pub const E_EBRACK: &str = "Unmatched [, [^, [:, [., or [=";
+/// A pattern that ends right after `[` or `[^`.
+pub const E_BADPAT: &str = "Invalid regular expression";
 pub const E_SUBREG: &str = "Invalid back reference";
 pub const E_ERANGE: &str = "Invalid range end";
 pub const E_ECTYPE: &str = "Invalid character class name";
@@ -458,6 +460,22 @@ impl<'a> Parser<'a> {
     }
 
     fn literal_byte(&self, b: u8) -> Node {
+        if self.icase && self.utf8 {
+            // In UTF-8 `I` also matches the letters whose upper-case form is an ASCII
+            // letter: the dotless i for `i` and `I`, the long s for `s` and `S`.
+            let extra = match b {
+                b'i' | b'I' => Some(0x131),
+                b's' | b'S' => Some(0x17f),
+                _ => None,
+            };
+            if let Some(extra) = extra {
+                let (lo, up) = (b.to_ascii_lowercase() as u32, b.to_ascii_uppercase() as u32);
+                return Node::Unit(Unit::Chars(Box::new(CharSet {
+                    ranges: vec![(lo, lo), (up, up), (extra, extra)],
+                    ..CharSet::default()
+                })));
+            }
+        }
         let mut set = ByteSet::single(b);
         if self.icase {
             set.fold_ascii_case();
@@ -521,7 +539,7 @@ impl<'a> Parser<'a> {
         let mut first = true;
         loop {
             let Some(c) = self.at(0) else {
-                return Err(err(E_EBRACK));
+                return Err(err(if first { E_BADPAT } else { E_EBRACK }));
             };
             if c == b']' && !first {
                 break;

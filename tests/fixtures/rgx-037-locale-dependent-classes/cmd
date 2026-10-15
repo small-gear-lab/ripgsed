@@ -1,0 +1,49 @@
+t='é 中 « x ß ǆ Ǆ ǅ _ 1 İ ı'
+for re in '\w' '\W' '\s' '\S' '\b' '[[:alpha:]]' '[[:upper:]]' '[[:lower:]]' '[[:alnum:]]' '[[:punct:]]' '[[:space:]]' '[[:print:]]' '[[:graph:]]' '[[:cntrl:]]' '[[:digit:]]' '[[:blank:]]' '[[:xdigit:]]'; do
+  printf '== %s\n' "$re"
+  printf '%s\n' "$t" | sed "s/$re/<&>/g" 2>&1
+done
+printf 'a\302\240b\n' | sed 's/\s/_/g' | od -c
+printf 'a\302\240b\n' | LC_ALL=C sed 's/\s/_/g' | od -c
+printf 'a\302\240b\n' | sed 's/[[:space:]]/_/g' | od -c
+printf 'a\342\200\203b\n' | sed 's/\s/_/g' | od -c
+printf 'a\342\200\203b\n' | sed 's/[[:space:]]/_/g' | od -c
+printf '\303\251 \344\270\255 \302\253\n' | LC_ALL=C sed 's/\w/_/g' | od -c
+printf 'ß SS ǆ Ǆ ǅ\n' | sed 's/ß/X/I'
+printf 'ß SS ǆ Ǆ ǅ\n' | sed 's/ss/X/I'
+printf 'ß SS ǆ Ǆ ǅ\n' | sed 's/ǆ/X/Ig'
+printf 'ß SS ǆ Ǆ ǅ\n' | sed 's/Ǆ/X/Ig'
+printf 'ß SS ǆ Ǆ ǅ\n' | sed 's/ǅ/X/Ig'
+printf 'ÉÀ éà\n' | sed 's/éà/X/Ig'
+printf 'ÉÀ éà\n' | sed 's/[é]/X/Ig'
+printf 'ÉÀ éà\n' | sed 's/[[:lower:]]/X/Ig'
+printf 'ÉÀ éà\n' | sed 's/[[:upper:]]/X/g'
+printf 'İ ı i I\n' | sed 's/i/X/Ig'
+printf 'K \342\204\252 k\n' | sed 's/k/X/Ig'
+printf 'éà\n' | sed 's/\(.\)\(.\)/\u\1\U\2/'
+printf 'ÉÀ\n' | sed 's/.*/\L&/'
+printf 'ǆ\n' | sed 's/.*/\u&/'
+printf 'ß\n' | sed 's/.*/\U&/'
+printf '\302\205x\n' | sed 's/\s/_/g' | od -c
+printf '\302\262\302\275\342\221\240\n' | sed 's/\w/_/g' | od -c
+printf '\302\262\302\275\342\221\240\n' | sed 's/[[:alpha:]]/_/g' | od -c
+printf '\302\262\302\275\342\221\240\n' | sed 's/[[:punct:]]/_/g' | od -c
+printf '\331\240\342\205\240\n' | sed 's/[[:alpha:]]/_/g' | od -c
+printf 'a\331\240\n' | sed 's/\w*/_/' | od -c
+printf 'ſ s S ı i I\n' | sed 's/s/X/Ig'
+printf 'ſ s S ı i I\n' | sed 's/I/X/Ig'
+printf 'ſ s S ı i I\n' | sed 's/[s]/X/Ig'
+printf 'ſ s S ı i I\n' | sed 's/[a-z]/X/Ig'
+printf 'ſ s S ı i I\n' | sed 's/[ı]/X/Ig'
+printf 'ſ s ı i\n' | sed 's/[^s]/X/Ig'
+printf 'ſ s ı i\n' | sed 's/[^a-z]/X/Ig'
+printf 'ſ s S ı i I\n' | sed -E 's/(s|i)+/X/Ig'
+printf 'ſ\n' | sed 's/s/X/I'
+printf 'ſı\n' | sed 's/si/X/I'
+printf 'ſs\n' | sed 's/\(.\)\1/X/I'
+printf 'K \342\204\252 k\n' | sed 's/k/X/Ig'
+printf 'K \342\204\252 k\n' | sed 's/[k]/X/Ig'
+printf 'K \342\204\252 k\n' | sed 's/[a-z]/X/Ig'
+printf 'ǆ ǅ Ǆ\n' | sed 's/[ǅ]/X/Ig'
+printf 'ǆ ǅ Ǆ\n' | sed 's/[ǆ]/X/Ig'
+printf 'ǆ ǅ Ǆ\n' | sed 's/ǆ/X/Ig'

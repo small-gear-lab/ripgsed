@@ -1,0 +1,38 @@
+sed 's//x/' a.txt 2>&1; echo $?
+sed -n '//p' a.txt 2>&1; echo $?
+sed '1!s//x/' a.txt 2>&1; echo $?
+sed '3s//x/' a.txt 2>&1; echo $?
+sed -n '2{//p}' a.txt 2>&1; echo $?
+sed -n '/o/{//Ip}' a.txt 2>&1; echo $?
+sed -n '/o/{//Mp}' a.txt 2>&1; echo $?
+sed 's/o/0/;s//x/I' a.txt 2>&1; echo $?
+sed 's/o/0/;s//x/M' a.txt 2>&1; echo $?
+sed 's/o/0/;s//x/IM' a.txt 2>&1; echo $?
+sed 's/o/0/;s//x/m' a.txt 2>&1; echo $?
+sed -n '/o/{//I,//p}' a.txt 2>&1; echo $?
+sed -n '/o/,//Ip' a.txt 2>&1; echo $?
+sed -n '//,/o/p' a.txt 2>&1; echo $?
+sed -n '/o/!{//p}' a.txt 2>&1; echo $?
+sed -n '/zzz/{//p}' a.txt 2>&1; echo $?
+sed 's/e/E/;s//X/g' a.txt 2>&1; echo $?
+sed 's/o/0/;s//x/w out.txt' a.txt 2>&1; echo $?
+sed -E 's/(o)/[\1]/;s//<\1>/' a.txt 2>&1; echo $?
+sed 's/\(o\)/[\1]/;s//<\2>/' a.txt 2>&1; echo $?
+sed -n '/o/p;//Ip' a.txt 2>&1; echo $?
+sed -n '//Ip;/o/p' a.txt 2>&1; echo $?
+sed -n '//M,/x/p' a.txt 2>&1; echo $?
+sed 's//x/' < /dev/null 2>&1; echo $?
+sed 'y/o/0/;s//x/' a.txt 2>&1; echo $?
+sed 'b end;s/o/0/;:end;s//x/' a.txt 2>&1; echo $?
+sed 's/o/&/;s//<\1>/' a.txt 2>&1; echo $?
+sed 's/\(o\)/&/;s//<\1\3>/' a.txt 2>&1; echo $?
+sed 's/x/&/;s//<\1>/' a.txt 2>&1; echo $?
+sed '/o/s/o/&/;s//<\1>/' a.txt 2>&1; echo $?
+sed 's/o/&/;/o/s//<\1>/' a.txt 2>&1; echo $?
+sed 's/\(o\)/&/;//s//<\2>/' a.txt 2>&1; echo $?
+sed -E 's/(o)/&/;s//<\2>/' a.txt 2>&1; echo $?
+sed '/o/s//<\1>/' a.txt 2>&1; echo $?
+sed '/x/s//<\1>/' a.txt 2>&1; echo $?
+sed '/x/b;s//<\1>/' a.txt 2>&1; echo $?
+sed '/\(o\)/s//<\2>/' a.txt 2>&1; echo $?
+sed '/\(o\)\(n\)/s//<\2>/' a.txt 2>&1; echo $?

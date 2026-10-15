@@ -1,0 +1,79 @@
+bab^c
+0
+ab^c
+0
+ab^c
+0
+Xab^c
+0
+ab$cX
+0
+ab$X
+0
+sed: -e expression #1, char 13: Unmatched [, [^, [:, [., or [=
+1
+sed: -e expression #1, char 9: Invalid regular expression
+1
+a[X]
+0
+XXX
+0
+aXb
+0
+XbX
+0
+X+b
+0
+a(X)
+0
+sed: -e expression #1, char 10: Trailing backslash
+1
+aXb
+0
+aXb
+0
+a
+b
+0
+aXb
+0
+a&
+0
+a\
+0
+\1b
+0
+0000000   X 251  \n
+0000003
+0000000   X 251  \n
+0000003
+0000000   X  \n
+0000002
+0000000   X  \n
+0000002
+0000000 303 251  \n
+0000003
+0000000   X 251  \n
+0000003
+0000000 303   X  \n
+0000003
+a\Xb
+0
+a\Xb
+0
+a	b
+aXb
+0
+a
+b
+0
+sed: -e expression #1, char 9: Invalid regular expression
+1
+sed: -e expression #1, char 10: Invalid regular expression
+1
+sed: -e expression #1, char 13: Invalid regular expression
+1
+sed: -e expression #1, char 18: Invalid regular expression
+1
+sed: -e expression #1, char 14: Unmatched [, [^, [:, [., or [=
+1

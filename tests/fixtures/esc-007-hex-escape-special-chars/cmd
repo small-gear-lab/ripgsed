@@ -1,0 +1,38 @@
+printf 'ab^c\n' | sed 's/\x5e/b/' 2>&1; echo $?
+printf 'ab^c\n' | sed 's/a\x5e/b/' 2>&1; echo $?
+printf 'ab^c\n' | sed 's/\x5eb/X/' 2>&1; echo $?
+printf 'ab^c\n' | sed -E 's/\x5e/X/' 2>&1; echo $?
+printf 'ab$c\n' | sed 's/\x24/X/' 2>&1; echo $?
+printf 'ab$c\n' | sed 's/c\x24/X/' 2>&1; echo $?
+printf 'a[]b\n' | sed 's/\x5b\x5d/X/' 2>&1; echo $?
+printf 'a[b\n' | sed 's/\x5b/X/' 2>&1; echo $?
+printf 'a[b]\n' | sed 's/\x5bb\x5d/X/' 2>&1; echo $?
+printf 'a.b\n' | sed 's/\x2e/X/g' 2>&1; echo $?
+printf 'a*b\n' | sed 's/\x2a/X/g' 2>&1; echo $?
+printf 'aab\n' | sed 's/a\x2a/X/g' 2>&1; echo $?
+printf 'a+b\n' | sed -E 's/a\x2b/X/g' 2>&1; echo $?
+printf 'a(b)\n' | sed -E 's/\x28b\x29/X/g' 2>&1; echo $?
+printf 'a\\b\n' | sed 's/\x5c/X/g' 2>&1; echo $?
+printf 'a/b\n' | sed 's/\x2f/X/g' 2>&1; echo $?
+printf 'a\nb\n' | sed 'N;s/\x0a/X/' 2>&1; echo $?
+printf 'a\nb\n' | sed 'N;s/\x5cn/X/' 2>&1; echo $?
+printf 'a&b\n' | sed 's/\x26/X/' 2>&1; echo $?
+printf 'ab\n' | sed 's/b/\x26/' 2>&1; echo $?
+printf 'ab\n' | sed 's/b/\x5c/' 2>&1; echo $?
+printf 'ab\n' | sed 's/\(a\)/\x5c1/' 2>&1; echo $?
+printf '\303\251\n' | sed 's/\xc3/X/' | od -c
+printf '\303\251\n' | LC_ALL=C.utf8 sed 's/\xc3/X/' 2>&1 | od -c
+printf '\303\251\n' | LC_ALL=C.utf8 sed 's/\xc3\xa9/X/' 2>&1 | od -c
+printf '\303\251\n' | LC_ALL=C.utf8 sed 's/[\xc3\xa9]/X/g' 2>&1 | od -c
+printf '\303\251\n' | LC_ALL=C.utf8 sed 's/\xc3./X/' 2>&1 | od -c
+printf '\303\251\n' | LC_ALL=C.utf8 sed 's/^\xc3/X/' 2>&1 | od -c
+printf '\303\251\n' | LC_ALL=C.utf8 sed 's/\xa9$/X/' 2>&1 | od -c
+printf 'a\\\\nb\n' | sed 's/\x5c\x5cn/X/' 2>&1; echo $?
+printf 'a\\nb\n' | sed 's/\x5cn/X/' 2>&1; echo $?
+printf 'a\tb\natb\n' | sed 's/\x5ct/X/' 2>&1; echo $?
+printf 'a\nb\n' | sed 'N;s/a\x5cnb/X/' 2>&1; echo $?
+printf 'a[b\n' | sed -E 's/\x5b/X/' 2>&1; echo $?
+printf 'a[b\n' | sed 's/b\x5b/X/' 2>&1; echo $?
+printf 'a[b\n' | sed 's/\x5b\x5e/X/' 2>&1; echo $?
+printf 'a[b\n' | sed 's/\x5bb\x5d\x5b/X/' 2>&1; echo $?
+printf 'a[b\n' | sed 's/a\(\x5b\)/X/' 2>&1; echo $?

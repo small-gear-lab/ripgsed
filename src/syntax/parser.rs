@@ -1136,8 +1136,19 @@ fn normalize_escapes_for(text: &[u8], posixly_correct: bool, replacement: bool) 
                     if replacement && (produced == b'&' || produced == b'\\') {
                         out.push(b'\\');
                     }
+                    let opens_escape = out.iter().rev().take_while(|&&c| c == b'\\').count() % 2 == 0;
                     out.push(produced);
                     i = j;
+                    // A backslash made by `\x5c` is an ordinary regexp escape: the escape
+                    // letters sed itself converts are not converted again, so `\x5cn` and
+                    // `\x5ct` match a plain `n` and `t`.
+                    if !replacement && produced == b'\\' && opens_escape {
+                        if let Some(&next @ (b'n' | b't' | b'a' | b'f' | b'v' | b'r')) = text.get(i) {
+                            out.pop();
+                            out.push(next);
+                            i += 1;
+                        }
+                    }
                 }
             }
             b'c' if i + 2 < text.len() => {

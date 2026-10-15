@@ -137,22 +137,52 @@ impl Class {
             Class::Cntrl => c.is_control() || matches!(c as u32, 0x2028 | 0x2029),
             Class::Digit => false,
             Class::Graph => uni_print(c) && !uni_space(c),
-            Class::Lower => c.is_lowercase(),
+            // glibc also lists the four titlecase digraphs among the lower-case letters.
+            Class::Lower => c.is_lowercase() || matches!(c as u32, 0x1c5 | 0x1c8 | 0x1cb | 0x1f2),
             Class::Print => uni_print(c),
             Class::Punct => uni_print(c) && !uni_space(c) && !uni_alpha(c),
             Class::Space => uni_space(c),
-            Class::Upper => c.is_uppercase(),
+            // ... and every titlecase letter among the upper-case ones.
+            Class::Upper => c.is_uppercase() || is_titlecase(c),
             Class::Xdigit => false,
         }
     }
 }
 
+/// Numbers that are neither letters nor decimal digits (superscripts, fractions, circled
+/// digits, ...): `std` counts them as numeric, glibc's `alpha` class does not.
+const OTHER_NUMBERS: &[(u32, u32)] = &[
+    (0xB2, 0xB3), (0xB9, 0xB9), (0xBC, 0xBE), (0x9F4, 0x9F9), (0xB72, 0xB77), (0xBF0, 0xBF2), (0xC78, 0xC7E),
+    (0xD58, 0xD5E), (0xD70, 0xD78), (0xF2A, 0xF33), (0x1369, 0x137C), (0x17F0, 0x17F9), (0x19DA, 0x19DA),
+    (0x2070, 0x2070), (0x2074, 0x2079), (0x2080, 0x2089), (0x2150, 0x215F), (0x2189, 0x2189), (0x2460, 0x249B),
+    (0x24EA, 0x24FF), (0x2776, 0x2793), (0x2CFD, 0x2CFD), (0x3192, 0x3195), (0x3220, 0x3229), (0x3248, 0x324F),
+    (0x3251, 0x325F), (0x3280, 0x3289), (0x32B1, 0x32BF), (0xA830, 0xA835), (0x10107, 0x10133), (0x10175, 0x10178),
+    (0x1018A, 0x1018B), (0x102E1, 0x102FB), (0x10320, 0x10323), (0x10858, 0x1085F), (0x10879, 0x1087F),
+    (0x108A7, 0x108AF), (0x108FB, 0x108FF), (0x10916, 0x1091B), (0x109BC, 0x109BD), (0x109C0, 0x109CF),
+    (0x109D2, 0x109FF), (0x10A40, 0x10A48), (0x10A7D, 0x10A7E), (0x10A9D, 0x10A9F), (0x10AEB, 0x10AEF),
+    (0x10B58, 0x10B5F), (0x10B78, 0x10B7F), (0x10BA9, 0x10BAF), (0x10CFA, 0x10CFF), (0x10E60, 0x10E7E),
+    (0x10F1D, 0x10F26), (0x10F51, 0x10F54), (0x10FC5, 0x10FCB), (0x11052, 0x11065), (0x111E1, 0x111F4),
+    (0x1173A, 0x1173B), (0x118EA, 0x118F2), (0x11C5A, 0x11C6C), (0x11FC0, 0x11FD4), (0x16B5B, 0x16B61),
+    (0x16E80, 0x16E96), (0x1D2C0, 0x1D2D3), (0x1D2E0, 0x1D2F3), (0x1D360, 0x1D378), (0x1E8C7, 0x1E8CF),
+    (0x1EC71, 0x1ECAB), (0x1ECAD, 0x1ECAF), (0x1ECB1, 0x1ECB4), (0x1ED01, 0x1ED2D), (0x1ED2F, 0x1ED3D),
+    (0x1F100, 0x1F10C),
+];
+
 fn uni_alpha(c: char) -> bool {
-    c.is_alphabetic() || c.is_numeric()
+    let u = c as u32;
+    c.is_alphabetic() || (c.is_numeric() && !OTHER_NUMBERS.iter().any(|&(lo, hi)| lo <= u && u <= hi))
+}
+
+/// The letters of general category Lt.
+fn is_titlecase(c: char) -> bool {
+    matches!(
+        c as u32,
+        0x1c5 | 0x1c8 | 0x1cb | 0x1f2 | 0x1f88..=0x1f8f | 0x1f98..=0x1f9f | 0x1fa8..=0x1faf | 0x1fbc | 0x1fcc | 0x1ffc
+    )
 }
 
 fn uni_space(c: char) -> bool {
-    c.is_whitespace() && !matches!(c as u32, 0xa0 | 0x2007 | 0x202f)
+    c.is_whitespace() && !matches!(c as u32, 0x85 | 0xa0 | 0x2007 | 0x202f)
 }
 
 fn uni_print(c: char) -> bool {
@@ -242,11 +272,31 @@ impl CharSet {
         }
         let mut hit = self.positive(c);
         if !hit && self.icase {
-            let l = simple_lower(c);
+            // Two characters are the same under `I` when their upper-case forms are equal:
+            // try the other members of the family of `c`.
             let u = simple_upper(c);
-            hit = (l != c && self.positive(l)) || (u != c && self.positive(u));
+            let l = simple_lower(u);
+            let others = [
+                Some(u),
+                (simple_upper(l) == u).then_some(l),
+                titlecase_of(u),
+                (u == 'I').then_some('\u{131}'),
+                (u == 'S').then_some('\u{17f}'),
+            ];
+            hit = others.into_iter().flatten().any(|x| x != c && self.positive(x));
         }
         hit != self.negated
+    }
+}
+
+/// The titlecase letter of the digraphs DŽ, LJ, NJ, and DZ.
+fn titlecase_of(upper: char) -> Option<char> {
+    match upper as u32 {
+        0x1c4 | 0x1c6 => Some('\u{1c5}'),
+        0x1c7 | 0x1c9 => Some('\u{1c8}'),
+        0x1ca | 0x1cc => Some('\u{1cb}'),
+        0x1f1 | 0x1f3 => Some('\u{1f2}'),
+        _ => None,
     }
 }
 

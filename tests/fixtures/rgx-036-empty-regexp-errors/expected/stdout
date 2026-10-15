@@ -1,0 +1,100 @@
+sed: -e expression #1, char 0: no previous regular expression
+1
+sed: -e expression #1, char 0: no previous regular expression
+1
+sed: -e expression #1, char 0: no previous regular expression
+one
+1
+sed: -e expression #1, char 0: no previous regular expression
+one
+two
+1
+sed: -e expression #1, char 0: no previous regular expression
+1
+sed: -e expression #1, char 7: cannot specify modifiers on empty regexp
+1
+sed: -e expression #1, char 7: cannot specify modifiers on empty regexp
+1
+sed: -e expression #1, char 13: cannot specify modifiers on empty regexp
+1
+sed: -e expression #1, char 13: cannot specify modifiers on empty regexp
+1
+sed: -e expression #1, char 14: cannot specify modifiers on empty regexp
+1
+sed: -e expression #1, char 13: cannot specify modifiers on empty regexp
+1
+sed: -e expression #1, char 7: cannot specify modifiers on empty regexp
+1
+sed: -e expression #1, char 7: cannot specify modifiers on empty regexp
+1
+sed: -e expression #1, char 0: no previous regular expression
+1
+0
+0
+onE
+two
+thrEX
+0
+0ne
+tw0
+three
+0
+[<o>]ne
+tw[<o>]
+three
+0
+[<>]ne
+tw[<>]
+three
+0
+sed: -e expression #1, char 8: cannot specify modifiers on empty regexp
+1
+sed: -e expression #1, char 3: cannot specify modifiers on empty regexp
+1
+sed: -e expression #1, char 3: cannot specify modifiers on empty regexp
+1
+0
+sed: -e expression #1, char 0: no previous regular expression
+1
+sed: -e expression #1, char 0: no previous regular expression
+1
+<>ne
+tw<>
+three
+0
+<o>ne
+tw<o>
+three
+0
+one
+two
+three
+0
+sed: -e expression #1, char 0: invalid reference \1 on `s' command's RHS
+<>ne
+tw<>
+1
+sed: -e expression #1, char 0: invalid reference \1 on `s' command's RHS
+1
+<>ne
+tw<>
+three
+0
+<>ne
+tw<>
+three
+0
+sed: -e expression #1, char 0: invalid reference \1 on `s' command's RHS
+1
+one
+two
+three
+0
+sed: -e expression #1, char 0: invalid reference \1 on `s' command's RHS
+1
+sed: -e expression #1, char 0: invalid reference \2 on `s' command's RHS
+1
+<n>e
+two
+three
+0
