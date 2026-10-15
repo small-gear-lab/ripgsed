@@ -1,0 +1,13 @@
+cat >in.txt
+sed 's/[^[:alpha:]]/_/g' <in.txt
+echo ---
+sed 's/[[:digit:][:upper:]]/#/g' <in.txt
+echo ---
+sed 's/[[:alpha:]_]\+/<&>/g' <in.txt
+echo ---
+sed 's/[^[:space:][:punct:]]\+/<&>/g' <in.txt
+echo ---
+sed 's/[[:digit:]-]/#/g' <in.txt
+echo ---
+sed 's/[a[:digit:]z]/#/g' <in.txt
+rm -f in.txt

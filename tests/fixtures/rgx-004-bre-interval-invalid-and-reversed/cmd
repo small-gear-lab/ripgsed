@@ -1,0 +1,11 @@
+sed 's/a\{2,1\}/X/' </dev/null; echo $?
+sed 's/a\{x\}/X/' </dev/null; echo $?
+sed 's/a\{1/X/' </dev/null; echo $?
+sed 's/a\{1,2/X/' </dev/null; echo $?
+sed 's/a\{1,2\}\{3\}/X/' </dev/null; echo $?
+sed 's/a\{\}/X/' </dev/null; echo $?
+sed 's/a\{,\}/X/' </dev/null; echo $?
+sed 's/a\{1\}\{2\}/X/' </dev/null; echo $?
+sed 's/a\{1a\}/X/' </dev/null; echo $?
+sed 's/a\{-1\}/X/' </dev/null; echo $?
+sed 's/a\}/X/' </dev/null; echo $?

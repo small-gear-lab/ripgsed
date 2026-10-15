@@ -1,0 +1,5 @@
+sed 's/\(a/X/' </dev/null; echo $?
+sed 's/a\{2,1\}/X/' </dev/null; echo $?
+sed 's/[[:foo:]]/X/' </dev/null; echo $?
+sed 's/[:alpha:]/X/' </dev/null; echo $?
+sed 's/a/b' </dev/null; echo $?

@@ -1,0 +1,11 @@
+cat >in.txt
+sed 'N;s/^B/X/IM' <in.txt
+echo ---
+sed 'N;s/^B/X/MI' <in.txt
+echo ---
+sed 'N;s/A$/X/IMg' <in.txt
+echo ---
+sed 'N;s/a/X/I2' <in.txt
+echo ---
+sed -n 'N;s/A/X/Igp' <in.txt
+rm -f in.txt

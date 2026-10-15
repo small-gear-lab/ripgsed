@@ -1,0 +1,7 @@
+cat >in.txt
+sed 's/a^b/[&]/;s/a$b/{&}/' <in.txt
+echo ---
+sed 's/x^/Y/' <in.txt
+echo ---
+sed 's/$x/Z/' <in.txt
+rm -f in.txt

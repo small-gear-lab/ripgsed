@@ -1,0 +1,7 @@
+cat >in.txt
+sed 's/a\{0\}b/X/' <in.txt
+echo ---
+sed 's/ba\{0,0\}c/X/' <in.txt
+echo ---
+sed 's/\(ab\)\{0\}c/[&]/' <in.txt
+rm -f in.txt

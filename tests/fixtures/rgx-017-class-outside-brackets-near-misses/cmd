@@ -1,0 +1,13 @@
+cat >in.txt
+sed 's/[:a]/X/g' <in.txt
+echo ---
+sed 's/[:]/X/g' <in.txt
+echo ---
+sed 's/[a:]/X/g' <in.txt
+echo ---
+sed 's/[:ab:]/X/g' <in.txt
+echo ---
+sed 's/[:a:]/X/g' <in.txt
+echo ---
+sed 's/[^:alpha:]/X/g' <in.txt
+rm -f in.txt

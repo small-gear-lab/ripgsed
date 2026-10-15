@@ -1,0 +1,9 @@
+cat >in.txt
+sed --posix -E 's/a{2,3}/X/' <in.txt
+echo ---
+sed --posix -E 's/a{2,}/X/' <in.txt
+echo ---
+sed --posix -E 's/a{0}b/X/' <in.txt
+echo ---
+sed --posix -E 's/(ab){2}/X/' <in.txt
+rm -f in.txt

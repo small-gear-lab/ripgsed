@@ -1,0 +1,8 @@
+sed 's/[abc/X/' </dev/null; echo $?
+sed 's/[]/X/' </dev/null; echo $?
+sed 's/[^]/X/' </dev/null; echo $?
+sed 's/a[/X/' </dev/null; echo $?
+sed -E 's/[a/X/' </dev/null; echo $?
+sed '/[/p' </dev/null; echo $?
+sed 's/[[:alpha:]/X/' </dev/null; echo $?
+sed 's/[a-/X/' </dev/null; echo $?

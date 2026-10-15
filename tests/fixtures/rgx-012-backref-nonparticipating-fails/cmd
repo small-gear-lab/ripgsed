@@ -1,0 +1,9 @@
+cat >in.txt
+sed -E 's/a(.)|b\1/X/' <in.txt
+echo ---
+sed -E 's/(a)|b\1/X/g' <in.txt
+echo ---
+sed -E -n '/(x)|y\1/p' <in.txt
+echo ---
+sed -E 's/(a)?b\1/X/' <in.txt
+rm -f in.txt

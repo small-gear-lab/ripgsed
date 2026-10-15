@@ -1,0 +1,8 @@
+sed: -e expression #1, char 5: unterminated `s' command
+sed: -e expression #1, char 3: unterminated `s' command
+sed: -e expression #1, char 8: unknown option to `s'
+sed: -e expression #1, char 2: unterminated address regex
+sed: -e expression #1, char 3: missing command
+sed: -e expression #1, char 3: unterminated address regex
+sed: -e expression #1, char 1: unterminated `s' command
+sed: -e expression #1, char 5: unterminated `y' command

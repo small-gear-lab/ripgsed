@@ -1,0 +1,9 @@
+cat >in.txt
+sed -n '/\(a\)\(b\)/s//\2\1/p' <in.txt
+echo ---
+sed '/\(a\)\(b\)/!d;s//[\1\2]/' <in.txt
+echo ---
+sed 's/\(a\)\(b\)/<\2\1>/;s//(\1\2)/' <in.txt
+echo ---
+sed -E 's/(a)(b)/[\2\1]/;s//{\1}/' <in.txt
+rm -f in.txt

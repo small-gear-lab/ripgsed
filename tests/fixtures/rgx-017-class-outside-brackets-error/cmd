@@ -1,0 +1,7 @@
+sed 's/[:digit:]/X/' </dev/null; echo $?
+sed 's/[:alpha:]*/X/' </dev/null; echo $?
+sed 's/a[:space:]b/X/' </dev/null; echo $?
+sed -E 's/[:upper:]+/X/' </dev/null; echo $?
+sed '/[:lower:]/p' </dev/null; echo $?
+sed 's/[:punct:]/X/g' </dev/null; echo $?
+sed 's/[:xdigit:]\{2\}/X/' </dev/null; echo $?

@@ -1,0 +1,6 @@
+echo 'aab a+b' | sed 's/a\+b/X/g'
+echo 'aab a+b' | sed --posix 's/a\+b/X/g'
+echo 'ab a?b' | sed 's/a\?b/X/g'
+echo 'ab a?b' | sed --posix 's/a\?b/X/g'
+echo 'a|b a b' | sed 's/a\|b/X/g'
+echo 'a|b a b' | sed --posix 's/a\|b/X/g'

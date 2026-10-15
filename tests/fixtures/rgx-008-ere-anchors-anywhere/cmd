@@ -1,0 +1,11 @@
+cat >in.txt
+sed -E 's/a^b/X/' <in.txt
+echo ---
+sed -E 's/a$b/X/' <in.txt
+echo ---
+sed -E 's/(^a|b$)/X/g' <in.txt
+echo ---
+sed -E 's/x|^a/Y/g' <in.txt
+echo ---
+sed -E 's/^*a/Y/' <in.txt
+rm -f in.txt

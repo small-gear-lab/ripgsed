@@ -1,0 +1,34 @@
+[foo [bar
+[foofoo [foo
+ [a  [b 
+[x
+...
+[foo.[foo,[foo_foo
+---
+foo] bar]
+foofoo] foo]
+ a]  b] 
+x]
+...
+foo].foo],foo_foo]
+---
+Xoo Xar
+Xoofoo Xoo
+ X  X 
+X
+...
+Xoo.Xoo,Xoo_foo
+---
+foX baX
+foofoX foX
+ X  X 
+X
+...
+foX.foX,foo_foX
+---
+X bar
+foofoo X
+ a  b 
+x
+...
+X.X,foo_foo

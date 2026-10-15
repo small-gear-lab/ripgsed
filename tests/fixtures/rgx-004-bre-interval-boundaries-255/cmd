@@ -1,0 +1,16 @@
+awk 'BEGIN{for(i=0;i<255;i++)printf "a"; printf "\n"; for(i=0;i<256;i++)printf "a"; printf "\n"}' > in.txt
+sed 's/a\{255\}/X/' in.txt
+echo ---
+sed 's/a\{256\}/X/' in.txt
+echo $?
+echo ---
+sed 's/a\{32767\}/X/' in.txt
+echo $?
+echo ---
+sed 's/a\{32768\}/X/' in.txt
+echo $?
+echo ---
+sed 's/a\{0,32768\}/X/' in.txt
+echo $?
+echo ---
+sed 's/a\{1,\}/X/' in.txt

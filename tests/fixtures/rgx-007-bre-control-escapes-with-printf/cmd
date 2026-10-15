@@ -1,0 +1,7 @@
+printf 'a\tb\fc\vd\re\n' | sed 's/\t/<T>/;s/\f/<F>/;s/\v/<V>/;s/\r/<R>/'
+printf 'a\001b\033c\n' | sed 's/\x01/<1>/;s/\o33/<E>/'
+printf 'a\001b\n' | sed 's/\cA/<cA>/'
+printf 'a\nb\n' | sed 'N;s/a\x0ab/NL/'
+printf 'a.b\n' | sed 's/\x2e/DOT/'
+printf 'a.b\n' | sed 's/a\x2eb/DOT/'
+printf 'axb\n' | sed 's/a\x2eb/DOT/'

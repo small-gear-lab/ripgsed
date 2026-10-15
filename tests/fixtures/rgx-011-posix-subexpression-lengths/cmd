@@ -1,0 +1,11 @@
+cat >in.txt
+sed -E 's/(a*)(a*)/[\1|\2]/' <in.txt
+echo ---
+sed -E 's/(a*)+/[\1]/' <in.txt
+echo ---
+sed -E 's/(a*)*b/[\1]/' <in.txt
+echo ---
+sed -E 's/(a|aa)(a|aa)/[\1|\2]/' <in.txt
+echo ---
+sed -E 's/(a?)(a*)(a?)/[\1|\2|\3]/' <in.txt
+rm -f in.txt

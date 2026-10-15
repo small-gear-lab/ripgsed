@@ -1,0 +1,4 @@
+printf 'éa中\n' | sed --posix 's/./X/g'
+printf 'éa中\n' | sed --posix 's/[é]/X/g'
+printf 'éa中\n' | sed --posix -E 's/./X/g'
+printf 'éa中\n' | sed --posix -E 's/(é)(.)/\2\1/'

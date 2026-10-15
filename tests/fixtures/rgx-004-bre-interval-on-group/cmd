@@ -1,0 +1,9 @@
+cat >in.txt
+sed 's/\(ab\)\{2\}/X/' <in.txt
+echo ---
+sed 's/\(ab\)\{1,2\}c/X/' <in.txt
+echo ---
+sed 's/\(a.\)\{2,\}/<&>/' <in.txt
+echo ---
+sed 's/\(a\|b\)\{3\}/X/' <in.txt
+rm -f in.txt

@@ -1,0 +1,23 @@
+sed -E 's/(a/X/' </dev/null; echo $?
+sed -E 's/a)/X/' <<EOT
+a)
+EOT
+echo $?
+sed -E 's/((a)/X/' </dev/null; echo $?
+sed -E 's/a{1/X/' <<EOT
+a{1
+EOT
+echo $?
+sed -E 's/a{1,2/X/' </dev/null; echo $?
+sed -E 's/a{x}/X/' <<EOT
+a{x}
+EOT
+echo $?
+sed -E 's/{/X/' <<EOT
+a{
+EOT
+echo $?
+sed -E 's/}/X/' <<EOT
+a}
+EOT
+echo $?

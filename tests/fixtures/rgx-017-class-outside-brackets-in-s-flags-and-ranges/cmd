@@ -1,0 +1,11 @@
+sed -n '1,/[:digit:]/p' </dev/null; echo $?
+sed -n '/a/,/[:digit:]/p' </dev/null; echo $?
+sed -n 's/a/b/;s/[:digit:]/c/gp' </dev/null; echo $?
+sed 's/[:digit:]/c/' <<EOT
+123
+EOT
+echo $?
+sed -n '/[[:digit:]]/p' <<EOT
+123
+EOT
+echo $?

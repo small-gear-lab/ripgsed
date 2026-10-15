@@ -1,0 +1,16 @@
+sed 's/[[.é.]]/X/g' <<EOT
+aéb
+EOT
+echo $?
+sed 's/[[.中.]]/X/g' <<EOT
+a中b
+EOT
+echo $?
+sed 's/[[.a.]]/X/g' <<EOT
+aéb
+EOT
+echo $?
+sed 's/[[=中=]]/X/g' <<EOT
+a中b
+EOT
+echo $?

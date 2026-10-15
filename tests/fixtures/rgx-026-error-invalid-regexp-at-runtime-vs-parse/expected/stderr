@@ -1,0 +1,7 @@
+sed: -e expression #1, char 4: Unmatched ( or \(
+sed: -e expression #1, char 6: Unmatched \{
+sed: -e expression #1, char 5: unterminated address regex
+sed: -e expression #1, char 4: Unmatched ) or \)
+sed: -e expression #1, char 15: Invalid preceding regular expression
+sed: -e expression #1, char 9: Invalid back reference
+sed: -e expression #1, char 6: Unmatched ( or \(

@@ -1,0 +1,7 @@
+sed 's/[[:foo:]]/X/' </dev/null; echo $?
+sed 's/[[:ALPHA:]]/X/' </dev/null; echo $?
+sed 's/[[:alpha]]/X/' </dev/null; echo $?
+sed 's/[[:alpha:]/X/' </dev/null; echo $?
+sed 's/[[:]]/X/' </dev/null; echo $?
+sed 's/[[:alpha:]]/X/' </dev/null; echo $?
+sed 's/[[:alpha:]]*[[:bogus:]]/X/' </dev/null; echo $?

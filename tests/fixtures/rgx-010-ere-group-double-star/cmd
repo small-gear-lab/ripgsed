@@ -1,0 +1,9 @@
+cat >in.txt
+sed -E 's/(ab)**/[&]/' <in.txt
+echo ---
+sed -E 's/(a*)**b/[\1]/' <in.txt
+echo ---
+sed -E 's/(a|b)*+/[&]/' <in.txt
+echo ---
+sed -E 's/(ab){2}*/[&]/' <in.txt
+rm -f in.txt

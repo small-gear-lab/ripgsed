@@ -1,0 +1,4 @@
+printf 'éa中\n' | sed 's/x*/-/g'
+printf 'éa中\n' | sed 's/\b/|/g'
+printf 'éa中\n' | sed 's/\B/-/g'
+printf 'éa中\n' | sed 's/\</[/g;s/\>/]/g'

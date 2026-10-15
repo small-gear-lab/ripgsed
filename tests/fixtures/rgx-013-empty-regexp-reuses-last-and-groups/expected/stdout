@@ -1,0 +1,17 @@
+ba
+baab
+xbay
+---
+[ab]
+[ab]ab
+x[ab]y
+---
+<ba>
+<ba>(ab)
+ba
+x<ba>y
+---
+[ba]
+[ba]{a}
+ba
+x[ba]y

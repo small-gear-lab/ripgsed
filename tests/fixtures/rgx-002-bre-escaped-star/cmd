@@ -1,0 +1,7 @@
+cat >in.txt
+sed 's/a\*/X/' <in.txt
+echo ---
+sed 's/\*/X/g' <in.txt
+echo ---
+sed 's/\(a\)\*/[\1]/' <in.txt
+rm -f in.txt

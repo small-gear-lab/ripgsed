@@ -1,0 +1,4 @@
+echo 'a+b aab' | sed --posix -r 's/a+b/X/g'
+echo 'a+b aab' | sed --posix --regexp-extended 's/a+b/X/g'
+echo 'a+b aab' | sed --regexp-extended --posix 's/a+b/X/g'
+echo 'a+b aab' | sed --posix -E -n 's/a+b/X/gp'

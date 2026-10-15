@@ -1,0 +1,13 @@
+cat >in.txt
+sed 's/é/X/Ig' <in.txt
+echo ---
+sed 's/É/X/Ig' <in.txt
+echo ---
+sed 's/[é]/X/Ig' <in.txt
+echo ---
+sed 's/[[:lower:]]/X/Ig' <in.txt
+echo ---
+sed 's/ß/X/Ig' <in.txt
+echo ---
+sed 's/ǆ/X/Ig' <in.txt
+rm -f in.txt

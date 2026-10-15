@@ -1,0 +1,8 @@
+sed -n '/\(/p' </dev/null; echo $?
+sed -n '/a/,/\(/p' </dev/null; echo $?
+sed -n '\,\(,p' </dev/null; echo $?
+sed -n '/[[:foo:]]/p' </dev/null; echo $?
+sed -n '/a\{2,1\}/p' </dev/null; echo $?
+sed -n '/\(a\)\1\2/p' </dev/null; echo $?
+sed -n '/x/I,/\(/p' </dev/null; echo $?
+sed -n '\;[z-a];p' </dev/null; echo $?

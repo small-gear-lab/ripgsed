@@ -1,0 +1,11 @@
+cat >in.txt
+sed -E 's/a|/X/g' <in.txt
+echo ---
+sed -E 's/(|a)b/X/' <in.txt
+echo ---
+sed -E 's/()/X/' <in.txt
+echo ---
+sed -E 's/x(a|)y/[\1]/' <in.txt
+echo ---
+sed -E 's/(a|b|)+/[&]/' <in.txt
+rm -f in.txt

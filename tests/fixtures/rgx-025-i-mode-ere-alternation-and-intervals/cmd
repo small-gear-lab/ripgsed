@@ -1,0 +1,9 @@
+cat >in.txt
+sed -E 's/cat|dog/PET/Ig' <in.txt
+echo ---
+sed -E 's/a{2}/X/I' <in.txt
+echo ---
+sed -E 's/(a|b)+/X/I' <in.txt
+echo ---
+sed -E 's/\bthe\b/X/Ig' <in.txt
+rm -f in.txt

@@ -1,0 +1,5 @@
+cat >in.txt
+sed 's/[\t]/T/g' <in.txt
+echo ---
+sed 's/a\+/X/' <in.txt
+rm -f in.txt

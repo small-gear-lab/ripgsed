@@ -1,0 +1,17 @@
+[aab|aa]
+[b|]
+aaa
+a*[b|]
+xyz
+---
+[aa|aa]b
+[|]b
+[aaa|aaa]
+[a|a]*b
+[|]xyz
+---
+a[a]
+b
+aaa
+[a*]
+xyz

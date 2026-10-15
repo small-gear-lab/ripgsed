@@ -1,0 +1,6 @@
+echo abc | sed 's//x/'; echo $?
+echo abc | sed '//p'; echo $?
+echo abc | sed -n '//p'; echo $?
+echo abc | sed '/b/!s//x/'; echo $?
+echo abc | sed 's/x/y/;s//z/'; echo $?
+echo abc | sed -E 's//x/'; echo $?

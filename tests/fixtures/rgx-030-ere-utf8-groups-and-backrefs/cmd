@@ -1,0 +1,5 @@
+printf 'éé中中\n' | sed -E 's/(.)\1/<&>/g'
+printf 'éa\n' | sed -E 's/(é)(a)/\2\1/'
+printf 'éÉ\n' | sed -E 's/(é)\1/X/I'
+printf 'é\n' | sed -E 's/(.)/\1\1/'
+printf 'あいう\n' | sed -E 's/(.)(.)(.)/\3\2\1/'

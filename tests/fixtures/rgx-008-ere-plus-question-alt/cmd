@@ -1,0 +1,9 @@
+cat >in.txt
+sed -E 's/ab+/X/' <in.txt
+echo ---
+sed -E 's/ab?c/X/' <in.txt
+echo ---
+sed -E 's/cat|dog/PET/g' <in.txt
+echo ---
+sed -E 's/(ab)+/X/' <in.txt
+rm -f in.txt

@@ -1,0 +1,13 @@
+cat >in.txt
+sed --posix 's/a\{2\}/X/' <in.txt
+echo ---
+sed --posix 's/\(ab\)\{2,\}/X/' <in.txt
+echo ---
+sed --posix 's/a*/X/' <in.txt
+echo ---
+sed --posix 's/*a/X/' <in.txt
+echo ---
+sed --posix 's/\(*a\)/X/' <in.txt
+echo ---
+sed --posix 's/a\{2\}\{2\}/X/' <in.txt
+rm -f in.txt

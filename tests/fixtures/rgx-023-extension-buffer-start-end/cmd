@@ -1,0 +1,11 @@
+cat >in.txt
+sed 's/\`a/X/' <in.txt
+echo ---
+sed "s/a\\'/X/" <in.txt
+echo ---
+sed 's/\`/[/g' <in.txt
+echo ---
+sed "s/\\'/]/g" <in.txt
+echo ---
+sed -n '/\`a.*a\x27$/p' <in.txt
+rm -f in.txt

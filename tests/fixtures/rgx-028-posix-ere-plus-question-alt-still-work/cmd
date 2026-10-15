@@ -1,0 +1,11 @@
+cat >in.txt
+sed --posix -E 's/a+b/X/g' <in.txt
+echo ---
+sed --posix -E 's/a?b/X/g' <in.txt
+echo ---
+sed --posix -E 's/a|b/X/g' <in.txt
+echo ---
+sed --posix -E 's/(a|b)c/X/g' <in.txt
+echo ---
+sed --posix -E 's/a{2}/X/g' <in.txt
+rm -f in.txt

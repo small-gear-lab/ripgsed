@@ -1,0 +1,8 @@
+sed 's/a/b' </dev/null; echo $?
+sed 's/a' </dev/null; echo $?
+sed 's/a/b/g/' </dev/null; echo $?
+sed '/a' </dev/null; echo $?
+sed '/a/' </dev/null; echo $?
+sed '\,a' </dev/null; echo $?
+sed 's' </dev/null; echo $?
+sed 'y/a/b' </dev/null; echo $?

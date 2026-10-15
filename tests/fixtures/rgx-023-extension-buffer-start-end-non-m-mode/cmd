@@ -1,0 +1,13 @@
+cat >in.txt
+sed 'N;s/\`/[/g' <in.txt
+echo ---
+sed "N;s/\\'/]/g" <in.txt
+echo ---
+sed 'N;s/^/[/g' <in.txt
+echo ---
+sed 'N;s/$/]/g' <in.txt
+echo ---
+sed 'N;s/^b/X/' <in.txt
+echo ---
+sed 'N;s/a$/X/' <in.txt
+rm -f in.txt

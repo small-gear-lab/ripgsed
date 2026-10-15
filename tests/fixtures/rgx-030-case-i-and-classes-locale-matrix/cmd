@@ -1,0 +1,9 @@
+printf 'ÉéÀ\n' > f
+for l in C C.utf8; do
+  echo "[$l]"
+  LC_ALL=$l sed 's/[[:upper:]]/U/g' f
+  LC_ALL=$l sed 's/[[:lower:]]/L/g' f
+  LC_ALL=$l sed 's/é/X/Ig' f
+  LC_ALL=$l sed 's/\w/W/g' f
+  LC_ALL=$l sed 's/./D/g' f
+done

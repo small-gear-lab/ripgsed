@@ -1,0 +1,11 @@
+cat >in.txt
+sed 'N;s/\(\`a\)/[\1]/M' <in.txt
+echo ---
+sed 'N;s/\(\`a\|b\)/[\1]/Mg' <in.txt
+echo ---
+sed 'N;s/\(a\'"'"'\)/[\1]/M' <in.txt
+echo ---
+sed -E 'N;s/(\`|\n)/#/Mg' <in.txt
+echo ---
+sed -E "N;s/(\\'|\\n)/#/Mg" <in.txt
+rm -f in.txt

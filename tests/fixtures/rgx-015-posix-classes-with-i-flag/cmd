@@ -1,0 +1,9 @@
+cat >in.txt
+sed 's/[[:upper:]]/X/g' <in.txt
+echo ---
+sed 's/[[:upper:]]/X/gI' <in.txt
+echo ---
+sed 's/[[:lower:]]\+/X/gI' <in.txt
+echo ---
+sed -n '/[[:lower:]]/Ip' <in.txt
+rm -f in.txt

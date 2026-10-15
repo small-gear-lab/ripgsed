@@ -1,0 +1,7 @@
+sed '/\(a\)/s/b/\1/' </dev/null; echo $?
+sed 's/\(a\)/\1/;s/b/\1/' </dev/null; echo $?
+sed -n '/\(a\)\|b/{s//\1/p}' <<EOT
+a
+b
+EOT
+sed 's/a/b/;s//\1/' </dev/null; echo $?

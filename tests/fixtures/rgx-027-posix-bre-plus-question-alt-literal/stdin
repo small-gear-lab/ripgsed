@@ -1,0 +1,5 @@
+a+b aab ab b
+a?b ab b
+a|b a b
+a|c bc ac
+a+

@@ -1,0 +1,7 @@
+cat >in.txt
+sed 's/in\|int\|integer/T/g' <in.txt
+echo ---
+sed -E 's/in|int|integer/T/g' <in.txt
+echo ---
+sed 's/\(in\|int\)\(eger\)\?/T/g' <in.txt
+rm -f in.txt

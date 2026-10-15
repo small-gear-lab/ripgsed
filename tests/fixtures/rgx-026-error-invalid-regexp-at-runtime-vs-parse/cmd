@@ -1,0 +1,8 @@
+echo abc | sed -n '/\(/p'; echo $?
+echo abc | sed -n '/a\{1/p'; echo $?
+echo abc | sed -n '/[a/p'; echo $?
+echo abc | sed -n '/\)/p'; echo $?
+echo abc | sed -n '/a\{1,2\}\{3\}/p'; echo $?
+echo abc | sed -n '/\(a\)\2/p'; echo $?
+echo abc | sed -n '/*/p'; echo $?
+echo abc | sed 'p;/\(/d'; echo $?

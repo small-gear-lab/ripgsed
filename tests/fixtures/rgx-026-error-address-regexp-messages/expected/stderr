@@ -1,0 +1,8 @@
+sed: -e expression #1, char 4: Unmatched ( or \(
+sed: -e expression #1, char 8: Unmatched ( or \(
+sed: -e expression #1, char 5: Unmatched ( or \(
+sed: -e expression #1, char 11: Invalid character class name
+sed: -e expression #1, char 10: Invalid content of \{\}
+sed: -e expression #1, char 11: Invalid back reference
+sed: -e expression #1, char 9: Unmatched ( or \(
+sed: -e expression #1, char 8: Invalid range end

@@ -1,0 +1,11 @@
+cat >in.txt
+sed -E 's/a{3}/X/' <in.txt
+echo ---
+sed -E 's/a{2,4}/X/' <in.txt
+echo ---
+sed -E 's/a{2,}/X/' <in.txt
+echo ---
+sed -E 's/(ab){2}/X/' <in.txt
+echo ---
+sed -E 's/a{,2}b/X/' <in.txt
+rm -f in.txt

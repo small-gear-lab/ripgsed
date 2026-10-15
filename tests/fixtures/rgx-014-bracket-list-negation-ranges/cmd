@@ -1,0 +1,9 @@
+cat >in.txt
+sed 's/[a-cx-z]/X/g' <in.txt
+echo ---
+sed 's/[^a-cx-z]/X/g' <in.txt
+echo ---
+sed 's/[0-9a-f]\+/<&>/g' <in.txt
+echo ---
+sed 's/[a-a]/X/g' <in.txt
+rm -f in.txt

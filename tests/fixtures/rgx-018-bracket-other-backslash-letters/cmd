@@ -1,0 +1,9 @@
+cat >in.txt
+sed 'N;s/[a\n]/X/g' <in.txt
+echo ---
+sed 's/[\n]/X/g' <in.txt
+echo ---
+sed 's/[\d]/X/g' <in.txt
+echo ---
+sed 's/[\w]/X/g' <in.txt
+rm -f in.txt

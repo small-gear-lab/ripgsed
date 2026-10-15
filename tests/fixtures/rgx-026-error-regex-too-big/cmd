@@ -1,0 +1,4 @@
+sed 's/a\{32768\}/X/' </dev/null; echo $?
+sed 's/a\{65536\}/X/' </dev/null; echo $?
+sed 's/a\{99999999999\}/X/' </dev/null; echo $?
+sed -E 's/a{32768}/X/' </dev/null; echo $?

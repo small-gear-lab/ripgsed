@@ -1,0 +1,5 @@
+sed -n '/[:alpha:]/p' </dev/null; echo $?
+sed -n '/x/,/[:digit:]/p' </dev/null; echo $?
+sed -E -n '/(a|[:alpha:])/p' </dev/null; echo $?
+sed -n '\,[:alnum:],p' </dev/null; echo $?
+sed 's/a/b/;s/[:blank:]//' </dev/null; echo $?

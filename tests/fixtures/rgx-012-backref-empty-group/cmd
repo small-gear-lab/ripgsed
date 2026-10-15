@@ -1,0 +1,7 @@
+cat >in.txt
+sed -E 's/(a*)b\1c/[&|\1]/' <in.txt
+echo ---
+sed -E 's/()\1/X/' <in.txt
+echo ---
+sed -E 's/(x?)y\1/[\1]/' <in.txt
+rm -f in.txt

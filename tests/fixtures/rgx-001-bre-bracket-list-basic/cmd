@@ -1,0 +1,7 @@
+cat >in.txt
+sed 's/[abc]/X/g' <in.txt
+echo ---
+sed 's/[^abc]/X/g' <in.txt
+echo ---
+sed 's/[a-c]*/<&>/' <in.txt
+rm -f in.txt

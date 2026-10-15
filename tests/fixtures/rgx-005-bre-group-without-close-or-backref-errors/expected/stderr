@@ -1,0 +1,8 @@
+sed: -e expression #1, char 8: Unmatched ( or \(
+sed: -e expression #1, char 8: Unmatched ) or \)
+sed: -e expression #1, char 12: Unmatched ( or \(
+sed: -e expression #1, char 12: Invalid back reference
+sed: -e expression #1, char 7: Invalid back reference
+sed: -e expression #1, char 12: Invalid back reference
+sed: -e expression #1, char 7: invalid reference \1 on `s' command's RHS
+sed: -e expression #1, char 11: invalid reference \2 on `s' command's RHS

@@ -1,0 +1,5 @@
+printf 'a\303\251b\344\270\255 \302\240\303\211\n' > f
+for c in alnum alpha blank cntrl digit graph lower print punct space upper xdigit; do
+  printf '%s: ' $c
+  sed "s/[[:$c:]]/#/g" f
+done

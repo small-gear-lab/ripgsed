@@ -1,0 +1,9 @@
+cat >in.txt
+sed 's/\s/_/g' <in.txt
+echo ---
+sed 's/\S/x/g' <in.txt
+echo ---
+sed 's/\s\+/ /g' <in.txt
+echo ---
+sed 's/^\s*//;s/\s*$//' <in.txt
+rm -f in.txt

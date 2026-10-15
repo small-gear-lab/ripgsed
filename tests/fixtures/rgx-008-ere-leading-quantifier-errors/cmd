@@ -1,0 +1,31 @@
+sed -E 's/*a/X/' <<EOT
+*a
+a
+EOT
+echo $?
+sed -E 's/+a/X/' <<EOT
++a
+a
+EOT
+echo $?
+sed -E 's/?a/X/' <<EOT
+?a
+a
+EOT
+echo $?
+sed -E 's/{1}a/X/' <<EOT
+{1}a
+a
+EOT
+echo $?
+sed -E 's/(*a)/X/' <<EOT
+*a
+a
+EOT
+echo $?
+sed -E 's/a|*b/X/' <<EOT
+a
+*b
+b
+EOT
+echo $?

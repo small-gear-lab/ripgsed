@@ -1,0 +1,7 @@
+cat >in.txt
+sed --posix 's/\(a\)\(b\)/\2\1/' <in.txt
+echo ---
+sed --posix 's/\(.\)\1/<\1>/g' <in.txt
+echo ---
+sed --posix -n '/^\(.*\)\1$/p' <in.txt
+rm -f in.txt

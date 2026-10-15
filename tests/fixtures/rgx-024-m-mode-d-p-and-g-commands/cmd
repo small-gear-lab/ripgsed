@@ -1,0 +1,9 @@
+cat >in.txt
+sed -n 'G;s/^/>/Mg;p' <in.txt
+echo ---
+sed 'G;G;s/$/</Mg' <in.txt
+echo ---
+sed -n 'H;${x;s/^/#/Mg;p}' <in.txt
+echo ---
+sed -n 'H;${x;s/\n$//M;p}' <in.txt
+rm -f in.txt

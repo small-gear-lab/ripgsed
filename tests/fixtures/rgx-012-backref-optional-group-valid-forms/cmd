@@ -1,0 +1,9 @@
+cat >in.txt
+sed -E 's/(a)?b\1c/[&]/' <in.txt
+echo ---
+sed -E 's/(a)?(b)\1/[\1|\2]/' <in.txt
+echo ---
+sed -E 's/(a|(b))\2/[&]/' <in.txt
+echo ---
+sed -E -n '/^(x)?y\1$/p' <in.txt
+rm -f in.txt

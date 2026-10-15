@@ -1,0 +1,7 @@
+cat >in.txt
+sed '/\(a\)/s/\(b\)/<\1>/'  <in.txt
+echo ---
+sed '/\(a\)\(b\)/s/\(c\)/<\1>/' <in.txt
+echo ---
+sed -n '/\(a\)/{s/x/y/;s/\(z\)/<\1>/p}' <in.txt
+rm -f in.txt

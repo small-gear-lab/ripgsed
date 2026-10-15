@@ -1,0 +1,9 @@
+cat >in.txt
+sed -E 's/((a)|b)+\2/X/' <in.txt
+echo ---
+sed -E 's/(a|b)*\1/X/' <in.txt
+echo ---
+sed -E -n '/^(a|b)+\1$/p' <in.txt
+echo ---
+sed -E 's/(a*)*\1b/[&]/' <in.txt
+rm -f in.txt

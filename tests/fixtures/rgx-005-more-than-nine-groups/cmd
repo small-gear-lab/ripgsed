@@ -1,0 +1,5 @@
+cat >in.txt
+sed 's/\(a\)\(b\)\(c\)\(d\)\(e\)\(f\)\(g\)\(h\)\(i\)\(j\)\(k\)/\11|\10|\1/' <in.txt
+echo ---
+sed -n '/\(a\)\(b\)\(c\)\(d\)\(e\)\(f\)\(g\)\(h\)\(i\)\(j\)\(k\)\1\1/p' <in.txt
+rm -f in.txt

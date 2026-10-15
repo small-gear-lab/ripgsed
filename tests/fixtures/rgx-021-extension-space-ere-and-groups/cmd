@@ -1,0 +1,9 @@
+cat >in.txt
+sed -E 's/(\S+)\s+(\S+)/\2 \1/' <in.txt
+echo ---
+sed -E 's/\s{2,}/ /g' <in.txt
+echo ---
+sed -E 's/(\s)\1/D/g' <in.txt
+echo ---
+sed -E -n '/^\S+$/p' <in.txt
+rm -f in.txt

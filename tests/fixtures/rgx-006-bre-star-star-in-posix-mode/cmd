@@ -1,0 +1,4 @@
+sed --posix 's/a**/X/' </dev/null; echo $?
+sed --posix 's/a\{2\}*/X/' </dev/null; echo $?
+sed --posix 's/a*\{2\}/X/' </dev/null; echo $?
+sed --posix 's/a*/X/' </dev/null; echo $?

@@ -1,0 +1,5 @@
+sed 's/[[=a/X/' </dev/null; echo $?
+sed 's/[[=ab=]]/X/' </dev/null; echo $?
+sed 's/[[==]]/X/' </dev/null; echo $?
+sed 's/[[=a=]-z]/X/' </dev/null; echo $?
+sed 's/[a-[=z=]]/X/' </dev/null; echo $?

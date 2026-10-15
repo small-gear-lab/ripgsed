@@ -1,0 +1,12 @@
+alnum: ### _	!
+alpha: ##3 _	!
+blank: aB3#_#!
+cntrl: aB3 _#!
+digit: aB# _	!
+graph: ### #	#
+lower: #B3 _	!
+print: #####	#
+punct: aB3 #	#
+space: aB3#_#!
+upper: a#3 _	!
+xdigit: ### _	!

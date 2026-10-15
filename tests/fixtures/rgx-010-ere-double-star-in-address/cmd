@@ -1,0 +1,7 @@
+cat >in.txt
+sed -E -n '/ab**c/p' <in.txt
+echo ---
+sed -E -n '/^(a|b)**$/p' <in.txt
+echo ---
+sed -E -n '/x**y/p' <in.txt
+rm -f in.txt

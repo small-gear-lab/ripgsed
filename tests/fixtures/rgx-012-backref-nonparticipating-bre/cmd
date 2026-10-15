@@ -1,0 +1,9 @@
+cat >in.txt
+sed 's/\(a\)\|b\1/X/g' <in.txt
+echo ---
+sed 's/\(a\)*b\1/X/' <in.txt
+echo ---
+sed -n '/^\(a\)\?b\1$/p' <in.txt
+echo ---
+sed 's/\(x\)\|\(y\)\2/[\1|\2]/' <in.txt
+rm -f in.txt

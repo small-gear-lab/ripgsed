@@ -1,0 +1,11 @@
+cat >in.txt
+sed 's/[é]/X/g' <in.txt
+echo ---
+sed 's/[^é]/X/g' <in.txt
+echo ---
+sed 's/[é]\+/X/g' <in.txt
+echo ---
+sed 's/é/X/g' <in.txt
+echo ---
+sed -E 's/(é)+/X/g' <in.txt
+rm -f in.txt

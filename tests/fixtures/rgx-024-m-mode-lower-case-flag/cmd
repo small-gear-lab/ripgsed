@@ -1,0 +1,9 @@
+cat >in.txt
+sed 'N;s/^b/X/m' <in.txt
+echo ---
+sed 'N;s/^b/X/m;s/^a/Y/' <in.txt
+echo ---
+sed -n '$!N;/^b/mp' <in.txt
+echo ---
+sed 'N;s/^b/X/mg' <in.txt
+rm -f in.txt

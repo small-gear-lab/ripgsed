@@ -1,0 +1,9 @@
+cat >in.txt
+sed -E 's/\w+/<&>/g' <in.txt
+echo ---
+sed -E 's/(\w)(\W)/\2\1/g' <in.txt
+echo ---
+sed -E 's/\w{3}/X/' <in.txt
+echo ---
+sed -E 's/^\W*//;s/\W*$//' <in.txt
+rm -f in.txt

@@ -1,0 +1,9 @@
+sed 's/[[:digit:]]/X/g' <<EOT
+a1:digit:
+EOT
+sed 's/[[:digit:]:]/X/g' <<EOT
+a1:digit:
+EOT
+sed 's/[:digit:][:alpha:]/X/' </dev/null; echo $?
+sed 's/[[:digit:]:alpha:]/X/' </dev/null; echo $?
+sed 's/[0-9:digit:]/X/' </dev/null; echo $?

@@ -1,0 +1,23 @@
+a_b_c
+__lead_and_trail__
+nospace
+_
+x___y
+---
+x x	x
+  xxxx xxx xxxxx  
+xxxxxxx
+ 
+x   x
+---
+a b c
+ lead and trail 
+nospace
+ 
+x y
+---
+a b	c
+lead and trail
+nospace
+
+x   y

@@ -1,0 +1,11 @@
+a<b>c
+xaz
+ca<b>
+bc
+---
+ab<c>
+xaz
+<c>ab
+bc
+---
+ya<z>

@@ -1,0 +1,11 @@
+cat >in.txt
+sed 'N;N;s/^*/X/Mg' <in.txt
+echo ---
+sed 'N;N;s/x*$/X/Mg' <in.txt
+echo ---
+sed 'N;N;s/^$/X/Mg' <in.txt
+echo ---
+sed 'N;N;s/^/X/M2' <in.txt
+echo ---
+sed 'N;N;s/$/X/M2' <in.txt
+rm -f in.txt

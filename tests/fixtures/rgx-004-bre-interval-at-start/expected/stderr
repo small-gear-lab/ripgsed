@@ -1,0 +1,3 @@
+sed: -e expression #1, char 10: Invalid preceding regular expression
+sed: -e expression #1, char 12: Invalid preceding regular expression
+sed: -e expression #1, char 15: Invalid preceding regular expression

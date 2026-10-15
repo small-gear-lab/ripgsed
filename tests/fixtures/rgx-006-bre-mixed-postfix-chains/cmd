@@ -1,0 +1,13 @@
+cat >in.txt
+sed 's/a*\+/X/' <in.txt
+echo ---
+sed 's/a+\?/X/' <in.txt
+echo ---
+sed 's/a\+*b/X/' <in.txt
+echo ---
+sed 's/a*\{2\}/X/' <in.txt
+echo ---
+sed 's/a\{2\}*/X/' <in.txt
+echo ---
+sed 's/a\?\?b/X/' <in.txt
+rm -f in.txt

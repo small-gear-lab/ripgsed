@@ -1,0 +1,9 @@
+cat >in.txt
+sed -n '/\`a/p' <in.txt
+echo ---
+sed -n "/a\\'/p" <in.txt
+echo ---
+sed -n '/\`a\'"'"'/p' <in.txt
+echo ---
+sed -n '$!N;/\`b/MP' <in.txt
+rm -f in.txt

@@ -1,0 +1,17 @@
+Ab____c_d_e
+Hello__World____
+---
+#b ## c_d-e
+#ello, #orld! ##
+---
+<Ab> 12 <c_d>-<e>
+<Hello>, <World>! 42
+---
+<Ab> <12> <c>_<d>-<e>
+<Hello>, <World>! <42>
+---
+Ab ## c_d#e
+Hello, World! ##
+---
+Ab ## c_d-e
+Hello, World! ##

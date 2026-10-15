@@ -1,0 +1,19 @@
+a+b X
+a|b
+aaa
+a\nb
+---
+Y+Y YYY
+Y|Y
+YYY
+Y\nY
+---
+Z+b aab
+Z|b
+Z
+Z\nb
+---
+a+b aab
+a|b
+aaa
+aNNb

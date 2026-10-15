@@ -1,0 +1,17 @@
+cat >in.txt
+sed --posix 's/\w/X/g' <in.txt
+echo ---
+sed --posix 's/\W/X/g' <in.txt
+echo ---
+sed --posix 's/\s/X/g' <in.txt
+echo ---
+sed --posix 's/\S/X/g' <in.txt
+echo ---
+sed --posix 's/\b/X/g' <in.txt
+echo ---
+sed --posix 's/\B/X/g' <in.txt
+echo ---
+sed --posix 's/\</X/g' <in.txt
+echo ---
+sed --posix 's/\>/X/g' <in.txt
+rm -f in.txt

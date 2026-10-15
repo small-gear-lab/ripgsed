@@ -1,0 +1,9 @@
+cat >in.txt
+sed --posix -E 's/a^b/X/' <in.txt
+echo ---
+sed --posix -E 's/(^a|b$)/X/g' <in.txt
+echo ---
+sed --posix -E 's/a**/X/' <in.txt
+echo ---
+sed --posix -E 's/a+*b/X/' <in.txt
+rm -f in.txt

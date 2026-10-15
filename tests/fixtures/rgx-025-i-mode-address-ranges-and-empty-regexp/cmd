@@ -1,0 +1,11 @@
+cat >in.txt
+sed -n '/start/I,/end/Ip' <in.txt
+echo ---
+sed -n '/foo/I{s//X/p}' <in.txt
+echo ---
+sed -n '/foo/Is//X/p' <in.txt
+echo ---
+sed '/FOO/I!d' <in.txt
+echo ---
+sed -n '/a/I{//p}' <in.txt
+rm -f in.txt

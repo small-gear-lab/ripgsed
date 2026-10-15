@@ -1,0 +1,7 @@
+cat >in.txt
+sed 's/^*/S/' <in.txt
+echo ---
+sed 's/^**/S/' <in.txt
+echo ---
+sed 's/^*$/S/' <in.txt
+rm -f in.txt

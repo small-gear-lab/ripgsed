@@ -1,0 +1,9 @@
+sed: -e expression #1, char 13: Invalid content of \{\}
+sed: -e expression #1, char 11: Invalid content of \{\}
+sed: -e expression #1, char 9: Unmatched \{
+sed: -e expression #1, char 11: Unmatched \{
+sed: -e expression #1, char 18: Invalid preceding regular expression
+sed: -e expression #1, char 10: Invalid content of \{\}
+sed: -e expression #1, char 16: Invalid preceding regular expression
+sed: -e expression #1, char 12: Invalid content of \{\}
+sed: -e expression #1, char 12: Invalid content of \{\}

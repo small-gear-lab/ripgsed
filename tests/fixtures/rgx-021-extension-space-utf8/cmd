@@ -1,0 +1,4 @@
+printf 'a\302\240b c\n' | sed 's/\s/_/g'
+printf 'a\342\200\203b c\n' | sed 's/\s/_/g'
+printf 'a\343\200\200b c\n' | sed 's/\S/x/g'
+printf '\303\251 \303\251\n' | sed 's/\S/x/g'

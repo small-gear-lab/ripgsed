@@ -1,0 +1,7 @@
+cat >in.txt
+sed 's/[0-9]\+/N/g' <in.txt
+echo ---
+sed 's/[a-z]\?[0-9]/<&>/g' <in.txt
+echo ---
+sed 's/\(a\|b\)\+/<&>/g' <in.txt
+rm -f in.txt

@@ -1,0 +1,9 @@
+cat >in.txt
+sed -n '/^\(.\)\1/p' <in.txt
+echo ---
+sed -n '/\(.\)\(.\)\2\1/p' <in.txt
+echo ---
+sed '\,\(a\)\1,d' <in.txt
+echo ---
+sed -n '/\(a\)b\1/,/\(c\)d\1/p' <in.txt
+rm -f in.txt

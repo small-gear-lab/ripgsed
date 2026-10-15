@@ -1,0 +1,5 @@
+cat >in.txt
+sed 's/\s/_/gI' <in.txt
+echo ---
+sed 's/\S/x/gI' <in.txt
+rm -f in.txt

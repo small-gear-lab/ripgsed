@@ -1,0 +1,8 @@
+printf 'a\\b\tc\nd\n' > in.txt
+sed 's/[\t]/T/g' in.txt
+POSIXLY_CORRECT=1 sed 's/[\t]/T/g' in.txt
+sed 's/[\\]/B/g' in.txt
+POSIXLY_CORRECT=1 sed 's/[\\]/B/g' in.txt
+sed 'N;s/[\n]/N/' in.txt
+POSIXLY_CORRECT=1 sed 'N;s/[\n]/N/' in.txt
+rm in.txt

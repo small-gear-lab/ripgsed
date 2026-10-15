@@ -1,0 +1,11 @@
+cat >in.txt
+sed -n '$!N;/^b/Mp' <in.txt
+echo ---
+sed -n '$!N;/^b/p' <in.txt
+echo ---
+sed -n '$!N;/a$/Mp' <in.txt
+echo ---
+sed -n '$!N;/a$/p' <in.txt
+echo ---
+sed -n 'N;/^a$/M{=;p}' <in.txt
+rm -f in.txt

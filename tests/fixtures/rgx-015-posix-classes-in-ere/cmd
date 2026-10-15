@@ -1,0 +1,9 @@
+cat >in.txt
+sed -E 's/[[:digit:]]+/N/g' <in.txt
+echo ---
+sed -E 's/^[[:space:]]*//;s/[[:space:]]*$//' <in.txt
+echo ---
+sed -E 's/([[:alpha:]]+)([[:digit:]]+)/\2\1/' <in.txt
+echo ---
+sed -E 's/[[:xdigit:]]{2}/<&>/g' <in.txt
+rm -f in.txt

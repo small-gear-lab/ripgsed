@@ -1,0 +1,11 @@
+1=ab 2=a 3=b 4=c
+x1=ab 2=a 3=b 4=cx
+a
+---
+cbcabc
+xcbcabcx
+a
+---
+abc
+xxxabcx
+a

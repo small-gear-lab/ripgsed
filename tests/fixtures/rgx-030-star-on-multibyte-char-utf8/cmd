@@ -1,0 +1,6 @@
+printf 'ééé\n' | sed 's/é*/X/'
+printf 'ééé\n' | sed 's/é\{2\}/X/'
+printf 'ééé\n' | sed -E 's/é+/X/'
+printf 'ééé\n' | sed 's/\(é\)\1/X/'
+printf '中中\n' | sed 's/中*/X/g'
+printf 'éa\n' | sed 's/é\?a/X/'

@@ -1,0 +1,7 @@
+cat >in.txt
+sed -E 's/((a)(b))(c)/1=\1 2=\2 3=\3 4=\4/' <in.txt
+echo ---
+sed -E 's/(a(b(c)))/\3\2\1/' <in.txt
+echo ---
+sed -E 's/((x)|(y))+/[\1|\2|\3]/' <in.txt
+rm -f in.txt

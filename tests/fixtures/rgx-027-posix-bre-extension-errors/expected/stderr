@@ -1,0 +1,6 @@
+sed: -e expression #1, char 8: Unmatched ( or \(
+sed: -e expression #1, char 13: Invalid content of \{\}
+sed: -e expression #1, char 14: Invalid character class name
+sed: -e expression #1, char 12: Invalid back reference
+sed: character class syntax is [[:space:]], not [:space:]
+sed: -e expression #1, char 9: Unmatched \{

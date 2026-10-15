@@ -1,0 +1,7 @@
+cat >in.txt
+sed -E 's/\b(\w)/\u\1/g' <in.txt
+echo ---
+sed -E 's/\b(foo|bar)\b/[\1]/g' <in.txt
+echo ---
+sed -E 's/\Bo+\b/X/g' <in.txt
+rm -f in.txt

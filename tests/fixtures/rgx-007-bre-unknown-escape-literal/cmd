@@ -1,0 +1,7 @@
+cat >in.txt
+sed 's/\a/X/;s/\q/Y/;s/\_/Z/;s/\-/W/' <in.txt
+echo ---
+sed 's/\e/E/' <in.txt
+echo ---
+sed 's/\%/P/' <in.txt
+rm -f in.txt

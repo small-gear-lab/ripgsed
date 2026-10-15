@@ -1,0 +1,13 @@
+cat >in.txt
+sed 's/abc/X/I' <in.txt
+echo ---
+sed 's/abc/X/i' <in.txt
+echo ---
+sed 's/ABC/X/Ig' <in.txt
+echo ---
+sed -n '/abc/Ip' <in.txt
+echo ---
+sed -n '/abc/I!p' <in.txt
+echo ---
+sed '/ABC/Id' <in.txt
+rm -f in.txt

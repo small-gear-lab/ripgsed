@@ -1,0 +1,9 @@
+cat >in.txt
+sed 's/a\|ab/X/' <in.txt
+echo ---
+sed 's/ab\|a/X/' <in.txt
+echo ---
+sed 's/a\|ab\|abc/X/' <in.txt
+echo ---
+sed 's/x*\|b/X/g' <in.txt
+rm -f in.txt

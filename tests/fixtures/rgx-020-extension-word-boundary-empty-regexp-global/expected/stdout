@@ -1,0 +1,16 @@
+ab| cd
+a| b
+word|
+---
+ab cd
+a b
+wor-d
+---
+ab cd
+a b
+word
+---
+---
+<>ab<> <>cd<>
+<>a<> <>b<>
+<>word<>

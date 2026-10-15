@@ -1,0 +1,21 @@
+[abba] xyz
+hello world
+word
+two words
+a_b
+a-b
+---
+xyz abba
+world hello
+word
+words two
+a_b
+a-b
+---
+word
+a_b
+---
+abba xyz
+hello world
+two words
+a-b

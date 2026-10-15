@@ -1,0 +1,15 @@
+a^b
+ab
+aab
+---
+X^X
+XX
+XaX
+---
+X^b
+Xb
+Xb
+---
+a^X
+X
+X

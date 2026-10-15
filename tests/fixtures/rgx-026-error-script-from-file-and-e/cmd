@@ -1,0 +1,8 @@
+printf 's/\\(a/b/\n' > s1.sed
+printf 'p\ns/[a/b/\n' > s2.sed
+sed -f s1.sed </dev/null; echo $?
+sed -f s2.sed </dev/null; echo $?
+sed -n -e p -e 's/\(/x/' </dev/null; echo $?
+sed -n -e '1{' -e 's/\(a/x/' -e '}' </dev/null; echo $?
+sed --expression='s/a\{x\}/b/' </dev/null; echo $?
+rm -f s1.sed s2.sed

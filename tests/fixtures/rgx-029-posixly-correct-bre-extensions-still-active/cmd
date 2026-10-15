@@ -1,0 +1,7 @@
+echo 'aab a+b' | sed 's/a\+b/X/g'
+echo 'ab a?b' | sed 's/a\?b/X/g'
+echo 'a|b a b' | sed 's/a\|b/X/g'
+echo 'a b' | sed 's/\w/X/g'
+echo 'a b' | sed 's/\s/X/g'
+echo 'ab cd' | sed 's/\b/|/g'
+echo 'ab cd' | sed 's/\</[/g'

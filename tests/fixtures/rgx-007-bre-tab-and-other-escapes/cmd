@@ -1,0 +1,11 @@
+cat >in.txt
+sed 's/\t/TAB/g' <in.txt
+echo ---
+sed 's/\x41/A/g' <in.txt
+echo ---
+sed 's/\o101/O/;s/\d66/D/' <in.txt
+echo ---
+sed 's/\cA/CTL/' <in.txt
+echo ---
+sed 's/\f/FF/;s/\v/VT/;s/\r/CR/' <in.txt
+rm -f in.txt

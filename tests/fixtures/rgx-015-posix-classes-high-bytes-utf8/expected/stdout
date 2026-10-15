@@ -1,0 +1,12 @@
+alnum: ####  #
+alpha: ####  #
+blank: aéb中# É
+cntrl: aéb中  É
+digit: aéb中  É
+graph: #### ##
+lower: ###中  É
+print: #######
+punct: aéb中 #É
+space: aéb中# É
+upper: aéb中  #
+xdigit: #é#中  É

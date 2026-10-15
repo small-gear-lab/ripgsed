@@ -1,0 +1,13 @@
+cat >in.txt
+sed -n 's/^\</S/p' <in.txt
+echo ---
+sed -n 's/\>$/E/p' <in.txt
+echo ---
+sed -n 's/^\>/S/p' <in.txt
+echo ---
+sed -n 's/\<$/E/p' <in.txt
+echo ---
+sed -n '/\<a\>/p' <in.txt
+echo ---
+sed -n '/a\>b/p' <in.txt
+rm -f in.txt

@@ -1,0 +1,19 @@
+a+b X X b
+aaaa
+a|b a b
+---
+a+X aX X X
+aaaa
+a|X a X
+---
+X+X XXX XX X
+XXXX
+X|X X X
+---
+a+b aab ab b
+aaaa
+a|b a b
+---
+a+b Xb ab b
+XX
+a|b a b

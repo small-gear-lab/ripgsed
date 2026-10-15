@@ -1,0 +1,9 @@
+cat >in.txt
+sed 's/a\{2,4\}/X/' <in.txt
+echo ---
+sed 's/a\{2,\}/X/' <in.txt
+echo ---
+sed 's/a\{,2\}/X/' <in.txt
+echo ---
+sed 's/^a\{0,1\}b/X/' <in.txt
+rm -f in.txt

@@ -1,0 +1,3 @@
+cat >in.txt
+sed 's/+/P/;s/?/Q/;s/|/B/;s/{/L/;s/}/R/;s/(/o/;s/)/c/' <in.txt
+rm -f in.txt

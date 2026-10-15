@@ -1,0 +1,4 @@
+sed -n '/a/p;//Ip' </dev/null; echo $?
+sed 's/a/b/;s//c/I' </dev/null; echo $?
+sed 's/a/b/;s//c/M' </dev/null; echo $?
+sed -n '/a/p;//Mp' </dev/null; echo $?

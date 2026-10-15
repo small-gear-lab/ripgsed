@@ -1,0 +1,8 @@
+printf 'a\tb\nc\n' | sed 'N;s/[\n\t]/_/g'
+printf 'a\tb\nc\n' | sed 'N;s/[^\n\t]/./g'
+printf 'a\\b\tc\n' | sed 's/[\\]/BS/'
+printf 'a\\b\tc\n' | sed 's/[\t\\]/_/g'
+printf 'a\fb\vc\rd\n' | sed 's/[\f\v\r]/_/g'
+printf 'aAb\n' | sed 's/[\x41]/X/g'
+printf 'a.b\n' | sed 's/[\x2e]/X/g'
+printf 'a\001b\n' | sed 's/[\cA]/X/g'

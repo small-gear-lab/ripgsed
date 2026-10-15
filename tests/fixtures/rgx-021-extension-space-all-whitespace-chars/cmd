@@ -1,0 +1,6 @@
+printf 'a b\tc\fd\ve\rf\n' | sed 's/\s/_/g'
+printf 'a b\tc\fd\ve\rf\n' | sed 's/\S/x/g' | od -c
+printf 'a\nb\n' | sed 'N;s/\s/_/'
+printf 'a\nb\n' | sed 'N;s/\S/x/g'
+printf 'a\001b\n' | sed 's/\s/_/g;s/\S/x/g'
+printf 'a\302\240b\n' | sed 's/\s/_/g' | od -c

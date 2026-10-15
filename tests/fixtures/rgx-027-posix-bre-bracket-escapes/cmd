@@ -1,0 +1,9 @@
+cat >in.txt
+sed --posix 's/[\n]/X/g' <in.txt
+echo ---
+sed --posix 's/[\t]/X/g' <in.txt
+echo ---
+sed --posix 's/\t/X/g' <in.txt
+echo ---
+sed --posix 's/\n/X/g' <in.txt
+rm -f in.txt

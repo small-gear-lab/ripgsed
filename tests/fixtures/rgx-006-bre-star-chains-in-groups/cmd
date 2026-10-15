@@ -1,0 +1,9 @@
+sed 's/\(a**\)/X/' </dev/null; echo $?
+sed 's/\(a*\)**/X/' </dev/null; echo $?
+sed 's/\(a\|b\)**/X/' </dev/null; echo $?
+sed 's/\(a*\)*/X/' <<EOT
+aaa
+EOT
+sed 's/\(a\+\)*/X/' <<EOT
+aaa
+EOT

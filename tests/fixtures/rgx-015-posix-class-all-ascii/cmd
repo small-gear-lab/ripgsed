@@ -1,0 +1,7 @@
+awk 'BEGIN{for(i=33;i<127;i++)printf "%c",i; printf "\n"}' > f
+for c in alnum alpha digit lower punct upper xdigit graph; do
+  printf '%s: ' $c
+  sed "s/[[:$c:]]//g" f
+done
+printf 'a b\tc\n' | sed 's/[[:blank:]]/_/g'
+printf 'a b\tc\n' | sed 's/[[:space:]]/_/g'

@@ -1,0 +1,9 @@
+cat >in.txt
+sed 's/\(a\)\1/X/I' <in.txt
+echo ---
+sed 's/\(.\)\1/<&>/Ig' <in.txt
+echo ---
+sed -E 's/(ab)\1/X/I' <in.txt
+echo ---
+sed -n '/^\(.*\)\1$/Ip' <in.txt
+rm -f in.txt

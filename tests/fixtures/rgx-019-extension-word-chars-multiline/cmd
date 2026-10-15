@@ -1,0 +1,7 @@
+cat >in.txt
+sed 'N;s/\w\W\w/X/' <in.txt
+echo ---
+sed 'N;s/\W/_/g' <in.txt
+echo ---
+sed 'N;s/^\w/X/Mg' <in.txt
+rm -f in.txt

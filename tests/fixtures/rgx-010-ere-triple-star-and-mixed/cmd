@@ -1,0 +1,11 @@
+cat >in.txt
+sed -E 's/a***/X/' <in.txt
+echo ---
+sed -E 's/a*+*/X/' <in.txt
+echo ---
+sed -E 's/a?+/X/' <in.txt
+echo ---
+sed -E 's/a+?+b/X/' <in.txt
+echo ---
+sed -E -n '/^a**$/p' <in.txt
+rm -f in.txt

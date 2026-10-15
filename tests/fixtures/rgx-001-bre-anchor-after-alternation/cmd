@@ -1,0 +1,7 @@
+cat >in.txt
+sed 's/b\|^a/X/g' <in.txt
+echo ---
+sed 's/a$\|b/X/g' <in.txt
+echo ---
+sed 's/\(a\|^b\)c/X/g' <in.txt
+rm -f in.txt

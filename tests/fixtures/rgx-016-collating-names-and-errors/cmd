@@ -1,0 +1,12 @@
+sed 's/[[.space.]]/X/' <<EOT
+a b
+EOT
+echo $?
+sed 's/[[.hyphen.]]/X/' <<EOT
+a-b
+EOT
+echo $?
+sed 's/[[.ch.]]/X/' </dev/null; echo $?
+sed 's/[[.a/X/' </dev/null; echo $?
+sed 's/[[..]]/X/' </dev/null; echo $?
+sed 's/[[.ab.]]/X/' </dev/null; echo $?

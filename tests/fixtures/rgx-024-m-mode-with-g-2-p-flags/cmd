@@ -1,0 +1,9 @@
+cat >in.txt
+sed -n 'N;N;s/^./X/Mgp' <in.txt
+echo ---
+sed -n 'N;N;s/^./X/M2p' <in.txt
+echo ---
+sed -n 'N;N;s/.$/X/M3p' <in.txt
+echo ---
+sed 'N;N;s/^\(.\)/[\1]/Mg' <in.txt
+rm -f in.txt

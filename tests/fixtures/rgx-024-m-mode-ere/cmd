@@ -1,0 +1,9 @@
+cat >in.txt
+sed -E 'N;s/^(.)$/[\1]/Mg' <in.txt
+echo ---
+sed -E 'N;s/^|$/#/Mg' <in.txt
+echo ---
+sed -E 'N;s/(^|\n)b/X/M' <in.txt
+echo ---
+sed -E 'N;s/a$|^b/X/Mg' <in.txt
+rm -f in.txt

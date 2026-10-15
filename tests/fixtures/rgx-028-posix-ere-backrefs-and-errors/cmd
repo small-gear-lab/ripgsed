@@ -1,0 +1,9 @@
+sed --posix -E 's/(a)(b)/\2\1/' <<EOT
+ab
+EOT
+sed --posix -E 's/(a)\1/X/' <<EOT
+aa
+EOT
+sed --posix -E 's/(a/X/' </dev/null; echo $?
+sed --posix -E 's/*a/X/' </dev/null; echo $?
+sed --posix -E 's/a{2,1}/X/' </dev/null; echo $?

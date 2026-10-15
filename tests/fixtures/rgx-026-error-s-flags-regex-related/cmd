@@ -1,0 +1,8 @@
+sed 's/a/b/z' </dev/null; echo $?
+sed 's/a/b/gg' </dev/null; echo $?
+sed 's/a/b/pp' </dev/null; echo $?
+sed 's/a/b/0' </dev/null; echo $?
+sed 's/a/b/2 3' </dev/null; echo $?
+sed 's/a/b/22' </dev/null; echo $?
+sed 's/a/b/IM' </dev/null; echo $?
+sed 's/a/b/ig' </dev/null; echo $?

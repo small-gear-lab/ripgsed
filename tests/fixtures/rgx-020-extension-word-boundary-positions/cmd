@@ -1,0 +1,13 @@
+cat >in.txt
+sed -n 's/^\b/S/p' <in.txt
+echo ---
+sed -n 's/\b$/E/p' <in.txt
+echo ---
+sed -n 's/^\B/S/p' <in.txt
+echo ---
+sed -n 's/\B$/E/p' <in.txt
+echo ---
+sed -n 's/a\bb/X/p' <in.txt
+echo ---
+sed -n 's/a\Bb/X/p' <in.txt
+rm -f in.txt

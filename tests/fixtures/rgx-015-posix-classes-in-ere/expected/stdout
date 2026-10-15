@@ -1,0 +1,19 @@
+abc N deN
+   padded text   
+fooN barN
+NaFFgN
+---
+abc 123 de45
+padded text
+foo42 bar7
+0aFFg1
+---
+abc 123 45de
+   padded text   
+42foo bar7
+01aFFg
+---
+<ab>c <12>3 <de><45>
+   p<ad><de>d text   
+foo<42> <ba>r7
+<0a><FF>g1

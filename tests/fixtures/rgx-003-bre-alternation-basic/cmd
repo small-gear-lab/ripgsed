@@ -1,0 +1,7 @@
+cat >in.txt
+sed 's/cat\|dog/PET/g' <in.txt
+echo ---
+sed 's/^cat\|dog$/PET/g' <in.txt
+echo ---
+sed 's/\(cat\|dog\)s/PETS/g' <in.txt
+rm -f in.txt

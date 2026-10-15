@@ -1,0 +1,7 @@
+cat >in.txt
+sed -n '/^abc$/p' <in.txt
+echo ---
+sed 's/^a/X/;s/c$/Y/' <in.txt
+echo ---
+sed 's/^*/S/' <in.txt
+rm -f in.txt

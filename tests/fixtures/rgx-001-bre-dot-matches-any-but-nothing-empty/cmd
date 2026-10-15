@@ -1,0 +1,7 @@
+cat >in.txt
+sed -n 's/^.$/one/p;s/^..$/two/p' <in.txt
+echo ---
+sed 's/./-/g' <in.txt
+echo ---
+sed 's/.*/[&]/' <in.txt
+rm -f in.txt

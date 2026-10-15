@@ -1,0 +1,8 @@
+sed -E -n '/(/p' </dev/null; echo $?
+sed -E -n '/)/p' </dev/null; echo $?
+sed -E -n '/a{2,1}/p' </dev/null; echo $?
+sed -E -n '/+/p' </dev/null; echo $?
+sed -E -n '/a||b/p' </dev/null; echo $?
+sed -E -n '/(a|)/p' </dev/null; echo $?
+sed -E -n '/()/p' </dev/null; echo $?
+sed -E -n '/a{1}{2}/p' </dev/null; echo $?

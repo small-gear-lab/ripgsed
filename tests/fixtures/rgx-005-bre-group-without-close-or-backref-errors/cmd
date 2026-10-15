@@ -1,0 +1,8 @@
+sed 's/\(a/X/' </dev/null; echo $?
+sed 's/a\)/X/' </dev/null; echo $?
+sed 's/\(\(a\)/X/' </dev/null; echo $?
+sed 's/\(a\)\2/X/' </dev/null; echo $?
+sed 's/\1/X/' </dev/null; echo $?
+sed 's/\(a\1\)/X/' </dev/null; echo $?
+sed 's/a/\1/' </dev/null; echo $?
+sed 's/\(a\)/\2/' </dev/null; echo $?

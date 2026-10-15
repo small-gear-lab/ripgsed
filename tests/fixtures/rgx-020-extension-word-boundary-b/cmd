@@ -1,0 +1,11 @@
+cat >in.txt
+sed 's/\b/|/g' <in.txt
+echo ---
+sed 's/\B/-/g' <in.txt
+echo ---
+sed 's/\bfoo\b/X/g' <in.txt
+echo ---
+sed 's/\bo/X/g' <in.txt
+echo ---
+sed 's/o\b/X/g' <in.txt
+rm -f in.txt

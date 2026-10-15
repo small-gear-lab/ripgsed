@@ -1,0 +1,9 @@
+cat >in.txt
+sed 's/\(\w\)\(\w\)\2\1/[&]/' <in.txt
+echo ---
+sed 's/\(\w\+\) \(\w\+\)/\2 \1/' <in.txt
+echo ---
+sed -n '/^\w*$/p' <in.txt
+echo ---
+sed -n '/\W/p' <in.txt
+rm -f in.txt

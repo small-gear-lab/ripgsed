@@ -1,0 +1,10 @@
+sed -E 's/(a)\2/X/' </dev/null; echo $?
+sed -E 's/\1/X/' </dev/null; echo $?
+sed -E 's/(a\1)/X/' </dev/null; echo $?
+sed -E 's/a/\1/' </dev/null; echo $?
+sed -E 's/(a)/\2/' </dev/null; echo $?
+sed -E 's/(a)|\1/X/' <<EOT
+a
+b
+EOT
+echo $?

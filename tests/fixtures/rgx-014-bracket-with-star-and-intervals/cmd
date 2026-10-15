@@ -1,0 +1,9 @@
+cat >in.txt
+sed 's/[ab]*/<&>/' <in.txt
+echo ---
+sed 's/[ab]\{2\}/<&>/' <in.txt
+echo ---
+sed 's/[^ab]\+/<&>/g' <in.txt
+echo ---
+sed -E 's/[ab]+?/<&>/' <in.txt
+rm -f in.txt

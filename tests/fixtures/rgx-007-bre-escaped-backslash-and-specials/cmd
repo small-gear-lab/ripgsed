@@ -1,0 +1,11 @@
+cat >in.txt
+sed 's/\\/BS/g' <in.txt
+echo ---
+sed 's/\./DOT/g' <in.txt
+echo ---
+sed 's/\[/LB/;s/\]/RB/' <in.txt
+echo ---
+sed 's/\^/CA/;s/\$/DO/' <in.txt
+echo ---
+sed 's/\//SL/' <in.txt
+rm -f in.txt

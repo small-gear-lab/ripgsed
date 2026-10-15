@@ -1,0 +1,11 @@
+cat >in.txt
+sed 's/\<\>/X/g' <in.txt
+echo ---
+sed 's/\<*/X/g' <in.txt
+echo ---
+sed 's/\>*/X/g' <in.txt
+echo ---
+sed 's/\(\<\)/<\1>/g' <in.txt
+echo ---
+sed 's/\<\w*\>/[&]/g' <in.txt
+rm -f in.txt

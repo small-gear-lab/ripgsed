@@ -1,0 +1,7 @@
+cat >in.txt
+sed --posix 's/\`/X/' <in.txt
+echo ---
+sed --posix "s/\\'/X/" <in.txt
+echo ---
+sed --posix 's/\`a/X/' <in.txt
+rm -f in.txt

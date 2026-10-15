@@ -1,0 +1,6 @@
+printf 'é中a\n' | sed 's/./X/g'
+printf 'é中a\n' | sed -E 's/./X/g'
+printf 'é中a\n' | sed 's/^.$/one/;s/^...$/three/'
+printf 'é中a\n' | sed -n '/^.\{3\}$/p'
+printf 'é中a\n' | sed 's/.\{2\}/XX/'
+printf 'é中a\n' | sed -E 's/(.)(.)/\2\1/'

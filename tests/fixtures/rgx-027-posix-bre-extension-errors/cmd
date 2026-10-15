@@ -1,0 +1,6 @@
+sed --posix 's/\(a/X/' </dev/null; echo $?
+sed --posix 's/a\{2,1\}/X/' </dev/null; echo $?
+sed --posix 's/[[:foo:]]/X/' </dev/null; echo $?
+sed --posix 's/\(a\)\2/X/' </dev/null; echo $?
+sed --posix 's/[:alpha:]/X/' </dev/null; echo $?
+sed --posix 's/a\{1/X/' </dev/null; echo $?
