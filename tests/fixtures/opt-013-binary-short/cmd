@@ -1,0 +1,3 @@
+sed -b 's/o/0/' a.txt
+sed -b -n 2p a.txt
+od -c a.txt | sed -n 1,2p

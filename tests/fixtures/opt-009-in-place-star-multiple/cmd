@@ -1,0 +1,3 @@
+sed -i'*_*' 's/one/1/' a.txt
+cat a.txt; ls
+cat a.txt_a.txt 2>/dev/null

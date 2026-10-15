@@ -1,0 +1,17 @@
+SED PROGRAM:
+  /a/I,/b/M p
+INPUT:   'a.txt' line 1
+PATTERN: one
+COMMAND: /a/I,/b/M p
+END-OF-CYCLE:
+one
+INPUT:   'a.txt' line 2
+PATTERN: two
+COMMAND: /a/I,/b/M p
+END-OF-CYCLE:
+two
+INPUT:   'a.txt' line 3
+PATTERN: three
+COMMAND: /a/I,/b/M p
+END-OF-CYCLE:
+three

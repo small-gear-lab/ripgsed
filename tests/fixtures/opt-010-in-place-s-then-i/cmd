@@ -1,0 +1,2 @@
+sed -si 's/^/>/' a.txt b.txt
+cat a.txt b.txt; ls

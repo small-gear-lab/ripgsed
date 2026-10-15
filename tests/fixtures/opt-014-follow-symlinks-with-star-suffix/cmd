@@ -1,0 +1,4 @@
+ln -s a.txt link
+sed -i'bk_*' --follow-symlinks 's/one/1/' link
+ls
+cat a.txt

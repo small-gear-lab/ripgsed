@@ -1,0 +1,9 @@
+sed --posix -n '/o/{p;p}' a.txt 2>&1
+echo "rc=$?"
+sed --posix -n '/o/{p
+}' a.txt 2>&1
+echo "rc=$?"
+sed --posix ':a;s/o/0/;ta' a.txt 2>&1
+echo "rc=$?"
+sed --posix -e ':a' -e 's/o/0/;ta' a.txt 2>&1
+echo "rc=$?"

@@ -1,0 +1,7 @@
+sed -e '2c\' -e 'replaced' a.txt
+echo ---
+sed -e '2c\' -e 'multi\' -e 'line' a.txt
+echo ---
+sed -e '2i\' -e '  keep-leading-space' a.txt
+echo ---
+sed -e '$a\' -e 'end' -e 's/one/ONE/' a.txt

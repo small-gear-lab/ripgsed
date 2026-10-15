@@ -1,0 +1,5 @@
+sed -i '1d;$s/$/!/' a.txt b.txt
+cat a.txt; echo ---; cat b.txt
+echo ---
+sed -i -n '$=' a.txt b.txt
+cat a.txt b.txt

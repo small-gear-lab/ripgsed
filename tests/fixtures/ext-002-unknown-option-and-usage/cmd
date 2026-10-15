@@ -1,0 +1,7 @@
+sed --nosuchoption p a.txt >/dev/null 2>&1; echo $?
+sed -j p a.txt >/dev/null 2>&1; echo $?
+sed --expression >/dev/null 2>&1; echo $?
+sed -n >/dev/null 2>&1; echo $?
+sed >/dev/null 2>&1; echo $?
+sed --line-length=x p a.txt >/dev/null 2>&1; echo $?
+sed --debug --bogus p a.txt >/dev/null 2>&1; echo $?

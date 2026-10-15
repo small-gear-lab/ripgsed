@@ -1,0 +1,26 @@
+sed: -e expression #1, char 6: unterminated `s' command
+1
+sed: -e expression #1, char 7: Unmatched ( or \(
+1
+sed: -e expression #1, char 7: Unmatched ) or \)
+1
+sed: -e expression #1, char 9: Unmatched \{
+1
+sed: -e expression #1, char 13: Invalid content of \{\}
+1
+sed: -e expression #1, char 14: Invalid character class name
+1
+sed: -e expression #1, char 10: Invalid range end
+1
+sed: -e expression #1, char 6: Unmatched ( or \(
+1
+sed: -e expression #1, char 8: Unmatched \{
+1
+sed: -e expression #1, char 6: Invalid preceding regular expression
+1
+sed: -e expression #1, char 4: unterminated address regex
+1
+sed: -e expression #1, char 15: Unmatched ( or \(
+1
+sed: -e expression #1, char 15: Regular expression too big
+1

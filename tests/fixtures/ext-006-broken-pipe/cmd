@@ -1,0 +1,4 @@
+seq 1 300000 > big.txt
+exec 3>&1
+{ sed p big.txt; echo "sed rc=$?" >&3; } | { read first; echo "first=$first"; }
+rm -f big.txt

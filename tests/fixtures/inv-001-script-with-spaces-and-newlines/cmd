@@ -1,0 +1,7 @@
+sed '1d
+s/two/2/' a.txt
+sed '
+  /three/ {
+     s/t/T/
+  }
+' a.txt

@@ -1,0 +1,8 @@
+sed: -e expression #2, char 1: unknown command: `k'
+1
+sed: -e expression #2, char 5: unterminated `s' command
+1
+sed: -e expression #1, char 0: unmatched `{'
+1
+sed: -e expression #1, char 1: unexpected `}'
+1

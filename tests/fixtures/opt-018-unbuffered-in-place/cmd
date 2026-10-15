@@ -1,0 +1,2 @@
+sed -u -i 's/o/0/' a.txt
+cat a.txt

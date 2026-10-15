@@ -1,0 +1,20 @@
+printf '#n\n2p\n' > s1.sed
+sed -f s1.sed a.txt
+echo ---
+printf '#n\n' > s2.sed
+sed -f s2.sed a.txt
+echo ---
+printf '#n extra\n2p\n' > s3.sed
+sed -f s3.sed a.txt
+echo ---
+printf '2p\n#n\n' > s4.sed
+sed -f s4.sed a.txt
+echo ---
+printf '#n\n2p\n' > s5.sed
+sed -e 1d -f s5.sed a.txt
+echo ---
+printf '#n\n2p\n' > s6.sed
+sed -f s6.sed -e 4p a.txt
+echo ---
+printf '1p\n' > s7.sed
+sed -e '#n' -f s7.sed a.txt

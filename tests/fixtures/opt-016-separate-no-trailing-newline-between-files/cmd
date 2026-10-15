@@ -1,0 +1,5 @@
+sed p a.txt b.txt | od -c
+echo ---
+sed -s '$!d' a.txt b.txt | od -c
+echo ---
+sed '' a.txt b.txt | od -c

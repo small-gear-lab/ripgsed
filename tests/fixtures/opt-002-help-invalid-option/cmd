@@ -1,0 +1,3 @@
+sed --bogus 2>/dev/null; echo $?
+sed -Y p 2>/dev/null; echo $?
+sed --bogus > out 2>/dev/null; test -s out && echo stdout-nonempty || echo stdout-empty

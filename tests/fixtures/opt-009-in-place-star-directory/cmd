@@ -1,0 +1,3 @@
+mkdir bak
+sed -i'bak/*' 's/one/1/' a.txt b.txt
+cat a.txt b.txt; echo ---; cat bak/a.txt bak/b.txt; ls

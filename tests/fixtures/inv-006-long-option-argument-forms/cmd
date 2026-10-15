@@ -1,0 +1,10 @@
+printf '2d\n' > s.sed
+sed --expression=2p --quiet a.txt
+sed --expression 2p --quiet a.txt
+sed --file=s.sed a.txt
+sed --file s.sed a.txt
+sed --line-length=5 -n l a.txt
+sed --line-length 5 -n l a.txt
+sed --expression='s/=/ eq /' a.txt
+sed --quiet=x p a.txt 2>/dev/null; echo $?
+sed --posix=x p a.txt 2>/dev/null; echo $?

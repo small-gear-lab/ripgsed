@@ -1,0 +1,5 @@
+printf 's/one/1/\n' > one.sed
+printf 's/two/2/\n' > two.sed
+sed -e 's/three/3/' -f one.sed -e 's/four/4/' -f two.sed a.txt
+echo ---
+sed -f two.sed -e 's/2/two-again/' a.txt

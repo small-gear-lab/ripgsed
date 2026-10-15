@@ -1,0 +1,5 @@
+printf 'one\0two\0three\0' | sed -z 's/o/0/' | od -c
+echo ---
+printf 'one\0two\0three\0' | sed -z -n 2p | od -c
+echo ---
+printf 'a\nb\0c\nd\0' | sed -z 's/\n/,/g' | od -c

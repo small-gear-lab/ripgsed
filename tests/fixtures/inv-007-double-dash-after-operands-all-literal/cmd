@@ -1,0 +1,4 @@
+sed -n 2p a.txt -- b.txt
+echo "rc=$?"
+sed -n 2p a.txt -- -n
+echo "rc=$?"

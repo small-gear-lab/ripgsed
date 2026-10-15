@@ -1,0 +1,12 @@
+0000000   o   n   e  \n   t   w   o  \n   a   l   p   h   a  \n   b   e
+0000020   t   a
+0000022
+---
+0000000   o   n   e   +   t   w   o  \n   a   l   p   h   a   +   b   e
+0000020   t   a
+0000022
+---
+0000000   b   e   t   a
+0000004
+---
+,one,two,alpha,beta

@@ -1,0 +1,8 @@
+printf 'a\0b\0' > in.bin
+sed -z -n 'w out.bin' in.bin
+od -c out.bin
+echo ---
+printf 'R1\0R2\0' > r.bin
+sed -z 'r r.bin' in.bin | od -c
+echo ---
+sed -z 'R r.bin' in.bin | od -c

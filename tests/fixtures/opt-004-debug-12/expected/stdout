@@ -1,0 +1,57 @@
+SED PROGRAM:
+  x
+  G
+  H
+  h
+  g
+INPUT:   'a.txt' line 1
+PATTERN: one
+COMMAND: x
+PATTERN: 
+HOLD:    one
+COMMAND: G
+PATTERN: \none
+COMMAND: H
+HOLD:    one\n\none
+COMMAND: h
+HOLD:    \none
+COMMAND: g
+HOLD:    \none
+END-OF-CYCLE:
+
+one
+INPUT:   'a.txt' line 2
+PATTERN: two
+COMMAND: x
+PATTERN: \none
+HOLD:    two
+COMMAND: G
+PATTERN: \none\ntwo
+COMMAND: H
+HOLD:    two\n\none\ntwo
+COMMAND: h
+HOLD:    \none\ntwo
+COMMAND: g
+HOLD:    \none\ntwo
+END-OF-CYCLE:
+
+one
+two
+INPUT:   'a.txt' line 3
+PATTERN: three
+COMMAND: x
+PATTERN: \none\ntwo
+HOLD:    three
+COMMAND: G
+PATTERN: \none\ntwo\nthree
+COMMAND: H
+HOLD:    three\n\none\ntwo\nthree
+COMMAND: h
+HOLD:    \none\ntwo\nthree
+COMMAND: g
+HOLD:    \none\ntwo\nthree
+END-OF-CYCLE:
+
+one
+two
+three

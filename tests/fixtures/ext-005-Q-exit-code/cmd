@@ -1,0 +1,6 @@
+sed Q a.txt; echo $?
+sed 'Q 5' a.txt; echo $?
+sed '2Q4' a.txt; echo $?
+sed -n '2Q9' a.txt; echo $?
+sed '$Q 2' a.txt; echo $?
+sed '/zzz/Q 6' a.txt; echo $?

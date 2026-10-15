@@ -1,0 +1,9 @@
+sed -n '1p' a.txt b.txt
+echo ---
+sed -s -n '1p' a.txt b.txt
+echo ---
+sed -s -n '2,3p' a.txt b.txt
+echo ---
+sed -s -n '=' a.txt b.txt
+echo ---
+sed -n '=' a.txt b.txt

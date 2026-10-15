@@ -1,0 +1,5 @@
+sed -E -r 's/(a)/[\1]/' a.txt
+sed -rE 's/(a)/[\1]/' a.txt
+sed -Er 's/(a)/[\1]/' a.txt
+sed -nE '/(a)/p' a.txt
+sed -nr '/(a)/p' a.txt

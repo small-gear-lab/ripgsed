@@ -1,0 +1,9 @@
+printf 's/a/b/\n' > f1.sed
+printf 's/b/c/\n' > f2.sed
+sed -e 's/x/a/' -f f1.sed -f f2.sed x.txt
+echo ---
+sed -f f2.sed -f f1.sed -e 's/x/a/' x.txt
+echo ---
+sed -f f2.sed -e 's/x/a/' -f f1.sed x.txt
+echo ---
+sed -f f1.sed -f f1.sed -e 's/b/B/' a.txt

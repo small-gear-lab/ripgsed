@@ -1,0 +1,3 @@
+sed -in 's/one/1/p' a.txt
+cat a.txt; ls
+cat a.txtn

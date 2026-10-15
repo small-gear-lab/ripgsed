@@ -1,0 +1,8 @@
+sed 'q x' a.txt 2>&1; echo $?
+sed 'q -1' a.txt 2>&1; echo $?
+sed 'q 1 2' a.txt 2>&1; echo $?
+sed 'q 5;p' a.txt 2>&1; echo $?
+sed 'q5 }' a.txt 2>&1; echo $?
+sed '{q5}' a.txt 2>&1; echo $?
+sed '1,2q' a.txt 2>&1; echo $?
+sed --posix 'Q' a.txt 2>&1 >/dev/null; echo $?

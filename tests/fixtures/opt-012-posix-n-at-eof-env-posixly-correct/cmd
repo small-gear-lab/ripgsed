@@ -1,0 +1,3 @@
+sed N a.txt
+echo ---
+sed -n 'N;p' a.txt

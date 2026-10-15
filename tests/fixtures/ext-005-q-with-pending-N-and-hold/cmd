@@ -1,0 +1,3 @@
+sed 'N;N;q4' a.txt; echo $?
+sed -n '$!N;P;q2' a.txt; echo $?
+sed 'x;q3' a.txt; echo $?

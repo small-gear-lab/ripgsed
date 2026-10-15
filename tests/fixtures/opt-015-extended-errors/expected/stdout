@@ -1,0 +1,14 @@
+sed: -e expression #1, char 7: Unmatched ( or \(
+1
+sed: -e expression #1, char 7: Unmatched ) or \)
+1
+sed: -e expression #1, char 8: Unmatched ( or \(
+1
+sed: -e expression #1, char 8: Unmatched \{
+1
+sed: -e expression #1, char 7: Invalid preceding regular expression
+1
+X
+0
+sed: -e expression #1, char 10: Invalid back reference
+1

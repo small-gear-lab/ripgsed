@@ -1,0 +1,8 @@
+printf '1a\\\nA' > f.sed
+sed -f f.sed -e 2d a.txt
+echo ---
+printf '1a\\' > g.sed
+sed -f g.sed -e 'text' a.txt
+echo ---
+printf '1a hello' > h.sed
+sed -f h.sed -e '2d' a.txt

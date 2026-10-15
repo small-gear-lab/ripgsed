@@ -1,0 +1,8 @@
+sed -k p a.txt 2>/dev/null; echo $?
+sed -nk p a.txt 2>/dev/null; echo $?
+sed -e 2>/dev/null; echo $?
+sed -f 2>/dev/null; echo $?
+sed -l 2>/dev/null; echo $?
+sed -n -- 2>/dev/null; echo $?
+sed -h 2>/dev/null; echo $?
+sed -V 2>/dev/null; echo $?

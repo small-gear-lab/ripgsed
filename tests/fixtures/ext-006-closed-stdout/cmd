@@ -1,0 +1,5 @@
+sed p a.txt >&- 2>err; echo $?
+cat err
+sed -n '$=' a.txt >&- 2>err; echo $?
+cat err
+sed -n 1d a.txt >&- 2>err; echo $?

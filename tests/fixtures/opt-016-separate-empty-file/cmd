@@ -1,0 +1,9 @@
+sed -n '$p' a.txt e.txt
+echo ---
+sed -s -n '$p' a.txt e.txt
+echo ---
+sed -n '$p' e.txt a.txt
+echo ---
+sed -n '$=' e.txt e.txt
+echo ---
+sed -s -n '$=' a.txt e.txt a.txt

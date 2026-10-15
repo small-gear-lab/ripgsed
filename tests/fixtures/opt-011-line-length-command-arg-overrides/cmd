@@ -1,0 +1,5 @@
+sed -n -l 10 'l 5' a.txt
+sed -n -l 5 'l 0' a.txt
+sed -n -l 5 'l 20' a.txt
+sed -n -l 5 'l' a.txt
+sed -n 'l 1' a.txt

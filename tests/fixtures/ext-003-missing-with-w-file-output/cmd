@@ -1,0 +1,2 @@
+sed -n 'w out.txt' nosuch.txt a.txt; echo $?
+cat out.txt

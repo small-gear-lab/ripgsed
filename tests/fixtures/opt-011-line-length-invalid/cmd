@@ -1,0 +1,5 @@
+sed -n -l x l a.txt 2>&1; echo $?
+sed -n -l -1 l a.txt 2>&1; echo $?
+sed -n -l 3x l a.txt 2>&1; echo $?
+sed -n --line-length=abc l a.txt 2>&1; echo $?
+sed -n -l 2>/dev/null; echo $?

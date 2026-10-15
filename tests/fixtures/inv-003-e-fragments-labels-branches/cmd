@@ -1,0 +1,3 @@
+sed -e ':a' -e 's/o/0/' -e 'ta' a.txt
+sed -n -e '/o/b' -e p a.txt
+sed -e 's/o/0/' -e 'b end' -e 's/f/F/' -e ':end' a.txt

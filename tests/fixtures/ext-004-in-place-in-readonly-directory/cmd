@@ -1,0 +1,8 @@
+mkdir ro
+echo hi > ro/f.txt
+chmod 555 ro
+if [ -w ro ]; then echo "writable (skip)"; else
+sed -i 's/h/H/' ro/f.txt 2>/dev/null; echo $?
+fi
+chmod 755 ro
+cat ro/f.txt

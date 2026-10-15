@@ -1,0 +1,1 @@
+sed --debug '=;l;n;q 3;Q' a.txt

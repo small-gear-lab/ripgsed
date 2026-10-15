@@ -1,0 +1,9 @@
+printf 'a\nb\0c\nd\0' | sed -z 'P;D' | od -c
+echo ---
+printf 'a\0b\0c\0' | sed -z -n 'p;p' | od -c
+echo ---
+printf 'a\0b\0c\0' | sed -z '2d' | od -c
+echo ---
+printf 'a\nb\0c\nd\0' | sed -z -n 'P' | od -c
+echo ---
+printf 'a\nb\0c\nd\0' | sed -z '1D' | od -c

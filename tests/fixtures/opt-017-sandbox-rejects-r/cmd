@@ -1,0 +1,3 @@
+sed --sandbox 'r b.txt' a.txt 2>&1; echo $?
+sed --sandbox 'R b.txt' a.txt 2>&1; echo $?
+sed --sandbox '$r /dev/stdin' a.txt 2>&1; echo $?

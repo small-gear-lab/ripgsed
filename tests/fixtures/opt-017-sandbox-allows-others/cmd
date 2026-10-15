@@ -1,0 +1,6 @@
+sed --sandbox -n '2p;$=' a.txt
+sed --sandbox 's/o/0/g;y/t/T/;a\
+added' a.txt
+sed --sandbox -s -n 'l;F' a.txt
+sed --sandbox -E 's/(o)/[\1]/' a.txt
+sed --sandbox -n '/t/{p;q}' a.txt

@@ -1,0 +1,6 @@
+chmod 640 a.txt
+sed -i 's/a/A/' a.txt
+ls -l a.txt | cut -c1-10
+chmod 755 s.sh
+sed -i 's/echo/printf/' s.sh
+ls -l s.sh | cut -c1-10

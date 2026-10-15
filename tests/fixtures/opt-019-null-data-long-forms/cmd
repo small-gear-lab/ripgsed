@@ -1,0 +1,4 @@
+printf 'a\0b\0' | sed --null-data 's/./X/' | od -c
+printf 'a\0b\0' | sed --zero-terminated 's/./X/' | od -c
+printf 'a\0b\0' | sed --null 's/./X/' | od -c
+printf 'a\0b\0' | sed --zero 's/./X/' | od -c

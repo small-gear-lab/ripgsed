@@ -1,0 +1,6 @@
+sed: couldn't open file nodir/out.txt: No such file or directory
+4
+sed: couldn't open file nodir/out.txt: No such file or directory
+4
+sed: couldn't open file .: Is a directory
+4

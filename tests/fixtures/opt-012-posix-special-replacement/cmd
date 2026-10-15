@@ -1,0 +1,7 @@
+sed --posix 's/o/\n/' a.txt
+echo ---
+sed 's/o/\n/' a.txt
+echo ---
+sed --posix 's/o/a\tb/' a.txt
+echo ---
+sed --posix 's/o/\&/' a.txt

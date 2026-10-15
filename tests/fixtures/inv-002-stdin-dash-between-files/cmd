@@ -1,0 +1,5 @@
+sed '' a.txt - b.txt
+echo ---
+sed -n '$=' a.txt - b.txt
+echo ---
+sed -s -n '$p' a.txt - b.txt

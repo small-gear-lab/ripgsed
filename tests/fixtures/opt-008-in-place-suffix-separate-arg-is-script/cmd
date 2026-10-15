@@ -1,0 +1,2 @@
+sed -i .bak a.txt 2>&1; echo $?
+ls

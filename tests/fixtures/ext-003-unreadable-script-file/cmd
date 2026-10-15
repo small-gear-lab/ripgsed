@@ -1,0 +1,4 @@
+echo p > s.sed
+chmod 000 s.sed
+sed -f s.sed a.txt 2>&1; echo $?
+chmod 644 s.sed

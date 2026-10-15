@@ -1,0 +1,4 @@
+if [ -w /dev/full ]; then
+  sed p a.txt > /dev/full 2>err; echo $?
+  sed -n 'w /dev/full' a.txt 2>&1; echo $?
+else echo skip; fi

@@ -1,0 +1,3 @@
+sed --in-place 's/one/1/' a.txt
+sed --in-pl 's/two/2/' a.txt
+cat a.txt

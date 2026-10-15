@@ -1,0 +1,4 @@
+mkdir bak
+sed -i'bak/*' 's/one/1/' sub/a.txt 2>&1; echo $?
+sed -i'*.bak' 's/one/1/' sub/a.txt; echo $?
+ls sub

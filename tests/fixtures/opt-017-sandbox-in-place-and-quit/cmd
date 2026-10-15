@@ -1,0 +1,4 @@
+sed --sandbox -i 's/a/A/' a.txt; echo $?
+cat a.txt
+sed --sandbox 2q b.txt; echo $?
+sed --sandbox 3q5 b.txt; echo $?

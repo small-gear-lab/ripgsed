@@ -1,0 +1,68 @@
+SED PROGRAM:
+  2 {
+    p
+    p
+  }
+INPUT:   'a.txt' line 1
+PATTERN: one
+COMMAND: 2 {
+COMMAND: }
+END-OF-CYCLE:
+INPUT:   'a.txt' line 2
+PATTERN: two
+COMMAND: 2 {
+COMMAND:   p
+two
+COMMAND:   p
+two
+COMMAND: }
+END-OF-CYCLE:
+INPUT:   'a.txt' line 3
+PATTERN: three
+COMMAND: 2 {
+COMMAND: }
+END-OF-CYCLE:
+INPUT:   'b.txt' line 4
+PATTERN: alpha
+COMMAND: 2 {
+COMMAND: }
+END-OF-CYCLE:
+INPUT:   'b.txt' line 5
+PATTERN: beta
+COMMAND: 2 {
+COMMAND: }
+END-OF-CYCLE:
+INPUT:   'b.txt' line 6
+PATTERN: gamma
+COMMAND: 2 {
+COMMAND: }
+END-OF-CYCLE:
+---
+SED PROGRAM:
+  $ p
+INPUT:   'a.txt' line 1
+PATTERN: one
+COMMAND: $ p
+END-OF-CYCLE:
+INPUT:   'a.txt' line 2
+PATTERN: two
+COMMAND: $ p
+END-OF-CYCLE:
+INPUT:   'a.txt' line 3
+PATTERN: three
+COMMAND: $ p
+three
+END-OF-CYCLE:
+INPUT:   'b.txt' line 1
+PATTERN: alpha
+COMMAND: $ p
+END-OF-CYCLE:
+INPUT:   'b.txt' line 2
+PATTERN: beta
+COMMAND: $ p
+END-OF-CYCLE:
+INPUT:   'b.txt' line 3
+PATTERN: gamma
+COMMAND: $ p
+gamma
+END-OF-CYCLE:

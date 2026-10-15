@@ -1,0 +1,3 @@
+sed -i.bak 's/a/b/' a.txt
+sed -i.bak 's/b/c/' a.txt
+cat a.txt; cat a.txt.bak

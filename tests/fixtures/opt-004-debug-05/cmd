@@ -1,0 +1,1 @@
+sed --debug 'y/abc/xyz/;N;P;D' a.txt

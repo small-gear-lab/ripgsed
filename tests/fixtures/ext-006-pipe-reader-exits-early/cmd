@@ -1,0 +1,5 @@
+seq 1 300000 > big.txt
+exec 3>&1
+{ sed -n p big.txt; echo "writer rc=$?" >&3; } | sed 1q
+echo "reader rc=$?"
+rm -f big.txt

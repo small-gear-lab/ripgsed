@@ -1,0 +1,7 @@
+sed 'w /dev/stdout' a.txt
+echo ---
+sed -n '/t/w /dev/stdout' a.txt
+echo ---
+sed '1r /dev/stdin' a.txt < b.txt
+echo ---
+sed -n 'p;w /dev/stderr' a.txt 2>&1

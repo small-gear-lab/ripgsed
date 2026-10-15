@@ -1,0 +1,4 @@
+sed a.txt -e 2d
+sed a.txt b.txt -n -e '$p'
+sed a.txt --expression=2d
+sed a.txt -f s.sed

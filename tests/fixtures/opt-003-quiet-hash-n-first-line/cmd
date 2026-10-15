@@ -1,0 +1,16 @@
+sed -e '#n' -e 2p a.txt
+echo ---
+sed '#n
+3p' a.txt
+echo ---
+sed '#n x
+3p' a.txt
+echo ---
+sed ' #n
+3p' a.txt
+echo ---
+printf '#n\n4p\n' > s.sed
+sed -f s.sed a.txt
+echo ---
+sed '#no
+2p' a.txt | sed -n '$='

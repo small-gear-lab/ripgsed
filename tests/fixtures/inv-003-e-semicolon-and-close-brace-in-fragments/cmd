@@ -1,0 +1,3 @@
+sed -n -e '/o/{p;p' -e '}' a.txt
+sed -n -e '/o/{p;p' -e '};$p' a.txt
+sed -n -e '/o/{' -e 'p' -e '};' a.txt

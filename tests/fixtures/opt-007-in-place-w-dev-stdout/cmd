@@ -1,0 +1,5 @@
+sed -i 's/o/0/w /dev/stdout' a.txt > out.txt
+echo "--- out.txt"
+cat out.txt
+echo "--- a.txt"
+cat a.txt

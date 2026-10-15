@@ -1,0 +1,9 @@
+sed N a.txt
+echo ---
+sed --posix N a.txt
+echo ---
+sed --posix 'N;N;s/\n/+/g' a.txt
+echo ---
+sed '$!N;s/\n/+/' a.txt
+echo ---
+sed --posix '$!N;s/\n/+/' a.txt

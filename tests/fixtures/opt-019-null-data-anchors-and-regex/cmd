@@ -1,0 +1,11 @@
+printf 'a\nb\0c\nd\0' | sed -z 's/^./X/' | od -c
+echo ---
+printf 'a\nb\0c\nd\0' | sed -z 's/.$/X/' | od -c
+echo ---
+printf 'a\nb\0c\nd\0' | sed -z 's/^./X/Mg' | od -c
+echo ---
+printf 'a\nb\0c\nd\0' | sed -z 's/.$/X/Mg' | od -c
+echo ---
+printf 'a\nb\0' | sed -z 's/a.b/X/' | od -c
+echo ---
+printf 'a\nb\0' | sed -z 's/a[^x]b/X/' | od -c

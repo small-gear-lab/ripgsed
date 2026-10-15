@@ -1,0 +1,2 @@
+sed -i.bak s/a/b/ nosuch.txt; echo $?
+ls

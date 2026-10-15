@@ -1,0 +1,23 @@
+SED PROGRAM:
+  $! {
+    N
+    N
+  }
+  l 5
+INPUT:   'a.txt' line 1
+PATTERN: one
+COMMAND: $! {
+COMMAND:   N
+PATTERN: one\ntwo
+COMMAND:   N
+PATTERN: one\ntwo\nthree
+COMMAND: }
+COMMAND: l 5
+one\
+\ntw\
+o\nt\
+hree$
+END-OF-CYCLE:
+one
+two
+three

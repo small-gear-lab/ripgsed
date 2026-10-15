@@ -1,0 +1,3 @@
+sed -i '1F' a.txt
+cat a.txt
+sed -n -s '1F' a.txt b.txt

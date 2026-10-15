@@ -1,0 +1,4 @@
+for s in 'F' 'e' 'Q' 'T' 'z' 'v' 'W out' 'R a.txt' 'l 5' '1~2p' '0,/o/p' '2,+1p' '2,~2p' '/o/I p' 's/o/0/I' 's/o/0/e' 's/o/0/m' 's/o/0/w out' 'y/o/\n/' 'a text' 'i text' 'c text' '1,2,3p' 's/o/\U&/' 's/o\+/0/' 's/o\|n/0/'; do
+  printf '== %s\n' "$s"
+  sed --posix "$s" a.txt 2>&1 >/dev/null; echo "rc=$?"
+done

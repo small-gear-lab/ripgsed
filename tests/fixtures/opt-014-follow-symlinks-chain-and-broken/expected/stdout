@@ -1,0 +1,4 @@
+1
+both-symlinks
+sed: couldn't readlink missing: No such file or directory
+4

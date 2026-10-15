@@ -1,0 +1,4 @@
+ln -s nowhere dangling
+sed -i s/a/b/ dangling; echo $?
+ls -l dangling | cut -c1
+rm -f dangling

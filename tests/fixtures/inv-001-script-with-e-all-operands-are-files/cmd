@@ -1,0 +1,5 @@
+sed -e 2d a.txt b.txt
+sed -n -e 1p 2d a.txt 2>&1; echo $?
+sed -f s.sed a.txt 2>&1; echo $?
+printf '1d\n' > s.sed
+sed -f s.sed a.txt p 2>&1; echo $?

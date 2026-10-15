@@ -1,0 +1,3 @@
+printf 'a\nb\0c\nd\0' | sed -z 'N;l' | od -c
+echo ---
+printf 'a\nb\0c\nd\0' | sed -z 'N;s/\n/_/g;s/\x00/|/' | od -c

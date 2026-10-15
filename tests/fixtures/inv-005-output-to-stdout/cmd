@@ -1,0 +1,7 @@
+sed p a.txt
+echo ---
+sed -n p a.txt > out.txt
+cat out.txt
+echo ---
+sed 's/o/0/' a.txt 2>/dev/null | wc -l
+sed '' a.txt a.txt | wc -l

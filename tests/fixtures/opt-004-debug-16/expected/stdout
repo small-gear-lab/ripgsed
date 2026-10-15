@@ -1,0 +1,38 @@
+SED PROGRAM:
+  s/a/b/i
+  s/c/d/m
+  s/e/f/
+INPUT:   'a.txt' line 1
+PATTERN: one
+COMMAND: s/a/b/i
+PATTERN: one
+COMMAND: s/c/d/m
+PATTERN: one
+COMMAND: s/e/f/
+MATCHED REGEX REGISTERS
+  regex[0] = 2-3 'e'
+PATTERN: onf
+END-OF-CYCLE:
+onf
+INPUT:   'a.txt' line 2
+PATTERN: two
+COMMAND: s/a/b/i
+PATTERN: two
+COMMAND: s/c/d/m
+PATTERN: two
+COMMAND: s/e/f/
+PATTERN: two
+END-OF-CYCLE:
+two
+INPUT:   'a.txt' line 3
+PATTERN: three
+COMMAND: s/a/b/i
+PATTERN: three
+COMMAND: s/c/d/m
+PATTERN: three
+COMMAND: s/e/f/
+MATCHED REGEX REGISTERS
+  regex[0] = 3-4 'e'
+PATTERN: thrfe
+END-OF-CYCLE:
+thrfe

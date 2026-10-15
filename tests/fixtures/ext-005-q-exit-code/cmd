@@ -1,0 +1,9 @@
+sed q a.txt; echo $?
+sed 'q 5' a.txt; echo $?
+sed 'q5' a.txt; echo $?
+sed '2q7' a.txt; echo $?
+sed '/two/q 3' a.txt; echo $?
+sed 'q 0' a.txt; echo $?
+sed 'q 255' a.txt; echo $?
+sed 'q 256' a.txt; echo $?
+sed 'q 300' a.txt; echo $?

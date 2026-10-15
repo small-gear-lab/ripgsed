@@ -1,0 +1,28 @@
+SED PROGRAM:
+  {
+    p
+  }
+INPUT:   'a.txt' line 1
+PATTERN: one
+COMMAND: {
+COMMAND:   p
+one
+COMMAND: }
+END-OF-CYCLE:
+one
+INPUT:   'a.txt' line 2
+PATTERN: two
+COMMAND: {
+COMMAND:   p
+two
+COMMAND: }
+END-OF-CYCLE:
+two
+INPUT:   'a.txt' line 3
+PATTERN: three
+COMMAND: {
+COMMAND:   p
+three
+COMMAND: }
+END-OF-CYCLE:
+three

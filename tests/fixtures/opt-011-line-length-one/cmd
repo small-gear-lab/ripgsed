@@ -1,0 +1,2 @@
+sed -n -l 1 l a.txt
+sed -n -l 2 l a.txt

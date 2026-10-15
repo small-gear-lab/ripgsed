@@ -1,0 +1,3 @@
+sed --posix -n -i 2p a.txt
+cat a.txt
+sed --posix -s -n '$p' a.txt b.txt

@@ -1,0 +1,4 @@
+ln -s a.txt link
+sed --follow-symlinks 's/one/ONE/' link
+sed --follow-symlinks -n '$=' link a.txt
+test -h link && echo link-symlink

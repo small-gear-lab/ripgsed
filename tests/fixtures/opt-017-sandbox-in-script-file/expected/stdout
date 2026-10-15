@@ -1,0 +1,4 @@
+sed: file s.sed line 2: e/r/w commands disabled in sandbox mode
+1
+sed: file t.sed line 1: e/r/w commands disabled in sandbox mode
+1

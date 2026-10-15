@@ -1,0 +1,8 @@
+sed --quiet --regexp-extended 's/(o)/[\1]/p' a.txt
+sed --qu --regexp 's/(o)/[\1]/p' a.txt
+sed --silent --sep '$p' a.txt b.txt
+sed --null-d 's/o/0/' a.txt | od -c
+sed --unb --bin -n 2p a.txt
+sed --posix -n 2p a.txt
+sed --sandbox -n 2p a.txt
+sed --follow-s -n 2p a.txt

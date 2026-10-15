@@ -1,0 +1,5 @@
+ln -s a.txt link
+sed -i 's/one/ONE/' link
+test -h link && echo link-still-symlink || echo link-replaced
+cat a.txt
+cat link

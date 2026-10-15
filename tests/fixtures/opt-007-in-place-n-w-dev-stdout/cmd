@@ -1,0 +1,3 @@
+sed -n -i '/t/w /dev/stdout' a.txt
+echo "--- a.txt"
+cat a.txt

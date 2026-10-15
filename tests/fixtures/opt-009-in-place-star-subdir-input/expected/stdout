@@ -1,0 +1,5 @@
+sed: cannot rename sub/a.txt: No such file or directory
+4
+0
+a.txt
+a.txt.bak

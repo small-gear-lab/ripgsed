@@ -1,0 +1,4 @@
+printf '1p\nr b.txt\n' > s.sed
+sed --sandbox -f s.sed a.txt 2>&1; echo $?
+printf 's/a/b/w x\n' > t.sed
+sed --sandbox -f t.sed a.txt 2>&1; echo $?

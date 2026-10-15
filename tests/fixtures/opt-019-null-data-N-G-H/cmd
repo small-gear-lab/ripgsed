@@ -1,0 +1,7 @@
+printf 'a\0b\0c\0' | sed -z 'N;s/\x00/+/' | od -c
+echo ---
+printf 'a\0b\0c\0' | sed -z 'G' | od -c
+echo ---
+printf 'a\0b\0c\0' | sed -z -n 'H;${x;s/\x00/,/g;p}' | od -c
+echo ---
+printf 'a\0b\0c\0' | sed -z '1h;2,$G' | od -c

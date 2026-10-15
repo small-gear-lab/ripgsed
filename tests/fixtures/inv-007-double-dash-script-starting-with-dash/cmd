@@ -1,0 +1,4 @@
+sed -- '-d' a.txt 2>&1; echo $?
+sed -n -- '/-/p' a.txt
+sed -e '/-/d' -- a.txt
+sed -- 'p' a.txt a.txt | wc -l

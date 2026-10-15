@@ -1,0 +1,3 @@
+sed -e 2>/dev/null; echo $?
+sed a.txt -e 2>/dev/null; echo $?
+sed --expression 2>/dev/null; echo $?

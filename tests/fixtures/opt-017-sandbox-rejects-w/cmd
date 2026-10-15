@@ -1,0 +1,5 @@
+sed --sandbox 'w out.txt' a.txt 2>&1; echo $?
+sed --sandbox 's/o/0/w out.txt' a.txt 2>&1; echo $?
+sed --sandbox 'w /dev/stdout' a.txt 2>&1; echo $?
+sed --sandbox 'W out.txt' a.txt 2>&1; echo $?
+ls

@@ -1,0 +1,2 @@
+sed -u 's/o/0/' a.txt
+sed -u -n 2p a.txt

@@ -1,0 +1,29 @@
+SED PROGRAM:
+  s/(o|t)+/<&>/g
+INPUT:   'a.txt' line 1
+PATTERN: one
+COMMAND: s/(o|t)+/<&>/g
+MATCHED REGEX REGISTERS
+  regex[0] = 0-1 'o'
+  regex[1] = 0-1 'o'
+PATTERN: <o>ne
+END-OF-CYCLE:
+<o>ne
+INPUT:   'a.txt' line 2
+PATTERN: two
+COMMAND: s/(o|t)+/<&>/g
+MATCHED REGEX REGISTERS
+  regex[0] = 0-1 't'
+  regex[1] = 0-1 't'
+PATTERN: <t>w<o>
+END-OF-CYCLE:
+<t>w<o>
+INPUT:   'a.txt' line 3
+PATTERN: three
+COMMAND: s/(o|t)+/<&>/g
+MATCHED REGEX REGISTERS
+  regex[0] = 0-1 't'
+  regex[1] = 0-1 't'
+PATTERN: <t>hree
+END-OF-CYCLE:
+<t>hree

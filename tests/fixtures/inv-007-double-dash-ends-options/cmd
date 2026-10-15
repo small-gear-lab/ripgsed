@@ -1,0 +1,5 @@
+sed -n -- 2p a.txt
+sed -- 2d a.txt
+sed -n -e 2p -- a.txt b.txt
+sed -n -e 1p -- -n.txt
+sed -e p -- a.txt -n 2>&1; echo $?

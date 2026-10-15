@@ -1,0 +1,6 @@
+seq 1 300000 > big.txt
+exec 3>&1
+trap '' PIPE
+{ sed p big.txt 2>err; echo "sed rc=$?" >&3; } | { read first; echo "first=$first"; }
+wc -l < err | awk '{ print ($1 > 0) ? "stderr-has-message" : "stderr-empty" }'
+rm -f big.txt err

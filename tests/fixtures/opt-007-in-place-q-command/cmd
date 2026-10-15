@@ -1,0 +1,4 @@
+sed -i 2q a.txt; echo $?
+cat a.txt
+sed -i 2Q b.txt; echo $?
+cat b.txt

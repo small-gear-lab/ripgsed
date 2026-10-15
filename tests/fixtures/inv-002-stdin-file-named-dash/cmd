@@ -1,0 +1,5 @@
+sed '' ./-
+echo ---
+sed '' - < /dev/null
+echo ---
+sed '' -- -

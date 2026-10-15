@@ -1,0 +1,4 @@
+for o in s se sep n f e r z in b l qq follow posix po quiet qu sa sil; do
+  out=$(sed --$o p a.txt 2>/dev/null); rc=$?
+  printf '%s: rc=%s out=%s\n' "$o" "$rc" "$(echo $out)"
+done

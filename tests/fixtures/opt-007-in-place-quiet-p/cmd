@@ -1,0 +1,4 @@
+sed -n -i '2,3p' a.txt
+cat a.txt
+sed -i -n '$p' b.txt
+cat b.txt

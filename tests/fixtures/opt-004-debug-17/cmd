@@ -1,0 +1,1 @@
+sed --debug '/a/I,/b/Mp' a.txt

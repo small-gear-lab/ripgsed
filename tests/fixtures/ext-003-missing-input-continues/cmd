@@ -1,0 +1,5 @@
+sed p nosuch.txt a.txt; echo $?
+sed -n p a.txt nosuch.txt; echo $?
+sed -n p a.txt nosuch.txt b.txt; echo $?
+sed -n p nosuch.txt; echo $?
+sed -n p nosuch1 nosuch2; echo $?

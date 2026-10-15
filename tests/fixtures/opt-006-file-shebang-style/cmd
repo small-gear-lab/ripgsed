@@ -1,0 +1,4 @@
+printf '#!/bin/sed -f\ns/one/1/\n' > s.sed
+sed -f s.sed a.txt
+printf '#!/bin/sed -nf\n2p\n' > t.sed
+sed -f t.sed a.txt

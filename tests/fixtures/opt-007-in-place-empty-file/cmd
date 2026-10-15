@@ -1,0 +1,8 @@
+sed -i 's/a/b/' e.txt; echo $?
+wc -c < e.txt
+sed -i '1i\
+new' e.txt
+wc -c < e.txt
+sed -i '$a\
+end' e.txt
+wc -c < e.txt

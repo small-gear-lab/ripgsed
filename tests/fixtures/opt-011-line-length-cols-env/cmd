@@ -1,0 +1,2 @@
+sed -n l a.txt
+sed -n -l 20 l a.txt

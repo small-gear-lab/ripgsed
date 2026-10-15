@@ -1,0 +1,3 @@
+printf 'a\nb\0c\td\0' | sed -z -n l | od -c
+echo ---
+printf 'a\0b\0' | sed -z -n 'l' | od -c

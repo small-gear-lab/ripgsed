@@ -1,0 +1,24 @@
+SED PROGRAM:
+  a\hello
+
+INPUT:   'a.txt' line 1
+PATTERN: one
+COMMAND: a\hello
+
+END-OF-CYCLE:
+one
+hello
+INPUT:   'a.txt' line 2
+PATTERN: two
+COMMAND: a\hello
+
+END-OF-CYCLE:
+two
+hello
+INPUT:   'a.txt' line 3
+PATTERN: three
+COMMAND: a\hello
+
+END-OF-CYCLE:
+three
+hello

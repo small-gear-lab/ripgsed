@@ -1,0 +1,3 @@
+printf '' | sed -z p | od -c
+printf '\0' | sed -z p | od -c
+printf '\0\0' | sed -z -n '$=' | od -c

@@ -1,0 +1,7 @@
+sed '' a.txt b.txt | od -c
+echo ---
+sed 'N;s/\n/+/' a.txt b.txt | od -c
+echo ---
+sed -n '$p' a.txt b.txt | od -c
+echo ---
+sed -n 'H;${x;s/\n/,/g;p}' a.txt b.txt

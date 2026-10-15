@@ -1,0 +1,1 @@
+sed --debug 's/a/b/I;s/c/d/M;s/e/f/' a.txt

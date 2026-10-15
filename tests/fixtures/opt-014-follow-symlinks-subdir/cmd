@@ -1,0 +1,8 @@
+mkdir sub
+mv real.txt sub/real.txt
+ln -s real.txt sub/link.txt
+ln -s sub/link.txt top
+sed -i --follow-symlinks 's/x/y/' top
+test -h top && echo top-symlink
+test -h sub/link.txt && echo link-symlink
+cat sub/real.txt

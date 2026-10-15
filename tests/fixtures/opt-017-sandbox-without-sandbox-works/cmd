@@ -1,0 +1,3 @@
+sed 'r b.txt' a.txt
+sed 'w out.txt' a.txt >/dev/null; cat out.txt
+sed '1e echo hi' a.txt

@@ -1,0 +1,15 @@
+SED PROGRAM:
+  s/a/A/
+INPUT:   'STDIN' line 1
+PATTERN: a
+COMMAND: s/a/A/
+MATCHED REGEX REGISTERS
+  regex[0] = 0-1 'a'
+PATTERN: A
+END-OF-CYCLE:
+A|INPUT:   'STDIN' line 2
+PATTERN: b
+COMMAND: s/a/A/
+PATTERN: b
+END-OF-CYCLE:
+b|

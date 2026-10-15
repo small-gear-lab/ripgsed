@@ -1,0 +1,2 @@
+sed -i'pre-*-post' 's/one/1/' a.txt
+cat a.txt pre-a.txt-post; ls

@@ -1,0 +1,24 @@
+one
+appended
+two
+appended
+three
+appended
+four
+appended
+five
+appended
+---
+one
+inserted line
+two
+four
+five
+---
+one
+2
+three
+four
+five
+---
+sed: -e expression #2, char 4: unterminated `s' command

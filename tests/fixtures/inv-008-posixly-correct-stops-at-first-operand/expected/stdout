@@ -1,0 +1,10 @@
+sed: can't read -n: No such file or directory
+one
+two
+two
+three
+2
+two
+sed: can't read -s: No such file or directory
+two
+2

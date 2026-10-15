@@ -1,0 +1,8 @@
+sed p a.txt >/dev/null; echo $?
+sed -n '/nomatch/p' a.txt; echo $?
+sed -n '$!d;=' a.txt; echo $?
+sed -n 's/x/y/p' a.txt; echo $?
+sed '' </dev/null; echo $?
+sed -i p a.txt; echo $?
+sed --version >/dev/null; echo $?
+sed --help >/dev/null; echo $?

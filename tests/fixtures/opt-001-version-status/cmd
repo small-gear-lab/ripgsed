@@ -1,0 +1,6 @@
+sed --version > out; echo $?
+test -s out && echo nonempty
+sed --vers > out2; echo $?
+test -s out2 && echo nonempty
+sed --version | wc -l | awk '{ print ($1 > 0) ? "lines" : "none" }'
+rm -f out out2

@@ -1,0 +1,2 @@
+sed -i'old_*' 's/one/1/' a.txt
+cat a.txt old_a.txt; ls

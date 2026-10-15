@@ -1,0 +1,1 @@
+sed --debug 's/o/0/g' a.txt

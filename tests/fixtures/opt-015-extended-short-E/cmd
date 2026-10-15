@@ -1,0 +1,5 @@
+sed -E 's/(o)(n)/\2\1/' a.txt
+sed -E 's/o+/0/g;s/e|w/_/g' a.txt
+sed -E -n '/^(one|two)$/p' a.txt
+sed -E 's/t{1,2}/T/' a.txt
+sed -E 's/(a|b)?c/X/' b.txt

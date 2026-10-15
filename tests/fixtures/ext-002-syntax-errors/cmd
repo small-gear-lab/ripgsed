@@ -1,0 +1,27 @@
+sed 's/a/b' a.txt 2>&1; echo $?
+sed 's/a/b/q' a.txt 2>&1; echo $?
+sed 's/a/b/gg' a.txt 2>&1; echo $?
+sed 's/a/b/pp' a.txt 2>&1; echo $?
+sed 's/a/b/0' a.txt 2>&1; echo $?
+sed 's/a/b/2 3' a.txt 2>&1; echo $?
+sed 'y/ab/c/' a.txt 2>&1; echo $?
+sed 'y/a/b' a.txt 2>&1; echo $?
+sed '{p' a.txt 2>&1; echo $?
+sed 'p}' a.txt 2>&1; echo $?
+sed 'b nolabel' a.txt 2>&1; echo $?
+sed 't nolabel' a.txt 2>&1; echo $?
+sed 'r' a.txt 2>&1; echo $?
+sed 'w' a.txt 2>&1; echo $?
+sed 'a' a.txt 2>&1; echo $?
+sed 'l x' a.txt 2>&1; echo $?
+sed 'q x' a.txt 2>&1; echo $?
+sed '/a' a.txt 2>&1; echo $?
+sed '\' a.txt 2>&1; echo $?
+sed '1~' a.txt 2>&1; echo $?
+sed '2,' a.txt 2>&1; echo $?
+sed '!' a.txt 2>&1; echo $?
+sed 's/\(a/b/' a.txt 2>&1; echo $?
+sed 's/a/\1/' a.txt 2>&1; echo $?
+sed ':a;:a' a.txt 2>&1; echo $?
+sed 's/a/b/w' a.txt 2>&1; echo $?
+sed 'u' a.txt 2>&1; echo $?

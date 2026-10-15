@@ -1,0 +1,7 @@
+echo secret > locked.txt
+chmod 000 locked.txt
+if [ -r locked.txt ]; then echo "readable (skip)"; else
+sed p locked.txt >/dev/null 2>&1; echo $?
+sed -n p locked.txt a.txt 2>&1; echo $?
+fi
+chmod 644 locked.txt

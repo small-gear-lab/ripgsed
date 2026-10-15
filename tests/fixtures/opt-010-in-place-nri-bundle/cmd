@@ -1,0 +1,4 @@
+sed -nri 's/(t)(.)o/\2\1/p' a.txt
+cat a.txt; ls
+sed -rni 's/(t)/T/p' b.txt
+cat b.txt; ls

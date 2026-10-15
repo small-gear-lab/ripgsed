@@ -1,0 +1,7 @@
+sed -n 's/o/0/p' a.txt
+echo ---
+sed -n '/t/{p;p}' a.txt
+echo ---
+sed -n '$!d;p' a.txt
+echo ---
+sed -n 'p;p' < /dev/null; echo $?

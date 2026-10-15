@@ -1,0 +1,2 @@
+sed -i '1s/^/first:/;$s/$/:last/' a.txt b.txt
+cat a.txt b.txt

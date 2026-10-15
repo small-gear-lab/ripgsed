@@ -1,0 +1,5 @@
+sed --posix 'F' a.txt >/dev/null 2>&1; echo $?
+sed --posix 's/o/0/I' a.txt >/dev/null 2>&1; echo $?
+sed --posix '0,/o/d' a.txt >/dev/null 2>&1; echo $?
+sed --posix '1~2d' a.txt >/dev/null 2>&1; echo $?
+sed --posix -n 'p' a.txt >/dev/null 2>&1; echo $?

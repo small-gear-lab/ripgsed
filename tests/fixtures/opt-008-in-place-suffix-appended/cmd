@@ -1,0 +1,2 @@
+sed -i.bak 's/one/1/' a.txt
+cat a.txt; echo ---; cat a.txt.bak; echo ---; ls

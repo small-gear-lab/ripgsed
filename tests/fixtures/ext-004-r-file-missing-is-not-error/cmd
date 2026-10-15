@@ -1,0 +1,2 @@
+sed 'r nosuch.txt' a.txt; echo $?
+sed 'R nosuch.txt' a.txt; echo $?

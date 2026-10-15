@@ -1,0 +1,4 @@
+sed -n -i.bak 2p a.txt
+cat a.txt; echo ---; cat a.txt.bak
+sed -ni.bk 1p b.txt
+cat b.txt; cat b.txt.bk

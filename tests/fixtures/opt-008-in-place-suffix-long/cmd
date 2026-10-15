@@ -1,0 +1,4 @@
+sed --in-place=.orig 's/one/1/' a.txt
+sed --in-place=~ 's/two/2/' a.txt
+cat a.txt; ls
+cat a.txt.orig; cat a.txt~

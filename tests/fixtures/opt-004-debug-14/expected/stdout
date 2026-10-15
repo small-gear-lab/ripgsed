@@ -1,0 +1,30 @@
+SED PROGRAM:
+  1! G
+  h
+  $! d
+INPUT:   'a.txt' line 1
+PATTERN: one
+COMMAND: 1! G
+COMMAND: h
+HOLD:    one
+COMMAND: $! d
+END-OF-CYCLE:
+INPUT:   'a.txt' line 2
+PATTERN: two
+COMMAND: 1! G
+PATTERN: two\none
+COMMAND: h
+HOLD:    two\none
+COMMAND: $! d
+END-OF-CYCLE:
+INPUT:   'a.txt' line 3
+PATTERN: three
+COMMAND: 1! G
+PATTERN: three\ntwo\none
+COMMAND: h
+HOLD:    three\ntwo\none
+COMMAND: $! d
+END-OF-CYCLE:
+three
+two
+one

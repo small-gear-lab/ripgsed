@@ -1,0 +1,2 @@
+sed --debug 'c\
+changed' a.txt

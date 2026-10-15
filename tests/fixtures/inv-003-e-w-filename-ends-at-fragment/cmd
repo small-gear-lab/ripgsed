@@ -1,0 +1,5 @@
+sed -n -e 's/o/0/w out.txt' -e p a.txt
+echo ---
+cat out.txt
+echo ---
+sed -n -e '1w o2.txt' -e '2w o3.txt' a.txt; cat o2.txt o3.txt

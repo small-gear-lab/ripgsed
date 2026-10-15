@@ -1,0 +1,37 @@
+SED PROGRAM:
+  s/.*/\U&/
+  s/x/
+/
+INPUT:   'a.txt' line 1
+PATTERN: one
+COMMAND: s/.*/\U&/
+MATCHED REGEX REGISTERS
+  regex[0] = 0-3 'one'
+PATTERN: ONE
+COMMAND: s/x/
+/
+PATTERN: ONE
+END-OF-CYCLE:
+ONE
+INPUT:   'a.txt' line 2
+PATTERN: two
+COMMAND: s/.*/\U&/
+MATCHED REGEX REGISTERS
+  regex[0] = 0-3 'two'
+PATTERN: TWO
+COMMAND: s/x/
+/
+PATTERN: TWO
+END-OF-CYCLE:
+TWO
+INPUT:   'a.txt' line 3
+PATTERN: three
+COMMAND: s/.*/\U&/
+MATCHED REGEX REGISTERS
+  regex[0] = 0-5 'three'
+PATTERN: THREE
+COMMAND: s/x/
+/
+PATTERN: THREE
+END-OF-CYCLE:
+THREE

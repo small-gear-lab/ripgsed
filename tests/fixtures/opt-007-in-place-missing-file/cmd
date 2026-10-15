@@ -1,0 +1,4 @@
+sed -i 's/a/A/' nosuch.txt; echo $?
+sed -i 's/a/A/' nosuch.txt b.txt; echo $?
+cat b.txt
+ls

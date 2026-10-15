@@ -1,0 +1,4 @@
+sed -e 's/o/0/' -e 's/0/o0/' a.txt
+sed -e '1{' -e 's/one/ONE/' -e '}' a.txt
+sed -n -e '1p' -e '$p' a.txt
+sed -e 2d -e 's/t/T/' -e 's/T/TT/' a.txt

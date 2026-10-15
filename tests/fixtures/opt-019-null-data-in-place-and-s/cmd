@@ -1,0 +1,5 @@
+printf 'a\nb\0c\0' > in.bin
+printf 'x\0y\nz\0' > in2.bin
+sed -z -i 's/\n/!/' in.bin in2.bin
+od -c in.bin; od -c in2.bin
+sed -s -z -n '$p' in.bin in2.bin | od -c

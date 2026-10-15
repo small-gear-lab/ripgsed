@@ -1,0 +1,6 @@
+printf '2d' > s.sed
+sed -f s.sed a.txt
+printf 'a\\\nline' > t.sed
+sed -f t.sed a.txt
+printf '$a\\\nend' > u.sed
+sed -f u.sed a.txt

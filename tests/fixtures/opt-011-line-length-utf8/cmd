@@ -1,0 +1,2 @@
+sed -n -l 8 l a.txt
+sed -n l a.txt

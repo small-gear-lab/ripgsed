@@ -1,0 +1,17 @@
+SED PROGRAM:
+  s/one/ONE/
+INPUT:   'a.txt' line 1
+PATTERN: one
+COMMAND: s/one/ONE/
+MATCHED REGEX REGISTERS
+  regex[0] = 0-3 'one'
+PATTERN: ONE
+END-OF-CYCLE:
+INPUT:   'a.txt' line 2
+PATTERN: two
+COMMAND: s/one/ONE/
+PATTERN: two
+END-OF-CYCLE:
+0
+ONE
+two

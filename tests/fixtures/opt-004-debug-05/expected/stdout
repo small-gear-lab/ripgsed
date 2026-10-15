@@ -1,0 +1,28 @@
+SED PROGRAM:
+  y/abc/xyz/
+  N
+  P
+  D
+INPUT:   'a.txt' line 1
+PATTERN: one
+COMMAND: y/abc/xyz/
+PATTERN: one
+COMMAND: N
+PATTERN: one\ntwo
+COMMAND: P
+one
+COMMAND: D
+PATTERN: two
+COMMAND: y/abc/xyz/
+PATTERN: two
+COMMAND: N
+PATTERN: two\nthree
+COMMAND: P
+two
+COMMAND: D
+PATTERN: three
+COMMAND: y/abc/xyz/
+PATTERN: three
+COMMAND: N
+END-OF-CYCLE:
+three

@@ -1,0 +1,1 @@
+sed --debug '$!{N;N};l 5' a.txt

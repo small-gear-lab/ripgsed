@@ -1,0 +1,16 @@
+one
+R1
+two
+R2
+alpha
+R3
+beta
+---
+one
+R1
+two
+R2
+alpha
+R1
+beta
+R2

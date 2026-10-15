@@ -1,0 +1,2 @@
+sed --unbuffered 's/o/0/' a.txt
+sed --unb 's/o/0/' a.txt

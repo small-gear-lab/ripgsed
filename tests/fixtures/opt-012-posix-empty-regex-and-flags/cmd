@@ -1,0 +1,4 @@
+sed --posix -n '/o/{//p}' a.txt
+sed --posix 's/o/0/2' a.txt
+sed --posix 's/o/0/gp' a.txt
+sed --posix -n 's/o/0/pw out.txt' a.txt; cat out.txt

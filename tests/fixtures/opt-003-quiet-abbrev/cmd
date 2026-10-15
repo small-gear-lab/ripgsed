@@ -1,0 +1,3 @@
+sed --qui 2p a.txt
+sed --sil 3p a.txt
+sed --q 4p a.txt

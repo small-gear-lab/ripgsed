@@ -1,0 +1,5 @@
+sed -s -n 'H;${x;s/\n/,/g;p}' a.txt b.txt
+echo ---
+sed -s '$!N;s/\n/+/' a.txt b.txt
+echo ---
+sed '$!N;s/\n/+/' a.txt b.txt

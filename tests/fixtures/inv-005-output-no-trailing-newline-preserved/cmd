@@ -1,0 +1,7 @@
+sed 's/c/C/' a.txt | od -c
+sed -n p a.txt | od -c
+sed p a.txt | od -c
+sed '$!d' a.txt | od -c
+sed '$G' a.txt | od -c
+sed '$a x' a.txt | od -c
+sed '$i x' a.txt | od -c

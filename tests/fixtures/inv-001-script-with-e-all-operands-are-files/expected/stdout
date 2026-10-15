@@ -1,0 +1,12 @@
+one
+alpha
+beta
+gamma
+sed: can't read 2d: No such file or directory
+one
+2
+sed: couldn't open file s.sed: No such file or directory
+4
+sed: can't read p: No such file or directory
+two
+2

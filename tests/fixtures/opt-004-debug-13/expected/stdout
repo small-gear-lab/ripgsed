@@ -1,0 +1,20 @@
+SED PROGRAM:
+  r b.txt
+INPUT:   'a.txt' line 1
+PATTERN: one
+COMMAND: r b.txt
+END-OF-CYCLE:
+one
+alpha
+INPUT:   'a.txt' line 2
+PATTERN: two
+COMMAND: r b.txt
+END-OF-CYCLE:
+two
+alpha
+INPUT:   'a.txt' line 3
+PATTERN: three
+COMMAND: r b.txt
+END-OF-CYCLE:
+three
+alpha

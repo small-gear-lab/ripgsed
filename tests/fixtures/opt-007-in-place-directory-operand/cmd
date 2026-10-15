@@ -1,0 +1,4 @@
+mkdir d
+sed -i s/a/b/ d 2>&1; echo $?
+sed -i s/a/A/ d a.txt 2>&1; echo $?
+cat a.txt

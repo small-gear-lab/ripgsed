@@ -1,0 +1,7 @@
+sed -n -e2p a.txt
+sed -ne2p a.txt
+sed -nfs.sed a.txt
+sed -n -l5 l a.txt
+sed -nl5 l a.txt
+sed -nl 5 l a.txt
+sed -l5 -n l a.txt

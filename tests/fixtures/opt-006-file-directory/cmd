@@ -1,0 +1,2 @@
+mkdir d
+sed -f d a.txt 2>&1; echo $?

@@ -1,0 +1,25 @@
+SED PROGRAM:
+  1 d
+  s/t/T/
+INPUT:   'a.txt' line 1
+PATTERN: one
+COMMAND: 1 d
+END-OF-CYCLE:
+INPUT:   'a.txt' line 2
+PATTERN: two
+COMMAND: 1 d
+COMMAND: s/t/T/
+MATCHED REGEX REGISTERS
+  regex[0] = 0-1 't'
+PATTERN: Two
+END-OF-CYCLE:
+Two
+INPUT:   'a.txt' line 3
+PATTERN: three
+COMMAND: 1 d
+COMMAND: s/t/T/
+MATCHED REGEX REGISTERS
+  regex[0] = 0-1 't'
+PATTERN: Three
+END-OF-CYCLE:
+Three

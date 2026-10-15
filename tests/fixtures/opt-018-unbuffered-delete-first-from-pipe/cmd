@@ -1,0 +1,1 @@
+printf 'a\nb\nc\n' | sed -u 1d

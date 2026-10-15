@@ -1,0 +1,16 @@
+sed: -e expression #1, char 3: extra characters after command
+1
+sed: -e expression #1, char 3: extra characters after command
+1
+sed: -e expression #1, char 5: extra characters after command
+1
+one
+5
+sed: -e expression #1, char 4: unexpected `}'
+1
+one
+5
+sed: -e expression #1, char 4: command only uses one address
+1
+sed: -e expression #1, char 1: unknown command: `Q'
+1

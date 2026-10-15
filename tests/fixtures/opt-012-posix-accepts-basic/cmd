@@ -1,0 +1,7 @@
+sed --posix -n '2p' a.txt
+sed --posix 's/o/0/g;y/t/T/' a.txt
+sed --posix -e '1{' -e p -e '}' a.txt
+sed --posix '1,2!d' a.txt
+sed --posix '$!N;P;D' a.txt
+sed --posix 'a\
+text' a.txt

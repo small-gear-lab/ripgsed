@@ -1,0 +1,19 @@
+s: rc=1 out=
+se: rc=0 out=one one
+sep: rc=0 out=one one
+n: rc=0 out=one one
+f: rc=1 out=
+e: rc=0 out=one one
+r: rc=0 out=one one
+z: rc=0 out=one one
+in: rc=0 out=
+b: rc=0 out=one one one one
+l: rc=0 out=
+qq: rc=1 out=
+follow: rc=0 out=one one one one
+posix: rc=0 out=one one one one
+po: rc=0 out=one one one one
+quiet: rc=0 out=one one
+qu: rc=0 out=one one
+sa: rc=0 out=one one one one
+sil: rc=0 out=one one

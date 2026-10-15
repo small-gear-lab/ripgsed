@@ -1,0 +1,3 @@
+sed --regexp-extended 's/(o)(n)/\2\1/' a.txt
+sed --regexp-ext 's/(o)(n)/\2\1/' a.txt
+sed --reg 's/(o)(n)/\2\1/' a.txt

@@ -1,0 +1,2 @@
+sed -n 'w /dev/stdout' a.txt >&- 2>err; echo $?
+cat err

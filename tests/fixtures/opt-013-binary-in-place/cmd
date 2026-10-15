@@ -1,0 +1,4 @@
+sed -b -i 's/o/0/' a.txt
+od -c a.txt
+sed -bi.bk 's/t/T/' a.txt
+od -c a.txt; od -c a.txt.bk

@@ -1,0 +1,1 @@
+printf 'x1\nx2\nx3\n' | sed -u 's/x/y/' | sed -u -n '2,3p'

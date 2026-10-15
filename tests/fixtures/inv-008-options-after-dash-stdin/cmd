@@ -1,0 +1,2 @@
+sed p - -n
+sed -n p - -s

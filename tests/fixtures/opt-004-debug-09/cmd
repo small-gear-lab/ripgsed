@@ -1,0 +1,1 @@
+sed --debug '1~2p;2,~4p' a.txt

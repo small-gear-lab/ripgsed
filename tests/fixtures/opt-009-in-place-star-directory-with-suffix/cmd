@@ -1,0 +1,3 @@
+mkdir bak
+sed -i'bak/*.orig' 's/one/1/' a.txt
+cat a.txt bak/a.txt.orig; ls bak

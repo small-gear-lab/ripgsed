@@ -1,0 +1,5 @@
+sed --expression=2d a.txt
+sed --expression 3d a.txt
+sed --expr=4d a.txt
+sed --exp 5d a.txt
+sed --expression='1d' --expression='2d' a.txt

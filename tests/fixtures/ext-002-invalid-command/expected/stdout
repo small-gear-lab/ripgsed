@@ -1,0 +1,25 @@
+sed: -e expression #1, char 1: unknown command: `k'
+1
+sed: -e expression #1, char 3: missing command
+1
+sed: -e expression #1, char 2: unknown command: `k'
+1
+0
+sed: -e expression #1, char 3: unknown command: `k'
+1
+sed: -e expression #1, char 2: extra characters after command
+1
+sed: -e expression #1, char 2: extra characters after command
+1
+sed: -e expression #1, char 3: extra characters after command
+1
+sed: -e expression #1, char 3: multiple `!'s
+1
+sed: -e expression #1, char 4: unknown command: `,'
+1
+sed: -e expression #1, char 2: invalid usage of line address 0
+1
+sed: -e expression #1, char 4: invalid usage of line address 0
+1
+sed: -e expression #1, char 2: ":" lacks a label
+1

@@ -1,0 +1,3 @@
+sed -n p nosuch.txt 2>&1; echo $?
+sed -n p ./nosuch.txt a.txt 2>&1; echo $?
+sed -n p dir/nosuch.txt 2>&1; echo $?

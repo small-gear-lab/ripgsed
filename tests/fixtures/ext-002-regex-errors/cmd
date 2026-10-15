@@ -1,0 +1,13 @@
+sed 's/[/x/' a.txt 2>&1; echo $?
+sed 's/\(/x/' a.txt 2>&1; echo $?
+sed 's/\)/x/' a.txt 2>&1; echo $?
+sed 's/a\{1/x/' a.txt 2>&1; echo $?
+sed 's/a\{2,1\}/x/' a.txt 2>&1; echo $?
+sed 's/[[:foo:]]/x/' a.txt 2>&1; echo $?
+sed 's/[b-a]/x/' a.txt 2>&1; echo $?
+sed -E 's/(/x/' a.txt 2>&1; echo $?
+sed -E 's/a{1/x/' a.txt 2>&1; echo $?
+sed -E 's/+/x/' a.txt 2>&1; echo $?
+sed '/[/p' a.txt 2>&1; echo $?
+sed 's/a/x/;s/\(b/y/' a.txt 2>&1; echo $?
+sed 's/x\{99999\}/y/' a.txt 2>&1; echo $?

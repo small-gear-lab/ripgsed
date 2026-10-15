@@ -1,0 +1,2 @@
+printf '1d\ns/t/T/\n' > s.sed
+sed --debug -f s.sed a.txt

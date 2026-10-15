@@ -1,0 +1,4 @@
+sed 2d a.txt
+sed -n '2p' a.txt b.txt
+sed 's/o/0/' a.txt
+sed p a.txt | sed -n 1,2p

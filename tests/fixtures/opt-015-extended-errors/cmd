@@ -1,0 +1,7 @@
+sed -E 's/(a/X/' a.txt 2>&1; echo $?
+sed -E 's/a)/X/' a.txt 2>&1; echo $?
+sed 's/\(a/X/' a.txt 2>&1; echo $?
+sed -E 's/a{2/X/' a.txt 2>&1; echo $?
+sed -E 's/*a/X/' a.txt 2>&1; echo $?
+sed -E 's/a**/X/' a.txt 2>&1; echo $?
+sed -E 's/(a)\2/X/' a.txt 2>&1; echo $?

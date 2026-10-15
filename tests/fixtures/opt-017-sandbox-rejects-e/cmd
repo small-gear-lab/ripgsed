@@ -1,0 +1,4 @@
+sed --sandbox 'e echo hi' a.txt 2>&1; echo $?
+sed --sandbox '1e' a.txt 2>&1; echo $?
+sed --sandbox 's/o/0/e' a.txt 2>&1; echo $?
+sed --sandbox 's/o/echo X/e' a.txt 2>&1; echo $?

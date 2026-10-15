@@ -1,0 +1,16 @@
+sed 2q a.txt
+echo ---
+sed 2Q a.txt
+echo ---
+sed -n 2q a.txt
+echo ---
+sed '2{a\
+appended
+q}' a.txt
+echo ---
+sed '2{a\
+appended
+Q}' a.txt
+echo ---
+sed '2{r b.txt
+q}' a.txt

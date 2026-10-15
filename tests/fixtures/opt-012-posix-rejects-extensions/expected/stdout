@@ -1,0 +1,73 @@
+== F
+sed: -e expression #1, char 1: unknown command: `F'
+rc=1
+== e
+sed: -e expression #1, char 1: unknown command: `e'
+rc=1
+== Q
+sed: -e expression #1, char 1: unknown command: `Q'
+rc=1
+== T
+sed: -e expression #1, char 1: unknown command: `T'
+rc=1
+== z
+sed: -e expression #1, char 1: unknown command: `z'
+rc=1
+== v
+sed: -e expression #1, char 1: unknown command: `v'
+rc=1
+== W out
+sed: -e expression #1, char 1: unknown command: `W'
+rc=1
+== R a.txt
+sed: -e expression #1, char 1: unknown command: `R'
+rc=1
+== l 5
+sed: -e expression #1, char 3: extra characters after command
+rc=1
+== 1~2p
+sed: -e expression #1, char 2: unknown command: `~'
+rc=1
+== 0,/o/p
+sed: -e expression #1, char 6: invalid usage of line address 0
+rc=1
+== 2,+1p
+sed: -e expression #1, char 3: unexpected `,'
+rc=1
+== 2,~2p
+sed: -e expression #1, char 3: unexpected `,'
+rc=1
+== /o/I p
+sed: -e expression #1, char 4: unknown command: `I'
+rc=1
+== s/o/0/I
+sed: -e expression #1, char 7: unknown option to `s'
+rc=1
+== s/o/0/e
+sed: -e expression #1, char 7: unknown option to `s'
+rc=1
+== s/o/0/m
+sed: -e expression #1, char 7: unknown option to `s'
+rc=1
+== s/o/0/w out
+rc=0
+== y/o/\n/
+rc=0
+== a text
+sed: -e expression #1, char 3: expected \ after `a', `c' or `i'
+rc=1
+== i text
+sed: -e expression #1, char 3: expected \ after `a', `c' or `i'
+rc=1
+== c text
+sed: -e expression #1, char 3: expected \ after `a', `c' or `i'
+rc=1
+== 1,2,3p
+sed: -e expression #1, char 4: unknown command: `,'
+rc=1
+== s/o/\U&/
+rc=0
+== s/o\+/0/
+rc=0
+== s/o\|n/0/
+rc=0

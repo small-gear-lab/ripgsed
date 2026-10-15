@@ -1,0 +1,4 @@
+sed -i -e 's/a/A/' a.txt
+cat a.txt; ls
+sed -ie 's/A/B/' a.txt 2>&1; echo $?
+ls

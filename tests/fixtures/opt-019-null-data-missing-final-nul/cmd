@@ -1,0 +1,7 @@
+printf 'a\0b' | sed -z 's/./X/' | od -c
+echo ---
+printf 'a\0b' | sed -z p | od -c
+echo ---
+printf 'a\0b' | sed -z '$a x' | od -c
+echo ---
+printf 'abc' | sed -z 's/$/!/' | od -c

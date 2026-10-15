@@ -1,0 +1,6 @@
+mkdir d
+sed p d 2>&1; echo $?
+sed -n p d a.txt 2>&1; echo $?
+sed -n p a.txt d 2>&1; echo $?
+sed -n '$p' a.txt d 2>&1; echo $?
+sed p . 2>&1; echo $?

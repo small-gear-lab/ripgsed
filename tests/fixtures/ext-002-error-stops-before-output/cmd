@@ -1,0 +1,6 @@
+sed -n -e p -e k a.txt; echo $?
+sed -n 'p;p;s/a' a.txt; echo $?
+sed -i 'k' a.txt; echo $?
+cat a.txt
+sed -i.bak 's/a' a.txt; echo $?
+ls

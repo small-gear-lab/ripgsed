@@ -1,0 +1,2 @@
+sed -n --line-l=6 l a.txt
+sed -n --line 6 l a.txt

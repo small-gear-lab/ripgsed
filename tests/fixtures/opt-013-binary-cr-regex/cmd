@@ -1,0 +1,3 @@
+sed -b 's/\r$//' a.txt | od -c
+sed 's/.$//' a.txt | od -c
+sed -b -n '/\r/p' a.txt | od -c

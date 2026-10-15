@@ -1,0 +1,3 @@
+sed -i -n '1l;2=' a.txt > out.txt
+echo "out.txt:"; cat out.txt
+echo "a.txt:"; cat a.txt

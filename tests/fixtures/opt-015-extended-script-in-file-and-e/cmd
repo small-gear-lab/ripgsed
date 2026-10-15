@@ -1,0 +1,5 @@
+printf 's/(a)(b)/\\2\\1/\n' > s.sed
+sed -E -f s.sed a.txt 2>&1; echo $?
+sed -f s.sed -E a.txt 2>&1; echo $?
+sed -e 's/(c)/C/' -E -f s.sed a.txt 2>&1; echo $?
+sed -E -e 's/(c)/C/' -f s.sed a.txt 2>&1; echo $?

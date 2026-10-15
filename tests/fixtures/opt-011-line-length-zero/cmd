@@ -1,0 +1,2 @@
+sed -n -l 0 l a.txt
+sed -n --line-length=0 l a.txt

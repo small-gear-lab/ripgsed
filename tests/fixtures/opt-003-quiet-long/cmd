@@ -1,0 +1,3 @@
+sed --quiet -n 2p a.txt >/dev/null
+sed --quiet 3p a.txt
+sed --quiet 3p a.txt a.txt

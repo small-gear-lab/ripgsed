@@ -1,0 +1,5 @@
+sed 2>/dev/null; echo $?
+sed -n 2>/dev/null; echo $?
+sed -E -s -n 2>/dev/null; echo $?
+sed --quiet 2>/dev/null; echo $?
+sed > out 2>/dev/null; test -s out && echo out-nonempty || echo out-empty

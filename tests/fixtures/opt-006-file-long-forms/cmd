@@ -1,0 +1,4 @@
+printf '2d\n' > s.sed
+sed --file=s.sed a.txt
+sed --file s.sed a.txt
+sed --fi s.sed a.txt

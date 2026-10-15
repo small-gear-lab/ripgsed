@@ -1,0 +1,2 @@
+printf 'a\0b\0' | sed --debug -z 's/a/A/' | tr '\0' '|'
+echo

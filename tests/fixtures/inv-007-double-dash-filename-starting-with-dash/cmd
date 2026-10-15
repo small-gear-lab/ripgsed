@@ -1,0 +1,6 @@
+sed -- p -x.txt
+echo ---
+sed -n -- '$p' -x.txt --y.txt
+echo ---
+sed -n -e p -- -x.txt
+sed -s -n -e '$p' -- -x.txt --y.txt

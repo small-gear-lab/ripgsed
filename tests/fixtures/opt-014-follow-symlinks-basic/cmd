@@ -1,0 +1,5 @@
+ln -s a.txt link
+sed -i --follow-symlinks 's/one/ONE/' link
+ls -l link | cut -c1
+cat a.txt
+cat link

@@ -1,0 +1,24 @@
+SED PROGRAM:
+  s/\\(o\\)n\\(e\\)/\2\1/2wout.txt
+INPUT:   'a.txt' line 1
+PATTERN: one
+COMMAND: s/\\(o\\)n\\(e\\)/\2\1/2wout.txt
+MATCHED REGEX REGISTERS
+  regex[0] = 0-3 'one'
+  regex[1] = 0-1 'o'
+  regex[2] = 2-3 'e'
+PATTERN: one
+END-OF-CYCLE:
+one
+INPUT:   'a.txt' line 2
+PATTERN: two
+COMMAND: s/\\(o\\)n\\(e\\)/\2\1/2wout.txt
+PATTERN: two
+END-OF-CYCLE:
+two
+INPUT:   'a.txt' line 3
+PATTERN: three
+COMMAND: s/\\(o\\)n\\(e\\)/\2\1/2wout.txt
+PATTERN: three
+END-OF-CYCLE:
+three

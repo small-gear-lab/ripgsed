@@ -1,0 +1,6 @@
+sed p < /dev/null; echo $?
+sed -n '$=' < /dev/null; echo $?
+sed '1i\
+x' < /dev/null; echo $?
+sed '$a\
+x' < /dev/null; echo $?

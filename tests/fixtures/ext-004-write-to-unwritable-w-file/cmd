@@ -1,0 +1,3 @@
+sed -n 'w nodir/out.txt' a.txt 2>&1; echo $?
+sed 's/o/0/w nodir/out.txt' a.txt 2>&1; echo $?
+sed -n 'w .' a.txt 2>&1; echo $?

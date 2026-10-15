@@ -1,0 +1,4 @@
+ln -s a.txt link
+sed -i --follow 's/one/1/' link
+test -h link && echo link-symlink
+cat a.txt

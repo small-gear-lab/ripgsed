@@ -1,0 +1,4 @@
+sed -E -n '/o{2}/p' a.txt
+sed -E -n '\,^(f|t),p' a.txt
+sed -E 's/(O+)/<\1>/Ig' a.txt
+sed -E '/^(one|two)$/,/^(three)$/d' a.txt

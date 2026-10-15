@@ -1,0 +1,7 @@
+sed -e 'a\' -e 'appended' a.txt
+echo ---
+sed -e '2i\' -e 'inserted line' -e '3d' a.txt
+echo ---
+sed -e '2{' -e 's/two/2/' -e '}' a.txt
+echo ---
+sed -e 'y/one/ONE/' -e 's/t\' -e 'w/T/' a.txt 2>&1

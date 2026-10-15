@@ -1,0 +1,55 @@
+sed: -e expression #1, char 5: unterminated `s' command
+1
+sed: -e expression #1, char 7: unknown option to `s'
+1
+sed: -e expression #1, char 8: multiple `g' options to `s' command
+1
+sed: -e expression #1, char 8: multiple `p' options to `s' command
+1
+sed: -e expression #1, char 7: number option to `s' command may not be zero
+1
+sed: -e expression #1, char 9: multiple number options to `s' command
+1
+sed: -e expression #1, char 7: strings for `y' command are different lengths
+1
+sed: -e expression #1, char 5: unterminated `y' command
+1
+sed: -e expression #1, char 0: unmatched `{'
+1
+sed: -e expression #1, char 2: unexpected `}'
+1
+sed: can't find label for jump to `nolabel'
+4
+sed: can't find label for jump to `nolabel'
+4
+sed: -e expression #1, char 1: missing filename in r/R/w/W commands
+1
+sed: -e expression #1, char 1: missing filename in r/R/w/W commands
+1
+sed: -e expression #1, char 1: expected \ after `a', `c' or `i'
+1
+sed: -e expression #1, char 3: extra characters after command
+1
+sed: -e expression #1, char 3: extra characters after command
+1
+sed: -e expression #1, char 2: unterminated address regex
+1
+sed: -e expression #1, char 1: unterminated address regex
+1
+sed: -e expression #1, char 2: missing command
+1
+sed: -e expression #1, char 2: unexpected `,'
+1
+sed: -e expression #1, char 1: missing command
+1
+sed: -e expression #1, char 8: Unmatched ( or \(
+1
+sed: -e expression #1, char 7: invalid reference \1 on `s' command's RHS
+1
+one
+two
+0
+sed: -e expression #1, char 7: missing filename in r/R/w/W commands
+1
+sed: -e expression #1, char 1: unknown command: `u'
+1

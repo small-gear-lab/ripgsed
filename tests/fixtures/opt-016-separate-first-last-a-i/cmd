@@ -1,0 +1,8 @@
+sed -s '1i\
+HEAD' a.txt b.txt
+echo ---
+sed -s '$a\
+TAIL' a.txt b.txt
+echo ---
+sed '$a\
+TAIL' a.txt b.txt

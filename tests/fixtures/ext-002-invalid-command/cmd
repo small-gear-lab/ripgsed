@@ -1,0 +1,13 @@
+sed k a.txt 2>&1; echo $?
+sed '1,2' a.txt 2>&1; echo $?
+sed '1k' a.txt 2>&1; echo $?
+sed '' a.txt >/dev/null 2>&1; echo $?
+sed 'p;k' a.txt 2>&1 >/dev/null; echo $?
+sed '=x' a.txt 2>&1; echo $?
+sed 'dd' a.txt 2>&1; echo $?
+sed 'p p' a.txt 2>&1; echo $?
+sed '3!!p' a.txt 2>&1; echo $?
+sed '1,2,3p' a.txt 2>&1; echo $?
+sed '0p' a.txt 2>&1; echo $?
+sed '0,5p' a.txt 2>&1; echo $?
+sed ': ' a.txt 2>&1; echo $?

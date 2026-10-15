@@ -1,0 +1,5 @@
+printf 'a\nb\0c\0' | sed -z 'y/\n/ /' | od -c
+echo ---
+printf 'a\0b\0' | sed -z 'x;$G' | od -c
+echo ---
+printf 'abc\0def\0' | sed -z 's/\(.\)\(.\)\(.\)/\3\2\1/' | od -c

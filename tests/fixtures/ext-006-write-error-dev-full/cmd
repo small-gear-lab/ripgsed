@@ -1,0 +1,7 @@
+if [ -w /dev/full ]; then
+ sed p a.txt >/dev/full 2>err; echo $?
+ cat err
+ sed -n '$=' a.txt >/dev/full 2>err; echo $?
+ cat err
+ sed -n '/zzz/p' a.txt >/dev/full 2>err; echo $?
+fi

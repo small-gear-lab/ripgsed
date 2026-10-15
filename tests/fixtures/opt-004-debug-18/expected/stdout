@@ -1,0 +1,19 @@
+SED PROGRAM:
+  T
+  t
+  b
+INPUT:   'a.txt' line 1
+PATTERN: one
+COMMAND: T
+END-OF-CYCLE:
+one
+INPUT:   'a.txt' line 2
+PATTERN: two
+COMMAND: T
+END-OF-CYCLE:
+two
+INPUT:   'a.txt' line 3
+PATTERN: three
+COMMAND: T
+END-OF-CYCLE:
+three

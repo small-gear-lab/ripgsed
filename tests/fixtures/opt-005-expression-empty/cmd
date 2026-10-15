@@ -1,0 +1,3 @@
+sed -e '' a.txt
+sed -e '' -e '' -e 2d a.txt
+sed -e ';;' a.txt

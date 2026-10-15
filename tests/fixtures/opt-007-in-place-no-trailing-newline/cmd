@@ -1,0 +1,2 @@
+sed -i 's/b/B/' a.txt
+od -c a.txt

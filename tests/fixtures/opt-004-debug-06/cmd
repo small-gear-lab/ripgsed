@@ -1,0 +1,2 @@
+sed --debug 'a\
+hello' a.txt

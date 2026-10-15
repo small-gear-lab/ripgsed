@@ -1,0 +1,4 @@
+sed --in-place -E 's/(a)/[\1]/' a.txt
+cat a.txt; ls
+sed --in-place=.b -E 's/(a)/<\1>/' a.txt
+cat a.txt a.txt.b

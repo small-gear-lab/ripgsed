@@ -1,0 +1,5 @@
+sed 's/zzz/y/' a.txt; echo $?
+sed '/zzz/d' a.txt; echo $?
+sed 'y/a/b/;t;b' a.txt; echo $?
+sed -n '5p' a.txt; echo $?
+sed '10,20d' a.txt; echo $?

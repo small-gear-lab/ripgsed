@@ -1,0 +1,4 @@
+sed -n '$p' a.txt e.txt; echo $?
+sed -n '$p' a.txt nosuch e.txt 2>&1; echo $?
+sed -n '$p' a.txt e.txt e.txt; echo $?
+sed -n '$p' e.txt a.txt e.txt; echo $?

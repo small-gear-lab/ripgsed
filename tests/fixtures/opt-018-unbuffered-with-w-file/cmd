@@ -1,0 +1,3 @@
+sed -u -n 'w out.txt' a.txt
+cat out.txt
+sed -u 'w /dev/stdout' a.txt

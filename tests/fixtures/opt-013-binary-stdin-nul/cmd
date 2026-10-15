@@ -1,0 +1,1 @@
+printf 'a\0b\nc\n' | sed -b 's/b/B/' | od -c

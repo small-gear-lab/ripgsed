@@ -1,0 +1,5 @@
+printf 'a b\0c d\0' | sed -z 's/ /\n/' | od -c
+echo ---
+printf 'a\0b\0' | sed -z 's/^/\x00/' | od -c
+echo ---
+printf 'a b\0' | sed -z 's/ /\x00/' | od -c

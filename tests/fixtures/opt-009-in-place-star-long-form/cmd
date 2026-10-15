@@ -1,0 +1,2 @@
+sed --in-place='bk_*' 's/one/1/' a.txt
+cat a.txt bk_a.txt

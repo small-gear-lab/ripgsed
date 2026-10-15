@@ -1,0 +1,2 @@
+sed -i -e '2w out.w' -e '$r b.txt' a.txt
+cat a.txt; echo ---; cat out.w

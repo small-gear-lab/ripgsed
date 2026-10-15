@@ -1,0 +1,4 @@
+printf 's/a/A/\n' | sed -f - a.txt
+printf 's/a/A/\n' > s.sed
+sed -f s.sed - < b.txt
+sed -f s.sed < b.txt

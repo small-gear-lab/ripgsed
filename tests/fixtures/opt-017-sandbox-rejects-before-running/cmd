@@ -1,0 +1,5 @@
+sed --sandbox -e 'p' -e '2r b.txt' a.txt 2>&1; echo $?
+sed --sandbox -n -e 'p' -e '$!d;w out.txt' a.txt 2>&1; echo $?
+sed --sandbox '1{p;w out.txt
+}' a.txt 2>&1; echo $?
+ls

@@ -1,0 +1,4 @@
+sed -e p -e 'k' a.txt 2>&1; echo $?
+sed -e 'p;p' -e 's/a/b' a.txt 2>&1; echo $?
+sed -e '{' a.txt 2>&1; echo $?
+sed -e '}' a.txt 2>&1; echo $?

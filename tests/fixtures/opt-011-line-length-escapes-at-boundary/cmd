@@ -1,0 +1,5 @@
+sed -n -l 6 l a.txt
+echo ---
+sed -n -l 7 l a.txt
+echo ---
+sed -n -l 4 l a.txt

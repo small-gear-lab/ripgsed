@@ -1,0 +1,1 @@
+sed --debug 's/\(o\)n\(e\)/\2\1/2w out.txt' a.txt

@@ -1,0 +1,16 @@
+SED PROGRAM:
+  /two/,+1! d
+INPUT:   'a.txt' line 1
+PATTERN: one
+COMMAND: /two/,+1! d
+END-OF-CYCLE:
+INPUT:   'a.txt' line 2
+PATTERN: two
+COMMAND: /two/,+1! d
+END-OF-CYCLE:
+two
+INPUT:   'a.txt' line 3
+PATTERN: three
+COMMAND: /two/,+1! d
+END-OF-CYCLE:
+three

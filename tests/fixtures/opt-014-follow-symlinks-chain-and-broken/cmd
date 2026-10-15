@@ -1,0 +1,8 @@
+ln -s a.txt l1
+ln -s l1 l2
+sed -i --follow-symlinks 's/one/1/' l2
+cat a.txt
+test -h l1 && test -h l2 && echo both-symlinks
+ln -s missing dangling
+sed -i --follow-symlinks 's/a/b/' dangling 2>&1; echo $?
+rm -f dangling

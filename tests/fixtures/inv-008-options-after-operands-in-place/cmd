@@ -1,0 +1,4 @@
+sed s/o/0/ a.txt -i
+cat a.txt
+sed s/t/T/ a.txt -i.bak
+cat a.txt a.txt.bak

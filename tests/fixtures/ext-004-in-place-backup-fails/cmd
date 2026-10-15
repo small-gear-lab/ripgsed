@@ -1,0 +1,2 @@
+sed -i'nodir/*' s/a/b/ a.txt 2>&1; echo $?
+cat a.txt

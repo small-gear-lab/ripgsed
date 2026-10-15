@@ -1,0 +1,8 @@
+sed --posix 's/o\{1,2\}/0/' a.txt
+sed --posix 's/\(t\)\(w\)/\2\1/' a.txt
+sed --posix 's/a\nb/X/' b.txt
+sed 's/a\nb/X/' b.txt
+sed --posix 's/[\n]/X/' b.txt
+sed 's/[\n]/X/' b.txt
+sed --posix 's/\t/T/' b.txt
+sed 's/\t/T/' b.txt

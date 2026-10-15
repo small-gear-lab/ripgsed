@@ -1,0 +1,21 @@
+SED PROGRAM:
+  c\changed
+
+INPUT:   'a.txt' line 1
+PATTERN: one
+COMMAND: c\changed
+
+changed
+END-OF-CYCLE:
+INPUT:   'a.txt' line 2
+PATTERN: two
+COMMAND: c\changed
+
+changed
+END-OF-CYCLE:
+INPUT:   'a.txt' line 3
+PATTERN: three
+COMMAND: c\changed
+
+changed
+END-OF-CYCLE:

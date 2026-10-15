@@ -1,0 +1,3 @@
+sed -u 'N;P;D' a.txt
+sed -u -n '$=' a.txt
+sed -u 2Q a.txt

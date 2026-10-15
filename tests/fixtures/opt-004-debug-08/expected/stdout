@@ -1,0 +1,22 @@
+SED PROGRAM:
+  b end
+  s/x/y/
+  :end
+INPUT:   'a.txt' line 1
+PATTERN: one
+COMMAND: b end
+COMMAND: :end
+END-OF-CYCLE:
+one
+INPUT:   'a.txt' line 2
+PATTERN: two
+COMMAND: b end
+COMMAND: :end
+END-OF-CYCLE:
+two
+INPUT:   'a.txt' line 3
+PATTERN: three
+COMMAND: b end
+COMMAND: :end
+END-OF-CYCLE:
+three

@@ -1,0 +1,4 @@
+sed -n -l 10 l a.txt
+sed -n -l5 l a.txt
+sed -n --line-length=8 l a.txt
+sed -n --line-length 12 l a.txt

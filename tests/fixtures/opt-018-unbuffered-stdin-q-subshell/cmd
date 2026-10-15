@@ -1,0 +1,1 @@
+{ sed -u 1q; echo "-- next --"; sed -u -n 1p; echo "-- cat --"; cat; } < in.txt

@@ -1,0 +1,2 @@
+printf 'a\0b\0c\0' | sed -z 2q | od -c
+printf 'a\0b\0c\0' | sed -z 2Q | od -c

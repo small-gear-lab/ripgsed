@@ -1,0 +1,5 @@
+sed -n -i '2{p;q5}' a.txt; echo $?
+cat a.txt
+sed -n '1w out.txt
+2q6' b.txt; echo $?
+cat out.txt

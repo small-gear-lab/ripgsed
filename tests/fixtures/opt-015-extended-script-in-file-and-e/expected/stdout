@@ -1,0 +1,11 @@
+ba
+c(a)(b)
+0
+sed: file s.sed line 2: invalid reference \2 on `s' command's RHS
+1
+ba
+c(a)(b)
+0
+ba
+C(a)(b)
+0

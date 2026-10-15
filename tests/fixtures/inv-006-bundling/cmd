@@ -1,0 +1,8 @@
+sed -ne 2p a.txt
+sed -nE '/(o)/p' a.txt
+sed -nEe '/(o)/p' a.txt
+sed -nrs '$p' a.txt b.txt
+sed -nf s.sed a.txt
+sed -ns '$p' a.txt b.txt
+sed -nzE 's/(o)/0/p' a.txt | tr '\0' '@'
+echo

@@ -1,0 +1,2 @@
+sed 's/(a)/[\1]/' a.txt -E
+sed 's/(a)/[\1]/' -E a.txt

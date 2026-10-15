@@ -1,0 +1,2 @@
+sed -Ei 's/(o)n(e)/\2\1/' a.txt
+cat a.txt; ls

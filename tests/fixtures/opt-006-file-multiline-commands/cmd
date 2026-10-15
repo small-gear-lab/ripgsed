@@ -1,0 +1,12 @@
+cat > s.sed <<'EOF'
+2{
+  s/two/TWO/
+  a\
+after two\
+second appended line
+}
+$i\
+before last
+y/abc/xyz/
+EOF
+sed -f s.sed a.txt

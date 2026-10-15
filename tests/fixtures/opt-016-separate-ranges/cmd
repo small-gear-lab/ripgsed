@@ -1,0 +1,13 @@
+sed -n '/two/,/beta/p' a.txt b.txt
+echo ---
+sed -s -n '/two/,/beta/p' a.txt b.txt
+echo ---
+sed -s -n '/two/,$p' a.txt b.txt
+echo ---
+sed -s -n '2,$p' a.txt b.txt
+echo ---
+sed -s -n '2,+1p' a.txt b.txt
+echo ---
+sed -s -n '/one/,+5p' a.txt b.txt
+echo ---
+sed -s '2,3d' a.txt b.txt

@@ -1,0 +1,6 @@
+sed --help > out; echo $?
+test -s out && echo nonempty
+sed --he > out2; echo $?
+test -s out2 && echo nonempty
+sed --help 2>&1 >/dev/null | wc -c | awk '{ print ($1 == 0) ? "stderr-empty" : "stderr-nonempty" }'
+rm -f out out2

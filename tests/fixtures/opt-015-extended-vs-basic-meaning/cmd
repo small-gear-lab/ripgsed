@@ -1,0 +1,12 @@
+echo 'a+b (c) a|b {2}' > t
+sed 's/a+/X/' t
+sed -E 's/a+/X/' t
+sed 's/(c)/[&]/' t
+sed -E 's/\(c\)/[&]/' t
+sed 's/a\|b/_/g' t
+sed -E 's/a\|b/_/g' t
+sed -E 's/a|b/_/g' t
+sed 's/{2}/Z/' t
+sed -E 's/\{2\}/Z/' t
+sed 's/b\+/Q/' t
+sed -E 's/b\+/Q/' t 2>&1

@@ -1,0 +1,12 @@
+printf 'a\0b\0' | sed -z 'a\
+text' | od -c
+echo ---
+printf 'a\0b\0' | sed -z 'i\
+text' | od -c
+echo ---
+printf 'a\0b\0' | sed -z '1c\
+text' | od -c
+echo ---
+printf 'a\0b\0' | sed -z '$!d;a x' | od -c
+echo ---
+printf 'a\0b\0' | sed -z '=' | od -c

@@ -1,0 +1,17 @@
+SED PROGRAM:
+  =
+  l
+  n
+  q 3
+  Q
+INPUT:   'a.txt' line 1
+PATTERN: one
+COMMAND: =
+1
+COMMAND: l
+one$
+COMMAND: n
+one
+PATTERN: two
+COMMAND: q 3
+two

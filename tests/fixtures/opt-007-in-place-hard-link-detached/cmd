@@ -1,0 +1,4 @@
+ln a.txt h.txt
+sed -i 's/one/ONE/' a.txt
+cat a.txt
+cat h.txt

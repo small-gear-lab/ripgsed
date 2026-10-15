@@ -1,0 +1,18 @@
+one
+replaced
+three
+---
+one
+multi
+line
+three
+---
+one
+  keep-leading-space
+two
+three
+---
+ONE
+two
+three
+end
