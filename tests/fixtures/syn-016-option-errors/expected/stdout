@@ -1,7 +1,16 @@
+Usage: sed [OPTION]... {script-only-if-no-other-script} [input-file]...
 status=1
+sed: option requires an argument -- 'e'
+Usage: sed [OPTION]... {script-only-if-no-other-script} [input-file]...
 status=1
+sed: option requires an argument -- 'f'
+Usage: sed [OPTION]... {script-only-if-no-other-script} [input-file]...
 status=1
+sed: unrecognized option '--bogus'
+Usage: sed [OPTION]... {script-only-if-no-other-script} [input-file]...
 status=1
+sed: invalid option -- 'k'
+Usage: sed [OPTION]... {script-only-if-no-other-script} [input-file]...
 status=1
 a
 a

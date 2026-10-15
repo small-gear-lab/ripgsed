@@ -47,7 +47,7 @@ SYN-012	script-syntax	# comments	verified	sed scripts
 SYN-013	script-syntax	#n on the first line of the script forces -n	verified	sed scripts	only when the first two characters of the script are exactly #n followed by newline or end
 SYN-014	script-syntax	{ } grouping and nesting	verified	sed scripts	
 SYN-015	script-syntax	! negation, repeated and with spaces after it	verified	sed scripts	
-SYN-016	script-syntax	error messages with expression and character position	partial	sed scripts	message text must match GNU sed in the C locale (D5)
+SYN-016	script-syntax	error messages with expression and character position	verified	sed scripts	message text must match GNU sed in the C locale (D5)
 CMD-001	command	a	verified	sed commands list	append text at end of cycle or when the next line is read; two addresses allowed
 CMD-002	command	b	verified	sed commands list	branch to label or end of script
 CMD-003	command	c	verified	sed commands list	change; behavior with ranges and with ! differs from a plain delete

@@ -1,16 +1,11 @@
-echo a | sed
-echo "status=$?"
-echo a | sed -e
-echo "status=$?"
-echo a | sed -f
-echo "status=$?"
-echo a | sed --bogus p
-echo "status=$?"
-echo a | sed -k p
-echo "status=$?"
-echo a | sed -l x p
-echo "status=$?"
-echo a | sed --line-length=x p
-echo "status=$?"
-echo a | sed -z -s -n -E -r --posix p
-echo "status=$?"
+# The full usage text that follows the first line differs on purpose (D5/DESIGN.md), so only
+# the "Usage:" line and the "sed:" messages are compared.
+run() { echo a | "$@" 2>err; s=$?; awk '/^(sed:|Usage:)/' err; echo "status=$s"; }
+run sed
+run sed -e
+run sed -f
+run sed --bogus p
+run sed -k p
+run sed -l x p
+run sed --line-length=x p
+run sed -z -s -n -E -r --posix p

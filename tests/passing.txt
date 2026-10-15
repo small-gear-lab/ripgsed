@@ -1715,6 +1715,7 @@ syn-016-error-position-second-e
 syn-016-error-positions-in-script-file
 syn-016-extra-characters
 syn-016-misc-command-errors
+syn-016-option-errors
 syn-016-s-command-errors
 syn-016-unknown-and-missing-commands
 syn-016-y-command-errors
