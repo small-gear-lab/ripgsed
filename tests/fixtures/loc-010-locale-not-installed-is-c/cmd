@@ -1,0 +1,16 @@
+mk() { localedef -f UTF-8 -i "${1%%.*}" "$PWD/loc/$1" > /dev/null 2>&1; }
+mk en_US.UTF-8
+export LOCPATH=$PWD/loc
+unset LC_ALL
+with() { ( for kv; do export "$kv"; done; t ); }
+t() { printf 'é日\n' | sed 's/./X/g'; printf 'é\n' | sed 's/[[:alpha:]]/X/'; printf 'é\n' | sed 's/[a-z]/X/'; }
+echo "-- not installed"; with LC_ALL=xx_XX.UTF-8
+echo "-- wrong spelling"; with LC_ALL=EN_US.UTF-8
+echo "-- installed"; with LC_ALL=en_US.UTF-8
+echo "-- LANG not installed"; with LANG=xx_XX.UTF-8
+echo "-- LC_ALL wins over a bad LANG"; with LC_ALL=en_US.UTF-8 LANG=xx_XX.UTF-8
+echo "-- bad LC_COLLATE spoils LC_CTYPE too"; with LC_CTYPE=en_US.UTF-8 LC_COLLATE=xx_XX.UTF-8
+echo "-- bad LC_MESSAGES spoils LC_CTYPE too"; with LC_CTYPE=en_US.UTF-8 LC_MESSAGES=xx_XX.UTF-8
+echo "-- bad LANG spoils LC_CTYPE too"; with LC_CTYPE=en_US.UTF-8 LANG=xx_XX.UTF-8
+echo "-- LC_ALL empty"; with LC_ALL= LC_CTYPE=en_US.UTF-8
+rm -rf loc

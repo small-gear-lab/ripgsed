@@ -1,0 +1,14 @@
+mk() { localedef -f UTF-8 -i "${1%%.*}" "$PWD/loc/$1" > /dev/null 2>&1; }
+mk en_US.UTF-8
+export LOCPATH=$PWD/loc LC_ALL=en_US.UTF-8
+for c in i I ı İ s S ſ k K ß ẞ ǆ ǅ Ǆ ς σ Σ é É; do
+  for p in i s k ß ǆ σ é É; do
+    printf '%s' "$c" | sed -n "/^$p\$/I{s/.*/$c ~ $p/;p}"
+  done
+done
+printf 'iIıİßǆǅς\n' | sed 's/.*/\U&/'
+printf 'iIıİßǄǅΣ\n' | sed 's/.*/\L&/'
+printf 'ǆǅß\n' | sed 's/.*/\u&/'
+printf 'ǄǅÉ\n' | sed 's/.*/\l&/'
+printf 'éÉ\n' | sed 's/\(é\)\1/X/I'
+rm -rf loc

@@ -1,0 +1,20 @@
+mk() { localedef -f UTF-8 -i "${1%%.*}" "$PWD/loc/$1" > /dev/null 2>&1; }
+mk en_US.UTF-8
+mk tr_TR.UTF-8
+export LOCPATH=$PWD/loc
+for l in en_US.UTF-8 tr_TR.UTF-8; do
+  echo "== $l"
+  export LC_ALL=$l
+  printf 'é\nÉ\nİ\nı\n日\n５\n٣\n²\n—\n¡\n \n\n' | sed -n '/^[[:alpha:]]$/p' | paste -sd' '
+  printf 'é\nÉ\nİ\nı\n日\n５\n٣\n²\n—\n¡\n' | sed -n '/^[[:upper:]]$/p' | paste -sd' '
+  printf 'é\nÉ\nİ\nı\n日\n５\n٣\n²\n—\n¡\n' | sed -n '/^[[:lower:]]$/p' | paste -sd' '
+  printf 'é\nÉ\nİ\nı\n日\n５\n٣\n²\n—\n¡\n' | sed -n '/^[[:upper:]]$/Ip' | paste -sd' '
+  printf 'é\nÉ\nİ\nı\n日\n５\n٣\n²\n—\n¡\n' | sed -n '/^[[:punct:]]$/p' | paste -sd' '
+  printf 'é\nÉ\nİ\nı\n日\n５\n٣\n²\n—\n¡\n' | sed -n '/^\w$/p' | paste -sd' '
+  printf 'é\nÉ\nİ\nı\n日\n５\n٣\n²\n—\n¡\n' | sed -n '/^\W$/p' | paste -sd' '
+  printf 'été à Paris, ça va\n' | sed 's/\b/|/g'
+  printf 'été à Paris, ça va\n' | sed 's/\</[/g;s/\>/]/g'
+  printf 'été à Paris, ça va\n' | sed 's/\w\+/<&>/g'
+  printf 'été à Paris, ça va\n' | sed 's/\B/_/g'
+done
+rm -rf loc

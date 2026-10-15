@@ -1,0 +1,56 @@
+-- LC_CTYPE en_US, LC_COLLATE C.UTF-8
+XX
+X
+é
+X
+ñ
+sed: -e expression #1, char 10: Invalid range end
+-- LC_CTYPE C.UTF-8, LC_COLLATE en_US
+XX
+X
+X
+X
+X
+sed: -e expression #1, char 10: Invalid range end
+-- LC_CTYPE C, LC_COLLATE en_US
+XXXXX
+é
+é
+É
+ñ
+sed: -e expression #1, char 10: Invalid range end
+-- LC_CTYPE en_US, LC_COLLATE C
+XX
+X
+é
+X
+ñ
+sed: -e expression #1, char 10: Invalid range end
+-- LC_ALL beats both
+XX
+X
+é
+X
+ñ
+sed: -e expression #1, char 10: Invalid range end
+-- LC_COLLATE beats LANG
+XX
+X
+é
+X
+ñ
+sed: -e expression #1, char 10: Invalid range end
+-- LC_CTYPE beats LANG
+XX
+X
+X
+X
+X
+sed: -e expression #1, char 10: Invalid range end
+-- LANG alone
+XX
+X
+X
+X
+X
+sed: -e expression #1, char 10: Invalid range end

@@ -27,6 +27,20 @@ Everything under `cmd`, `stdin`, `files/`, and `env` is written for this project
 - Cover the ordinary case and the edge cases from the item's `notes` column. Error cases (bad syntax, missing files) are fixtures too, because stderr and the exit status must match.
 - Name the file in `covers`; a fixture without a known item fails the test.
 
+## Fixtures that need a locale
+
+A locale that is not installed on every machine (`en_US.UTF-8`, `tr_TR.UTF-8`, ...) is made by the fixture itself, in its working directory, and removed at the end; `LOCPATH` points the C library at it:
+
+```sh
+mk() { localedef -f UTF-8 -i "${1%%.*}" "$PWD/loc/$1" > /dev/null 2>&1; }
+mk tr_TR.UTF-8
+export LOCPATH=$PWD/loc LC_ALL=tr_TR.UTF-8
+...
+rm -rf loc
+```
+
+This needs `localedef` and the definitions in `/usr/share/i18n` (Debian and Ubuntu: the package `locales`; CI installs it). The default environment of a fixture is `LC_ALL=C`, so a fixture that selects the locale with other variables starts with `unset LC_ALL`. `tools/locale-diff.py` compares every Unicode scalar value with GNU sed in such locales (`tests/locale_differential.rs` runs a part of it).
+
 ## Generating the expected results
 
 ```sh

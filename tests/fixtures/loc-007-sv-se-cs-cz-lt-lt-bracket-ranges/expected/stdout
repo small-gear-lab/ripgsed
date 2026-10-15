@@ -1,0 +1,32 @@
+== sv_SE.UTF-8
+[a-z]: a z š č i y ß s x
+sed: -e expression #1, char 10: Invalid range end
+[å-ö]: å ä ö
+[s-z]: z š y ß s x
+[c-d]: č
+[y-z]: z y
+[i-j]: i
+== cs_CZ.UTF-8
+[a-z]: a z å ä ö ü i y ß s x
+[a-å]: a å
+[å-ö]: å ä ö i
+[s-z]: z ü y ß s x
+[c-d]:
+[y-z]: z y
+[i-j]: i
+== lt_LT.UTF-8
+[a-z]: a z å ä ö ü i y ß s x
+[a-å]: a å
+[å-ö]: å ä ö i
+[s-z]: z ü y ß s x
+[c-d]:
+[y-z]: z y
+[i-j]: i
+== de_DE.UTF-8
+[a-z]: a z å ä ö ü š č i y ß s x
+[a-å]: a å
+[å-ö]: å ä ö č i
+[s-z]: z ü š y ß s x
+[c-d]: č
+[y-z]: z y
+[i-j]: i

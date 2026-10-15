@@ -16,6 +16,10 @@ jobs:
       RIPGSED_FIXTURE_TIMEOUT: "120"
     steps:
       - uses: actions/checkout@v4
+      # Fixtures of the locale items (LOC-007 and later) make locales with localedef from the
+      # definitions in /usr/share/i18n, so the `locales` package must be there.
+      - name: Locale definitions and localedef
+        run: sudo apt-get update && sudo apt-get install -y locales
       - name: Toolchain
         run: rustup toolchain install 1.85 --profile minimal && rustup default 1.85
       # The runner starts jobs with SIGPIPE ignored; the fixtures expect the default.
@@ -27,6 +31,10 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+      # Fixtures of the locale items (LOC-007 and later) make locales with localedef from the
+      # definitions in /usr/share/i18n, so the `locales` package must be there.
+      - name: Locale definitions and localedef
+        run: sudo apt-get update && sudo apt-get install -y locales
       - name: The reference sed must be GNU sed 4.9
         run: sed --version | sed -n '1p'
       - name: Regenerate the expected results

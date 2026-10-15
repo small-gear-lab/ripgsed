@@ -1,0 +1,19 @@
+mk() { localedef -f UTF-8 -i "${1%%.*}" "$PWD/loc/$1" > /dev/null 2>&1; }
+mk en_US.UTF-8
+export LOCPATH=$PWD/loc LC_ALL=en_US.UTF-8
+printf '3\n٣\n²\n¼\nx\n' | sed -n '/^[0-9]$/p'
+printf '3\n٣\n²\n¼\nx\n' | sed -n '/^[1-5]$/p'
+printf '3\n٣\n²\n¼\nx\n' | sed -n '/^[0-9x]$/p'
+printf '3\n٣\n²\n¼\nx\n' | sed -n '/^[0-9a-z]$/p'
+printf '3\n٣\n²\n¼\nx\n' | sed -n '/^[0-9[:alpha:]]$/p'
+printf '3\n٣\n²\n¼\nx\n' | sed -n '/^[^0-9]$/p'
+printf '3\n٣\n²\n¼\nx\n' | sed -n '/^[[:digit:]]$/p'
+printf '3\n٣\n²\n¼\nx\n' | sed 's/[0-9]/N/'
+printf '3٣²\n' | sed 's/[0-9]/N/g'
+printf '٣²\n' | sed 's/[0-9]/N/g'
+printf 'x ٣ 5 ٣\n' | sed 's/[0-9]\+/N/g'
+printf 'x ٣ 5 ٣\n' | sed 's/[0-9a]/N/g'
+printf '٣ x\n' | sed 's/[0-9a]/N/g'
+printf '5٣\n٣\n' | sed -n '/[0-9]/p'
+printf '5٣\n٣\n' | sed -n '/[[:digit:]]/p'
+rm -rf loc

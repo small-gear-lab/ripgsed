@@ -1,0 +1,36 @@
+-- not installed
+XXXXX
+é
+é
+-- wrong spelling
+XXXXX
+é
+é
+-- installed
+XX
+X
+X
+-- LANG not installed
+XXXXX
+é
+é
+-- LC_ALL wins over a bad LANG
+XX
+X
+X
+-- bad LC_COLLATE spoils LC_CTYPE too
+XXXXX
+é
+é
+-- bad LC_MESSAGES spoils LC_CTYPE too
+XXXXX
+é
+é
+-- bad LANG spoils LC_CTYPE too
+XXXXX
+é
+é
+-- LC_ALL empty
+XX
+X
+é

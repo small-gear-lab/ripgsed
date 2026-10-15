@@ -1,0 +1,22 @@
+mk() { localedef -f UTF-8 -i "${1%%.*}" "$PWD/loc/$1" > /dev/null 2>&1; }
+mk en_US.UTF-8
+export LOCPATH=$PWD/loc
+unset LC_ALL
+with() { ( for kv; do export "$kv"; done; t ); }
+t() {
+  printf 'é日\n' | sed 's/./X/g'
+  printf 'é\n' | sed 's/[[:alpha:]]/X/'
+  printf 'é\n' | sed 's/[a-z]/X/'
+  printf 'É\n' | sed 's/é/X/I'
+  printf 'ñ\n' | sed 's/[[=n=]]/X/'
+  printf 'a\n' | sed 's/[b-a]/X/' 2>&1
+}
+echo "-- LC_CTYPE en_US, LC_COLLATE C.UTF-8"; with LC_CTYPE=en_US.UTF-8 LC_COLLATE=C.UTF-8
+echo "-- LC_CTYPE C.UTF-8, LC_COLLATE en_US"; with LC_CTYPE=C.UTF-8 LC_COLLATE=en_US.UTF-8
+echo "-- LC_CTYPE C, LC_COLLATE en_US"; with LC_CTYPE=C LC_COLLATE=en_US.UTF-8
+echo "-- LC_CTYPE en_US, LC_COLLATE C"; with LC_CTYPE=en_US.UTF-8 LC_COLLATE=C
+echo "-- LC_ALL beats both"; with LC_ALL=C.UTF-8 LC_CTYPE=en_US.UTF-8 LC_COLLATE=en_US.UTF-8
+echo "-- LC_COLLATE beats LANG"; with LANG=en_US.UTF-8 LC_COLLATE=C.UTF-8
+echo "-- LC_CTYPE beats LANG"; with LANG=en_US.UTF-8 LC_CTYPE=C.UTF-8
+echo "-- LANG alone"; with LANG=en_US.UTF-8
+rm -rf loc

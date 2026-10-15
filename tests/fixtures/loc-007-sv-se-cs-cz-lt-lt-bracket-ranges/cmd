@@ -1,0 +1,13 @@
+mk() { localedef -f UTF-8 -i "${1%%.*}" "$PWD/loc/$1" > /dev/null 2>&1; }
+mk sv_SE.UTF-8
+mk cs_CZ.UTF-8
+mk lt_LT.UTF-8
+mk de_DE.UTF-8
+export LOCPATH=$PWD/loc
+for l in sv_SE.UTF-8 cs_CZ.UTF-8 lt_LT.UTF-8 de_DE.UTF-8; do
+  echo "== $l"
+  for r in 'a-z' 'a-å' 'å-ö' 's-z' 'c-d' 'y-z' 'i-j'; do
+    printf 'a\nz\nå\nä\nö\nü\nš\nž\nč\nch\ni\ny\nß\ns\nx\n' | LC_ALL=$l sed -n "/^[$r]\$/{s/.*/&/;H};\${x;s/\\n/ /g;s/^/[$r]:/;p}" 2>&1
+  done
+done
+rm -rf loc

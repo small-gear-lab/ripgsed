@@ -156,6 +156,11 @@ LOC-003	locale	invalid multibyte sequences in input	verified	Locale Consideratio
 LOC-004	locale	case conversion \U \L \u \l with multibyte characters	verified	Locale Considerations	
 LOC-005	locale	character classes and collation in other locales	verified	Locale Considerations	
 LOC-006	locale	LC_ALL, LC_CTYPE, LC_COLLATE, LANG selection	verified	Locale Considerations	
+LOC-007	locale	bracket expression ranges in UTF-8 locales other than C.UTF-8 follow the collation of LC_COLLATE	verified	Locale Considerations	[a-z] takes é in en_US; [b-a] is an error by collation; a line must also match with ranges between ASCII digits read by code point
+LOC-008	locale	equivalence classes and collating symbols in UTF-8 locales other than C.UTF-8	verified	Locale Considerations	[[=a=]] takes à and á in en_US; the collating symbols the locale knows
+LOC-009	locale	letter case rules of the locale: I flag, \U \L \u \l, back-references under I	verified	Locale Considerations	Turkish i/İ and ı/I; ß, ǆ, ς
+LOC-010	locale	a locale name that is not installed gives the C locale in every category	verified	Locale Considerations	setlocale fails as a whole, also for the categories that could be loaded
+LOC-011	locale	LC_CTYPE (characters, classes, case) and LC_COLLATE (ranges) are chosen separately; LOCPATH	verified	Locale Considerations	
 CYC-001	cycle	read a line, strip the newline, run the script, auto-print, next cycle	verified	Execution Cycle	
 CYC-002	cycle	missing final newline preserved on output	verified	Execution Cycle	a newline is added only when more output follows on the same stream
 CYC-003	cycle	hold space persists across cycles; pattern space is cleared	verified	Execution Cycle	

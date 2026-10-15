@@ -1,0 +1,15 @@
+mk() { localedef -f UTF-8 -i "${1%%.*}" "$PWD/loc/$1" > /dev/null 2>&1; }
+mk en_US.UTF-8
+export LOCPATH=$PWD/loc LC_ALL=en_US.UTF-8
+printf 'a\nà\ná\nä\nA\nb\nã\n' | sed -n '/^[[=a=]]$/p'
+printf 'e\nè\né\nE\nf\n' | sed -n '/^[[=e=]]$/p'
+printf 'a\nà\nb\n' | sed -n '/^[[.a.]]$/p'
+printf 'a\nà\nb\n' | sed -n '/^[[.a.]-b]$/p'
+printf -- '-\n.\na\n' | sed -n '/^[[.-.]]$/p'
+printf 'a\n' | sed 's/[[.space.]]/X/'; echo "status $?"
+printf 'a\n' | sed 's/[[.hyphen.]]/X/'; echo "status $?"
+printf 'a\n' | sed 's/[[=ab=]]/X/'; echo "status $?"
+printf 'a\n' | sed 's/[[:foo:]]/X/'; echo "status $?"
+printf 'a\n' | sed 's/[[=a=]-z]/X/'; echo "status $?"
+printf 'a\n' | sed 's/[a-[=z=]]/X/'; echo "status $?"
+rm -rf loc

@@ -1,0 +1,19 @@
+mk() { localedef -f UTF-8 -i "${1%%.*}" "$PWD/loc/$1" > /dev/null 2>&1; }
+mk tr_TR.UTF-8
+export LOCPATH=$PWD/loc LC_ALL=tr_TR.UTF-8
+for c in i I ı İ; do
+  printf '%s -> ' "$c"; printf '%s\n' "$c" | sed 's/i/X/I'
+  printf '%s -> ' "$c"; printf '%s\n' "$c" | sed 's/I/X/I'
+  printf '%s -> ' "$c"; printf '%s\n' "$c" | sed 's/[a-z]/X/I'
+  printf '%s -> ' "$c"; printf '%s\n' "$c" | sed 's/[iı]/X/I'
+done
+printf 'iI\n' | sed 's/.*/\U&/'
+printf 'iIıİ\n' | sed 's/.*/\L&/'
+printf 'iI\n' | sed 's/.*/\u&/'
+printf 'Iİ\n' | sed 's/.*/\l&/'
+printf 'iİ\n' | sed 's/\(i\)\1/X/I'
+printf 'iI\n' | sed 's/\(i\)\1/X/I'
+printf 'ıI\n' | sed 's/\(ı\)\1/X/I'
+printf 'ıi\n' | sed 's/\(ı\)\1/X/I'
+printf 'istanbul İSTANBUL\n' | sed 's/istanbul/X/Ig'
+rm -rf loc
