@@ -1,0 +1,8 @@
+[package]
+name = "ripgsed"
+version = "0.1.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+authors = ["marie-222 <289302950+marie-222@users.noreply.github.com>"]
+
+[dependencies]
