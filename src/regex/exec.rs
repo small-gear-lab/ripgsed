@@ -1205,6 +1205,25 @@ impl<'s, 'a> Backtracker<'s, 'a> {
             let end = pos + sub.len();
             return (end <= hay.len() && hay[pos..end].eq_ignore_ascii_case(sub)).then_some(sub.len());
         }
+        // `--glibc-compat`: glibc does not match a back-reference under `I` to a group of one
+        // letter whose capital takes more bytes than the letter, when the text is the same letter
+        // (`ɐɐ`: U+0250 has two bytes, U+2C6F three; the capital after the letter, `ɐⱯ`, matches).
+        if self.s.glibc {
+            if let Some((c, l)) = self.s.dec(a) {
+                if a + l == b && hay[pos..].starts_with(&hay[a..b]) {
+                    let u = self.s.upper(c);
+                    let ul = if self.s.mb {
+                        let mut buf = [0u8; 16];
+                        crate::locale::mb_encode(u, &mut buf).unwrap_or(l)
+                    } else {
+                        u.len_utf8()
+                    };
+                    if ul > l {
+                        return None;
+                    }
+                }
+            }
+        }
         let (mut i, mut j) = (a, pos);
         while i < b {
             match (self.s.dec(i), self.s.dec(j)) {

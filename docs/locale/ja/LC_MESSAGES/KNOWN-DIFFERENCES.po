@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ripgsed\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-16 07:06+0900\n"
+"POT-Creation-Date: 2026-10-16 07:50+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: ja <LL@li.org>\n"
@@ -278,6 +278,23 @@ msgstr ""
 
 #: ../../KNOWN-DIFFERENCES.md:25
 msgid ""
+"A back-reference under `I` to a group of one letter whose capital takes more"
+" bytes than the letter does not match the same letter in glibc: `echo ɐɐ | "
+"sed 's/\\(.\\)\\1/X/I'` prints `ɐɐ` (the `ɐ` is two bytes, the `Ɐ` three), "
+"and in Turkish locales `echo ii | sed 's/\\(i\\)\\1/X/I'` prints `ii` (`i` "
+"is one byte, `İ` two); `ɐⱯ` and `iİ` match. By default the match is the one "
+"the definition gives. The rule holds for exactly the 20 letters of `C.UTF-8`"
+" with a longer capital and for the 32 letters of GB18030 (0xa8a1..0xa8bf, "
+"whose capitals have four bytes), checked on every code point."
+msgstr ""
+"`I` の下で、大文字が元の文字よりバイト数の多い 1 文字のグループへの後方参照は、glibc では同じ文字にマッチしません。`echo ɐɐ | "
+"sed 's/\\(.\\)\\1/X/I'` は `ɐɐ` を出力します（`ɐ` は 2 バイト、`Ɐ` は 3 バイト）。トルコ語のロケールでは "
+"`echo ii | sed 's/\\(i\\)\\1/X/I'` が `ii` を出力します（`i` は 1 バイト、`İ` は 2 "
+"バイト）。`ɐⱯ` と `iİ` はマッチします。既定では、定義どおりのマッチになります。この規則は、`C.UTF-8` で大文字が長い 20 "
+"文字と、GB18030 の 32 文字（0xa8a1〜0xa8bf。大文字は 4 バイト）にちょうど当てはまることを、全コードポイントで確かめています。"
+
+#: ../../KNOWN-DIFFERENCES.md:26
+msgid ""
 "Always on, not an option: in `C.UTF-8` (the locale of the tables below) and "
 "in any other UTF-8 locale, what the classes contain, how letters change case"
 " and how a range orders its ends are the locale's, never the corrected "
@@ -292,11 +309,11 @@ msgstr ""
 "ライブラリから生成しており（`tools/gen-classes.py`）、Rust の標準ライブラリではなく glibc の Unicode "
 "バージョンに従います。"
 
-#: ../../KNOWN-DIFFERENCES.md:27
+#: ../../KNOWN-DIFFERENCES.md:28
 msgid "glibc behavior that is not reproduced, even with `--glibc-compat`"
 msgstr "`--glibc-compat` を付けても再現しない glibc の挙動"
 
-#: ../../KNOWN-DIFFERENCES.md:29
+#: ../../KNOWN-DIFFERENCES.md:30
 #, python-format
 msgid ""
 "These are cases where glibc's matcher gives a result that disagrees with the"
@@ -373,7 +390,7 @@ msgstr "一致なし"
 msgid "match `x`"
 msgstr "`x` に一致"
 
-#: ../../KNOWN-DIFFERENCES.md:37
+#: ../../KNOWN-DIFFERENCES.md:38
 #, python-brace-format
 msgid ""
 "The first is a back-reference to a group inside a repetition where something"
@@ -393,7 +410,7 @@ msgstr ""
 "の答えは一致なしか文字化けです。固定幅のグループ（`(ab)+\\1`）は仕様どおりに動きます。重ねた量指定子の下のキャプチャ（`((b?)+*|c){1}`）や、パターンの先頭でない繰り返しの後ろの"
 " `\\B` でも差が出ることがあります。一覧上の項目は `compat/sed.tsv` の RGX-009 と RGX-012 です。"
 
-#: ../../KNOWN-DIFFERENCES.md:39
+#: ../../KNOWN-DIFFERENCES.md:40
 msgid ""
 "With `-z`, a `$` at the start of a pattern that goes on with a negated "
 "bracket expression can hold before a newline that the match then consumes: "
@@ -410,11 +427,11 @@ msgstr ""
 "-E 's/\\W^/<&>/g'` で、GNU sed は `a`、改行、`a` "
 "の改行に一致します。どちらもランダムなパターン約2300件のうち1件ほどで見つかりました。"
 
-#: ../../KNOWN-DIFFERENCES.md:41
+#: ../../KNOWN-DIFFERENCES.md:42
 msgid "UTF-8 cases of the C library that are not reproduced"
 msgstr "再現していない C ライブラリの UTF-8 の挙動"
 
-#: ../../KNOWN-DIFFERENCES.md:43
+#: ../../KNOWN-DIFFERENCES.md:44
 msgid ""
 "A byte sequence that is structured like a UTF-8 character but is not one (a "
 "surrogate such as `ED A0 80`, or a code point above U+10FFFF such as `F4 90 "
@@ -425,7 +442,7 @@ msgstr ""
 "U+10FFFF を超えるコードポイント）を、glibc は一部の場所（`.*`、`\\W`、`[^a]`、`\\b`）では 1 "
 "文字として扱い、別の場所では扱いません。ripgsed はどこでも不正なバイトとして扱います。"
 
-#: ../../KNOWN-DIFFERENCES.md:44
+#: ../../KNOWN-DIFFERENCES.md:45
 msgid ""
 "With the `I` flag, glibc matches a pattern character against the input in "
 "one direction only: `s/В/X/I` does not match `U+1C80` although both fold to "
@@ -440,20 +457,6 @@ msgstr ""
 "に一致せず、`[µ]` は `Μ` と `μ` に一致します。ripgsed はリテラルを大文字に畳んで双方向に、ブラケットは各文字の 2 "
 "つの大小で照合します。ほかの UTF-8 ロケールでは、`I` の下の文字やブラケット式は C ライブラリのものです。小さなキリル文字の異体字 "
 "U+1C80..U+1C88 がそれ自身にしか取られないという GNU sed 自身の規則が 1 つあり（D11）、こうしたことは起きません。"
-
-#: ../../KNOWN-DIFFERENCES.md:45
-msgid ""
-"A back-reference under `I` to a group of one letter whose capital is longer "
-"in UTF-8 than the letter does not match the same letter in glibc, and "
-"ripgsed matches it: `echo ɐɐ | sed 's/\\(.\\)\\1/X/I'` prints `ɐɐ` (the `ɐ` "
-"is two bytes, the `Ɐ` three), and in Turkish locales `echo ii | sed "
-"'s/\\(i\\)\\1/X/I'` prints `ii` (`i` is one byte, `İ` two); `ɐⱯ` and `iİ` "
-"match. The match is the one the definition gives."
-msgstr ""
-"`I` の下で、大文字のほうが UTF-8 で長くなる 1 文字のグループへの後方参照は、glibc では同じ文字に一致せず、ripgsed "
-"は一致します。`echo ɐɐ | sed 's/\\(.\\)\\1/X/I'` は `ɐɐ` を出力し（`ɐ` は 2 バイト、`Ɐ` は 3 "
-"バイト）、トルコ語のロケールでは `echo ii | sed 's/\\(i\\)\\1/X/I'` は `ii` を出力します（`i` は 1 "
-"バイト、`İ` は 2 バイト）。`ɐⱯ` と `iİ` は一致します。一致は定義どおりのものです。"
 
 #: ../../KNOWN-DIFFERENCES.md:46
 msgid ""

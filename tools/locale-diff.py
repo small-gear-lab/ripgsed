@@ -367,7 +367,7 @@ def main():
                 totals["cases"] += 1
                 totals["bad_valid"] += bad_valid
                 totals["bad_invalid"] += bad_invalid
-                known = bad != 0 and (label in KNOWN or (loc == "C.UTF-8" and label in KNOWN_C_UTF8))
+                known = bad != 0 and ((label in KNOWN and not args.glibc_compat) or (loc == "C.UTF-8" and label in KNOWN_C_UTF8))
                 why = KNOWN.get(label, "one-direction letter folding of C.UTF-8")
                 if bad and loc == "zh_CN.GB18030" and label.startswith("/^[^") and label.endswith("$/I="):
                     known, why = True, KNOWN_LOCALE[("zh_CN.GB18030", "/^[^0-9]$/I=")]
