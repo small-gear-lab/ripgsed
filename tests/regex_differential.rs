@@ -377,8 +377,10 @@ fn known_divergence(flags: Flags, pattern: &[u8]) -> Option<&'static str> {
         return Some("group under stacked quantifiers or {0,n}");
     }
     // Under -z, an anchor inside the pattern next to something that can consume a newline
-    // (a negated bracket, \W, \S) can hold at the newline.
-    let eats_newline = pattern.windows(2).any(|w| w == b"[^" || w == b"\\W" || w == b"\\S");
+    // (a negated bracket, \W, \S, \s, [:space:], [:cntrl:]) can hold at the newline.
+    let eats_newline = pattern.windows(2).any(|w| w == b"[^" || w == b"\\W" || w == b"\\S" || w == b"\\s")
+        || pattern.windows(9).any(|w| w == b"[:space:]")
+        || pattern.windows(9).any(|w| w == b"[:cntrl:]");
     let inner_anchor = p.iter().enumerate().any(|(i, &c)| (c == b'^' && i > 0) || (c == b'$' && i + 1 < p.len()));
     if flags.z && eats_newline && inner_anchor {
         return Some("an anchor next to a newline the match consumes under -z");
