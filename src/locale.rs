@@ -252,33 +252,34 @@ mod sys {
         }
     }
 
-    /// Two bytes that `mbrtowc` rejects but that the matcher of the library reads as one
-    /// character under `I` (the negated bracket expression `[^a]` takes them): a bitmap over the
-    /// first and second byte, made on first use.
-    pub fn icase_pair(bytes: &[u8]) -> bool {
-        static TABLE: std::sync::OnceLock<Vec<u64>> = std::sync::OnceLock::new();
-        if bytes.len() < 2 || bytes[0] < 0x80 {
-            return false;
+    /// How many bytes at the start of `bytes` (2 to 4) `mbrtowc` rejects but the matcher of the
+    /// library reads as one character under `I` (the negated bracket expression `[^a]` takes
+    /// them: unassigned codes of GBK and Shift_JIS, of the planes of EUC-TW); 0 for none. The
+    /// longest sequence wins. The answers are remembered.
+    pub fn icase_seq(bytes: &[u8]) -> usize {
+        thread_local! {
+            static SET: Option<LibSet> = LibSet::new(b"[^a]", true).ok();
+            static MEMO: RefCell<HashMap<u64, usize>> = RefCell::default();
         }
-        let table = TABLE.get_or_init(|| {
-            let mut bits = vec![0u64; 1024];
-            if let Ok(set) = LibSet::new(b"[^a]", true) {
-                for b1 in 0x80..=0xffu8 {
-                    for b2 in 0..=0xffu8 {
-                        if b2 == b'\n' || mb_decode(&[b1, b2], 0).is_some()  {
-                            continue;
-                        }
-                        if set.ask_bytes(&[b1, b2]) {
-                            let k = (b1 as usize) << 8 | b2 as usize;
-                            bits[k / 64] |= 1 << (k % 64);
-                        }
-                    }
+        if bytes.len() < 2 || bytes[0] < 0x80 {
+            return 0;
+        }
+        let max = bytes.len().min(4);
+        let key = bytes[..max].iter().fold(max as u64, |k, &b| k << 8 | b as u64);
+        if let Some(n) = MEMO.with(|m| m.borrow().get(&key).copied()) {
+            return n;
+        }
+        let found = SET.with(|set| {
+            let Some(set) = set else { return 0 };
+            for len in (2..=max).rev() {
+                if mb_decode(&bytes[..len], 0).is_none() && set.ask_bytes(&bytes[..len]) {
+                    return len;
                 }
             }
-            bits
+            0
         });
-        let k = (bytes[0] as usize) << 8 | bytes[1] as usize;
-        table[k / 64] >> (k % 64) & 1 == 1
+        MEMO.with(|m| m.borrow_mut().insert(key, found));
+        found
     }
 
     pub fn starts_multibyte(b: u8) -> bool {
@@ -376,6 +377,7 @@ mod sys {
         icase: bool,
         prefix: RefCell<Option<Option<Box<RegexBuf>>>>,
         partials: RefCell<HashMap<u32, usize>>,
+        seqs: RefCell<HashMap<u32, bool>>,
     }
 
     /// Why the library refused a pattern.
@@ -402,7 +404,7 @@ mod sys {
             // SAFETY: `re` is large enough for a `regex_t` and `pat` is NUL-terminated.
             let rc = unsafe { regcomp(&mut *re, pat.as_ptr().cast(), if icase { REG_ICASE } else { 0 }) };
             match rc {
-                0 => Ok(LibSet { re, known: Cell::new(0), member: Cell::new(0), others: RefCell::default(), text: text.to_vec(), icase, prefix: RefCell::new(None), partials: RefCell::default() }),
+                0 => Ok(LibSet { re, known: Cell::new(0), member: Cell::new(0), others: RefCell::default(), text: text.to_vec(), icase, prefix: RefCell::new(None), partials: RefCell::default(), seqs: RefCell::default() }),
                 3 => Err(LibError::Collate),
                 4 => Err(LibError::CType),
                 7 => Err(LibError::Bracket),
@@ -430,6 +432,23 @@ mod sys {
             }
             let hit = self.ask(c);
             self.others.borrow_mut().insert(u, hit);
+            hit
+        }
+
+        /// Whether the library's set holds the character written as these bytes. In a multibyte set
+        /// a character can be written in more than one way (EUC-TW: a character of the first plane
+        /// as two bytes or as four with the plane prefix), and the library answers for the bytes
+        /// it is given, not for what `wcrtomb` makes of the character.
+        pub fn contains_seq(&self, bytes: &[u8]) -> bool {
+            if bytes.len() < 2 || bytes.len() > 4 {
+                return self.ask_bytes(bytes);
+            }
+            let key = bytes.iter().fold(0u32, |k, &b| k << 8 | b as u32);
+            if let Some(&hit) = self.seqs.borrow().get(&key) {
+                return hit;
+            }
+            let hit = self.ask_bytes(bytes);
+            self.seqs.borrow_mut().insert(key, hit);
             hit
         }
 
@@ -540,8 +559,8 @@ mod sys {
         false
     }
 
-    pub fn icase_pair(_bytes: &[u8]) -> bool {
-        false
+    pub fn icase_seq(_bytes: &[u8]) -> usize {
+        0
     }
 
     pub fn mb_decode(_hay: &[u8], _pos: usize) -> Option<(char, usize)> {
@@ -587,6 +606,10 @@ mod sys {
         pub fn partial_len(&self, _bytes: &[u8]) -> usize {
             0
         }
+
+        pub fn contains_seq(&self, _bytes: &[u8]) -> bool {
+            false
+        }
     }
 }
 
@@ -629,10 +652,11 @@ pub fn mb_inside(hay: &[u8], pos: usize) -> bool {
     false
 }
 
-/// Whether the first two bytes are a pair that `mbrtowc` rejects but the matcher of the library
-/// reads as one character in a negated bracket expression under `I` (`--glibc-compat`).
-pub fn icase_pair(bytes: &[u8]) -> bool {
-    sys::icase_pair(bytes)
+/// The length (2 to 4) of a sequence at the start of `bytes` that `mbrtowc` rejects but the matcher
+/// of the library reads as one character in a negated bracket expression under `I`
+/// (`--glibc-compat`); 0 for none.
+pub fn icase_seq(bytes: &[u8]) -> usize {
+    sys::icase_seq(bytes)
 }
 
 /// Whether the byte, alone, is the start of a longer character of a non-UTF-8 multibyte locale

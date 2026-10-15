@@ -259,8 +259,8 @@ impl<'a> Searcher<'a> {
                 // An invalid byte matches no set (`--glibc-compat`: but a negated set under `I`
                 // takes some pairs of bytes that the library reads as one character).
                 let Some((c, len)) = self.dec(pos) else {
-                    let pair = self.glibc && self.mb && cs.negated && cs.icase && cs.lib.is_some() && crate::locale::icase_pair(&self.hay[pos..]);
-                    return pair.then_some(2);
+                    let n = if self.glibc && self.mb && cs.negated && cs.icase && cs.lib.is_some() { crate::locale::icase_seq(&self.hay[pos..]) } else { 0 };
+                    return (n > 0).then_some(n);
                 };
                 // `--glibc-compat`: the matcher of the library takes the first byte(s) of some
                 // characters as a character of its own (the match then ends inside the character).
@@ -272,7 +272,8 @@ impl<'a> Searcher<'a> {
                         }
                     }
                 }
-                if cs.matches_char(c) {
+                let hit = if self.mb { cs.matches_seq(c, &self.hay[pos..pos + len]) } else { cs.matches_char(c) };
+                if hit {
                     return Some(len);
                 }
                 None

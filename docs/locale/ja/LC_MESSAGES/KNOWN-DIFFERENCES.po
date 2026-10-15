@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ripgsed\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-16 07:50+0900\n"
+"POT-Creation-Date: 2026-10-16 08:19+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: ja <LL@li.org>\n"
@@ -245,19 +245,32 @@ msgstr ""
 #: ../../KNOWN-DIFFERENCES.md:23
 msgid ""
 "A negated bracket expression under `I` (`[^a-z]`) takes a few unassigned "
-"two-byte codes of GBK (0xfe61..0xfe6f) and Shift_JIS (0x8461..0x846f, "
-"0x9873..0x987a) as one character, although `mbrtowc` rejects them. By "
-"default such a sequence is not a character. The pairs are found at start-up "
-"by asking the library (`locale::icase_pair`). Checked against every two-byte"
-" sequence of GBK and Shift_JIS."
+"codes of GBK (0xfe61..0xfe6f), Shift_JIS (0x8461..0x846f, 0x9873..0x987a) "
+"and EUC-TW (sixty-five four-byte codes of plane 4) as one character, "
+"although `mbrtowc` rejects them. By default such a sequence is not a "
+"character. The sequences are found by asking the library "
+"(`locale::icase_seq`, two to four bytes, the longest wins). Checked against "
+"every sequence of those sets."
 msgstr ""
-"`I` の下の否定括弧式（`[^a-z]`）は、GBK（0xfe61〜0xfe6f）と "
-"Shift_JIS（0x8461〜0x846f、0x9873〜0x987a）の未割り当ての 2 バイトコードの一部を、`mbrtowc` "
-"が拒むにもかかわらず 1 "
-"文字として取ります。既定では、そのような列は文字ではありません。該当する組は起動時にライブラリへ尋ねて見つけます（`locale::icase_pair`）。GBK"
-" と Shift_JIS のすべての 2 バイト列について確かめています。"
+"`I` "
+"の下の否定括弧式（`[^a-z]`）は、GBK（0xfe61〜0xfe6f）、Shift_JIS（0x8461〜0x846f、0x9873〜0x987a）、EUC-"
+"TW（第 4 面の 4 バイトコード 65 個）の未割り当てコードの一部を、`mbrtowc` が拒むにもかかわらず 1 "
+"文字として取ります。既定では、そのような列は文字ではありません。該当する列はライブラリに尋ねて見つけます（`locale::icase_seq`。2〜4"
+" バイトで、最も長いものが勝ちます）。それらの集合のすべての列について確かめています。"
 
 #: ../../KNOWN-DIFFERENCES.md:24
+msgid ""
+"A character that can be written in more than one way (EUC-TW: a character of"
+" the first plane as two bytes or as four with the plane prefix) is looked up"
+" in a bracket expression by the bytes it is written with, as the library "
+"does, not by the bytes `wcrtomb` makes of it: `[[=a=]]` does not hold the "
+"fullwidth `Ａ` written as `8e a1 a4 c1`. This is always on."
+msgstr ""
+"複数の書き方がある文字（EUC-TW：第 1 面の文字は 2 バイトでも、面の接頭辞付きの 4 "
+"バイトでも書けます）は、括弧式の中では、ライブラリと同じく、その文字が書かれているバイト列で調べます。`wcrtomb` "
+"が作るバイト列では調べません。`[[=a=]]` は、`8e a1 a4 c1` と書かれた全角の `Ａ` を含みません。これは常に有効です。"
+
+#: ../../KNOWN-DIFFERENCES.md:25
 msgid ""
 "A range that starts at a collating symbol (`[[.a.]-z]`) takes the first byte"
 " alone of eight Big5 codes (0xf9e9..0xf9eb, 0xf9f9..0xf9fd) and of the four-"
@@ -276,7 +289,7 @@ msgstr ""
 " バイト進みます。ライブラリに尋ねて見つけ（`LibSet::partial_len`）、`tools/locale-diff.py` で Big5 と"
 " EUC-TW について確かめています。"
 
-#: ../../KNOWN-DIFFERENCES.md:25
+#: ../../KNOWN-DIFFERENCES.md:26
 msgid ""
 "A back-reference under `I` to a group of one letter whose capital takes more"
 " bytes than the letter does not match the same letter in glibc: `echo ɐɐ | "
@@ -293,7 +306,7 @@ msgstr ""
 "バイト）。`ɐⱯ` と `iİ` はマッチします。既定では、定義どおりのマッチになります。この規則は、`C.UTF-8` で大文字が長い 20 "
 "文字と、GB18030 の 32 文字（0xa8a1〜0xa8bf。大文字は 4 バイト）にちょうど当てはまることを、全コードポイントで確かめています。"
 
-#: ../../KNOWN-DIFFERENCES.md:26
+#: ../../KNOWN-DIFFERENCES.md:27
 msgid ""
 "Always on, not an option: in `C.UTF-8` (the locale of the tables below) and "
 "in any other UTF-8 locale, what the classes contain, how letters change case"
@@ -309,11 +322,11 @@ msgstr ""
 "ライブラリから生成しており（`tools/gen-classes.py`）、Rust の標準ライブラリではなく glibc の Unicode "
 "バージョンに従います。"
 
-#: ../../KNOWN-DIFFERENCES.md:28
+#: ../../KNOWN-DIFFERENCES.md:29
 msgid "glibc behavior that is not reproduced, even with `--glibc-compat`"
 msgstr "`--glibc-compat` を付けても再現しない glibc の挙動"
 
-#: ../../KNOWN-DIFFERENCES.md:30
+#: ../../KNOWN-DIFFERENCES.md:31
 #, python-format
 msgid ""
 "These are cases where glibc's matcher gives a result that disagrees with the"
@@ -390,7 +403,7 @@ msgstr "一致なし"
 msgid "match `x`"
 msgstr "`x` に一致"
 
-#: ../../KNOWN-DIFFERENCES.md:38
+#: ../../KNOWN-DIFFERENCES.md:39
 #, python-brace-format
 msgid ""
 "The first is a back-reference to a group inside a repetition where something"
@@ -410,7 +423,7 @@ msgstr ""
 "の答えは一致なしか文字化けです。固定幅のグループ（`(ab)+\\1`）は仕様どおりに動きます。重ねた量指定子の下のキャプチャ（`((b?)+*|c){1}`）や、パターンの先頭でない繰り返しの後ろの"
 " `\\B` でも差が出ることがあります。一覧上の項目は `compat/sed.tsv` の RGX-009 と RGX-012 です。"
 
-#: ../../KNOWN-DIFFERENCES.md:40
+#: ../../KNOWN-DIFFERENCES.md:41
 msgid ""
 "With `-z`, a `$` at the start of a pattern that goes on with a negated "
 "bracket expression can hold before a newline that the match then consumes: "
@@ -427,11 +440,11 @@ msgstr ""
 "-E 's/\\W^/<&>/g'` で、GNU sed は `a`、改行、`a` "
 "の改行に一致します。どちらもランダムなパターン約2300件のうち1件ほどで見つかりました。"
 
-#: ../../KNOWN-DIFFERENCES.md:42
+#: ../../KNOWN-DIFFERENCES.md:43
 msgid "UTF-8 cases of the C library that are not reproduced"
 msgstr "再現していない C ライブラリの UTF-8 の挙動"
 
-#: ../../KNOWN-DIFFERENCES.md:44
+#: ../../KNOWN-DIFFERENCES.md:45
 msgid ""
 "A byte sequence that is structured like a UTF-8 character but is not one (a "
 "surrogate such as `ED A0 80`, or a code point above U+10FFFF such as `F4 90 "
@@ -442,7 +455,7 @@ msgstr ""
 "U+10FFFF を超えるコードポイント）を、glibc は一部の場所（`.*`、`\\W`、`[^a]`、`\\b`）では 1 "
 "文字として扱い、別の場所では扱いません。ripgsed はどこでも不正なバイトとして扱います。"
 
-#: ../../KNOWN-DIFFERENCES.md:45
+#: ../../KNOWN-DIFFERENCES.md:46
 msgid ""
 "With the `I` flag, glibc matches a pattern character against the input in "
 "one direction only: `s/В/X/I` does not match `U+1C80` although both fold to "
@@ -458,7 +471,7 @@ msgstr ""
 "つの大小で照合します。ほかの UTF-8 ロケールでは、`I` の下の文字やブラケット式は C ライブラリのものです。小さなキリル文字の異体字 "
 "U+1C80..U+1C88 がそれ自身にしか取られないという GNU sed 自身の規則が 1 つあり（D11）、こうしたことは起きません。"
 
-#: ../../KNOWN-DIFFERENCES.md:46
+#: ../../KNOWN-DIFFERENCES.md:47
 msgid ""
 "A text of `a`, `i`, or `c` that ends in `\\c` takes the newline GNU sed "
 "appends as its control character (`a x\\c` writes `xJ`)."
@@ -466,7 +479,7 @@ msgstr ""
 "`a`、`i`、`c` のテキストが `\\c` で終わるとき、GNU sed は付け足す改行をその制御文字として取り込みます（`a x\\c` は "
 "`xJ` を書きます）。"
 
-#: ../../KNOWN-DIFFERENCES.md:47
+#: ../../KNOWN-DIFFERENCES.md:48
 msgid ""
 "A range that starts with an invalid collating symbol and ends with a class "
 "(`[[.space.]-[:alpha:]]`) reports `Invalid collation character`, GNU sed "
@@ -475,7 +488,7 @@ msgstr ""
 "無効な照合記号で始まり、クラスで終わる範囲（`[[.space.]-[:alpha:]]`）は、ripgsed では `Invalid "
 "collation character`、GNU sed では `Invalid range end` です。"
 
-#: ../../KNOWN-DIFFERENCES.md:48
+#: ../../KNOWN-DIFFERENCES.md:49
 msgid ""
 "Reading a directory that a symbolic link points to with `--follow-symlinks` "
 "names the target in the read error; GNU sed 4.9 built from the release "
@@ -485,11 +498,11 @@ msgstr ""
 "`--follow-symlinks` でシンボリックリンクの指すディレクトリを読むとき、読み取りエラーには ripgsed "
 "は指す先の名前を出します。GNU sed 4.9 はリリース tarball からビルドしたものがリンクの名前、パッケージ版が指す先の名前を出します。"
 
-#: ../../KNOWN-DIFFERENCES.md:50
+#: ../../KNOWN-DIFFERENCES.md:51
 msgid "Cases of other character sets that are not reproduced"
 msgstr "再現していない、ほかの文字集合の挙動"
 
-#: ../../KNOWN-DIFFERENCES.md:52
+#: ../../KNOWN-DIFFERENCES.md:53
 msgid ""
 "These were found by comparing every byte and every two-byte (and, for EUC-"
 "JP, three-byte) sequence of the sets (`tools/locale-diff.py`) and random "
@@ -500,7 +513,7 @@ msgstr ""
 "diff.py`）、およびランダムなパターン（`tools/locale-"
 "fuzz.py`）を比べて見つけたものです。集合の文字でない列か、特殊なパターンに限ります。"
 
-#: ../../KNOWN-DIFFERENCES.md:54
+#: ../../KNOWN-DIFFERENCES.md:55
 msgid ""
 "In GB18030, under `I`, GNU sed's answers for the letters 0xa8a1..0xa8bf (for"
 " example `[a-z]`, `[^0-9]`) depend on the text around the letter and vary "
@@ -512,7 +525,7 @@ msgstr ""
 "の答えが、その周りのテキストによって変わり、実行ごとにも変わります（同じ入力で 40 回中 24 "
 "回は別の出力）。そのため合わせる対象がありません。ripgsed は、その文字だけを尋ねたときのライブラリの答えを返します。"
 
-#: ../../KNOWN-DIFFERENCES.md:55
+#: ../../KNOWN-DIFFERENCES.md:56
 msgid ""
 "In a replacement, a character of Shift_JIS, GBK or Big5 that ends in a "
 "backslash, followed by another backslash escape (the bytes `95 5c 5c 6e`, a "
@@ -526,7 +539,7 @@ msgstr ""
 "はバックスラッシュも出します。`a`、`i`、`c` のテキストで、そのような文字のあとに `\\x5c` "
 "が作るバックスラッシュがある場合も、同様に読み方が異なります。"
 
-#: ../../KNOWN-DIFFERENCES.md:56
+#: ../../KNOWN-DIFFERENCES.md:57
 msgid ""
 "The messages of the C library that GNU sed prints for a bad bracket "
 "expression (`Invalid range end`, ...) are translated by the library when a "
@@ -539,18 +552,18 @@ msgstr ""
 "など）、ロケールの文字集合で翻訳されて出ます。ripgsed は `C` ロケールと同じく英語の文面を出します（D11）。フィクスチャは "
 "`LANGUAGE=C` を設定しています。"
 
-#: ../../KNOWN-DIFFERENCES.md:58
+#: ../../KNOWN-DIFFERENCES.md:59
 msgid "Reporting the glibc cases upstream"
 msgstr "glibc への報告"
 
-#: ../../KNOWN-DIFFERENCES.md:60
+#: ../../KNOWN-DIFFERENCES.md:61
 msgid ""
 "The back-reference and `\\B` cases above reproduce with plain "
 "`regcomp`/`regexec` (`REG_EXTENDED`), without sed:"
 msgstr ""
 "上の後方参照と `\\B` の例は、sed を使わず素の `regcomp`/`regexec`（`REG_EXTENDED`）でも再現します。"
 
-#: ../../KNOWN-DIFFERENCES.md:68
+#: ../../KNOWN-DIFFERENCES.md:69
 msgid ""
 "Observed with glibc 2.43 (Ubuntu 2.43-2ubuntu2.4). A report to the glibc bug"
 " tracker (component `regex`) should say that POSIX asks for the leftmost-"

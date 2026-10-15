@@ -283,6 +283,19 @@ impl CharSet {
         })
     }
 
+    /// Like `matches_char`, for a character of a multibyte set written as `bytes`: the library is
+    /// asked about those bytes.
+    pub fn matches_seq(&self, c: char, bytes: &[u8]) -> bool {
+        if self.exclude.is_some_and(|b| c as u32 == b as u32 || c == '\n') {
+            return false;
+        }
+        if let Some(lib) = &self.lib {
+            let u = c as u32;
+            return lib.0.contains_seq(bytes) || self.lib_or.iter().any(|&(lo, hi)| lo <= u && u <= hi);
+        }
+        self.matches_char(c)
+    }
+
     pub fn matches_char(&self, c: char) -> bool {
         if self.exclude.is_some_and(|b| c as u32 == b as u32 || c == '\n') {
             return false;
