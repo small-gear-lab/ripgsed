@@ -55,6 +55,14 @@ fn push(out: &mut Vec<u8>, text: &[u8], mode: &mut Mode, next: &mut Mode, locale
             Locale::Utf8 => super::char_len(&text[i..]),
             Locale::C => 1,
         };
+        // In a multibyte locale GNU sed converts a piece of text up to the first NUL or the first
+        // byte that is not part of a character; the rest of the piece is copied as it is. The
+        // character where it stops still uses up a pending `\u` or `\l`.
+        if locale == Locale::Utf8 && (text[i] == 0 || (len == 1 && text[i] >= 0x80)) {
+            *next = Mode::None;
+            out.extend_from_slice(&text[i..]);
+            return;
+        }
         let ch = &text[i..i + len];
         let how = if *next != Mode::None { std::mem::replace(next, Mode::None) } else { *mode };
         convert(out, ch, how, locale);

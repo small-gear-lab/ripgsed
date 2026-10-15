@@ -849,6 +849,9 @@ impl Parser {
         let Some(replacement_text) = self.read_delimited(delim, false) else {
             return Err(self.error("unterminated `s' command"));
         };
+        if has_recursive_control_escape(&replacement_text) {
+            return Err(self.error("recursive escaping after \\c not allowed"));
+        }
 
         // Flags.
         let mut global = false;
@@ -915,6 +918,10 @@ impl Parser {
             }
         }
 
+        // The regexp is converted after the flags, so the error is placed after them.
+        if has_recursive_control_escape(&pattern_text) {
+            return Err(self.error("recursive escaping after \\c not allowed"));
+        }
         let pattern = self.compile_pattern(&pattern_text, icase, multiline)?;
         let replacement = self.parse_replacement(&replacement_text, &pattern)?;
         Ok(Kind::Substitute(Box::new(Substitute {
@@ -990,9 +997,15 @@ impl Parser {
         let Some(source) = self.read_delimited(delim, false) else {
             return Err(self.error("unterminated `y' command"));
         };
+        if has_recursive_control_escape(&source) {
+            return Err(self.error("recursive escaping after \\c not allowed"));
+        }
         let Some(dest) = self.read_delimited(delim, false) else {
             return Err(self.error("unterminated `y' command"));
         };
+        if has_recursive_control_escape(&dest) {
+            return Err(self.error("recursive escaping after \\c not allowed"));
+        }
         let locale = self.options().locale;
         let posixly_correct = self.options().posixly_correct;
         let src_chars = y_chars(&normalize_escapes(&source, posixly_correct), locale);
@@ -1003,6 +1016,25 @@ impl Parser {
         self.end_of_command()?;
         Ok(Kind::Translate(src_chars.into_iter().zip(dst_chars).collect()))
     }
+}
+
+/// Whether the text has `\c\X` with `X` other than a second backslash: GNU sed refuses a
+/// backslash as the character a control escape works on, unless it is written `\c\\`.
+fn has_recursive_control_escape(text: &[u8]) -> bool {
+    let mut i = 0;
+    while i + 1 < text.len() {
+        if text[i] != b'\\' {
+            i += 1;
+        } else if text[i + 1] == b'c' && text.get(i + 2) == Some(&b'\\') && text.get(i + 3).is_some() {
+            if text[i + 3] != b'\\' {
+                return true;
+            }
+            i += 4;
+        } else {
+            i += if text[i + 1] == b'c' && i + 2 < text.len() { 3 } else { 2 };
+        }
+    }
+    false
 }
 
 enum AddrParsed {

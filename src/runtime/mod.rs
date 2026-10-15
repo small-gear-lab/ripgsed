@@ -937,15 +937,14 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
     /// as a command and replaces the pattern space with the output.
     fn execute_command(&mut self, command: &[u8]) -> Result<(), Fatal> {
         if command.is_empty() {
-            let output = run_shell(&self.pattern);
-            let mut output = output;
+            let mut output = run_shell(&self.pattern)?;
             if output.last() == Some(&b'\n') {
                 output.pop();
             }
             self.pattern = output;
         } else {
             // The text of the command ends with a newline that the shell does not get.
-            let output = run_shell(command.strip_suffix(b"\n").unwrap_or(command));
+            let output = run_shell(command.strip_suffix(b"\n").unwrap_or(command))?;
             self.write_raw(&output)?;
         }
         Ok(())
@@ -1046,7 +1045,9 @@ fn registers_text(subject: &[u8], caps: &Captures) -> Vec<u8> {
     out
 }
 
-fn run_shell(command: &[u8]) -> Vec<u8> {
+/// Runs `command` with the shell and returns what it wrote. A command that cannot be started
+/// (no descriptors left for the pipe, for instance) ends the run.
+fn run_shell(command: &[u8]) -> Result<Vec<u8>, Fatal> {
     use std::os::unix::ffi::OsStrExt;
     let output = Process::new("sh")
         .arg("-c")
@@ -1056,7 +1057,7 @@ fn run_shell(command: &[u8]) -> Vec<u8> {
         .stdin(Stdio::inherit())
         .stderr(Stdio::inherit())
         .output();
-    output.map(|o| o.stdout).unwrap_or_default()
+    output.map(|o| o.stdout).map_err(|_| Fatal::new("error in subprocess", 4))
 }
 
 /// Length in bytes of the character at the start of `bytes` (UTF-8), or 1 for an invalid sequence.

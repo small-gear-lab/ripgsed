@@ -342,16 +342,19 @@ impl FileInputs {
             } else {
                 name
             };
-            if self.in_place {
-                if let Ok(m) = std::fs::metadata(&name) {
-                    if !m.is_file() {
-                        self.fatal = Some(Fatal::new(format!("couldn't edit {}: not a regular file", name), 4));
-                        return false;
-                    }
-                }
-            }
             match File::open(os_path(&name)) {
                 Ok(f) => {
+                    // The opened file is what is checked, so that an unreadable one is reported
+                    // as unreadable first, as GNU sed does.
+                    if self.in_place {
+                        if let Ok(m) = f.metadata() {
+                            if !m.is_file() {
+                                let why = if std::io::IsTerminal::is_terminal(&f) { "is a terminal" } else { "not a regular file" };
+                                self.fatal = Some(Fatal::new(format!("couldn't edit {}: {}", name, why), 4));
+                                return false;
+                            }
+                        }
+                    }
                     let source = ChunkedSource::new(f, self.separator, BLOCK);
                     self.current = Some((Source::Chunked(Box::new(source)), Rc::from(name.as_str())));
                     self.started_file = false;
@@ -857,13 +860,35 @@ pub fn follow_link_chain(path: &std::path::Path) -> Result<std::path::PathBuf, F
                 current = if target.is_absolute() {
                     target
                 } else {
-                    current.parent().unwrap_or_else(|| std::path::Path::new("")).join(target)
+                    join_link_target(&current, &target, followed > 1)
                 };
             }
             Err(e) if e.raw_os_error() == Some(22) => return Ok(current),
             Err(e) => return Err(FollowError::Link(current, e)),
         }
     }
+}
+
+/// The path a relative link target names: the directory part of the link as written (up to
+/// and including its last slash) followed by the target. GNU sed keeps the result in a buffer
+/// that does not grow with it: a result longer than the buffer is cut, and the cut path is what
+/// is read next (not the first one, which the buffer is made for). The buffer holds 121 bytes, or 185 when the directory part is longer than
+/// that, or just the directory part when that is longer still.
+fn join_link_target(link: &std::path::Path, target: &std::path::Path, bounded: bool) -> std::path::PathBuf {
+    use std::os::unix::ffi::{OsStrExt, OsStringExt};
+    let link = link.as_os_str().as_bytes();
+    let dir_len = link.iter().rposition(|&b| b == b'/').map_or(0, |i| i + 1);
+    let mut joined = link[..dir_len].to_vec();
+    joined.extend_from_slice(target.as_os_str().as_bytes());
+    let capacity = match dir_len {
+        0..=121 => 121,
+        122..=185 => 185,
+        n => n,
+    };
+    if bounded {
+        joined.truncate(capacity);
+    }
+    std::path::PathBuf::from(std::ffi::OsString::from_vec(joined))
 }
 
 /// Why a chain of symbolic links could not be followed.
