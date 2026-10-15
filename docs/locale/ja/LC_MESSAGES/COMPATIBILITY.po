@@ -1,0 +1,133 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2026, Small Gear Lab
+# This file is distributed under the same license as the ripgsed package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: ripgsed \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-15 13:22+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: ja\n"
+"Language-Team: ja <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../COMPATIBILITY.md:1
+msgid "Compatibility matrix"
+msgstr "互換性の一覧"
+
+#: ../../COMPATIBILITY.md:3
+msgid "Full GNU sed compatibility is the minimum requirement of the project (D4 in [DECISIONS.md](DECISIONS.md)). The matrix in `compat/sed.tsv` lists what that means item by item and records how far each item has got."
+msgstr "GNU sed の完全互換は、このプロジェクトの最低要件です（[DECISIONS.md](DECISIONS.md) の D4）。`compat/sed.tsv` の一覧は、それが何を意味するかを項目ごとに挙げ、各項目がどこまで進んだかを記録します。"
+
+#: ../../COMPATIBILITY.md:5
+msgid "Where the items come from"
+msgstr "項目の出どころ"
+
+#: ../../COMPATIBILITY.md:7
+msgid "The structure of the GNU sed manual: invocation, options, exit status, script syntax, every command, the `s` command and its flags, addresses, regular expressions, escapes, locale behavior, the execution cycle, and the documented non-bugs."
+msgstr "GNU sed マニュアルの構成に沿っています。呼び出し方、オプション、終了状態、スクリプト構文、すべてのコマンド、`s` コマンドとそのフラグ、アドレス、正規表現、エスケープ、ロケールの挙動、実行サイクル、バグではないと明記された挙動です。"
+
+#: ../../COMPATIBILITY.md:8
+msgid "Only documentation was used. No source code was read or copied for the list."
+msgstr "一覧づくりに使ったのは文書だけです。ソースコードは読んでおらず、コピーもしていません。"
+
+#: ../../COMPATIBILITY.md:9
+msgid "The manual is not complete. Behavior that is not documented is added when differential tests find it, with the source `tests`. An item missing from the matrix is not exempt from the requirement."
+msgstr "マニュアルがすべてを網羅しているわけではありません。文書化されていない挙動は、差分テストで見つかった時点で、出どころを `tests` として追加します。一覧にない項目も、要件の対象外にはなりません。"
+
+#: ../../COMPATIBILITY.md:11
+msgid "Columns"
+msgstr "列"
+
+#: ../../COMPATIBILITY.md
+msgid "Column"
+msgstr "列"
+
+#: ../../COMPATIBILITY.md
+msgid "Meaning"
+msgstr "意味"
+
+#: ../../COMPATIBILITY.md
+msgid "`id`"
+msgstr ""
+
+#: ../../COMPATIBILITY.md
+msgid "Stable identifier such as `CMD-005`. Never reused."
+msgstr "`CMD-005` のような固定の識別子。再利用しません。"
+
+#: ../../COMPATIBILITY.md
+msgid "`area`"
+msgstr ""
+
+#: ../../COMPATIBILITY.md
+msgid "Group of the item (`command`, `option`, `address`, `regex`, ...)."
+msgstr "項目のグループ（`command`、`option`、`address`、`regex` など）。"
+
+#: ../../COMPATIBILITY.md
+msgid "`item`"
+msgstr ""
+
+#: ../../COMPATIBILITY.md
+msgid "The feature or behavior."
+msgstr "機能または挙動。"
+
+#: ../../COMPATIBILITY.md
+msgid "`status`"
+msgstr ""
+
+#: ../../COMPATIBILITY.md
+msgid "`unsupported`, `partial`, or `verified`."
+msgstr "`unsupported`、`partial`、`verified` のいずれか。"
+
+#: ../../COMPATIBILITY.md
+msgid "`source`"
+msgstr ""
+
+#: ../../COMPATIBILITY.md
+msgid "Manual section the item comes from, or `tests`."
+msgstr "項目の出どころのマニュアルの節、または `tests`。"
+
+#: ../../COMPATIBILITY.md
+msgid "`notes`"
+msgstr ""
+
+#: ../../COMPATIBILITY.md
+msgid "Points that need care, edge cases, or the decision that affects it."
+msgstr "注意が必要な点、エッジケース、影響する決定。"
+
+#: ../../COMPATIBILITY.md:22
+msgid "Status rules"
+msgstr "状態の規則"
+
+#: ../../COMPATIBILITY.md:24
+msgid "`unsupported`: not implemented. The compiler rejects it with a compile-time error and never approximates it."
+msgstr "`unsupported`：未実装。コンパイラはコンパイル時エラーで拒否し、近似で済ませることはありません。"
+
+#: ../../COMPATIBILITY.md:25
+msgid "`partial`: implemented for some forms. The notes say which forms are missing."
+msgstr "`partial`：一部の形だけ実装済み。足りない形は notes に書きます。"
+
+#: ../../COMPATIBILITY.md:26
+msgid "`verified`: fixtures that compare ripgsed with GNU sed cover the item, including its edge cases, and all pass. Nothing is `verified` by assertion."
+msgstr "`verified`：ripgsed と GNU sed を比較する fixture が、エッジケースを含めてその項目を網羅し、すべて通っている。主張だけで `verified` になることはありません。"
+
+#: ../../COMPATIBILITY.md:28
+msgid "Every item starts as `unsupported`. The matrix is the order of work: items are implemented and promoted in groups, starting from the first vertical slice in DESIGN.md."
+msgstr "すべての項目は `unsupported` から始まります。この一覧が作業の順序です。DESIGN.md の最初の縦切り実装から始めて、項目をグループごとに実装し、状態を上げていきます。"
+
+#: ../../COMPATIBILITY.md:30
+msgid "Summary"
+msgstr "集計"
+
+#: ../../COMPATIBILITY.md:36
+msgid "prints the number of items per area and status."
+msgstr "領域ごと・状態ごとの項目数を表示します。"
+

@@ -1,0 +1,161 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2026, Small Gear Lab
+# This file is distributed under the same license as the ripgsed package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: ripgsed \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-15 13:26+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: ja\n"
+"Language-Team: ja <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../DECISIONS.md:1
+msgid "Decisions"
+msgstr "決定事項"
+
+#: ../../DECISIONS.md:3
+msgid "Decisions that have been made, with their reasons. Proposals and open questions stay in [DESIGN.md](DESIGN.md). A decision can be revised; record the change here instead of silently dropping it."
+msgstr "これまでに決めたことと、その理由です。提案と未決の事項は [DESIGN.md](DESIGN.md) に置きます。決定は見直せますが、黙って消さずに、変更をここに記録します。"
+
+#: ../../DECISIONS.md:5
+msgid "D1. License: `MIT OR Apache-2.0`"
+msgstr "D1. ライセンス：`MIT OR Apache-2.0`"
+
+#: ../../DECISIONS.md:7
+msgid "The project is an independent implementation, licensed `MIT OR Apache-2.0`, the usual dual license in the Rust ecosystem."
+msgstr "このプロジェクトは独立実装で、Rust のエコシステムで一般的なデュアルライセンスの `MIT OR Apache-2.0` でライセンスします。"
+
+#: ../../DECISIONS.md:8
+msgid "Nothing derived from GPL code is added. GNU sed and GNU grep are read only as references and are never copied (see the provenance policy in DESIGN.md)."
+msgstr "GPL のコードに由来するものは追加しません。GNU sed と GNU grep は参照としてだけ読み、コピーしません（DESIGN.md の由来の方針を参照）。"
+
+#: ../../DECISIONS.md:10
+msgid "D2. Input representation: bytes"
+msgstr "D2. 入力表現：バイト列"
+
+#: ../../DECISIONS.md:12
+msgid "Input, pattern space, hold space, and output are byte sequences, not `String`. Full GNU sed compatibility requires accepting invalid UTF-8 and NUL."
+msgstr "入力、pattern space、hold space、出力は `String` ではなくバイト列です。GNU sed との完全互換には、不正な UTF-8 と NUL を受け付ける必要があります。"
+
+#: ../../DECISIONS.md:13
+msgid "The record terminator (LF or NUL) is kept separate from the record body. A missing final newline is preserved, never normalized."
+msgstr "レコード末尾の区切り（LF または NUL）は、レコード本文と別に保持します。最終改行がないことは保持し、正規化しません。"
+
+#: ../../DECISIONS.md:14
+msgid "P0 targets the `C` locale only: byte-wise behavior matching GNU sed under `LC_ALL=C`. Multibyte, character-wise behavior (for example `.` matching one character) is a later stage and is not claimed before then."
+msgstr "P0 の対象は `C` ロケールのみで、`LC_ALL=C` の GNU sed と一致するバイト単位の挙動です。マルチバイトの文字単位の挙動（たとえば `.` が 1 文字にマッチする）は後の段階であり、それまでは達成したと主張しません。"
+
+#: ../../DECISIONS.md:15
+msgid "Input is read through buffered streams. Memory grows with the length of a single record, not with the size of the file."
+msgstr "入力はバッファ付きのストリームで読みます。メモリはファイル全体のサイズではなく、単一レコードの長さに応じて増えます。"
+
+#: ../../DECISIONS.md:17
+msgid "D3. Regular expressions sit behind an engine abstraction"
+msgstr "D3. 正規表現はエンジンの抽象化の裏に置く"
+
+#: ../../DECISIONS.md:19
+msgid "The core never calls a regex library directly. It uses an engine interface (see \"Engine abstraction\" in DESIGN.md), so that the project's own engine (D7) and other engines such as PCRE2 as an opt-in extension can sit beside each other."
+msgstr "コアは正規表現ライブラリを直接呼びません。エンジンのインターフェース（DESIGN.md の「エンジンの抽象化」を参照）を使うので、このプロジェクト自身のエンジン（D7）と、opt-in の拡張としての PCRE2 などのエンジンを、並べて置けます。"
+
+#: ../../DECISIONS.md:20
+msgid "The engine is chosen explicitly (by syntax dialect and options) and never switched silently when a construct is unsupported."
+msgstr "エンジンは（構文方言とオプションにより）明示的に選び、未対応の構文があっても黙って切り替えません。"
+
+#: ../../DECISIONS.md:22
+msgid "D4. Full GNU sed compatibility is the minimum requirement"
+msgstr "D4. GNU sed の完全互換は最低要件"
+
+#: ../../DECISIONS.md:24
+msgid "ripgsed is not released or described as a replacement for `sed` until it is fully compatible with GNU sed: the same stdout, exit status, and file effects for any valid GNU sed invocation. Only the version and help text differ on purpose (see DESIGN.md)."
+msgstr "GNU sed と完全に互換になるまで、ripgsed は `sed` の代替としてリリースも説明もしません。完全互換とは、有効な GNU sed の呼び出しのどれに対しても、同じ stdout、終了状態、ファイルへの影響を返すことです。意図的に異なるのは、バージョン表記とヘルプの文面だけです（DESIGN.md を参照）。"
+
+#: ../../DECISIONS.md:25
+msgid "Milestones such as P0 are an order of work, not a smaller product. A subset is never treated as \"done\" for the purpose of this requirement."
+msgstr "P0 のようなマイルストーンは作業の順序であり、小さな製品ではありません。この要件に関して、部分集合を「完了」と見なすことはありません。"
+
+#: ../../DECISIONS.md:26
+msgid "The scope is therefore the whole of GNU sed, taken from its manual: every command, option, flag, escape, address form, and special case. The compatibility matrix lists all of them from the start, each marked unsupported, partial, or verified, and unsupported items are compile-time errors."
+msgstr "したがって範囲は、GNU sed のマニュアルにあるすべてです。すべてのコマンド、オプション、フラグ、エスケープ、アドレス形式、特殊なケースを含みます。互換性の一覧は最初からそれらをすべて挙げ、それぞれを未対応・部分対応・検証済みのいずれかとして記録し、未対応のものはコンパイル時エラーにします。"
+
+#: ../../DECISIONS.md:27
+msgid "The scope explicitly includes multibyte and UTF-8 locale behavior (D2 only orders the work: `C` locale first) and `--debug`, whose canonical program listing and execution annotations are compared with GNU sed like any other output."
+msgstr "範囲には、マルチバイトと UTF-8 ロケールの挙動（D2 は作業の順序を決めただけで、まず `C` ロケール）と、`--debug` が明示的に含まれます。`--debug` の正規形のプログラム表示と実行の注釈も、ほかの出力と同様に GNU sed と比較します。"
+
+#: ../../DECISIONS.md:28
+msgid "Compatibility is verified only by differential tests against GNU sed (see tests/README.md in the repository), never by assertion."
+msgstr "互換性は、GNU sed との差分テスト（リポジトリの tests/README.md を参照）でのみ検証し、主張だけで済ませることはありません。"
+
+#: ../../DECISIONS.md:29
+msgid "The grep mode aims at the same level for GNU grep, after the sed mode."
+msgstr "grep モードは、sed モードの後に、GNU grep について同じ水準を目指します。"
+
+#: ../../DECISIONS.md:31
+msgid "D5. Exit status and error messages match GNU sed exactly"
+msgstr "D5. 終了状態とエラーメッセージは GNU sed と完全に一致させる"
+
+#: ../../DECISIONS.md:33
+msgid "Exit statuses are identical to GNU sed in every case, including the documented 0, 1, 2, and 4 and the code given to `q` and `Q`."
+msgstr "終了状態は、文書化された 0・1・2・4 や `q`・`Q` に与えるコードを含め、すべての場合で GNU sed と同一です。"
+
+#: ../../DECISIONS.md:34
+msgid "Error and warning messages written to stderr are identical to GNU sed's messages in the `C` locale, word for word, including the location parts such as `-e expression #1, char 3:`."
+msgstr "stderr に出すエラーと警告のメッセージは、`C` ロケールの GNU sed のメッセージと一字一句同一です。`-e expression #1, char 3:` のような位置の部分も含みます。"
+
+#: ../../DECISIONS.md:35
+msgid "The only part that follows the invoked name is the program prefix: `sed:` when run as `sed`, `ripgsed:` when run as `ripgsed`. This is a consequence of the deliberate identification difference, not an exception to compatibility."
+msgstr "呼ばれた名前に従うのはプログラム名の接頭辞だけです。`sed` として実行すれば `sed:`、`ripgsed` として実行すれば `ripgsed:` になります。これは名乗り方を意図的に変えたことの帰結であり、互換性の例外ではありません。"
+
+#: ../../DECISIONS.md:36
+msgid "Messages translated through gettext for other languages belong to the locale items in the compatibility matrix and come after the English messages."
+msgstr "gettext で他の言語に翻訳されたメッセージは、互換性の一覧のロケールの項目に属し、英語のメッセージの後に対応します。"
+
+#: ../../DECISIONS.md:37
+msgid "Differential tests compare stderr as well as stdout and the exit status."
+msgstr "差分テストは、stdout と終了状態に加えて stderr も比較します。"
+
+#: ../../DECISIONS.md:39
+msgid "D6. Compatibility target: GNU sed 4.9"
+msgstr "D6. 互換の基準：GNU sed 4.9"
+
+#: ../../DECISIONS.md:41
+msgid "The reference for behavior and for generated test expectations is GNU sed 4.9, the latest stable release at the time of writing."
+msgstr "挙動と、生成するテストの期待値の基準は、執筆時点で最新の安定版である GNU sed 4.9 です。"
+
+#: ../../DECISIONS.md:42
+msgid "Behavior that changed in newer GNU sed versions is not followed silently. It is recorded as a separate item in the compatibility matrix, and the target version is revisited as a decision."
+msgstr "新しい GNU sed で変わった挙動は、黙って追従しません。互換性の一覧に別項目として記録し、基準のバージョンは改めて決めます。"
+
+#: ../../DECISIONS.md:43
+msgid "The version line printed by `--version` states this target (see DESIGN.md)."
+msgstr "`--version` が出力するバージョン行には、この基準を明記します（DESIGN.md を参照）。"
+
+#: ../../DECISIONS.md:45
+msgid "D7. The regular expression engine is written from scratch"
+msgstr "D7. 正規表現エンジンは自前で書く"
+
+#: ../../DECISIONS.md:47
+msgid "No third-party regex library is used as a stopgap. GNU sed's BRE and ERE, with POSIX leftmost-longest matching, back-references, and the GNU extensions, are implemented by the project's own engine from the first release."
+msgstr "つなぎとしても、サードパーティの正規表現ライブラリは使いません。POSIX の左端最長一致、後方参照、GNU 拡張を備えた GNU sed の BRE と ERE を、最初のリリースからこのプロジェクト自身のエンジンで実装します。"
+
+#: ../../DECISIONS.md:48
+msgid "The dialects include the `--posix` and `POSIXLY_CORRECT` variants of BRE and ERE, not only the default GNU behavior, and the locale (D2 orders the work: `C` locale first, then UTF-8 and other multibyte locales)."
+msgstr "方言には、既定の GNU の挙動だけでなく、BRE と ERE の `--posix` と `POSIXLY_CORRECT` の変種、およびロケールが含まれます（D2 は作業の順序を決めたもので、まず `C` ロケール、その後に UTF-8 などのマルチバイトロケール）。"
+
+#: ../../DECISIONS.md:49
+msgid "The specification is the observable behavior of GNU sed 4.9 (D6), including where it deviates from POSIX. Differential tests against GNU sed decide that behavior."
+msgstr "仕様は、GNU sed 4.9（D6）の観測できる挙動であり、POSIX と異なる箇所も含みます。その挙動は、GNU sed との差分テストが決めます。"
+
+#: ../../DECISIONS.md:50
+msgid "The engine sits behind the interface of D3, so it can be tested, benchmarked, and compared against other engines in isolation."
+msgstr "エンジンは D3 のインターフェースの裏にあるので、単独でテスト、ベンチマーク、ほかのエンジンとの比較ができます。"
+
