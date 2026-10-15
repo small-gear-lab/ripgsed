@@ -10,5 +10,6 @@ A stream editor in Rust that keeps the sed language but separates syntax, semant
 DESIGN
 DECISIONS
 COMPATIBILITY
+RESEARCH
 ARCHITECTURE
 ```
