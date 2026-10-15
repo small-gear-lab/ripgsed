@@ -1,0 +1,1 @@
+chmod 640 c.txt; sed -i "1e rm c.txt" c.txt; echo $?; stat -c %a c.txt; cat c.txt

@@ -201,9 +201,11 @@ pub fn simple_lower(c: char) -> char {
     let mut it = c.to_lowercase();
     match (it.next(), it.next()) {
         (Some(l), None) => l,
-        // The full mapping of `İ` has two characters; its simple mapping is `i`.
-        _ if c == '\u{130}' => 'i',
-        _ => c,
+        // `İ` is the only character whose full mapping has two characters; its simple mapping is `i`.
+        _ => {
+            debug_assert_eq!(c, '\u{130}');
+            'i'
+        }
     }
 }
 

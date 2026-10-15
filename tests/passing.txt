@@ -224,6 +224,7 @@ adr-018-end-passed-then-restart
 adr-018-end-zero
 adr-018-last-line-start
 adr-018-start-after-end-numbers
+adr-019-first-address-plus-zero
 adr-019-invalid-address-forms
 adr-020-q-Q-one-address-only
 adr-021-blanks-between-regexp-and-flags
@@ -1210,6 +1211,7 @@ opt-004-debug-pattern-space-escapes
 opt-004-debug-pattern-space-escapes-utf8
 opt-004-debug-regexp-listing
 opt-004-debug-regexp-listing-utf8
+opt-004-debug-regexp-newline-escape
 opt-004-debug-replacement-listing
 opt-004-debug-s-flags-order
 opt-004-debug-s-flags-trace-order
@@ -1252,6 +1254,7 @@ opt-007-in-place-hard-link-detached
 opt-007-in-place-l-and-equals-go-to-file
 opt-007-in-place-long
 opt-007-in-place-missing-file
+opt-007-in-place-mode-kept-when-original-is-removed
 opt-007-in-place-n-w-dev-stdout
 opt-007-in-place-no-output-on-stdout
 opt-007-in-place-no-trailing-newline

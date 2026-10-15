@@ -682,6 +682,15 @@ impl Outputs {
             let temp = dir.join(name);
             match std::fs::OpenOptions::new().write(true).create_new(true).mode(0o600).open(&temp) {
                 Ok(file) => {
+                    // The mode and the owner of the file are taken when it is opened, as GNU sed
+                    // does, so they are the same if the original goes away during the run. The
+                    // owner is handed over after the mode, which makes the kernel drop the
+                    // set-user-ID and set-group-ID bits of an unprivileged user's file.
+                    if let Ok(meta) = std::fs::metadata(&original) {
+                        use std::os::unix::fs::MetadataExt;
+                        let _ = std::fs::set_permissions(&temp, meta.permissions());
+                        let _ = std::os::unix::fs::chown(&temp, Some(meta.uid()), Some(meta.gid()));
+                    }
                     let output = Output::new(Box::new(io::BufWriter::new(file)), self.separator, path);
                     self.in_place = Some(InPlaceFile { output, original, temp });
                     return Ok(());
@@ -710,13 +719,6 @@ impl Outputs {
         let Some(mut file) = self.in_place.take() else { return Ok(()) };
         file.output.flush().map_err(|e| write_error(&file.output.name, &e))?;
         drop(file.output);
-        if let Ok(meta) = std::fs::metadata(&file.original) {
-            let _ = std::fs::set_permissions(&file.temp, meta.permissions());
-            // GNU sed hands the owner over after the mode, which makes the kernel drop the
-            // set-user-ID and set-group-ID bits of an unprivileged user's file.
-            use std::os::unix::fs::MetadataExt;
-            let _ = std::os::unix::fs::chown(&file.temp, Some(meta.uid()), Some(meta.gid()));
-        }
         let rename_error = |name: &std::path::Path, e: io::Error| {
             Fatal::new(format!("cannot rename {}: {}", name.display(), strerror(&e)), 4)
         };
@@ -785,9 +787,8 @@ impl Outputs {
 
     pub fn flush_all(&mut self) -> Result<(), Fatal> {
         let mut result = self.stdout.flush().map_err(|e| flush_error("stdout", &e));
-        if let Some(f) = self.in_place.as_mut() {
-            let _ = f.output.flush();
-        }
+        // A file being edited in place was finished or given up before this is called.
+        debug_assert!(self.in_place.is_none());
         if let Some(s) = self.stderr.as_mut() {
             let _ = s.flush();
         }
@@ -924,6 +925,23 @@ mod tests {
         assert_eq!(input.skip_records(5).unwrap(), 2);
         assert!(input.had_open_error);
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn error_texts() {
+        assert_eq!(strerror(&io::Error::from_raw_os_error(2)), "No such file or directory");
+        assert_eq!(strerror(&io::Error::other("a plain message")), "a plain message");
+        assert_eq!(flush_error("stdout", &io::Error::from_raw_os_error(9)).message, "couldn't close stdout: Bad file descriptor");
+        assert_eq!(flush_error("stdout", &io::Error::from_raw_os_error(28)).message, "couldn't flush stdout: No space left on device");
+    }
+
+    #[test]
+    fn a_file_that_cannot_be_created_stops_the_run() {
+        let mut outputs = Outputs::new(Box::new(io::sink()), b'\n');
+        let error = outputs.open(b"/nonexistent-directory/out").unwrap_err();
+        assert_eq!(error.status, 4);
+        assert_eq!(error.message, "couldn't open file /nonexistent-directory/out: No such file or directory");
+        assert!(outputs.open(b"/dev/stdout").is_ok() && outputs.open(b"/dev/stderr").is_ok());
     }
 
     #[test]

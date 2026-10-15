@@ -651,6 +651,8 @@ fn the_dfa_leaves_unspellable_sets_to_the_simulation() {
     for pat in ["[[:print:]][[:graph:]][[:alpha:]]+", "[[:alpha:]][[:alpha:]][[:alpha:]]", "[[:print:]]+[[:alnum:]]+[[:graph:]]+"] {
         assert_dfa_agrees(pat.as_bytes(), &s, hay.as_bytes());
     }
+    let many = "[[:alpha:]]".repeat(12);
+    assert_dfa_agrees(many.as_bytes(), &s, "aéb中c\u{1f600}dé".repeat(2).as_bytes());
     // Case folding leaves a set to the simulation; so does an invalid byte next to a match.
     let mut f = utf8_syntax(true);
     f.icase = true;

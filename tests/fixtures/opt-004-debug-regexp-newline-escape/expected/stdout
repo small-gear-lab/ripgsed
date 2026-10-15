@@ -1,0 +1,21 @@
+SED PROGRAM:
+  N
+  s/a\nb/X/p
+  /a\nb/ p
+  /[\n]b/ p
+  s/\n/-/p
+INPUT:   'a.txt' line 1
+PATTERN: a
+COMMAND: N
+PATTERN: a\nb
+COMMAND: s/a\nb/X/p
+MATCHED REGEX REGISTERS
+  regex[0] = 0-3 'a
+b'
+X
+PATTERN: X
+COMMAND: /a\nb/ p
+COMMAND: /[\n]b/ p
+COMMAND: s/\n/-/p
+PATTERN: X
+END-OF-CYCLE:

@@ -1,0 +1,1 @@
+sed -n '+0,2p' a.txt; sed -n '~0,/b/p' a.txt; sed --debug -n '+0,2p' a.txt | sed -n '1,3p'

@@ -464,11 +464,8 @@ impl<'a> Searcher<'a> {
             ring[r] = seeds;
             if p < len {
                 for &(pc, st) in consuming.iter() {
-                    if let Some((bs, _)) = best {
-                        if st > bs {
-                            continue;
-                        }
-                    }
+                    // A seed that started after the best match was dropped above.
+                    debug_assert!(best.is_none_or(|(bs, _)| st <= bs));
                     let Inst::Unit(u) = prog.insts[pc as usize] else { unreachable!() };
                     if let Some(l) = self.unit_len(u, p) {
                         let q = (p + l) % RING;

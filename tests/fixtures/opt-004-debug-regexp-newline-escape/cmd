@@ -1,0 +1,1 @@
+sed --debug -n 'N;s/a\nb/X/p;/a\nb/p;/[\n]b/p;s/\n/-/p' a.txt

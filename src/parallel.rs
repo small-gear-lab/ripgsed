@@ -161,3 +161,50 @@ impl std::io::Read for StdinRead {
         self.0.read(buf)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::syntax::ChunkSource;
+    use std::io::Write;
+
+    fn script(text: &str) -> Vec<(Chunk, ParseOptions)> {
+        vec![(Chunk { source: ChunkSource::Expression(1), text: text.as_bytes().to_vec() }, ParseOptions::default())]
+    }
+
+    /// A file that cannot be opened (the caller has checked it earlier, but it may have gone away).
+    #[test]
+    fn a_file_that_cannot_be_read_ends_the_run() {
+        let mut outputs = Outputs::new(Box::new(std::io::sink()), b'\n');
+        let files = vec!["/nonexistent-directory/input".to_string()];
+        let error = run(script("s/a/b/"), &Options::default(), &files, 2, 64, &mut outputs).unwrap_err();
+        assert_eq!(error.status, 2);
+        assert_eq!(error.message, "can't read /nonexistent-directory/input: No such file or directory");
+    }
+
+    struct Failing;
+
+    impl Write for Failing {
+        fn write(&mut self, _: &[u8]) -> std::io::Result<usize> {
+            Err(std::io::Error::from_raw_os_error(28))
+        }
+        fn flush(&mut self) -> std::io::Result<()> {
+            Ok(())
+        }
+    }
+
+    /// When the writer stops on an error, the reader waiting for a credit stops too.
+    #[test]
+    fn the_reader_stops_when_the_writer_does() {
+        let dir = std::env::temp_dir().join(format!("ripgsed-parallel-unit-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("many-lines");
+        std::fs::write(&path, "some text\n".repeat(5000)).unwrap();
+        let mut outputs = Outputs::new(Box::new(Failing), b'\n');
+        outputs.unbuffered = true;
+        let files = vec![path.to_string_lossy().into_owned()];
+        let result = run(script("s/some/any/"), &Options::default(), &files, 1, 16, &mut outputs);
+        assert!(result.is_err());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+}

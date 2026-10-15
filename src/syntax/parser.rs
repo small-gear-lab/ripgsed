@@ -466,11 +466,7 @@ impl Parser {
         if self.zero_address {
             // GNU sed reports line address 0 after reading the character that follows the address,
             // except for `r`, which accepts it (insert a file before the first line).
-            let is_read = self.peek() == Some(b'r')
-                && matches!(
-                    selector,
-                    Some(Selector::Single(Addr::Line(0) | Addr::Step { first: 0, step: 0 }))
-                );
+            let is_read = self.peek() == Some(b'r') && matches!(selector, Some(Selector::Single(Addr::Line(0) | Addr::Step { first: 0, step: 0 })));
             if !is_read || self.options().posix {
                 self.next();
                 return Err(self.error("invalid usage of line address 0"));
@@ -1132,10 +1128,6 @@ fn normalize_escapes_for(text: &[u8], posixly_correct: bool, replacement: bool, 
             }
             b'v' => {
                 out.push(0x0b);
-                i += 2;
-            }
-            b'n' if debug => {
-                out.push(b'\n');
                 i += 2;
             }
             b't' => {

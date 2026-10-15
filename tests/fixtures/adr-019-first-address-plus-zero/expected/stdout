@@ -1,0 +1,7 @@
+a
+b
+a
+b
+SED PROGRAM:
+  [ADDR-NULL],2 p
+INPUT:   'a.txt' line 1

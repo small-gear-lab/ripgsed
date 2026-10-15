@@ -268,9 +268,9 @@ impl Dfa {
     pub fn leftmost_start(&mut self, hay: &[u8], from: usize, to: usize) -> Result<Option<usize>, GiveUp> {
         let right = if to == hay.len() {
             Ctx::Edge
-        } else if self.unhandled(hay[to]) {
-            return Err(GiveUp);
         } else {
+            // `first_end` stepped over this byte to find the match that ends before it.
+            debug_assert!(!self.unhandled(hay[to]));
             Ctx::of(hay[to])
         };
         let mut state = self.start(right)?;
