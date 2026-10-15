@@ -969,7 +969,17 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
         let locale = self.options.locale;
         // After an empty match the search goes on one character further (one byte in UTF-8,
         // where GNU sed's matcher starts inside characters too).
-        let step = |text: &[u8], at: usize| if locale == crate::regex::Locale::Mb { locale.char_len(&text[at..]) } else { 1 };
+        let glibc = crate::io::GLIBC_COMPAT.load(std::sync::atomic::Ordering::Relaxed);
+        // (`--glibc-compat`: a match may have ended inside a character, and what follows is one byte.)
+        let step = |text: &[u8], at: usize| {
+            if locale != crate::regex::Locale::Mb {
+                1
+            } else if glibc && crate::locale::mb_inside(text, at) {
+                1
+            } else {
+                locale.char_len(&text[at..])
+            }
+        };
         let mut caps = Captures::default();
         let mut result = Vec::with_capacity(self.pattern.len());
         let mut copied = 0;

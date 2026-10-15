@@ -57,10 +57,11 @@ fn other_character_sets_follow_the_c_library() {
     let text = String::from_utf8_lossy(&out.stdout);
     assert!(out.status.success(), "{text}{}", String::from_utf8_lossy(&out.stderr));
     // With --glibc-compat the quirks of the library that ripgsed can reproduce are exact: the abort
-    // of a case conversion to a character the set cannot write, and the pairs of bytes of an
-    // unassigned code that a negated bracket expression takes under `I`.
+    // of a case conversion to a character the set cannot write, the pairs of bytes of an
+    // unassigned code that a negated bracket expression takes under `I`, and the first byte of a
+    // few Big5 and EUC-TW characters that a range from a collating symbol takes.
     let out = Command::new("python3")
-        .args(["-I", script, "--ours", env!("CARGO_BIN_EXE_ripgsed"), "--quick", "--sample", "--glibc-compat", "--locales", "ja_JP.SJIS,zh_CN.GBK"])
+        .args(["-I", script, "--ours", env!("CARGO_BIN_EXE_ripgsed"), "--quick", "--sample", "--glibc-compat", "--locales", "ja_JP.SJIS,zh_CN.GBK,zh_TW.BIG5,zh_TW.eucTW"])
         .output()
         .expect("run tools/locale-diff.py");
     let text = String::from_utf8_lossy(&out.stdout);

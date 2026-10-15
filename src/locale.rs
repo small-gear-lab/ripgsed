@@ -370,6 +370,12 @@ mod sys {
         known: Cell<u128>,
         member: Cell<u128>,
         others: RefCell<HashMap<u32, bool, BuildHasherDefault<CharHasher>>>,
+        /// For `partial_len`: the bracket expression and the flag, and the library's regex of it
+        /// without `$` (made on first use) and the answers.
+        text: Vec<u8>,
+        icase: bool,
+        prefix: RefCell<Option<Option<Box<RegexBuf>>>>,
+        partials: RefCell<HashMap<u32, usize>>,
     }
 
     /// Why the library refused a pattern.
@@ -396,7 +402,7 @@ mod sys {
             // SAFETY: `re` is large enough for a `regex_t` and `pat` is NUL-terminated.
             let rc = unsafe { regcomp(&mut *re, pat.as_ptr().cast(), if icase { REG_ICASE } else { 0 }) };
             match rc {
-                0 => Ok(LibSet { re, known: Cell::new(0), member: Cell::new(0), others: RefCell::default() }),
+                0 => Ok(LibSet { re, known: Cell::new(0), member: Cell::new(0), others: RefCell::default(), text: text.to_vec(), icase, prefix: RefCell::new(None), partials: RefCell::default() }),
                 3 => Err(LibError::Collate),
                 4 => Err(LibError::CType),
                 7 => Err(LibError::Bracket),
@@ -425,6 +431,44 @@ mod sys {
             let hit = self.ask(c);
             self.others.borrow_mut().insert(u, hit);
             hit
+        }
+
+        /// For a character of two bytes or more: how many bytes at its start the matcher of the
+        /// library takes as a character of its own when it searches (0 if it takes the whole
+        /// character or nothing).
+        /// glibc does this with a range that starts at a collating symbol (`[[.a.]-z]`), for a few
+        /// characters whose first byte the matcher reads as a character.
+        pub fn partial_len(&self, bytes: &[u8]) -> usize {
+            if bytes.len() < 2 || bytes.len() > 4 {
+                return 0;
+            }
+            let key = bytes.iter().fold(0u32, |k, &b| k << 8 | b as u32);
+            if let Some(&n) = self.partials.borrow().get(&key) {
+                return n;
+            }
+            let n = self.ask_prefix(bytes);
+            self.partials.borrow_mut().insert(key, n);
+            n
+        }
+
+        fn ask_prefix(&self, s: &[u8]) -> usize {
+            let mut slot = self.prefix.borrow_mut();
+            let re = slot.get_or_insert_with(|| {
+                // Not anchored: the matcher of the library reads the character differently when it
+                // searches (this is the way `sed` asks).
+                let mut pat = Vec::with_capacity(self.text.len() + 1);
+                pat.extend_from_slice(&self.text);
+                pat.push(0);
+                let mut re = Box::new(RegexBuf([0; 32]));
+                // SAFETY: `re` is large enough for a `regex_t` and `pat` is NUL-terminated.
+                let rc = unsafe { regcomp(&mut *re, pat.as_ptr().cast(), if self.icase { REG_ICASE } else { 0 }) };
+                (rc == 0).then_some(re)
+            });
+            let Some(re) = re else { return 0 };
+            let mut m = RegMatch { so: 0, eo: s.len() as c_int };
+            // SAFETY: as in `ask_bytes`.
+            let hit = unsafe { regexec(&**re, s.as_ptr().cast(), 1, &mut m, REG_STARTEND) == 0 };
+            if hit && m.so == 0 && m.eo > 0 && (m.eo as usize) < s.len() { m.eo as usize } else { 0 }
         }
 
         /// Whether the library's set holds the single byte `b` (a single-byte locale).
@@ -456,6 +500,10 @@ mod sys {
         fn drop(&mut self) {
             // SAFETY: compiled by `regcomp` and freed once.
             unsafe { regfree(&mut *self.re) }
+            if let Some(Some(re)) = self.prefix.get_mut() {
+                // SAFETY: the same, for the regex of `partial_len`.
+                unsafe { regfree(&mut **re) }
+            }
         }
     }
 }
@@ -535,6 +583,10 @@ mod sys {
         pub fn contains_byte(&self, _b: u8) -> bool {
             false
         }
+
+        pub fn partial_len(&self, _bytes: &[u8]) -> usize {
+            0
+        }
     }
 }
 
@@ -543,6 +595,38 @@ pub use sys::{LibError, LibSet};
 /// The locale the environment selects, with the C library set up for it (call once, first).
 pub fn from_env() -> Locale {
     sys::from_env()
+}
+
+/// Whether `pos` is inside a character of a non-UTF-8 multibyte locale (not at its start): the
+/// line is read forward from an ASCII byte that is a character of its own, before `pos`.
+pub fn mb_inside(hay: &[u8], pos: usize) -> bool {
+    if pos == 0 || pos >= hay.len() {
+        return false;
+    }
+    let mut start = pos;
+    let floor = pos.saturating_sub(4096);
+    while start > floor {
+        start -= 1;
+        if is_resync_byte(hay[start]) {
+            break;
+        }
+    }
+    if start > 0 && !is_resync_byte(hay[start]) {
+        start = 0;
+    }
+    let mut p = start;
+    while p < pos {
+        match mb_decode(hay, p) {
+            Some((_, l)) => {
+                if p + l > pos {
+                    return true;
+                }
+                p += l;
+            }
+            None => p += 1,
+        }
+    }
+    false
 }
 
 /// Whether the first two bytes are a pair that `mbrtowc` rejects but the matcher of the library

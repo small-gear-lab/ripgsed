@@ -282,7 +282,7 @@ impl Regex {
         let prog = compile::compile(&parsed.node, parsed.ngroups, parsed.referenced, parsed.char_starts, parsed.utf8, syntax.glibc_compat)?;
         let prog_has_no_backrefs = !prog.has_backrefs;
         let literals = literal::analyze(&parsed.node, syntax.locale.is_chars(), syntax.locale == Locale::Mb);
-        Ok(Regex { prog, syntax: *syntax, delim, literals, scratch: Default::default(), quirk_stars: if syntax.glibc_compat { star_before_not_word_boundary(&parsed.node) } else { 0 }, fixed: if prog_has_no_backrefs { dfa::fixed_groups(&parsed.node, parsed.ngroups) } else { None }, node: parsed.node, dfa: Default::default(), boundaries: Default::default(), use_dfa: syntax.locale != Locale::Mb || crate::locale::ascii_bytes_are_characters(), filter })
+        Ok(Regex { prog, syntax: *syntax, delim, literals, scratch: Default::default(), quirk_stars: if syntax.glibc_compat { star_before_not_word_boundary(&parsed.node) } else { 0 }, fixed: if prog_has_no_backrefs { dfa::fixed_groups(&parsed.node, parsed.ngroups) } else { None }, node: parsed.node, dfa: Default::default(), boundaries: Default::default(), use_dfa: syntax.locale != Locale::Mb || (crate::locale::ascii_bytes_are_characters() && !syntax.glibc_compat), filter })
     }
 
     /// Number of parenthesized subexpressions.
@@ -349,7 +349,8 @@ impl Regex {
             mb: self.syntax.locale == Locale::Mb,
             sb: self.syntax.locale == Locale::Sb,
             icase: self.syntax.icase,
-            boundary: start,
+            // (`--glibc-compat`: a search may start inside a character, after a match that ended there.)
+            boundary: if self.syntax.glibc_compat { 0 } else { start },
             seen: &self.boundaries,
         };
         match searcher.search(start) {

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ripgsed\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-16 06:10+0900\n"
+"POT-Creation-Date: 2026-10-16 06:26+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: ja <LL@li.org>\n"
@@ -243,6 +243,25 @@ msgstr ""
 
 #: ../../KNOWN-DIFFERENCES.md:23
 msgid ""
+"A range that starts at a collating symbol (`[[.a.]-z]`) takes the first byte"
+" alone of eight Big5 codes (0xf9e9..0xf9eb, 0xf9f9..0xf9fd) and of the four-"
+"byte characters of EUC-TW that start with 0x8e, although `mbrtowc` reads "
+"them as one character: `printf '\\xf9\\xe9\\n' | sed 's/[[.a.]-z]/X/'` "
+"prints `X` and the second byte. By default ripgsed reads them as one "
+"character. With the option the match ends inside the character, the rest of "
+"it (the tail) is matched by nothing, and after an empty match the search "
+"goes on one byte. Found by asking the library (`LibSet::partial_len`) and "
+"checked against Big5 and EUC-TW by `tools/locale-diff.py`."
+msgstr ""
+"照合記号から始まる範囲（`[[.a.]-z]`）は、Big5 の 8 コード（0xf9e9〜0xf9eb、0xf9f9〜0xf9fd）と、0x8e "
+"で始まる EUC-TW の 4 バイト文字の先頭バイトだけを取ります。`mbrtowc` ではこれらは 1 文字です（`printf "
+"'\\xf9\\xe9\\n' | sed 's/[[.a.]-z]/X/'` は `X` と 2 バイト目を出力します）。既定では ripgsed "
+"はこれらを 1 文字として読みます。オプションを付けると、マッチは文字の途中で終わり、残りの部分（尾）はどのユニットにもマッチせず、空マッチのあとは 1"
+" バイト進みます。ライブラリに尋ねて見つけ（`LibSet::partial_len`）、`tools/locale-diff.py` で Big5 と"
+" EUC-TW について確かめています。"
+
+#: ../../KNOWN-DIFFERENCES.md:24
+msgid ""
 "Always on, not an option: in `C.UTF-8` (the locale of the tables below) and "
 "in any other UTF-8 locale, what the classes contain, how letters change case"
 " and how a range orders its ends are the locale's, never the corrected "
@@ -257,11 +276,11 @@ msgstr ""
 "ライブラリから生成しており（`tools/gen-classes.py`）、Rust の標準ライブラリではなく glibc の Unicode "
 "バージョンに従います。"
 
-#: ../../KNOWN-DIFFERENCES.md:25
+#: ../../KNOWN-DIFFERENCES.md:26
 msgid "glibc behavior that is not reproduced, even with `--glibc-compat`"
 msgstr "`--glibc-compat` を付けても再現しない glibc の挙動"
 
-#: ../../KNOWN-DIFFERENCES.md:27
+#: ../../KNOWN-DIFFERENCES.md:28
 #, python-format
 msgid ""
 "These are cases where glibc's matcher gives a result that disagrees with the"
@@ -338,7 +357,7 @@ msgstr "一致なし"
 msgid "match `x`"
 msgstr "`x` に一致"
 
-#: ../../KNOWN-DIFFERENCES.md:35
+#: ../../KNOWN-DIFFERENCES.md:36
 #, python-brace-format
 msgid ""
 "The first is a back-reference to a group inside a repetition where something"
@@ -358,7 +377,7 @@ msgstr ""
 "の答えは一致なしか文字化けです。固定幅のグループ（`(ab)+\\1`）は仕様どおりに動きます。重ねた量指定子の下のキャプチャ（`((b?)+*|c){1}`）や、パターンの先頭でない繰り返しの後ろの"
 " `\\B` でも差が出ることがあります。一覧上の項目は `compat/sed.tsv` の RGX-009 と RGX-012 です。"
 
-#: ../../KNOWN-DIFFERENCES.md:37
+#: ../../KNOWN-DIFFERENCES.md:38
 msgid ""
 "With `-z`, a `$` at the start of a pattern that goes on with a negated "
 "bracket expression can hold before a newline that the match then consumes: "
@@ -375,11 +394,11 @@ msgstr ""
 "-E 's/\\W^/<&>/g'` で、GNU sed は `a`、改行、`a` "
 "の改行に一致します。どちらもランダムなパターン約2300件のうち1件ほどで見つかりました。"
 
-#: ../../KNOWN-DIFFERENCES.md:39
+#: ../../KNOWN-DIFFERENCES.md:40
 msgid "UTF-8 cases of the C library that are not reproduced"
 msgstr "再現していない C ライブラリの UTF-8 の挙動"
 
-#: ../../KNOWN-DIFFERENCES.md:41
+#: ../../KNOWN-DIFFERENCES.md:42
 msgid ""
 "A byte sequence that is structured like a UTF-8 character but is not one (a "
 "surrogate such as `ED A0 80`, or a code point above U+10FFFF such as `F4 90 "
@@ -390,7 +409,7 @@ msgstr ""
 "U+10FFFF を超えるコードポイント）を、glibc は一部の場所（`.*`、`\\W`、`[^a]`、`\\b`）では 1 "
 "文字として扱い、別の場所では扱いません。ripgsed はどこでも不正なバイトとして扱います。"
 
-#: ../../KNOWN-DIFFERENCES.md:42
+#: ../../KNOWN-DIFFERENCES.md:43
 msgid ""
 "With the `I` flag, glibc matches a pattern character against the input in "
 "one direction only: `s/В/X/I` does not match `U+1C80` although both fold to "
@@ -406,7 +425,7 @@ msgstr ""
 "つの大小で照合します。ほかの UTF-8 ロケールでは、`I` の下の文字やブラケット式は C ライブラリのものです。小さなキリル文字の異体字 "
 "U+1C80..U+1C88 がそれ自身にしか取られないという GNU sed 自身の規則が 1 つあり（D11）、こうしたことは起きません。"
 
-#: ../../KNOWN-DIFFERENCES.md:43
+#: ../../KNOWN-DIFFERENCES.md:44
 msgid ""
 "A back-reference under `I` to a group of one letter whose capital is longer "
 "in UTF-8 than the letter does not match the same letter in glibc, and "
@@ -420,7 +439,7 @@ msgstr ""
 "バイト）、トルコ語のロケールでは `echo ii | sed 's/\\(i\\)\\1/X/I'` は `ii` を出力します（`i` は 1 "
 "バイト、`İ` は 2 バイト）。`ɐⱯ` と `iİ` は一致します。一致は定義どおりのものです。"
 
-#: ../../KNOWN-DIFFERENCES.md:44
+#: ../../KNOWN-DIFFERENCES.md:45
 msgid ""
 "A text of `a`, `i`, or `c` that ends in `\\c` takes the newline GNU sed "
 "appends as its control character (`a x\\c` writes `xJ`)."
@@ -428,7 +447,7 @@ msgstr ""
 "`a`、`i`、`c` のテキストが `\\c` で終わるとき、GNU sed は付け足す改行をその制御文字として取り込みます（`a x\\c` は "
 "`xJ` を書きます）。"
 
-#: ../../KNOWN-DIFFERENCES.md:45
+#: ../../KNOWN-DIFFERENCES.md:46
 msgid ""
 "A range that starts with an invalid collating symbol and ends with a class "
 "(`[[.space.]-[:alpha:]]`) reports `Invalid collation character`, GNU sed "
@@ -437,7 +456,7 @@ msgstr ""
 "無効な照合記号で始まり、クラスで終わる範囲（`[[.space.]-[:alpha:]]`）は、ripgsed では `Invalid "
 "collation character`、GNU sed では `Invalid range end` です。"
 
-#: ../../KNOWN-DIFFERENCES.md:46
+#: ../../KNOWN-DIFFERENCES.md:47
 msgid ""
 "Reading a directory that a symbolic link points to with `--follow-symlinks` "
 "names the target in the read error; GNU sed 4.9 built from the release "
@@ -447,11 +466,11 @@ msgstr ""
 "`--follow-symlinks` でシンボリックリンクの指すディレクトリを読むとき、読み取りエラーには ripgsed "
 "は指す先の名前を出します。GNU sed 4.9 はリリース tarball からビルドしたものがリンクの名前、パッケージ版が指す先の名前を出します。"
 
-#: ../../KNOWN-DIFFERENCES.md:48
+#: ../../KNOWN-DIFFERENCES.md:49
 msgid "Cases of other character sets that are not reproduced"
 msgstr "再現していない、ほかの文字集合の挙動"
 
-#: ../../KNOWN-DIFFERENCES.md:50
+#: ../../KNOWN-DIFFERENCES.md:51
 msgid ""
 "These were found by comparing every byte and every two-byte (and, for EUC-"
 "JP, three-byte) sequence of the sets (`tools/locale-diff.py`) and random "
@@ -462,7 +481,7 @@ msgstr ""
 "diff.py`）、およびランダムなパターン（`tools/locale-"
 "fuzz.py`）を比べて見つけたものです。集合の文字でない列か、特殊なパターンに限ります。"
 
-#: ../../KNOWN-DIFFERENCES.md:52
+#: ../../KNOWN-DIFFERENCES.md:53
 msgid ""
 "A pattern that has a byte of 0x80 or more that is not a whole character "
 "(`s/\\xa1/X/`, a lone first byte of a two-byte character) matches that byte "
@@ -474,23 +493,6 @@ msgstr ""
 "文字全体でない 0x80 以上のバイト（`s/\\xa1/X/`。2 バイト文字の先頭バイトだけ）をパターンが持つ場合、GNU sed "
 "と同じく、そのバイトが文字の先頭にあればマッチします。ただし、同じパターンでその後ろに続くもの（`s/\\xa1./X/`）と、文字の途中での空マッチ（`s/\\xa1*/X/g`）は"
 " glibc と異なります。glibc はそのまま文字の内側へ進みます。"
-
-#: ../../KNOWN-DIFFERENCES.md:53
-msgid ""
-"Eight Big5 codes (0xf9e9..0xf9eb, 0xf9f9..0xf9fd) are one character for "
-"`mbrtowc` and two bytes for the matcher of the library: a range such as "
-"`[[.a.]-z]` takes their first byte there. ripgsed reads them as one "
-"character. The same holds for the four-byte characters of EUC-TW that start "
-"with 0x8e (`[[.a.]-z]` takes the 0x8e byte alone in GNU sed). This is not "
-"reproduced even with `--glibc-compat`: the match would end inside a "
-"character, and the engine only starts and ends matches at character "
-"boundaries."
-msgstr ""
-"Big5 の 8 コード（0xf9e9〜0xf9eb、0xf9f9〜0xf9fd）は、`mbrtowc` では 1 文字ですが、ライブラリのマッチャには"
-" 2 バイトに見え、`[[.a.]-z]` のような範囲がその先頭バイトを取ります。ripgsed は 1 文字として読みます。0x8e で始まる "
-"EUC-TW の 4 バイト文字も同じです（GNU sed では `[[.a.]-z]` が 0x8e の 1 "
-"バイトだけを取ります）。`--glibc-compat` "
-"でも再現しません。マッチが文字の途中で終わることになりますが、エンジンはマッチを文字境界でしか始めも終えもしないからです。"
 
 #: ../../KNOWN-DIFFERENCES.md:54
 msgid ""
@@ -629,3 +631,19 @@ msgstr ""
 #~ "`\\U` や `\\L` が、その集合に書けない文字へ変換すると、GNU sed は（シグナルで）異常終了します（`case conversion "
 #~ "produced an invalid character`。EUC-JP のコードセット 3 の 2 文字、GBK の 30 文字）。ripgsed "
 #~ "はその文字をそのまま残します。"
+
+#~ msgid ""
+#~ "Eight Big5 codes (0xf9e9..0xf9eb, 0xf9f9..0xf9fd) are one character for "
+#~ "`mbrtowc` and two bytes for the matcher of the library: a range such as "
+#~ "`[[.a.]-z]` takes their first byte there. ripgsed reads them as one "
+#~ "character. The same holds for the four-byte characters of EUC-TW that start "
+#~ "with 0x8e (`[[.a.]-z]` takes the 0x8e byte alone in GNU sed). This is not "
+#~ "reproduced even with `--glibc-compat`: the match would end inside a "
+#~ "character, and the engine only starts and ends matches at character "
+#~ "boundaries."
+#~ msgstr ""
+#~ "Big5 の 8 コード（0xf9e9〜0xf9eb、0xf9f9〜0xf9fd）は、`mbrtowc` では 1 文字ですが、ライブラリのマッチャには"
+#~ " 2 バイトに見え、`[[.a.]-z]` のような範囲がその先頭バイトを取ります。ripgsed は 1 文字として読みます。0x8e で始まる "
+#~ "EUC-TW の 4 バイト文字も同じです（GNU sed では `[[.a.]-z]` が 0x8e の 1 "
+#~ "バイトだけを取ります）。`--glibc-compat` "
+#~ "でも再現しません。マッチが文字の途中で終わることになりますが、エンジンはマッチを文字境界でしか始めも終えもしないからです。"

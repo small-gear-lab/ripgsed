@@ -228,8 +228,18 @@ impl<'a> Searcher<'a> {
         if self.libc { crate::locale::upper(c) } else { simple_upper(c) }
     }
 
+    /// `--glibc-compat` in a multibyte set: whether `pos` is inside a character, which only a
+    /// match that ended inside one (see `LibSet::partial_len`) leaves a search at. glibc knows the
+    /// bytes of a character after its first, and no unit matches there.
+    fn in_tail(&self, pos: usize) -> bool {
+        self.glibc && self.mb && pos > 0 && pos < self.hay.len() && !crate::locale::is_resync_byte(self.hay[pos]) && self.mb_scan(pos).0
+    }
+
     #[inline]
     fn unit_len(&self, u: u32, pos: usize) -> Option<usize> {
+        if self.glibc && self.mb && self.in_tail(pos) {
+            return None;
+        }
         let b = *self.hay.get(pos)?;
         match &self.prog.units[u as usize] {
             Unit::Byte(set) => set.contains(b).then_some(1),
@@ -244,7 +254,20 @@ impl<'a> Searcher<'a> {
                     let pair = self.glibc && self.mb && cs.negated && cs.icase && cs.lib.is_some() && crate::locale::icase_pair(&self.hay[pos..]);
                     return pair.then_some(2);
                 };
-                cs.matches_char(c).then_some(len)
+                // `--glibc-compat`: the matcher of the library takes the first byte(s) of some
+                // characters as a character of its own (the match then ends inside the character).
+                if self.glibc && self.mb && len >= 2 {
+                    if let Some(lib) = &cs.lib {
+                        let n = lib.0.partial_len(&self.hay[pos..pos + len]);
+                        if n > 0 {
+                            return Some(n);
+                        }
+                    }
+                }
+                if cs.matches_char(c) {
+                    return Some(len);
+                }
+                None
             }
         }
     }
@@ -334,6 +357,9 @@ impl<'a> Searcher<'a> {
     /// need a whole character simply fail there. Some patterns only start
     /// at character boundaries (`Program::char_starts`).
     fn step_len(&self, pos: usize) -> usize {
+        if self.in_tail(pos) {
+            return 1;
+        }
         if self.prog.char_starts {
             self.dec(pos).map_or(1, |(_, l)| l)
         } else {
