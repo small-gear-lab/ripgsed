@@ -117,6 +117,43 @@ pub struct Searcher<'a> {
     /// A single-byte locale of the C library (`Locale::Sb`).
     pub sb: bool,
     pub icase: bool,
+    /// `Mb`: a position known to be a character boundary (where the search starts).
+    pub boundary: usize,
+    /// `Mb`: the boundaries `mb_scan` has found in this line (see `BoundaryCache`).
+    pub seen: &'a std::cell::RefCell<BoundaryCache>,
+}
+
+/// `Mb`: positions of one line that are character boundaries, each with the valid character that
+/// ends there. Later queries read forward from the nearest one instead of from the line start, so
+/// a long line with no ASCII byte stays linear. Valid for one line: the caller clears it when the
+/// line changes.
+#[derive(Default, Debug, Clone)]
+pub struct BoundaryCache {
+    entries: Vec<(usize, Option<(char, usize)>)>,
+}
+
+impl BoundaryCache {
+    const SIZE: usize = 16;
+
+    pub fn clear(&mut self) {
+        self.entries.clear();
+    }
+
+    fn exact(&self, pos: usize) -> Option<Option<(char, usize)>> {
+        self.entries.iter().find(|e| e.0 == pos).map(|e| e.1)
+    }
+
+    /// The nearest known boundary before `pos`.
+    fn before(&self, pos: usize) -> Option<usize> {
+        self.entries.iter().map(|e| e.0).filter(|&p| p < pos).max()
+    }
+
+    fn insert(&mut self, pos: usize, last: Option<(char, usize)>) {
+        if self.entries.len() >= Self::SIZE {
+            self.entries.remove(0);
+        }
+        self.entries.push((pos, last));
+    }
 }
 
 impl<'a> Searcher<'a> {
@@ -133,10 +170,19 @@ impl<'a> Searcher<'a> {
     /// character that ends at it.
     fn mb_scan(&self, pos: usize) -> (bool, Option<(char, usize)>) {
         let hay = self.hay;
-        let mut start = pos.min(hay.len());
+        let pos = pos.min(hay.len());
+        if let Some(last) = self.seen.borrow().exact(pos) {
+            return (false, last);
+        }
+        // A position known to be a boundary before `pos`: where an earlier query ended or, for a
+        // character that starts the search, nothing (the character before is not known). Reading
+        // forward from it keeps a long line linear.
+        let base = self.seen.borrow().before(pos).unwrap_or(0).max(if self.boundary < pos { self.boundary } else { 0 });
+        let mut start = pos;
         let floor = start.saturating_sub(4096);
         loop {
-            if start == 0 {
+            if start <= base {
+                start = base;
                 break;
             }
             start -= 1;
@@ -144,7 +190,7 @@ impl<'a> Searcher<'a> {
                 break;
             }
             if start < floor {
-                start = 0;
+                start = base;
                 break;
             }
         }
@@ -165,6 +211,7 @@ impl<'a> Searcher<'a> {
                 }
             }
         }
+        self.seen.borrow_mut().insert(pos, last);
         (false, last)
     }
 

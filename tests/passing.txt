@@ -1203,6 +1203,7 @@ loc-012-big5-bracket-in-second-byte
 loc-012-eucjp-bytes-inside-characters
 loc-012-eucjp-characters-and-classes
 loc-012-euckr-characters-and-case
+loc-012-gb18030-four-byte-characters
 loc-012-gbk-second-byte-range
 loc-012-multibyte-invalid-sequences
 loc-012-sjis-second-byte-is-ascii

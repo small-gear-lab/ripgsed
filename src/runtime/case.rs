@@ -68,6 +68,11 @@ fn push(out: &mut Vec<u8>, text: &[u8], mode: &mut Mode, next: &mut Mode, locale
 }
 
 fn convert(out: &mut Vec<u8>, ch: &[u8], how: Mode, locale: Locale) {
+    // The rest of a piece after a pending `\u` or `\l` is used up (no conversion): copy as it is.
+    if how == Mode::None && locale.is_chars() {
+        out.extend_from_slice(ch);
+        return;
+    }
     if locale == Locale::Sb && how != Mode::None {
         let b = ch[0];
         out.push(if how == Mode::Upper { crate::locale::byte_upper(b) } else { crate::locale::byte_lower(b) });

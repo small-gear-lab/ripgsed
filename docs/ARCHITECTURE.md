@@ -38,7 +38,7 @@ The DFA path is tested against the simulation on random patterns and haystacks (
 | `C` | byte-wise: `C`, `POSIX`, a name that is not installed, a character set other than UTF-8 | one byte; ASCII classes |
 | `Utf8` | `LC_CTYPE` is `C.UTF-8` and `LC_COLLATE` is `C`, `POSIX` or `C.UTF-8` | one UTF-8 character; the tables of `C.utf8` built in (`classes_table`, made by `tools/gen-classes.py`); ranges by code point; no call into the library while matching |
 | `Libc` | any other UTF-8 locale | one UTF-8 character; the questions below go to the C library |
-| `Mb` | a multibyte character set other than UTF-8 (EUC-JP, Shift_JIS, GBK, Big5, EUC-KR) | one character read with `mbrtowc`; the questions below go to the C library |
+| `Mb` | a multibyte character set other than UTF-8 (EUC-JP, Shift_JIS, GBK, GB18030, Big5, EUC-KR, EUC-TW) | one character read with `mbrtowc`; the questions below go to the C library |
 | `Sb` | a single-byte character set other than ASCII (ISO-8859-x, KOI8-R, Windows-125x) | one byte; a byte set per bracket expression, filled by asking the C library about the 256 bytes |
 
 In `Libc` the parser builds a `CharSet` with `lib` set whenever the answer depends on the locale, and `CharSet::matches_char` asks the library:

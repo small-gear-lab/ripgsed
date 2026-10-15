@@ -246,6 +246,8 @@ pub struct Regex {
     /// See `star_before_not_word_boundary`.
     quirk_stars: usize,
     dfa: std::cell::RefCell<dfa::DfaSlot>,
+    /// `Mb`: boundaries found in the line of the running `s` (see `forget_boundaries`).
+    boundaries: std::cell::RefCell<exec::BoundaryCache>,
     /// Off to test the DFA against the simulation.
     use_dfa: bool,
     /// In a locale of the C library, for a pattern with a bracket expression of digit ranges: GNU
@@ -280,7 +282,7 @@ impl Regex {
         let prog = compile::compile(&parsed.node, parsed.ngroups, parsed.referenced, parsed.char_starts, parsed.utf8, syntax.glibc_compat)?;
         let prog_has_no_backrefs = !prog.has_backrefs;
         let literals = literal::analyze(&parsed.node, syntax.locale.is_chars(), syntax.locale == Locale::Mb);
-        Ok(Regex { prog, syntax: *syntax, delim, literals, scratch: Default::default(), quirk_stars: if syntax.glibc_compat { star_before_not_word_boundary(&parsed.node) } else { 0 }, fixed: if prog_has_no_backrefs { dfa::fixed_groups(&parsed.node, parsed.ngroups) } else { None }, node: parsed.node, dfa: Default::default(), use_dfa: syntax.locale != Locale::Mb || crate::locale::ascii_bytes_are_characters(), filter })
+        Ok(Regex { prog, syntax: *syntax, delim, literals, scratch: Default::default(), quirk_stars: if syntax.glibc_compat { star_before_not_word_boundary(&parsed.node) } else { 0 }, fixed: if prog_has_no_backrefs { dfa::fixed_groups(&parsed.node, parsed.ngroups) } else { None }, node: parsed.node, dfa: Default::default(), boundaries: Default::default(), use_dfa: syntax.locale != Locale::Mb || crate::locale::ascii_bytes_are_characters(), filter })
     }
 
     /// Number of parenthesized subexpressions.
@@ -291,7 +293,13 @@ impl Regex {
     /// Finds the leftmost-longest match in `haystack` that starts at or after
     /// `start`. The whole of `haystack` stays visible, so anchors and word
     /// boundaries behave as in the full record. Fills `caps` on a match.
+    ///
+    /// A search from 0 starts a new line: later calls with larger `start` on the same text share
+    /// what this one learned about character boundaries (`Mb`).
     pub fn captures_at(&self, haystack: &[u8], start: usize, caps: &mut Captures) -> bool {
+        if start == 0 {
+            self.boundaries.borrow_mut().clear();
+        }
         if start > haystack.len() {
             return false;
         }
@@ -341,6 +349,8 @@ impl Regex {
             mb: self.syntax.locale == Locale::Mb,
             sb: self.syntax.locale == Locale::Sb,
             icase: self.syntax.icase,
+            boundary: start,
+            seen: &self.boundaries,
         };
         match searcher.search(start) {
             Some((_, groups)) => {
@@ -387,6 +397,8 @@ impl Regex {
             mb: self.syntax.locale == Locale::Mb,
             sb: self.syntax.locale == Locale::Sb,
             icase: self.syntax.icase,
+            boundary: 0,
+            seen: &exec::BoundaryCache::default().into(),
         };
         searcher.exists()
     }

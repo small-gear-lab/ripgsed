@@ -42,6 +42,9 @@ LOCALE_DEFS = {
     "zh_CN.GBK": ("GBK", "zh_CN", "gbk", 2),
     "zh_TW.BIG5": ("BIG5", "zh_TW", "big5", 2),
     "ko_KR.eucKR": ("EUC-KR", "ko_KR", "euc_kr", 2),
+    "zh_CN.GB18030": ("GB18030", "zh_CN", "gb18030", 4),
+    # Python has no EUC-TW codec: only what ASCII can write is encoded for the patterns.
+    "zh_TW.eucTW": ("EUC-TW", "zh_TW", "ascii", 4),
     "de_DE.ISO-8859-1": ("ISO-8859-1", "de_DE", "latin-1", 1),
     "cs_CZ.ISO-8859-2": ("ISO-8859-2", "cs_CZ", "iso8859-2", 1),
     "fr_FR.ISO-8859-15": ("ISO-8859-15", "fr_FR", "iso8859-15", 1),
@@ -86,6 +89,7 @@ KNOWN_LOCALE = {
     # matcher of the library reads their first byte as a character of its own, which a range
     # by collation takes.
     ("zh_TW.BIG5", "s/[[.a.]-z]/X/"): "eight Big5 codes read as two bytes by the library's matcher",
+    ("zh_TW.eucTW", "s/[[.a.]-z]/X/"): "EUC-TW characters of 0x8e read as a lone byte by the library's matcher",
 }
 # Scripts whose whole output is compared, line by line.
 CONVERSIONS = ["s/.*/\\U&/", "s/.*/\\L&/", "s/.*/\\u&/", "s/.*/\\l&/", "s/\\b/|/g", "s/\\B/|/g"]
@@ -129,6 +133,18 @@ def charset_inputs(maxlen, sample=False):
         seqs += [bytes([a, b]) for a in leads for b in range(256) if b != 10]
     if maxlen >= 3:
         seqs += [bytes([0x8F, a, b]) for a in (range(0xA1, 0xA4) if sample else range(0xA1, 0xFF)) for b in range(0xA1, 0xFF)]
+    if maxlen >= 4:
+        # GB18030: four bytes 0x81..0xfe, 0x30..0x39, 0x81..0xfe, 0x30..0x39; EUC-TW: 0x8e, a plane
+        # 0xa1..0xb0 (0xa2.. for the unused ones), then two bytes of 0xa1 or more.
+        for a in ([0x81, 0x84, 0x90, 0xE3, 0xFE] if sample else range(0x81, 0xFF)):
+            for b in (range(0x30, 0x3A) if not sample else (0x30, 0x35, 0x39)):
+                for c in ([0x81, 0xA1, 0xFE] if sample else range(0x81, 0xFF)):
+                    for d in ((0x30, 0x39) if sample else range(0x30, 0x3A)):
+                        seqs.append(bytes([a, b, c, d]))
+        for plane in range(0xA1, 0xB0) if not sample else (0xA1, 0xA2, 0xA3, 0xAF, 0xB0):
+            for b in ((0xA1, 0xC4, 0xFE) if sample else range(0xA1, 0xFF)):
+                for c in range(0xA1, 0xFF) if not sample else (0xA1, 0xFE):
+                    seqs.append(bytes([0x8E, plane, b, c]))
     return seqs
 
 

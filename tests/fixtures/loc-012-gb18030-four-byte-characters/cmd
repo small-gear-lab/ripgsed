@@ -1,0 +1,16 @@
+mk() { mkdir -p "$PWD/loc"; localedef -f "$1" -i "$2" "$PWD/loc/$3" > /dev/null 2>&1; }
+export LOCPATH=$PWD/loc LANGUAGE=C
+mk GB18030 zh_CN zh_CN.GB18030
+export LC_ALL=zh_CN.GB18030
+# CHINA (0xd6 0xd0, two bytes) and a four-byte character (0x81 0x30 0x81 0x30)
+Z=$(printf '\326\320')
+F=$(printf '\201\060\201\060')
+printf '%s\n' "a${Z}${F}b" | sed 's/./[&]/g' | LC_ALL=C od -An -c
+printf '%s\n' "a${Z}${F}" | sed 's/.*/\u&/' | LC_ALL=C od -An -c
+printf '%s\n' "ab${F}${Z}" | sed 's/.*/\U&/' | LC_ALL=C od -An -c
+printf '%s\n' "${F}${F}" | sed 's/'"${F}"'/X/2'
+printf '%s\n' "${F}${Z}" | sed 's/^\(.\)\(.\)$/\2\1/' | LC_ALL=C od -An -c
+printf '%s\n' "${F}a" | sed 's/[^a]/X/g'
+printf '%s\n' "${F}b" | sed 's/\b/|/g' | LC_ALL=C od -An -c
+printf '%s\n' "${F}${F}" | sed 's/^\(.\)\1$/same/'
+rm -rf loc
