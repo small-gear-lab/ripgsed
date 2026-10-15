@@ -80,6 +80,13 @@ KNOWN = {"/^\\(.\\)\\1$/I=": "back-reference under I after a letter whose capita
 # The same for `C.UTF-8` only, where ripgsed folds a letter under `I` with its own rule
 # (docs/KNOWN-DIFFERENCES.md, "With the `I` flag, glibc matches ... in one direction only").
 KNOWN_C_UTF8 = {"/^[µ]$/I=", "/^[в]$/I=", "/^[В]$/I=", "/^[ᲀ]$/I=", "/^[ς]$/I=", "/^в$/I="}
+# Known differences of one locale (docs/KNOWN-DIFFERENCES.md): the label of a case in a locale.
+KNOWN_LOCALE = {
+    # Eight Big5 codes (0xf9e9..0xf9eb, 0xf9f9..0xf9fd) are one character for `mbrtowc`, but the
+    # matcher of the library reads their first byte as a character of its own, which a range
+    # by collation takes.
+    ("zh_TW.BIG5", "s/[[.a.]-z]/X/"): "eight Big5 codes read as two bytes by the library's matcher",
+}
 # Scripts whose whole output is compared, line by line.
 CONVERSIONS = ["s/.*/\\U&/", "s/.*/\\L&/", "s/.*/\\u&/", "s/.*/\\l&/", "s/\\b/|/g", "s/\\B/|/g"]
 # Scripts run on the characters inside a word (`a<char>b`) or after a digit: where the matches
@@ -110,14 +117,18 @@ def write_lines(path, twice_path, pair_path, ctx_path, chars):
     return chars
 
 
-def charset_inputs(maxlen):
+SAMPLE_LEADS = [0x80, 0x81, 0x83, 0x8E, 0x8F, 0x95, 0xA1, 0xA3, 0xA4, 0xA5, 0xB0, 0xC7, 0xD6, 0xE0, 0xFE, 0xFF]
+
+
+def charset_inputs(maxlen, sample=False):
     """Every byte, every two-byte sequence with a first byte of 0x80 or more, and for three-byte
     sets every sequence of code set 3 (0x8f, then two bytes of 0xa1 or more), without newlines."""
     seqs = [bytes([b]) for b in range(256) if b != 10]
+    leads = SAMPLE_LEADS if sample else range(0x80, 256)
     if maxlen >= 2:
-        seqs += [bytes([a, b]) for a in range(0x80, 256) for b in range(256) if b != 10]
+        seqs += [bytes([a, b]) for a in leads for b in range(256) if b != 10]
     if maxlen >= 3:
-        seqs += [bytes([0x8F, a, b]) for a in range(0xA1, 0xFF) for b in range(0xA1, 0xFF)]
+        seqs += [bytes([0x8F, a, b]) for a in (range(0xA1, 0xA4) if sample else range(0xA1, 0xFF)) for b in range(0xA1, 0xFF)]
     return seqs
 
 
@@ -191,6 +202,7 @@ def main():
     ap.add_argument("--loc-dir", default=None, help="where `localedef` makes missing locales (default: a scratch directory)")
     ap.add_argument("--max-cp", type=lambda v: int(v, 0), default=0x110000, help="only the code points below this one")
     ap.add_argument("--quick", action="store_true", help="fewer cases")
+    ap.add_argument("--sample", action="store_true", help="multibyte character sets: only some first bytes (and code set 3 rows)")
     ap.add_argument("--filter", default=None, help="only the cases whose label contains this text")
     ap.add_argument("--verbose", action="store_true", help="also list the matching cases")
     ap.add_argument("--summary", action="store_true", help="per locale: the number of cases, characters and differences")
@@ -226,7 +238,7 @@ def main():
             codec = None
             if loc in LOCALE_DEFS:
                 codec, maxlen = LOCALE_DEFS[loc][2], LOCALE_DEFS[loc][3]
-                chars = write_lines(paths["all"], paths["twice"], paths["pair"], paths["ctx"], charset_inputs(maxlen))
+                chars = write_lines(paths["all"], paths["twice"], paths["pair"], paths["ctx"], charset_inputs(maxlen, args.sample))
                 enc = lambda t: t.encode(codec)
             else:
                 if utf8_chars is None:
@@ -328,10 +340,18 @@ def main():
                 totals["bad_valid"] += bad_valid
                 totals["bad_invalid"] += bad_invalid
                 known = bad != 0 and (label in KNOWN or (loc == "C.UTF-8" and label in KNOWN_C_UTF8))
+                why = KNOWN.get(label, "one-direction letter folding of C.UTF-8")
+                if bad and (loc, label) in KNOWN_LOCALE:
+                    known, why = True, KNOWN_LOCALE[(loc, label)]
+                if bad and codec and bad_valid == 0 and label.startswith("/^[^") and label.endswith("$/I="):
+                    # Unassigned two-byte codes (GBK 0xfe61..0xfe6f, Shift_JIS 0x8461..0x846f): the
+                    # library's case folding takes them for a negated bracket under I.
+                    known = True
+                    why = "negated bracket under I on unassigned codes of the set"
                 failed += bad != 0 and not known
                 totals["bad_cases"] += bad != 0 and not known
                 if bad or args.verbose:
-                    note = "  (known: " + KNOWN.get(label, "one-direction letter folding of C.UTF-8") + ")" if known else ""
+                    note = "  (known: " + why + ")" if known else ""
                     if kept is not None:
                         note += f"  ({len(chars) - len(kept)} lines on which GNU sed aborts are left out)"
                     detail = f"   ({bad_valid} valid / {bad_invalid} invalid)" if multibyte else ""

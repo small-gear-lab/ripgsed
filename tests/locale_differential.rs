@@ -33,3 +33,34 @@ fn bracket_classes_and_case_rules_follow_the_c_library() {
     let text = String::from_utf8_lossy(&out.stdout);
     assert!(out.status.success(), "{text}{}", String::from_utf8_lossy(&out.stderr));
 }
+
+/// The same for the other character sets (EUC-JP, Shift_JIS, Big5, ISO-8859-1, KOI8-R: every byte
+/// and the two-byte sequences of some first bytes) and for random patterns in company
+/// (`tools/locale-fuzz.py`).
+#[test]
+fn other_character_sets_follow_the_c_library() {
+    let reference = have("sed", "--version").unwrap_or_default();
+    if !reference.starts_with("sed (GNU sed) 4.9") {
+        eprintln!("skipped: the reference sed is not GNU sed 4.9");
+        return;
+    }
+    if have("python3", "--version").is_none() || have("localedef", "--version").is_none() || !std::path::Path::new("/usr/share/i18n/charmaps").exists() {
+        eprintln!("skipped: python3, localedef or /usr/share/i18n is missing");
+        return;
+    }
+    let locales = "ja_JP.eucJP,ja_JP.SJIS,zh_TW.BIG5,de_DE.ISO-8859-1,ru_RU.KOI8-R";
+    let script = concat!(env!("CARGO_MANIFEST_DIR"), "/tools/locale-diff.py");
+    let out = Command::new("python3")
+        .args(["-I", script, "--ours", env!("CARGO_BIN_EXE_ripgsed"), "--quick", "--sample", "--locales", locales])
+        .output()
+        .expect("run tools/locale-diff.py");
+    let text = String::from_utf8_lossy(&out.stdout);
+    assert!(out.status.success(), "{text}{}", String::from_utf8_lossy(&out.stderr));
+    let script = concat!(env!("CARGO_MANIFEST_DIR"), "/tools/locale-fuzz.py");
+    let out = Command::new("python3")
+        .args(["-I", script, "--ours", env!("CARGO_BIN_EXE_ripgsed"), "--cases", "60", "--invalid", "--locales", locales])
+        .output()
+        .expect("run tools/locale-fuzz.py");
+    let text = String::from_utf8_lossy(&out.stdout);
+    assert!(out.status.success(), "{text}{}", String::from_utf8_lossy(&out.stderr));
+}

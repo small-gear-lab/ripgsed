@@ -31,13 +31,15 @@ The DFA path is tested against the simulation on random patterns and haystacks (
 
 ## Locales
 
-`locale::from_env` calls `setlocale(LC_ALL, "")` once, before anything else, and reads the character set of `LC_CTYPE` and the names of `LC_CTYPE` and `LC_COLLATE` back. The result is one of three `regex::Locale` values, and every place that reads characters asks `Locale::is_utf8` rather than comparing:
+`locale::from_env` calls `setlocale(LC_ALL, "")` once, before anything else, and reads the character set of `LC_CTYPE` and the names of `LC_CTYPE` and `LC_COLLATE` back. The result is one of five `regex::Locale` values, and every place that reads characters asks `Locale::is_chars` (text is read as characters), `is_utf8`, or `is_lib` (the library answers) rather than comparing:
 
 | `Locale` | when | what a character is, what a set contains |
 | --- | --- | --- |
 | `C` | byte-wise: `C`, `POSIX`, a name that is not installed, a character set other than UTF-8 | one byte; ASCII classes |
 | `Utf8` | `LC_CTYPE` is `C.UTF-8` and `LC_COLLATE` is `C`, `POSIX` or `C.UTF-8` | one UTF-8 character; the tables of `C.utf8` built in (`classes_table`, made by `tools/gen-classes.py`); ranges by code point; no call into the library while matching |
 | `Libc` | any other UTF-8 locale | one UTF-8 character; the questions below go to the C library |
+| `Mb` | a multibyte character set other than UTF-8 (EUC-JP, Shift_JIS, GBK, Big5, EUC-KR) | one character read with `mbrtowc`; the questions below go to the C library |
+| `Sb` | a single-byte character set other than ASCII (ISO-8859-x, KOI8-R, Windows-125x) | one byte; a byte set per bracket expression, filled by asking the C library about the 256 bytes |
 
 In `Libc` the parser builds a `CharSet` with `lib` set whenever the answer depends on the locale, and `CharSet::matches_char` asks the library:
 
@@ -49,7 +51,13 @@ In `Libc` the parser builds a `CharSet` with `lib` set whenever the answer depen
 
 A set with `lib` is opaque to the DFA (`expand_utf8` refuses it), so such a pattern runs the DFA on ASCII haystacks and the NFA simulation on the rest; the default paths are unaffected.
 
-**Adding other character sets** (EUC-JP, Shift_JIS, GBK, Big5, EUC-KR, and single-byte sets such as ISO-8859-x, KOI8-R, Windows-125x) does not change the questions: the library already answers them for any locale (`regcomp` and `iswalnum` work on `wchar_t`, which is Unicode in glibc for every character set). What is new is reading and writing a character. A locale would carry a decoder (`mbrtowc` for a character at a position, and the reverse for `\U` output, `y`, and the DFA's byte sequences, which cannot be spelled out for a stateful or non-self-synchronizing set, so those patterns use the simulation), and a single-byte set is a byte set whose class and case tables are filled by calling the library for the 256 bytes. `Locale::is_utf8` and the places that match on `Locale` (`regex::parse`, `regex::exec`, `runtime::case`, `runtime::translate`, the delimiter check in `syntax::parser`) are the places to extend.
+**Other character sets.** `regcomp` and `iswalnum` work on `wchar_t`, which is Unicode in glibc for every character set, so the questions above are the same for `Mb` and `Libc`; what differs is reading and writing a character.
+
+- `locale::mb_decode` (`mbrtowc`) and `locale::mb_encode` (`wcrtomb`) are the only places that know the encoding. `Searcher::dec` and the parser's `dec` replace `decode_utf8` (for `Mb`), `LibSet` encodes the character it is asked about with `wcrtomb`, and `\U \L` convert through the wide character and write it back. A byte that `mbrtowc` refuses, or accepts but the library's own matcher does not take for `.` (0x80 in GBK, found at start-up), is an invalid byte, as in UTF-8.
+- A multibyte match starts only at character boundaries (`Program::char_starts` is always on) and every step consumes whole characters, so the second byte of a character is never matched alone. `Searcher::dec_before` finds the character before a position by reading the line forward from a known boundary (`bhint`): in EUC-JP a second byte is also a valid first byte, so backward decoding is not an option in any of the sets. The `s` loop steps one character, not one byte, after an empty match in `Mb`.
+- `locale::ascii_bytes_are_characters` (measured with `mbrtowc` at start-up: bytes 0..127 are ASCII, and no multibyte character has an ASCII byte) says whether the DFAs and the literal search may look at ASCII bytes. EUC-JP and EUC-KR pass; Shift_JIS (0x5c, 0x7e), GBK and Big5 (second bytes 0x40..0x7e) do not, so there the DFAs are off and only `required` literals (a necessary condition, correct whenever ASCII bytes are ASCII) are used. `expand_utf8` is never used for `Mb`.
+- `Sb` has no decoder: bytes are characters. The bracket expression is compiled by `regcomp` as a whole and the byte set is filled by asking about each byte; the DFA and the literal search run as in the `C` locale on those byte sets, and the word characters of 0x80..0xff come from a table filled at start-up (`locale::word_byte_high`).
+- The script is read character by character where GNU sed does (`Parser::multibyte_tail`, `locale::script_char_len` in `normalize_escapes`) so that a second byte that is `\`, `[`, `]` or the delimiter stays in its character; the replacement is read byte by byte, also as GNU sed does.
 
 ## Policies
 

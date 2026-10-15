@@ -130,13 +130,17 @@ def main():
                 pat = gen_pattern(rng, [c for c in chars if c not in (".",)] or ["a"])
                 flags = rng.choice(["", "", "", "I", "M"])
                 texts = b"\n".join(gen_text(rng, chars, args.invalid, raw) for _ in range(4)) + b"\n"
+                extended = rng.random() < 0.25
+                if extended:
+                    for a, b in (("\\(", "("), ("\\)", ")"), ("\\|", "|"), ("\\+", "+"), ("\\?", "?"), ("\\{", "{"), ("\\}", "}")):
+                        pat = pat.replace(a, b)
                 script = ("s/" + pat + "/<&>[\\1]/g" + flags).encode(codec)
                 res = []
                 for d in ("gnu", "ours"):
                     env = {"PATH": os.path.join(work, d) + ":/usr/bin:/bin", "LC_ALL": loc, "LANGUAGE": "C", "LOCPATH": locdir}
                     # GNU sed's own results, quirks of the C library's matcher included.
                     opts = ["--glibc-compat"] if d == "ours" else []
-                    r = subprocess.run(["sed"] + opts + [script], input=texts, env=env, capture_output=True)
+                    r = subprocess.run(["sed"] + opts + (["-E"] if extended else []) + [script], input=texts, env=env, capture_output=True)
                     res.append((r.returncode, r.stdout, r.stderr))
                 if res[0] != res[1]:
                     bad += 1

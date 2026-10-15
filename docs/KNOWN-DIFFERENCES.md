@@ -5,7 +5,7 @@ ripgsed behaves like GNU sed 4.9: same output, same error messages in the C loca
 ## Intentional differences
 
 - `--version` and `--help` print ripgsed's own text. The first line of the usage message and the `sed:` lines of option errors are the same as GNU sed's.
-- Only byte-wise and UTF-8 character sets are implemented. Every UTF-8 locale the C library has is followed (the order of ranges, the classes, the case rules; D11), but a locale with another character set (EUC-JP, Shift_JIS, GBK, Big5, EUC-KR, ISO-8859-x, KOI8-R, Windows-125x) is read as bytes, as the `C` locale is: `.` is one byte and the classes hold ASCII only, where GNU sed reads characters of that set.
+- Every character set the C library has is followed: UTF-8, the multibyte sets EUC-JP, Shift_JIS, GBK, Big5 and EUC-KR (characters are read with `mbrtowc`), and single-byte sets such as ISO-8859-x, KOI8-R and Windows-125x (D11). The classes, the case rules and the order of ranges are the locale's, as in GNU sed. Only a locale that is not installed, or `C` and `POSIX`, is read as bytes. Sets that were not compared with GNU sed (EUC-TW, GB18030, the Big5-HKSCS and JIS X 0213 variants) go through the same code and are expected to work, but nothing checks them.
 - A single record of 2 GiB or more: GNU sed stops with `regex input buffer length larger than INT_MAX` (exit status 4) when a regular expression is matched against it, because the C library measures the buffer with an `int`. ripgsed has no such limit and goes on. (Measured on GNU sed 4.9 with a sparse file of 2,147,483,647 bytes and no newline; GNU sed needed about 4 GiB of memory for it.) There is no fixture, as it would need that much memory.
 - Memory use is higher: input is read in blocks of 256 KiB, and parallel runs keep several blocks in flight.
 
@@ -42,6 +42,17 @@ With `-z`, a `$` at the start of a pattern that goes on with a negated bracket e
 - A text of `a`, `i`, or `c` that ends in `\c` takes the newline GNU sed appends as its control character (`a x\c` writes `xJ`).
 - A range that starts with an invalid collating symbol and ends with a class (`[[.space.]-[:alpha:]]`) reports `Invalid collation character`, GNU sed `Invalid range end`.
 - Reading a directory that a symbolic link points to with `--follow-symlinks` names the target in the read error; GNU sed 4.9 built from the release tarball names the link, the packaged one the target (ripgsed names the target).
+
+## Cases of other character sets that are not reproduced
+
+These were found by comparing every byte and every two-byte (and, for EUC-JP, three-byte) sequence of the sets (`tools/locale-diff.py`) and random patterns (`tools/locale-fuzz.py`), and they concern only sequences that are not characters of the set, or exotic patterns.
+
+- A pattern that has a byte of 0x80 or more that is not a whole character (`s/\xa1/X/`, a lone first byte of a two-byte character) matches that byte where it starts a character, as GNU sed does, but what comes after it in the same pattern (`s/\xa1./X/`) and an empty match in the middle of the character (`s/\xa1*/X/g`) differ from glibc, which then goes on inside the character.
+- GNU sed aborts (`case conversion produced an invalid character`, a signal) when `\U` or `\L` turns a character into one the set cannot write (two EUC-JP characters of code set 3, thirty GBK characters). ripgsed leaves the character as it is.
+- A negated bracket expression under `I` (`[^a-z]`) takes a few unassigned two-byte codes of GBK (0xfe61..0xfe6f) and Shift_JIS (0x8461..0x846f, 0x9873..0x987a) in glibc, and not in ripgsed, where such a sequence is not a character.
+- Eight Big5 codes (0xf9e9..0xf9eb, 0xf9f9..0xf9fd) are one character for `mbrtowc` and two bytes for the matcher of the library: a range such as `[[.a.]-z]` takes their first byte there. ripgsed reads them as one character.
+- In a replacement, a character of Shift_JIS, GBK or Big5 that ends in a backslash, followed by another backslash escape (the bytes `95 5c 5c 6e`, a character, then `\n`), loses its backslash in GNU sed and gives the character's first byte and a newline; ripgsed gives the backslash too. A text of `a`, `i` or `c` that has a backslash made by `\x5c` after such a character is read differently in the same way.
+- The messages of the C library that GNU sed prints for a bad bracket expression (`Invalid range end`, ...) are translated by the library when a language pack for the locale is installed (`ja_JP` on Ubuntu with `language-pack-ja-base`), in the character set of the locale. ripgsed prints the English text, as in the `C` locale (D11). The fixtures set `LANGUAGE=C`.
 
 ## Reporting the glibc cases upstream
 

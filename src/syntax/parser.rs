@@ -980,12 +980,8 @@ impl Parser {
         let mut i = 0;
         while i < text.len() {
             let b = text[i];
-            let len = crate::locale::script_char_len(&text[i..]);
-            if len > 1 {
-                literal.extend_from_slice(&text[i..i + len]);
-                i += len;
-                continue;
-            }
+            // GNU sed reads the replacement byte by byte: a backslash that is the second byte of
+            // a character still escapes what follows it.
             i += 1;
             match b {
                 b'&' => {

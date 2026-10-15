@@ -10,8 +10,7 @@
 //! What the run then does depends on the character set of `LC_CTYPE` and on the two categories
 //! the matcher reads:
 //!
-//! * a byte-wise locale (`C`, `POSIX`, or a character set this program does not know yet) is
-//!   `Locale::C`;
+//! * a byte-wise locale (`C`, `POSIX`, or a name that is not installed) is `Locale::C`;
 //! * UTF-8 with `LC_CTYPE` and `LC_COLLATE` as glibc's `C.UTF-8` (or `C`) is `Locale::Utf8`:
 //!   the tables in `regex::classes_table`, no call into the library while matching;
 //! * every other UTF-8 locale is `Locale::Libc`: the characters are the same, but what a class
@@ -20,8 +19,12 @@
 //!   bracket expressions, the same engine that GNU sed uses, so that collation and the case
 //!   rules of the locale are exactly its answers).
 //!
-//! Single-byte and non-UTF-8 multibyte character sets can be added as more `Locale` values that
-//! decode through `mbrtowc`; every place that asks the library already goes through this module.
+//! * a single-byte character set other than ASCII (ISO-8859-x, KOI8-R, Windows-125x) is
+//!   `Locale::Sb`: a byte is a character, and the sets and case rules are the library's;
+//! * a multibyte character set other than UTF-8 (EUC-JP, Shift_JIS, GBK, Big5, EUC-KR) is
+//!   `Locale::Mb`: characters are read with `mbrtowc` and written with `wcrtomb`, and the rest is
+//!   the library's as in `Libc`.
+//!
 //! See docs/ARCHITECTURE.md.
 
 use crate::regex::Locale;
