@@ -6,6 +6,7 @@ ripgsed behaves like GNU sed 4.9: same output, same error messages in the C loca
 
 - `--version` and `--help` print ripgsed's own text. The first line of the usage message and the `sed:` lines of option errors are the same as GNU sed's.
 - Only the `C` locale and UTF-8 locales are implemented. Other multibyte encodings are read as bytes.
+- A single record of 2 GiB or more: GNU sed stops with `regex input buffer length larger than INT_MAX` (exit status 4) when a regular expression is matched against it, because the C library measures the buffer with an `int`. ripgsed has no such limit and goes on. (Measured on GNU sed 4.9 with a sparse file of 2,147,483,647 bytes and no newline; GNU sed needed about 4 GiB of memory for it.) There is no fixture, as it would need that much memory.
 - Memory use is higher: input is read in blocks of 256 KiB, and parallel runs keep several blocks in flight.
 
 ## glibc behavior reproduced with `--glibc-compat`

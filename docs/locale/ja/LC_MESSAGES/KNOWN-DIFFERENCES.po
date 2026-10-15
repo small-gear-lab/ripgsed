@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ripgsed\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-16 00:02+0900\n"
+"POT-Creation-Date: 2026-10-16 00:08+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: ja <LL@li.org>\n"
@@ -61,15 +61,30 @@ msgstr "実装しているロケールは `C` と UTF-8 のみです。その他
 
 #: ../../KNOWN-DIFFERENCES.md:9
 msgid ""
+"A single record of 2 GiB or more: GNU sed stops with `regex input buffer "
+"length larger than INT_MAX` (exit status 4) when a regular expression is "
+"matched against it, because the C library measures the buffer with an `int`."
+" ripgsed has no such limit and goes on. (Measured on GNU sed 4.9 with a "
+"sparse file of 2,147,483,647 bytes and no newline; GNU sed needed about 4 "
+"GiB of memory for it.) There is no fixture, as it would need that much "
+"memory."
+msgstr ""
+"2 GiB 以上の1レコード：GNU sed は、そのレコードに対して正規表現を照合するとき、`regex input buffer length "
+"larger than INT_MAX`（終了状態 4）で止まります。C ライブラリがバッファの長さを `int` で数えているためです。ripgsed"
+" にはこの制限がなく、処理を続けます（GNU sed 4.9 で、改行のない 2,147,483,647 バイトの疎ファイルを使って測定。GNU sed"
+" は約 4 GiB のメモリを使いました）。それだけのメモリが要るので、fixture はありません。"
+
+#: ../../KNOWN-DIFFERENCES.md:10
+msgid ""
 "Memory use is higher: input is read in blocks of 256 KiB, and parallel runs "
 "keep several blocks in flight."
 msgstr "メモリ使用量は多めです。入力を 256 KiB のブロック単位で読み、並列実行では複数のブロックを同時に保持します。"
 
-#: ../../KNOWN-DIFFERENCES.md:11
+#: ../../KNOWN-DIFFERENCES.md:12
 msgid "glibc behavior reproduced with `--glibc-compat`"
 msgstr "`--glibc-compat` で再現する glibc の挙動"
 
-#: ../../KNOWN-DIFFERENCES.md:13
+#: ../../KNOWN-DIFFERENCES.md:14
 msgid ""
 "GNU sed uses the regular expression matcher of the C library. Where that "
 "matcher does something no specification asks for, `--glibc-compat` (or "
@@ -84,7 +99,7 @@ msgstr ""
 "も同じ動きをして、スクリプトが同じ出力になります。付けない場合は、定義どおりの結果（最左最長、後方参照は定義どおり）になります。差分テストと "
 "fixture は GNU sed の結果を保持しているので、このオプションを付けて実行します。"
 
-#: ../../KNOWN-DIFFERENCES.md:15
+#: ../../KNOWN-DIFFERENCES.md:16
 msgid ""
 "In a pattern that starts with a repetition of a single character (`b*`, "
 "`[ab]*`, `(a*)*`, `a*\\+`) followed by `\\B`, a match that is empty at a "
@@ -98,7 +113,7 @@ msgstr ""
 "'s/b*\\B/<&>/'` は `a<>b` ではなく `ab<>` を出力します。バッファの先頭では起きず、`\\b`、`\\<`、`\\>` "
 "にも当てはまりません。fixture は `rgx-039` です。"
 
-#: ../../KNOWN-DIFFERENCES.md:16
+#: ../../KNOWN-DIFFERENCES.md:17
 #, python-brace-format
 msgid ""
 "A back-reference to a group inside a repetition does not see every value "
@@ -127,7 +142,7 @@ msgstr ""
 "はどこにも一致しません。例外が2つあります。グループの本体が空になれない場合、繰り返しの任意のコピーの中にあるコピーは、開始が同じ必須のコピーに妨げられません。本体が空になれる場合、必須のコピーは、後ろの任意のコピーに妨げられません。コピーがどこから始まりうるかは、マッチの先頭からパターンを後方参照を見ずにたどって求めます。対象は長さ"
 " 256 バイトまでのマッチと、コピーが 16 個までのグループです。fixture は `rgx-040` です。"
 
-#: ../../KNOWN-DIFFERENCES.md:17
+#: ../../KNOWN-DIFFERENCES.md:18
 #, python-brace-format
 msgid ""
 "When the group is the whole body of a loop (`*`, `+`, `{m,}`) and can be "
@@ -150,7 +165,7 @@ msgstr ""
 " に対する `(a*)*\\1` は `<aa>[a]` を出力します）。fixture は `rgx-041` と `rgx-012-backref-"
 "group-in-star-iteration` です。"
 
-#: ../../KNOWN-DIFFERENCES.md:18
+#: ../../KNOWN-DIFFERENCES.md:19
 #, python-brace-format
 msgid ""
 "When GNU sed's first attempt of a search fails because the back-reference "
@@ -166,7 +181,7 @@ msgstr ""
 "に一致しません。先頭でない位置で空のグループが受け付けられない場合は、そうなりません（`b(a?){2}\\1` は `bbaaa` の `baaa` "
 "に一致します）。fixture は `rgx-041` です。"
 
-#: ../../KNOWN-DIFFERENCES.md:19
+#: ../../KNOWN-DIFFERENCES.md:20
 msgid ""
 "A relative link target that makes the path too long: GNU sed keeps the "
 "joined path in a buffer of fixed size and cuts it (the limit is 121 bytes, "
@@ -180,7 +195,7 @@ msgstr ""
 " `--follow-symlinks` は別のパスを読んだり編集したりします（`couldn't edit ...: not a regular "
 "file`）。既定では、パス全体を使います。fixture：`cmd-059`。"
 
-#: ../../KNOWN-DIFFERENCES.md:20
+#: ../../KNOWN-DIFFERENCES.md:21
 msgid ""
 "Always on, not an option: character classes (`[[:alpha:]]`, `\\w`, ...) in "
 "UTF-8 locales follow glibc's `C.utf8` tables, which are generated from the C"
@@ -191,11 +206,11 @@ msgstr ""
 " の表に従います。表は C ライブラリから生成しており（`tools/gen-classes.py`）、Rust の標準ライブラリではなく glibc "
 "の Unicode バージョンに従います。"
 
-#: ../../KNOWN-DIFFERENCES.md:22
+#: ../../KNOWN-DIFFERENCES.md:23
 msgid "glibc behavior that is not reproduced, even with `--glibc-compat`"
 msgstr "`--glibc-compat` を付けても再現しない glibc の挙動"
 
-#: ../../KNOWN-DIFFERENCES.md:24
+#: ../../KNOWN-DIFFERENCES.md:25
 #, python-format
 msgid ""
 "These are cases where glibc's matcher gives a result that disagrees with the"
@@ -272,7 +287,7 @@ msgstr "一致なし"
 msgid "match `x`"
 msgstr "`x` に一致"
 
-#: ../../KNOWN-DIFFERENCES.md:32
+#: ../../KNOWN-DIFFERENCES.md:33
 #, python-brace-format
 msgid ""
 "The first is a back-reference to a group inside a repetition where something"
@@ -292,7 +307,7 @@ msgstr ""
 "の答えは一致なしか文字化けです。固定幅のグループ（`(ab)+\\1`）は仕様どおりに動きます。重ねた量指定子の下のキャプチャ（`((b?)+*|c){1}`）や、パターンの先頭でない繰り返しの後ろの"
 " `\\B` でも差が出ることがあります。一覧上の項目は `compat/sed.tsv` の RGX-009 と RGX-012 です。"
 
-#: ../../KNOWN-DIFFERENCES.md:34
+#: ../../KNOWN-DIFFERENCES.md:35
 msgid ""
 "With `-z`, a `$` at the start of a pattern that goes on with a negated "
 "bracket expression can hold before a newline that the match then consumes: "
@@ -305,11 +320,11 @@ msgstr ""
 "aAcB` を `-z -E 's/$[b-c]*[^ c]*/<&>/g'` に通すと、GNU sed は改行に一致し、ripgsed "
 "は一致しません（レコードの末尾でない `$` が、そこで成り立つ理由はありません）。ランダムなパターン約2300件のうち1件で見つかりました。"
 
-#: ../../KNOWN-DIFFERENCES.md:36
+#: ../../KNOWN-DIFFERENCES.md:37
 msgid "UTF-8 cases of the C library that are not reproduced"
 msgstr "再現していない C ライブラリの UTF-8 の挙動"
 
-#: ../../KNOWN-DIFFERENCES.md:38
+#: ../../KNOWN-DIFFERENCES.md:39
 msgid ""
 "A byte sequence that is structured like a UTF-8 character but is not one (a "
 "surrogate such as `ED A0 80`, or a code point above U+10FFFF such as `F4 90 "
@@ -320,7 +335,7 @@ msgstr ""
 "U+10FFFF を超えるコードポイント）を、glibc は一部の場所（`.*`、`\\W`、`[^a]`、`\\b`）では 1 "
 "文字として扱い、別の場所では扱いません。ripgsed はどこでも不正なバイトとして扱います。"
 
-#: ../../KNOWN-DIFFERENCES.md:39
+#: ../../KNOWN-DIFFERENCES.md:40
 msgid ""
 "With the `I` flag, glibc matches a pattern character against the input in "
 "one direction only: `s/В/X/I` does not match `U+1C80` although both fold to "
@@ -332,7 +347,7 @@ msgstr ""
 "に一致せず、`[µ]` は `Μ` と `μ` に一致します。ripgsed はリテラルを大文字に畳んで双方向に、ブラケットは各文字の 2 "
 "つの大小で照合します。"
 
-#: ../../KNOWN-DIFFERENCES.md:40
+#: ../../KNOWN-DIFFERENCES.md:41
 msgid ""
 "A text of `a`, `i`, or `c` that ends in `\\c` takes the newline GNU sed "
 "appends as its control character (`a x\\c` writes `xJ`)."
@@ -340,7 +355,7 @@ msgstr ""
 "`a`、`i`、`c` のテキストが `\\c` で終わるとき、GNU sed は付け足す改行をその制御文字として取り込みます（`a x\\c` は "
 "`xJ` を書きます）。"
 
-#: ../../KNOWN-DIFFERENCES.md:41
+#: ../../KNOWN-DIFFERENCES.md:42
 msgid ""
 "A range that starts with an invalid collating symbol and ends with a class "
 "(`[[.space.]-[:alpha:]]`) reports `Invalid collation character`, GNU sed "
@@ -349,7 +364,7 @@ msgstr ""
 "無効な照合記号で始まり、クラスで終わる範囲（`[[.space.]-[:alpha:]]`）は、ripgsed では `Invalid "
 "collation character`、GNU sed では `Invalid range end` です。"
 
-#: ../../KNOWN-DIFFERENCES.md:42
+#: ../../KNOWN-DIFFERENCES.md:43
 msgid ""
 "Reading a directory that a symbolic link points to with `--follow-symlinks` "
 "names the target in the read error; GNU sed 4.9 built from the release "
@@ -359,18 +374,18 @@ msgstr ""
 "`--follow-symlinks` でシンボリックリンクの指すディレクトリを読むとき、読み取りエラーには ripgsed "
 "は指す先の名前を出します。GNU sed 4.9 はリリース tarball からビルドしたものがリンクの名前、パッケージ版が指す先の名前を出します。"
 
-#: ../../KNOWN-DIFFERENCES.md:44
+#: ../../KNOWN-DIFFERENCES.md:45
 msgid "Reporting the glibc cases upstream"
 msgstr "glibc への報告"
 
-#: ../../KNOWN-DIFFERENCES.md:46
+#: ../../KNOWN-DIFFERENCES.md:47
 msgid ""
 "The back-reference and `\\B` cases above reproduce with plain "
 "`regcomp`/`regexec` (`REG_EXTENDED`), without sed:"
 msgstr ""
 "上の後方参照と `\\B` の例は、sed を使わず素の `regcomp`/`regexec`（`REG_EXTENDED`）でも再現します。"
 
-#: ../../KNOWN-DIFFERENCES.md:54
+#: ../../KNOWN-DIFFERENCES.md:55
 msgid ""
 "Observed with glibc 2.43 (Ubuntu 2.43-2ubuntu2.4). A report to the glibc bug"
 " tracker (component `regex`) should say that POSIX asks for the leftmost-"
