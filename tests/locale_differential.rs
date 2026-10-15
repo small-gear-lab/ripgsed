@@ -74,3 +74,50 @@ fn other_character_sets_follow_the_c_library() {
     let text = String::from_utf8_lossy(&out.stdout);
     assert!(out.status.success(), "{text}{}", String::from_utf8_lossy(&out.stderr));
 }
+
+/// A long line without an ASCII byte in a set whose second bytes can look like first bytes
+/// (Shift_JIS): finding the character before a position must not read the line from its start
+/// every time (the work was quadratic, minutes for this line).
+#[test]
+fn a_long_line_without_ascii_in_shift_jis_is_read_in_linear_time() {
+    if have("localedef", "--version").is_none() || !std::path::Path::new("/usr/share/i18n/charmaps").exists() {
+        eprintln!("skipped: localedef or /usr/share/i18n is missing");
+        return;
+    }
+    let dir = std::env::temp_dir().join(format!("ripgsed-sjis-linear-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let _ = Command::new("localedef").args(["-f", "SHIFT_JIS", "-i", "ja_JP"]).arg(dir.join("ja_JP.SJIS")).output();
+    if !dir.join("ja_JP.SJIS").exists() {
+        eprintln!("skipped: localedef could not make ja_JP.SJIS");
+        let _ = std::fs::remove_dir_all(&dir);
+        return;
+    }
+    // 0x82a0 0x82a2 (hiragana a, i) repeated: 400,000 characters, no ASCII byte.
+    let line: Vec<u8> = [0x82u8, 0xa0, 0x82, 0xa2].iter().copied().cycle().take(800_000).chain(std::iter::once(b'\n')).collect();
+    for script in ["s/\\b/|/g", "s/\\B/|/g", "s/\\</</g", "s/\\w*/[&]/g"] {
+        let start = std::time::Instant::now();
+        let mut child = Command::new(env!("CARGO_BIN_EXE_ripgsed"))
+            .arg(script)
+            .env_clear()
+            .env("LC_ALL", "ja_JP.SJIS")
+            .env("LANGUAGE", "C")
+            .env("LOCPATH", &dir)
+            .stdin(std::process::Stdio::piped())
+            .stdout(std::process::Stdio::piped())
+            .spawn()
+            .expect("run ripgsed");
+        {
+            use std::io::Write;
+            let mut stdin = child.stdin.take().unwrap();
+            let line = line.clone();
+            std::thread::spawn(move || {
+                let _ = stdin.write_all(&line);
+            });
+        }
+        let out = child.wait_with_output().expect("wait");
+        assert!(out.status.success(), "{script}");
+        assert!(out.stdout.len() >= line.len(), "{script}");
+        assert!(start.elapsed().as_secs() < 20, "{script} took {:?}", start.elapsed());
+    }
+    let _ = std::fs::remove_dir_all(&dir);
+}

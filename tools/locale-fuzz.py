@@ -107,6 +107,23 @@ def gen_text(rng, chars, invalid, raw):
     return out
 
 
+def assertion_in_repeated_group(pat, extended):
+    """The class of glibc matcher quirks that have nothing to do with the locale (the same difference
+    shows in the C locale): an assertion in a pattern that has a repeated group (see the known
+    divergences of tests/regex_differential.rs)."""
+    assertion = any(a in pat for a in ("\\<", "\\>", "\\b", "\\B", "\\`", "\\'")) or "^" in pat[1:] or "$" in pat[:-1]
+    close = ")" if extended else "\\)"
+    quants = ("*", "+", "?", "{") if extended else ("*", "\\+", "\\?", "\\{")
+    repeated = False
+    i = pat.find(close)
+    while i != -1:
+        rest = pat[i + len(close):]
+        if rest.startswith(quants):
+            repeated = True
+        i = pat.find(close, i + 1)
+    return assertion and repeated
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--ours", default=os.path.join(here, "..", "target", "release", "ripgsed"))
@@ -143,6 +160,8 @@ def main():
                 if extended:
                     for a, b in (("\\(", "("), ("\\)", ")"), ("\\|", "|"), ("\\+", "+"), ("\\?", "?"), ("\\{", "{"), ("\\}", "}")):
                         pat = pat.replace(a, b)
+                if assertion_in_repeated_group(pat, extended):
+                    continue
                 script = ("s/" + pat + "/<&>[\\1]/g" + flags).encode(codec)
                 res = []
                 for d in ("gnu", "ours"):
