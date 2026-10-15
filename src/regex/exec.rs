@@ -247,10 +247,26 @@ impl<'a> Searcher<'a> {
         }
         let mut slot = self.dfa.borrow_mut();
         let set = slot.get(self.prog, self.node, self.utf8, self.delim)?;
-        let start = set.reverse.leftmost_start(self.hay, from).ok()?;
-        let Some(s) = start else { return Some(None) };
-        match set.forward.longest_from(self.hay, s) {
-            Ok(Some(e)) => Some(Some((s, e))),
+        // The earliest end of any match, then the leftmost start of a match ending there. A match
+        // that starts earlier must end later: try those starts one by one (within a budget).
+        let hay = self.hay;
+        let Ok(first) = set.unanchored.first_end(hay, from) else { return None };
+        let Some(e1) = first else { return Some(None) };
+        let Ok(Some(s1)) = set.reverse.leftmost_start(hay, from, e1) else { return None };
+        let mut budget = 256 + 4 * (e1 - from);
+        for s in from..s1 {
+            if self.prog.first_bytes.as_ref().is_some_and(|fb| !fb.contains(hay[s])) {
+                continue;
+            }
+            match set.forward.longest_from(hay, s, &mut budget) {
+                Ok(Some(e)) => return Some(Some((s, e))),
+                Ok(None) => {}
+                Err(_) => return None,
+            }
+        }
+        let mut unlimited = usize::MAX;
+        match set.forward.longest_from(hay, s1, &mut unlimited) {
+            Ok(Some(e)) => Some(Some((s1, e))),
             _ => None,
         }
     }

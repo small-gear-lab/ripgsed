@@ -205,7 +205,7 @@ fn long_lines_are_fast() {
 fn dfa_agrees_with_simulation() {
     let atoms = [
         "a", "b", "c", ".", "[ab]", "[^a]", "a*", "b+", "c?", "(a|b)", "(ab|a)", "x*", "^", "$", "\\b", "\\<", "\\>", "\\w", "\\W",
-        "a{2}", "[a-c]*", "(a*)b", "()",
+        "a{2}", "[a-c]*", "(a*)b", "()", "(abc|c)", "(a*c|b)", "(ab|bca|c)",
     ];
     let hays = ["", "a", "ab", "abc", "aab b", "cab ab", "xx a_b", "b a", "  ab", "abcabc", "a b", "bbbaaa", "ca"];
     let mut seed = 0x2545f4914f6cdd1du64;

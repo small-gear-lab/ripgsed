@@ -184,13 +184,21 @@ impl Dfa {
 
     /// The transition on byte `b`: the next state, and whether the program matched right
     /// before `b` (that is, at the position the scan was at).
+    #[inline(always)]
     fn step(&mut self, state: u32, b: u8) -> Result<u32, GiveUp> {
-        if self.unhandled(b) {
-            return Err(GiveUp);
-        }
+        // Transitions on bytes the scans give up on are never filled in.
         let t = self.trans[state as usize * 256 + b as usize];
         if t != UNKNOWN {
             return Ok(t);
+        }
+        self.step_slow(state, b)
+    }
+
+    #[cold]
+    #[inline(never)]
+    fn step_slow(&mut self, state: u32, b: u8) -> Result<u32, GiveUp> {
+        if self.unhandled(b) {
+            return Err(GiveUp);
         }
         let ctx = Ctx::of(b);
         let mut units = Vec::new();
@@ -226,12 +234,17 @@ impl Dfa {
     }
 
     /// Anchored forward scan: the longest match that starts at `start` (the end offset), if any.
-    pub fn longest_from(&mut self, hay: &[u8], start: usize) -> Result<Option<usize>, GiveUp> {
+    /// Gives up when the scan would read more than `budget` bytes (which it uses up).
+    pub fn longest_from(&mut self, hay: &[u8], start: usize, budget: &mut usize) -> Result<Option<usize>, GiveUp> {
         let prev = self.neighbour(hay, start)?;
         let mut state = self.start(prev)?;
         let mut last = None;
         let mut p = start;
         while p < hay.len() {
+            if *budget == 0 {
+                return Err(GiveUp);
+            }
+            *budget -= 1;
             let t = self.step(state, hay[p])?;
             if t & ACCEPT != 0 {
                 last = Some(p);
@@ -248,12 +261,20 @@ impl Dfa {
         Ok(last)
     }
 
-    /// Backward scan with the reversed program, trying every end: the leftmost start `>= from`
-    /// of any match, if there is one. `self` must be built from the reversed pattern, unanchored.
-    pub fn leftmost_start(&mut self, hay: &[u8], from: usize) -> Result<Option<usize>, GiveUp> {
-        let mut state = self.start(Ctx::Edge)?;
+    /// Backward scan from `to` with the reversed program: the leftmost start `>= from` of a
+    /// match that ends at or before `to`. `self` must be built from the reversed pattern,
+    /// unanchored.
+    pub fn leftmost_start(&mut self, hay: &[u8], from: usize, to: usize) -> Result<Option<usize>, GiveUp> {
+        let right = if to == hay.len() {
+            Ctx::Edge
+        } else if self.unhandled(hay[to]) {
+            return Err(GiveUp);
+        } else {
+            Ctx::of(hay[to])
+        };
+        let mut state = self.start(right)?;
         let mut best = None;
-        let mut p = hay.len();
+        let mut p = to;
         while p > from {
             let t = self.step(state, hay[p - 1])?;
             if t & ACCEPT != 0 {
@@ -269,17 +290,24 @@ impl Dfa {
         Ok(best)
     }
 
-    /// Forward unanchored scan: is there any match? `self` must be unanchored.
-    pub fn is_match(&mut self, hay: &[u8]) -> Result<bool, GiveUp> {
-        let mut state = self.start(Ctx::Edge)?;
-        for &b in hay {
-            let t = self.step(state, b)?;
+    /// Forward unanchored scan from `from`: the smallest end offset of any match, if there is
+    /// one. `self` must be unanchored.
+    pub fn first_end(&mut self, hay: &[u8], from: usize) -> Result<Option<usize>, GiveUp> {
+        let prev = self.neighbour(hay, from)?;
+        let mut state = self.start(prev)?;
+        for p in from..hay.len() {
+            let t = self.step(state, hay[p])?;
             if t & ACCEPT != 0 {
-                return Ok(true);
+                return Ok(Some(p));
             }
             state = t & !ACCEPT;
         }
-        Ok(self.accepts_at(state, Ctx::Edge))
+        Ok(self.accepts_at(state, Ctx::Edge).then_some(hay.len()))
+    }
+
+    /// Forward unanchored scan: is there any match? `self` must be unanchored.
+    pub fn is_match(&mut self, hay: &[u8]) -> Result<bool, GiveUp> {
+        Ok(self.first_end(hay, 0)?.is_some())
     }
 
     /// The context left of `pos`: the edge, or the byte before it (which must be one the DFA
