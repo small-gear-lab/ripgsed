@@ -6,17 +6,17 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: ripgsed \n"
+"Project-Id-Version: ripgsed\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-15 13:26+0900\n"
+"POT-Creation-Date: 2026-10-15 16:34+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language: ja\n"
 "Language-Team: ja <LL@li.org>\n"
-"Plural-Forms: nplurals=1; plural=0;\n"
+"Language: ja\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
 "Generated-By: Babel 2.18.0\n"
 
 #: ../../DESIGN.md:1
@@ -24,24 +24,45 @@ msgid "ripgsed design notes"
 msgstr "ripgsed 設計ノート"
 
 #: ../../DESIGN.md:3
-msgid "**Status: design draft, not implemented.** There are no measurements, no compatibility claims, and no published crate. Module names, CLI options, types, and extension syntax below are proposals and may change. Statements marked \"recommended\" are current leanings, not settled decisions."
-msgstr "**状態：設計案の段階で、未実装。** 実測値も互換性の達成実績も公開 crate もありません。以下のモジュール名、CLI オプション、型、拡張構文は提案であり、変更される可能性があります。「推奨」と書いた箇所は現時点の方針で、確定した決定ではありません。"
+msgid ""
+"**Status: design document; the sed-compatible core is implemented.** The "
+"sequential VM, the regex engine, and automatic parallel execution exist (see"
+" [ARCHITECTURE.md](ARCHITECTURE.md) and the README for measured results); "
+"the grep mode, PCRE2, and editor integration described below do not, and "
+"there is no published crate. Module names, CLI options, types, and extension"
+" syntax for the parts not yet built are proposals and may change. Statements"
+" marked \"recommended\" are current leanings, not settled decisions."
+msgstr ""
+"**状態：設計文書。sed 互換のコアは実装済み。** 逐次 VM、正規表現エンジン、自動並列実行があります（実測結果は "
+"[ARCHITECTURE.md](ARCHITECTURE.md) と README を参照）。以下に書いた grep "
+"モード、PCRE2、エディタ統合はまだなく、公開された crate もありません。まだ作っていない部分のモジュール名、CLI "
+"オプション、型、拡張構文は提案であり、変わる可能性があります。「推奨」と書いた記述は現時点の方針であり、確定した決定ではありません。"
 
 #: ../../DESIGN.md:5
 msgid "How to read this"
 msgstr "読み方"
 
 #: ../../DESIGN.md:7
-msgid "The first deliverable is a sequential reference implementation for a deliberately small subset, not a fast, feature-complete editor."
+msgid ""
+"The first deliverable is a sequential reference implementation for a "
+"deliberately small subset, not a fast, feature-complete editor."
 msgstr "最初に作るのは、あえて範囲を絞った逐次の参照実装であり、高速で全機能を備えたエディタではありません。"
 
 #: ../../DESIGN.md:8
-msgid "Each \"to decide\" item should be resolved, and the supported scope and acceptance criteria recorded in the repository, before optimization work starts."
+msgid ""
+"Each \"to decide\" item should be resolved, and the supported scope and "
+"acceptance criteria recorded in the repository, before optimization work "
+"starts."
 msgstr "最適化に進む前に、各「決めること」を解消し、対応範囲と受け入れ条件をリポジトリに記録します。"
 
 #: ../../DESIGN.md:9
-msgid "Priorities: **P0** sequential core, **P1** correctness and public boundaries, **P2** optimization, **P3** extensions and integrations. A priority label does not mean \"implemented\"."
-msgstr "優先度：**P0** 逐次コア、**P1** 正しさと公開境界、**P2** 最適化、**P3** 拡張・連携。優先度のラベルは「実装済み」を意味しません。"
+msgid ""
+"Priorities: **P0** sequential core, **P1** correctness and public "
+"boundaries, **P2** optimization, **P3** extensions and integrations. A "
+"priority label does not mean \"implemented\"."
+msgstr ""
+"優先度：**P0** 逐次コア、**P1** 正しさと公開境界、**P2** 最適化、**P3** "
+"拡張・連携。優先度のラベルは「実装済み」を意味しません。"
 
 #: ../../DESIGN.md:11
 msgid "Goals and non-goals"
@@ -52,11 +73,15 @@ msgid "Goals"
 msgstr "目的"
 
 #: ../../DESIGN.md:15
-msgid "Keep the sed language but separate syntax, semantics, and execution strategy."
+msgid ""
+"Keep the sed language but separate syntax, semantics, and execution "
+"strategy."
 msgstr "sed の言語を保ちつつ、構文・意味論・実行方式を分離する。"
 
 #: ../../DESIGN.md:16
-msgid "Preserve line semantics while leaving room for buffered I/O, chunked processing, and safe parallelism."
+msgid ""
+"Preserve line semantics while leaving room for buffered I/O, chunked "
+"processing, and safe parallelism."
 msgstr "行の意味論を維持しながら、バッファ付き I/O、チャンク処理、安全な並列化の余地を残す。"
 
 #: ../../DESIGN.md:17
@@ -64,27 +89,47 @@ msgid "Expose one core through a CLI, a Rust API, and Vim/Neovim."
 msgstr "一つのコアを CLI、Rust API、Vim/Neovim から使えるようにする。"
 
 #: ../../DESIGN.md:18
-msgid "Make differences from GNU sed, the reasons behind execution plans, and resource limits observable."
+msgid ""
+"Make differences from GNU sed, the reasons behind execution plans, and "
+"resource limits observable."
 msgstr "GNU sed との差分、実行計画の理由、資源上限を観察できるようにする。"
 
 #: ../../DESIGN.md:19
-msgid "Be a drop-in replacement for GNU sed: the same stdout, exit status, and file effects for any valid GNU sed invocation. This is the minimum requirement of the project (D4 in [DECISIONS.md](DECISIONS.md)), not an optional goal. The grep mode aims at the same for GNU grep. Work proceeds in stages (see P0 and the compatibility tracking below), and no stage is claimed until it is verified against the GNU tool."
-msgstr "GNU sed の drop-in な代替になる。有効な GNU sed の呼び出しのどれに対しても、同じ stdout、終了状態、ファイルへの影響を返す。これは任意の目標ではなく、このプロジェクトの最低要件である（[DECISIONS.md](DECISIONS.md) の D4）。grep モードは、GNU grep について同じことを目指す。作業は段階的に進め（P0 と後述の互換性の管理を参照）、GNU のツールと照合して検証するまで、その段階を達成したとは主張しない。"
+msgid ""
+"Be a drop-in replacement for GNU sed: the same stdout, exit status, and file"
+" effects for any valid GNU sed invocation. This is the minimum requirement "
+"of the project (D4 in [DECISIONS.md](DECISIONS.md)), not an optional goal. "
+"The grep mode aims at the same for GNU grep. Work proceeds in stages (see P0"
+" and the compatibility tracking below), and no stage is claimed until it is "
+"verified against the GNU tool."
+msgstr ""
+"GNU sed の drop-in な代替になる。有効な GNU sed の呼び出しのどれに対しても、同じ "
+"stdout、終了状態、ファイルへの影響を返す。これは任意の目標ではなく、このプロジェクトの最低要件である（[DECISIONS.md](DECISIONS.md)"
+" の D4）。grep モードは、GNU grep について同じことを目指す。作業は段階的に進め（P0 と後述の互換性の管理を参照）、GNU "
+"のツールと照合して検証するまで、その段階を達成したとは主張しない。"
 
 #: ../../DESIGN.md:21
 msgid "Initial non-goals"
 msgstr "初期の非目標"
 
 #: ../../DESIGN.md:23
-msgid "Compatibility with ripgrep, or parallelizing every script. (Full GNU sed compatibility is a requirement, not a non-goal; P0 is only the first milestone on the way, not the scope of the product.)"
-msgstr "ripgrep との互換、すべてのスクリプトの並列化。（GNU sed の完全互換は非目標ではなく要件である。P0 はその途中の最初のマイルストーンにすぎず、製品の範囲ではない。）"
+msgid ""
+"Compatibility with ripgrep, or parallelizing every script. (Full GNU sed "
+"compatibility is a requirement, not a non-goal; P0 is only the first "
+"milestone on the way, not the scope of the product.)"
+msgstr ""
+"ripgrep との互換、すべてのスクリプトの並列化。（GNU sed の完全互換は非目標ではなく要件である。P0 "
+"はその途中の最初のマイルストーンにすぎず、製品の範囲ではない。）"
 
 #: ../../DESIGN.md:24
-msgid "Treating PCRE2 as an equivalent replacement for GNU sed regular expressions."
+msgid ""
+"Treating PCRE2 as an equivalent replacement for GNU sed regular expressions."
 msgstr "PCRE2 を GNU sed 正規表現の等価な代替として扱うこと。"
 
 #: ../../DESIGN.md:25
-msgid "Re-implementing an editor UI, or claiming to be faster than existing tools without measurements."
+msgid ""
+"Re-implementing an editor UI, or claiming to be faster than existing tools "
+"without measurements."
 msgstr "エディタ UI の再実装、および測定なしに既存ツールより速いと主張すること。"
 
 #: ../../DESIGN.md:26
@@ -96,8 +141,17 @@ msgid "P0: first vertical slice"
 msgstr "P0：最初の縦切り実装"
 
 #: ../../DESIGN.md:30
-msgid "**Recommended scope:** this is the order of work, not a reduction of the product's scope. Start with a literal single-line substitution `s/old/new/g` over LF-delimited input, stdin to stdout (the byte policy is already decided, D2). This does not mean the full sed grammar is accepted yet. Unsupported syntax must never be silently reinterpreted; it is a compile-time error until it is implemented."
-msgstr "**推奨する範囲：** これは作業の順序であり、製品の範囲を狭めるものではありません。LF 区切りの入力に対するリテラルな一行置換 `s/old/new/g` を、stdin から stdout へ動かすところから始めます（バイト列の方針は決定済み、D2）。これは sed 文法全体をすでに受理するという意味ではありません。未対応の構文を黙って別の意味に解釈してはならず、実装するまではコンパイル時エラーとします。"
+msgid ""
+"**Recommended scope:** this is the order of work, not a reduction of the "
+"product's scope. Start with a literal single-line substitution `s/old/new/g`"
+" over LF-delimited input, stdin to stdout (the byte policy is already "
+"decided, D2). This does not mean the full sed grammar is accepted yet. "
+"Unsupported syntax must never be silently reinterpreted; it is a compile-"
+"time error until it is implemented."
+msgstr ""
+"**推奨する範囲：** これは作業の順序であり、製品の範囲を狭めるものではありません。LF 区切りの入力に対するリテラルな一行置換 "
+"`s/old/new/g` を、stdin から stdout へ動かすところから始めます（バイト列の方針は決定済み、D2）。これは sed "
+"文法全体をすでに受理するという意味ではありません。未対応の構文を黙って別の意味に解釈してはならず、実装するまではコンパイル時エラーとします。"
 
 #: ../../DESIGN.md:32
 msgid "Order of work"
@@ -124,7 +178,9 @@ msgid "Add `-n`, `p`, `d`, regex addresses, `-e`, `-f` incrementally."
 msgstr "`-n`、`p`、`d`、正規表現アドレス、`-e`、`-f` を段階的に加える。"
 
 #: ../../DESIGN.md:39
-msgid "Stabilize pattern/hold space and the cycle before adding branching and multi-line commands."
+msgid ""
+"Stabilize pattern/hold space and the cycle before adding branching and "
+"multi-line commands."
 msgstr "分岐と複数行コマンドを加える前に、pattern/hold space とサイクルを安定させる。"
 
 #: ../../DESIGN.md:41
@@ -136,19 +192,27 @@ msgid "The agreed subset matches the reference output on every fixture."
 msgstr "合意した部分集合が、すべての fixture で参照出力と一致する。"
 
 #: ../../DESIGN.md:44
-msgid "Fixtures cover empty input, empty lines, missing final newline, multiple matches, no match, and malformed syntax."
+msgid ""
+"Fixtures cover empty input, empty lines, missing final newline, multiple "
+"matches, no match, and malformed syntax."
 msgstr "fixture は、空入力、空行、最終改行なし、複数マッチ、非マッチ、壊れた構文を含む。"
 
 #: ../../DESIGN.md:45
-msgid "Unsupported syntax is a compile-time error; it never panics and never exits successfully."
+msgid ""
+"Unsupported syntax is a compile-time error; it never panics and never exits "
+"successfully."
 msgstr "未対応構文はコンパイル時エラーとし、パニックせず、成功扱いにもならない。"
 
 #: ../../DESIGN.md:46
-msgid "Memory use does not grow with total file size on streamed input (growth with a single record's length is documented)."
+msgid ""
+"Memory use does not grow with total file size on streamed input (growth with"
+" a single record's length is documented)."
 msgstr "ストリーム入力で、メモリ使用量がファイル全体のサイズに比例して増えない（単一レコードの長さに依存する分は明記する）。"
 
 #: ../../DESIGN.md:47
-msgid "Broken pipe and other I/O errors are defined, and both the run result and the CLI exit status are tested."
+msgid ""
+"Broken pipe and other I/O errors are defined, and both the run result and "
+"the CLI exit status are tested."
 msgstr "broken pipe とその他の I/O エラーの扱いを定め、実行結果と CLI の終了状態の両方をテストする。"
 
 #: ../../DESIGN.md:49
@@ -264,7 +328,9 @@ msgid "duplicating core semantics"
 msgstr "コア意味論の複製"
 
 #: ../../DESIGN.md:87
-msgid "**Recommended:** start as one crate with modules and split into a workspace once dependency boundaries settle."
+msgid ""
+"**Recommended:** start as one crate with modules and split into a workspace "
+"once dependency boundaries settle."
 msgstr "**推奨：** 初めは単一 crate のモジュール構成で始め、依存境界が固まった時点で workspace に分割します。"
 
 #: ../../DESIGN.md:89
@@ -276,19 +342,30 @@ msgid "Input and output"
 msgstr "入出力"
 
 #: ../../DESIGN.md:93
-msgid "Do not assume input is a `String`; keep a representation that can hold arbitrary bytes. If the first version is UTF-8 only, state explicitly that it is outside GNU sed compatibility."
-msgstr "入力を `String` と決めつけず、任意のバイト列を保持できる表現にします。最初の版を UTF-8 限定にする場合は、GNU sed 互換の対象外であることを明記します。"
+msgid ""
+"Do not assume input is a `String`; keep a representation that can hold "
+"arbitrary bytes. If the first version is UTF-8 only, state explicitly that "
+"it is outside GNU sed compatibility."
+msgstr ""
+"入力を `String` と決めつけず、任意のバイト列を保持できる表現にします。最初の版を UTF-8 限定にする場合は、GNU sed "
+"互換の対象外であることを明記します。"
 
 #: ../../DESIGN.md:94
-msgid "Keep the record terminator separate from the record body; never normalize a missing final newline."
+msgid ""
+"Keep the record terminator separate from the record body; never normalize a "
+"missing final newline."
 msgstr "レコード末尾の区切りを本文と区別して保持し、最終改行がないことを正規化しません。"
 
 #: ../../DESIGN.md:95
-msgid "Stage support for LF, NUL-separated, CRLF, and multiple files rather than implementing all at once."
+msgid ""
+"Stage support for LF, NUL-separated, CRLF, and multiple files rather than "
+"implementing all at once."
 msgstr "LF、NUL 区切り、CRLF、複数ファイルは、一度に実装せず段階的に対応します。"
 
 #: ../../DESIGN.md:96
-msgid "Memory limits cover more than the input buffer: pattern space, hold space, output queue, and regex working memory."
+msgid ""
+"Memory limits cover more than the input buffer: pattern space, hold space, "
+"output queue, and regex working memory."
 msgstr "メモリ上限は入力バッファだけでなく、pattern space、hold space、出力キュー、正規表現の作業領域を含みます。"
 
 #: ../../DESIGN.md:98
@@ -296,8 +373,16 @@ msgid "Sequential VM state (sketch)"
 msgstr "逐次 VM の状態（スケッチ）"
 
 #: ../../DESIGN.md:114
-msgid "**To decide:** when auto-print, `d`, `D`, `n`, `N`, `p`, `P`, `q`, `Q` produce output and how deferred output is ordered; when the `t` flag resets; how range start/end is evaluated; how line numbers and state carry across multiple files. Specify each against GNU sed's observable behavior and test it as a cycle transition."
-msgstr "**決めること：** 自動出力、`d`、`D`、`n`、`N`、`p`、`P`、`q`、`Q` が出力を行うタイミングと遅延出力の順序、`t` フラグがリセットされる条件、範囲の開始・終端の判定、複数ファイルにまたがる行番号と状態の扱い。それぞれ GNU sed の観測できる挙動に照らして仕様化し、サイクルの遷移としてテストします。"
+msgid ""
+"**To decide:** when auto-print, `d`, `D`, `n`, `N`, `p`, `P`, `q`, `Q` "
+"produce output and how deferred output is ordered; when the `t` flag resets;"
+" how range start/end is evaluated; how line numbers and state carry across "
+"multiple files. Specify each against GNU sed's observable behavior and test "
+"it as a cycle transition."
+msgstr ""
+"**決めること：** 自動出力、`d`、`D`、`n`、`N`、`p`、`P`、`q`、`Q` が出力を行うタイミングと遅延出力の順序、`t` "
+"フラグがリセットされる条件、範囲の開始・終端の判定、複数ファイルにまたがる行番号と状態の扱い。それぞれ GNU sed "
+"の観測できる挙動に照らして仕様化し、サイクルの遷移としてテストします。"
 
 #: ../../DESIGN.md:116
 msgid "AST and static analysis"
@@ -308,15 +393,21 @@ msgid "What the AST needs"
 msgstr "AST に必要なもの"
 
 #: ../../DESIGN.md:120
-msgid "Addresses: single line, regex, range, negation, whether a GNU extension is used."
+msgid ""
+"Addresses: single line, regex, range, negation, whether a GNU extension is "
+"used."
 msgstr "アドレス：単一行、正規表現、範囲、反転、GNU 拡張の使用有無。"
 
 #: ../../DESIGN.md:121
-msgid "Commands: substitution and flags, print, delete, branch, label, hold operations, file I/O."
+msgid ""
+"Commands: substitution and flags, print, delete, branch, label, hold "
+"operations, file I/O."
 msgstr "コマンド：置換とフラグ、出力、削除、分岐、ラベル、hold 操作、ファイル I/O。"
 
 #: ../../DESIGN.md:122
-msgid "Source spans: which `-e`/`-f` a piece came from, byte offsets, display line/column."
+msgid ""
+"Source spans: which `-e`/`-f` a piece came from, byte offsets, display "
+"line/column."
 msgstr "ソース位置：どの `-e`/`-f` 由来か、バイトオフセット、表示用の行・列。"
 
 #: ../../DESIGN.md:123
@@ -328,7 +419,9 @@ msgid "Example effect facts"
 msgstr "効果情報の例"
 
 #: ../../DESIGN.md:138
-msgid "This is a conservative initial classification. Presence flags alone are not enough; command order and control flow must be analyzed too."
+msgid ""
+"This is a conservative initial classification. Presence flags alone are not "
+"enough; command order and control flow must be analyzed too."
 msgstr "これは保守的な初期の分類です。各効果の有無だけでは不十分で、コマンドの順序と制御フローも解析する必要があります。"
 
 #: ../../DESIGN.md:140
@@ -340,11 +433,15 @@ msgid "Only a proven record-local subset is a parallel candidate."
 msgstr "証明できた record-local の部分集合だけを並列候補にする。"
 
 #: ../../DESIGN.md:143
-msgid "The initial allow-list is side-effect-free substitution and line selection, and combinations must be validated too."
+msgid ""
+"The initial allow-list is side-effect-free substitution and line selection, "
+"and combinations must be validated too."
 msgstr "初期のホワイトリストは副作用のない置換と行抽出に限定し、組み合わせも検証する。"
 
 #: ../../DESIGN.md:144
-msgid "Unknown, unsupported, looping, or cross-record scripts run sequentially. An analysis failure is distinct from a syntax error."
+msgid ""
+"Unknown, unsupported, looping, or cross-record scripts run sequentially. An "
+"analysis failure is distinct from a syntax error."
 msgstr "不明、未対応、ループ、跨行依存のスクリプトは逐次で実行する。解析の失敗と構文エラーは区別する。"
 
 #: ../../DESIGN.md:145
@@ -352,7 +449,9 @@ msgid "Numbering input lines does not make every command parallelizable."
 msgstr "入力行に番号を付けても、すべてのコマンドが並列化できるわけではない。"
 
 #: ../../DESIGN.md:146
-msgid "Small inputs may prefer sequential execution; set any threshold only after measuring."
+msgid ""
+"Small inputs may prefer sequential execution; set any threshold only after "
+"measuring."
 msgstr "小さい入力は逐次を選ぶかもしれないが、閾値は測定してから決める。"
 
 #: ../../DESIGN.md:148
@@ -360,8 +459,13 @@ msgid "`--explain` (proposal)"
 msgstr "`--explain`（提案）"
 
 #: ../../DESIGN.md:161
-msgid "**Open:** whether `--explain` only prints the plan and exits, or also runs. These examples treat it as plan-only. The output goes somewhere that cannot mix with the transformed stdout."
-msgstr "**未決：** `--explain` を計画の表示だけで終了するものにするか、実行もするか。この例は計画表示のみとして扱います。出力先は、変換結果の stdout と混ざらない場所にします。"
+msgid ""
+"**Open:** whether `--explain` only prints the plan and exits, or also runs. "
+"These examples treat it as plan-only. The output goes somewhere that cannot "
+"mix with the transformed stdout."
+msgstr ""
+"**未決：** `--explain` を計画の表示だけで終了するものにするか、実行もするか。この例は計画表示のみとして扱います。出力先は、変換結果の "
+"stdout と混ざらない場所にします。"
 
 #: ../../DESIGN.md:163
 msgid "Automatic parallelism, ordering, and fallback"
@@ -372,16 +476,27 @@ msgid "Input splitting"
 msgstr "入力分割"
 
 #: ../../DESIGN.md:167
-msgid "Number chunks aligned to record boundaries. Chunk size is a byte target; never split a huge single record at a fixed length. Support regular files and stdin as the base path; compare mmap later."
-msgstr "レコード境界にそろえたチャンクに番号を付けます。チャンクサイズはバイト数を目安とし、巨大な単一レコードを固定長で分割しません。通常ファイルと stdin で動く経路を基本とし、mmap は後から比較します。"
+msgid ""
+"Number chunks aligned to record boundaries. Chunk size is a byte target; "
+"never split a huge single record at a fixed length. Support regular files "
+"and stdin as the base path; compare mmap later."
+msgstr ""
+"レコード境界にそろえたチャンクに番号を付けます。チャンクサイズはバイト数を目安とし、巨大な単一レコードを固定長で分割しません。通常ファイルと stdin"
+" で動く経路を基本とし、mmap は後から比較します。"
 
 #: ../../DESIGN.md:169
 msgid "Output reordering"
 msgstr "出力の再整列"
 
 #: ../../DESIGN.md:171
-msgid "Each worker returns its chunk's results in input order. Deletions are empty output and multiple outputs are an ordered event list. The merger waits for the next needed chunk number. Bounded queues and a dispatch cap prevent unbounded buildup behind a slow leading chunk."
-msgstr "各 worker は、チャンク内の結果を入力順で返します。削除は空出力、複数出力は順序付きのイベント列として扱います。マージ側は次に必要なチャンク番号を待ちます。有界キューとディスパッチの上限により、遅い先頭チャンクの背後で滞留が無制限に増えるのを防ぎます。"
+msgid ""
+"Each worker returns its chunk's results in input order. Deletions are empty "
+"output and multiple outputs are an ordered event list. The merger waits for "
+"the next needed chunk number. Bounded queues and a dispatch cap prevent "
+"unbounded buildup behind a slow leading chunk."
+msgstr ""
+"各 worker "
+"は、チャンク内の結果を入力順で返します。削除は空出力、複数出力は順序付きのイベント列として扱います。マージ側は次に必要なチャンク番号を待ちます。有界キューとディスパッチの上限により、遅い先頭チャンクの背後で滞留が無制限に増えるのを防ぎます。"
 
 #: ../../DESIGN.md:173
 msgid "When to stay sequential"
@@ -476,19 +591,31 @@ msgid "never run unknown semantics"
 msgstr "未知の意味論は実行しない"
 
 #: ../../DESIGN.md:185
-msgid "\"Fallback\" does not mean restarting after partial output has been written. Choose the plan before execution. If adaptive switching is introduced later, its state, side-effect, and re-execution contract needs separate design."
-msgstr "「フォールバック」は、出力を一部書き出した後に最初からやり直すことではありません。実行前にプランを選びます。後から適応的な切り替えを導入するなら、状態・副作用・再実行の契約を別途設計します。"
+msgid ""
+"\"Fallback\" does not mean restarting after partial output has been written."
+" Choose the plan before execution. If adaptive switching is introduced "
+"later, its state, side-effect, and re-execution contract needs separate "
+"design."
+msgstr ""
+"「フォールバック」は、出力を一部書き出した後に最初からやり直すことではありません。実行前にプランを選びます。後から適応的な切り替えを導入するなら、状態・副作用・再実行の契約を別途設計します。"
 
 #: ../../DESIGN.md:187
-msgid "**Acceptance:** stdout and exit status match the sequential VM regardless of worker count and chunk boundaries. Plans with external side effects are out of scope. Cancellation and I/O failure leave no stray workers."
-msgstr "**受け入れ条件：** worker 数とチャンク境界によらず、stdout と終了状態が逐次 VM と一致する。外部副作用を含むプランは対象外。キャンセルや I/O 失敗の後にも worker が残らない。"
+msgid ""
+"**Acceptance:** stdout and exit status match the sequential VM regardless of"
+" worker count and chunk boundaries. Plans with external side effects are out"
+" of scope. Cancellation and I/O failure leave no stray workers."
+msgstr ""
+"**受け入れ条件：** worker 数とチャンク境界によらず、stdout と終了状態が逐次 VM "
+"と一致する。外部副作用を含むプランは対象外。キャンセルや I/O 失敗の後にも worker が残らない。"
 
 #: ../../DESIGN.md:189
 msgid "CLI, mode selection, and sed/grep flag conflicts"
 msgstr "CLI、モード選択、sed / grep のフラグの衝突"
 
 #: ../../DESIGN.md:191
-msgid "As a drop-in replacement, one binary serves both tools and picks the mode from the program name."
+msgid ""
+"As a drop-in replacement, one binary serves both tools and picks the mode "
+"from the program name."
 msgstr "drop-in の代替として、一つのバイナリが両方のツールを兼ね、プログラム名からモードを選びます。"
 
 #: ../../DESIGN.md:193
@@ -496,23 +623,46 @@ msgid "**Proposal:**"
 msgstr "**提案：**"
 
 #: ../../DESIGN.md:195
-msgid "The mode comes from the basename of `argv[0]`: `sed` selects the sed mode and `grep` selects the grep mode. Installing means putting a symlink or hard link named `sed` or `grep` on `PATH`; no shell alias is involved, so scripts, cron, and other programs that run `sed` or `grep` use it too."
-msgstr "モードは `argv[0]` の basename で決めます。`sed` なら sed モード、`grep` なら grep モードです。インストールは、`sed` や `grep` という名前の symlink またはハードリンクを `PATH` 上に置くことで行います。シェルの alias は使わないので、`sed` や `grep` を呼ぶスクリプト、cron、他のプログラムからも使われます。"
+msgid ""
+"The mode comes from the basename of `argv[0]`: `sed` selects the sed mode "
+"and `grep` selects the grep mode. Installing means putting a symlink or hard"
+" link named `sed` or `grep` on `PATH`; no shell alias is involved, so "
+"scripts, cron, and other programs that run `sed` or `grep` use it too."
+msgstr ""
+"モードは `argv[0]` の basename で決めます。`sed` なら sed モード、`grep` なら grep "
+"モードです。インストールは、`sed` や `grep` という名前の symlink またはハードリンクを `PATH` "
+"上に置くことで行います。シェルの alias は使わないので、`sed` や `grep` を呼ぶスクリプト、cron、他のプログラムからも使われます。"
 
 #: ../../DESIGN.md:196
-msgid "Under the name `sed` or `grep`, the command line is interpreted exactly as the GNU tool would, including its error behavior. No ripgsed-specific selector or option is recognized, because a GNU tool would reject it."
-msgstr "`sed` または `grep` という名前のときは、エラー時の挙動を含め、GNU のツールとまったく同じようにコマンドラインを解釈します。GNU のツールなら拒否するので、ripgsed 独自のセレクターやオプションは認識しません。"
+msgid ""
+"Under the name `sed` or `grep`, the command line is interpreted exactly as "
+"the GNU tool would, including its error behavior. No ripgsed-specific "
+"selector or option is recognized, because a GNU tool would reject it."
+msgstr ""
+"`sed` または `grep` という名前のときは、エラー時の挙動を含め、GNU のツールとまったく同じようにコマンドラインを解釈します。GNU "
+"のツールなら拒否するので、ripgsed 独自のセレクターやオプションは認識しません。"
 
 #: ../../DESIGN.md:197
-msgid "Under any other name (such as `ripgsed`), the default is the sed mode, and a leading `--grep` (or `--sed`) selects the mode explicitly. Options specific to ripgsed (for example `--explain`, `--engine`, `--extensions`) are available only under this name. Ambiguously placed selectors are rejected."
-msgstr "それ以外の名前（`ripgsed` など）のときは、既定は sed モードで、先頭の `--grep`（または `--sed`）で明示的にモードを選びます。ripgsed 独自のオプション（たとえば `--explain`、`--engine`、`--extensions`）は、この名前のときだけ使えます。位置が曖昧なセレクターは拒否します。"
+msgid ""
+"Under any other name (such as `ripgsed`), the default is the sed mode, and a"
+" leading `--grep` (or `--sed`) selects the mode explicitly. Options specific"
+" to ripgsed (for example `--explain`, `--engine`, `--extensions`) are "
+"available only under this name. Ambiguously placed selectors are rejected."
+msgstr ""
+"それ以外の名前（`ripgsed` など）のときは、既定は sed モードで、先頭の `--grep`（または "
+"`--sed`）で明示的にモードを選びます。ripgsed 独自のオプション（たとえば "
+"`--explain`、`--engine`、`--extensions`）は、この名前のときだけ使えます。位置が曖昧なセレクターは拒否します。"
 
 #: ../../DESIGN.md:198
-msgid "Once the mode is fixed, the remaining arguments are parsed with that tool's rules. Everything after `--` is an operand."
+msgid ""
+"Once the mode is fixed, the remaining arguments are parsed with that tool's "
+"rules. Everything after `--` is an operand."
 msgstr "モードが確定したら、残りの引数はそのツールの規則で解析します。`--` 以降はオペランドです。"
 
 #: ../../DESIGN.md:200
-msgid "The same option letter means different things in the two tools, which is why the mode must be fixed before parsing:"
+msgid ""
+"The same option letter means different things in the two tools, which is why"
+" the mode must be fixed before parsing:"
 msgstr "同じオプション文字が二つのツールで別の意味を持つため、解析の前にモードを確定する必要があります。"
 
 #: ../../DESIGN.md
@@ -596,88 +746,186 @@ msgid "ERE"
 msgstr ""
 
 #: ../../DESIGN.md:223
-msgid "Both modes aim at long-term compatibility with the GNU tools, reached in stages. Until a feature is verified against the GNU tool, it is unsupported rather than approximated. ripgrep behavior such as automatic ignore rules is not a goal. Options such as `-v`, `-c`, recursion, and symlink handling in the grep mode are specified and verified one by one."
-msgstr "どちらのモードも、段階的に、長期的な GNU のツールとの互換を目指します。GNU のツールと照合して検証するまでは、近似で済ませずに未対応とします。ripgrep のような自動 ignore 規則は目標ではありません。grep モードの `-v`、`-c`、再帰、symlink の扱いなどのオプションは、一つずつ仕様化して検証します。"
+msgid ""
+"Both modes aim at long-term compatibility with the GNU tools, reached in "
+"stages. Until a feature is verified against the GNU tool, it is unsupported "
+"rather than approximated. ripgrep behavior such as automatic ignore rules is"
+" not a goal. Options such as `-v`, `-c`, recursion, and symlink handling in "
+"the grep mode are specified and verified one by one."
+msgstr ""
+"どちらのモードも、段階的に、長期的な GNU のツールとの互換を目指します。GNU "
+"のツールと照合して検証するまでは、近似で済ませずに未対応とします。ripgrep のような自動 ignore 規則は目標ではありません。grep "
+"モードの `-v`、`-c`、再帰、symlink の扱いなどのオプションは、一つずつ仕様化して検証します。"
 
 #: ../../DESIGN.md:225
 msgid "Deliberate incompatibility: version and help text"
 msgstr "意図的な非互換：バージョン表記とヘルプの文面"
 
 #: ../../DESIGN.md:227
-msgid "The only intentional difference from the GNU tools is how the program identifies itself. Everything else is meant to be compatible."
+msgid ""
+"The only intentional difference from the GNU tools is how the program "
+"identifies itself. Everything else is meant to be compatible."
 msgstr "GNU のツールとの意図的な違いは、プログラムが自分自身を名乗る方法だけです。それ以外はすべて互換にすることを目指します。"
 
 #: ../../DESIGN.md:229
-msgid "`--version` prints `ripgsed 0.1.0` under the name `ripgsed`. Under the names `sed` and `grep` it keeps the GNU layout for the first line but names this project, for example `sed (ripgsed) 0.1.0`. Later lines state which GNU version the behavior targets and the current compatibility status."
-msgstr "`ripgsed` という名前のとき、`--version` は `ripgsed 0.1.0` を出力します。`sed` と `grep` の名前のときは、1 行目の形は GNU に合わせつつ、このプロジェクトの名前を出します（例：`sed (ripgsed) 0.1.0`）。後続の行には、挙動が対象とする GNU のバージョンと、現在の互換性の状況を書きます。"
+msgid ""
+"`--version` prints `ripgsed 0.1.0` under the name `ripgsed`. Under the names"
+" `sed` and `grep` it keeps the GNU layout for the first line but names this "
+"project, for example `sed (ripgsed) 0.1.0`. Later lines state which GNU "
+"version the behavior targets and the current compatibility status."
+msgstr ""
+"`ripgsed` という名前のとき、`--version` は `ripgsed 0.1.0` を出力します。`sed` と `grep` "
+"の名前のときは、1 行目の形は GNU に合わせつつ、このプロジェクトの名前を出します（例：`sed (ripgsed) "
+"0.1.0`）。後続の行には、挙動が対象とする GNU のバージョンと、現在の互換性の状況を書きます。"
 
 #: ../../DESIGN.md:230
-msgid "It never prints `GNU sed` or `GNU grep` as its own name. Scripts that detect GNU by reading the first line of `--version` (such as configure scripts) then take their non-GNU path instead of relying on extensions that may be unimplemented. The reference sed used by `tools/gen-fixtures.sh` is checked in the same way, so ripgsed is never mistaken for it."
-msgstr "自分自身の名前として `GNU sed` や `GNU grep` は決して出力しません。`--version` の 1 行目を読んで GNU かどうかを判定するスクリプト（configure 系など）は、未実装かもしれない拡張に頼らず、GNU ではない場合の経路を取ります。`tools/gen-fixtures.sh` が使う参照用の sed も同じ方法で確認しているので、ripgsed が参照実装と取り違えられることはありません。"
+msgid ""
+"It never prints `GNU sed` or `GNU grep` as its own name. Scripts that detect"
+" GNU by reading the first line of `--version` (such as configure scripts) "
+"then take their non-GNU path instead of relying on extensions that may be "
+"unimplemented. The reference sed used by `tools/gen-fixtures.sh` is checked "
+"in the same way, so ripgsed is never mistaken for it."
+msgstr ""
+"自分自身の名前として `GNU sed` や `GNU grep` は決して出力しません。`--version` の 1 行目を読んで GNU "
+"かどうかを判定するスクリプト（configure 系など）は、未実装かもしれない拡張に頼らず、GNU "
+"ではない場合の経路を取ります。`tools/gen-fixtures.sh` が使う参照用の sed も同じ方法で確認しているので、ripgsed "
+"が参照実装と取り違えられることはありません。"
 
 #: ../../DESIGN.md:231
-msgid "The version number is ripgsed's own and is never disguised as a GNU version."
+msgid ""
+"The version number is ripgsed's own and is never disguised as a GNU version."
 msgstr "バージョン番号は ripgsed 自身のもので、GNU のバージョンに偽装することはありません。"
 
 #: ../../DESIGN.md:232
-msgid "`--help` and the bug-report and home-page lines identify ripgsed. Like the GNU tools, `--version` and `--help` write to stdout and exit with status 0."
-msgstr "`--help` と、バグ報告先・ホームページの行は ripgsed のものにします。GNU のツールと同様に、`--version` と `--help` は stdout に出力し、終了状態 0 で終わります。"
+msgid ""
+"`--help` and the bug-report and home-page lines identify ripgsed. Like the "
+"GNU tools, `--version` and `--help` write to stdout and exit with status 0."
+msgstr ""
+"`--help` と、バグ報告先・ホームページの行は ripgsed のものにします。GNU のツールと同様に、`--version` と "
+"`--help` は stdout に出力し、終了状態 0 で終わります。"
 
 #: ../../DESIGN.md:233
-msgid "Error messages, option behavior, and exit statuses stay compatible; error text matches GNU sed word for word (D5), apart from the program-name prefix."
-msgstr "エラーメッセージ、オプションの挙動、終了状態は互換のままです。エラーの文面は、プログラム名の接頭辞を除いて GNU sed と一字一句一致させます（D5）。"
+msgid ""
+"Error messages, option behavior, and exit statuses stay compatible; error "
+"text matches GNU sed word for word (D5), apart from the program-name prefix."
+msgstr ""
+"エラーメッセージ、オプションの挙動、終了状態は互換のままです。エラーの文面は、プログラム名の接頭辞を除いて GNU sed "
+"と一字一句一致させます（D5）。"
 
 #: ../../DESIGN.md:235
-msgid "**To decide:** how GNU's long-option abbreviation (unambiguous prefixes) is reproduced, and whether the GNU `egrep` / `fgrep` wrappers (`grep -E` / `grep -F`) become program names too. In-place editing is not implemented until safe replacement writes, backups, permissions, symlinks, and retention on failure are specified."
-msgstr "**決めること：** GNU の長いオプションの省略形（曖昧でない前方一致）をどう再現するか、GNU の `egrep` / `fgrep` ラッパー（`grep -E` / `grep -F`）もプログラム名として扱うか。in-place 編集は、安全な置換書き込み、バックアップ、権限、symlink、失敗時の保持を仕様化するまで実装しません。"
+msgid ""
+"**To decide:** how GNU's long-option abbreviation (unambiguous prefixes) is "
+"reproduced, and whether the GNU `egrep` / `fgrep` wrappers (`grep -E` / "
+"`grep -F`) become program names too. In-place editing is not implemented "
+"until safe replacement writes, backups, permissions, symlinks, and retention"
+" on failure are specified."
+msgstr ""
+"**決めること：** GNU の長いオプションの省略形（曖昧でない前方一致）をどう再現するか、GNU の `egrep` / `fgrep` "
+"ラッパー（`grep -E` / `grep -F`）もプログラム名として扱うか。in-place "
+"編集は、安全な置換書き込み、バックアップ、権限、symlink、失敗時の保持を仕様化するまで実装しません。"
 
 #: ../../DESIGN.md:237
 msgid "Regular expressions and GNU sed compatibility"
 msgstr "正規表現と GNU sed 互換性"
 
 #: ../../DESIGN.md:239
-msgid "The regular expression engine is written for this project from the start (D7 in [DECISIONS.md](DECISIONS.md)). Rust's `regex` and similar libraries do not implement GNU sed's BRE/ERE: POSIX leftmost-longest matching, back-references, the GNU extensions, the `--posix` restrictions, locale behavior, and invalid multibyte input all differ, and a stopgap would only have to be thrown away. The observable behavior of GNU sed 4.9 is the specification, including the places where it differs from the POSIX text, and differential tests decide what that behavior is."
-msgstr "正規表現エンジンは、このプロジェクトのために最初から自前で書きます（[DECISIONS.md](DECISIONS.md) の D7）。Rust の `regex` などのライブラリは GNU sed の BRE/ERE を実装していません。POSIX の左端最長一致、後方参照、GNU 拡張、`--posix` の制限、ロケールの挙動、不正なマルチバイト入力がいずれも異なり、つなぎにしても捨てることになるだけです。仕様は GNU sed 4.9 の観測できる挙動であり、POSIX の文面と異なる箇所も含みます。その挙動が何かは、差分テストが決めます。"
+msgid ""
+"The regular expression engine is written for this project from the start (D7"
+" in [DECISIONS.md](DECISIONS.md)). Rust's `regex` and similar libraries do "
+"not implement GNU sed's BRE/ERE: POSIX leftmost-longest matching, back-"
+"references, the GNU extensions, the `--posix` restrictions, locale behavior,"
+" and invalid multibyte input all differ, and a stopgap would only have to be"
+" thrown away. The observable behavior of GNU sed 4.9 is the specification, "
+"including the places where it differs from the POSIX text, and differential "
+"tests decide what that behavior is."
+msgstr ""
+"正規表現エンジンは、このプロジェクトのために最初から自前で書きます（[DECISIONS.md](DECISIONS.md) の D7）。Rust の "
+"`regex` などのライブラリは GNU sed の BRE/ERE を実装していません。POSIX の左端最長一致、後方参照、GNU "
+"拡張、`--posix` の制限、ロケールの挙動、不正なマルチバイト入力がいずれも異なり、つなぎにしても捨てることになるだけです。仕様は GNU sed"
+" 4.9 の観測できる挙動であり、POSIX の文面と異なる箇所も含みます。その挙動が何かは、差分テストが決めます。"
 
 #: ../../DESIGN.md:241
-msgid "The syntax a pattern is read in is a dialect: BRE or ERE, each with the GNU extensions enabled or restricted as under `--posix` (and the `POSIXLY_CORRECT` differences, such as escapes inside bracket expressions), plus the locale. A dialect is part of the compile input, not a separate engine."
-msgstr "パターンを読む構文は方言です。BRE か ERE で、それぞれ GNU 拡張を有効にするか `--posix` のように制限するか（`POSIXLY_CORRECT` の違い、たとえば括弧式の中のエスケープも含む）があり、これにロケールが加わります。方言はコンパイルの入力の一部であり、別のエンジンではありません。"
+msgid ""
+"The syntax a pattern is read in is a dialect: BRE or ERE, each with the GNU "
+"extensions enabled or restricted as under `--posix` (and the "
+"`POSIXLY_CORRECT` differences, such as escapes inside bracket expressions), "
+"plus the locale. A dialect is part of the compile input, not a separate "
+"engine."
+msgstr ""
+"パターンを読む構文は方言です。BRE か ERE で、それぞれ GNU 拡張を有効にするか `--posix` "
+"のように制限するか（`POSIXLY_CORRECT` "
+"の違い、たとえば括弧式の中のエスケープも含む）があり、これにロケールが加わります。方言はコンパイルの入力の一部であり、別のエンジンではありません。"
 
 #: ../../DESIGN.md:243
-msgid "**Recommended:** separate the syntax dialect (sed script, BRE, ERE) from engine selection. Never silently switch to PCRE2 when the default engine lacks a construct. Document what semantics the GNU-compatible profile and the extension profile allow."
-msgstr "**推奨：** 構文方言（sed スクリプト、BRE、ERE）とエンジン選択を分離します。既定のエンジンが対応しない構文のとき、黙って PCRE2 に切り替えてはいけません。GNU 互換プロファイルと拡張プロファイルで許す意味論を文書化します。"
+msgid ""
+"**Recommended:** separate the syntax dialect (sed script, BRE, ERE) from "
+"engine selection. Never silently switch to PCRE2 when the default engine "
+"lacks a construct. Document what semantics the GNU-compatible profile and "
+"the extension profile allow."
+msgstr ""
+"**推奨：** 構文方言（sed スクリプト、BRE、ERE）とエンジン選択を分離します。既定のエンジンが対応しない構文のとき、黙って PCRE2 "
+"に切り替えてはいけません。GNU 互換プロファイルと拡張プロファイルで許す意味論を文書化します。"
 
 #: ../../DESIGN.md:245
 msgid "Engine abstraction"
 msgstr "エンジンの抽象化"
 
 #: ../../DESIGN.md:247
-msgid "The project's own engine is the default, and other engines (optional PCRE2, later experiments) must be able to sit beside it, so the rest of the code depends on an interface, not on a library. See D3 in [DECISIONS.md](DECISIONS.md)."
-msgstr "このプロジェクト自身のエンジンが既定で、ほかのエンジン（任意の PCRE2、のちの実験）もその隣に置けなければなりません。そのため、ほかのコードはライブラリではなくインターフェースに依存します。[DECISIONS.md](DECISIONS.md) の D3 を参照してください。"
+msgid ""
+"The project's own engine is the default, and other engines (optional PCRE2, "
+"later experiments) must be able to sit beside it, so the rest of the code "
+"depends on an interface, not on a library. See D3 in "
+"[DECISIONS.md](DECISIONS.md)."
+msgstr ""
+"このプロジェクト自身のエンジンが既定で、ほかのエンジン（任意の "
+"PCRE2、のちの実験）もその隣に置けなければなりません。そのため、ほかのコードはライブラリではなくインターフェースに依存します。[DECISIONS.md](DECISIONS.md)"
+" の D3 を参照してください。"
 
 #: ../../DESIGN.md:267
-msgid "Patterns and haystacks are bytes (D2). Matching can start at an offset with the earlier text still visible, which `s///g`, empty matches, and `^` / `\\<` need."
-msgstr "パターンと検索対象はバイト列です（D2）。`s///g`、空一致、`^` / `\\<` に必要なため、前のテキストが見える状態のまま、オフセットから照合を始められます。"
+msgid ""
+"Patterns and haystacks are bytes (D2). Matching can start at an offset with "
+"the earlier text still visible, which `s///g`, empty matches, and `^` / "
+"`\\<` need."
+msgstr ""
+"パターンと検索対象はバイト列です（D2）。`s///g`、空一致、`^` / `\\<` "
+"に必要なため、前のテキストが見える状態のまま、オフセットから照合を始められます。"
 
 #: ../../DESIGN.md:268
-msgid "Results are capture offsets, not copied text, so substitution builds its output from the original record."
+msgid ""
+"Results are capture offsets, not copied text, so substitution builds its "
+"output from the original record."
 msgstr "結果はコピーしたテキストではなくキャプチャのオフセットなので、置換は元のレコードから出力を組み立てます。"
 
 #: ../../DESIGN.md:269
-msgid "`Capabilities` states what an engine guarantees (back-references, POSIX leftmost-longest, supported dialects, resource limits). The compiler checks a script against the chosen engine and reports unsupported constructs as compile-time errors."
-msgstr "`Capabilities` は、エンジンが保証すること（後方参照、POSIX の左端最長一致、対応する方言、資源の上限）を表します。コンパイラはスクリプトを選ばれたエンジンに照らして検査し、未対応の構文をコンパイル時エラーとして報告します。"
+msgid ""
+"`Capabilities` states what an engine guarantees (back-references, POSIX "
+"leftmost-longest, supported dialects, resource limits). The compiler checks "
+"a script against the chosen engine and reports unsupported constructs as "
+"compile-time errors."
+msgstr ""
+"`Capabilities` は、エンジンが保証すること（後方参照、POSIX "
+"の左端最長一致、対応する方言、資源の上限）を表します。コンパイラはスクリプトを選ばれたエンジンに照らして検査し、未対応の構文をコンパイル時エラーとして報告します。"
 
 #: ../../DESIGN.md:270
-msgid "Resource exhaustion is a `MatchError`, never \"no match\" (see the PCRE2 section)."
+msgid ""
+"Resource exhaustion is a `MatchError`, never \"no match\" (see the PCRE2 "
+"section)."
 msgstr "資源の枯渇は `MatchError` であり、「無一致」ではありません（PCRE2 の節を参照）。"
 
 #: ../../DESIGN.md:271
-msgid "Compile once per script and reuse. Whether dispatch is by generics, an enum, or a trait object is decided by measurement; the interface does not depend on it."
-msgstr "コンパイルはスクリプトごとに一度行い、再利用します。ディスパッチをジェネリクス、enum、トレイトオブジェクトのどれにするかは測定して決めます。インターフェースはそれに依存しません。"
+msgid ""
+"Compile once per script and reuse. Whether dispatch is by generics, an enum,"
+" or a trait object is decided by measurement; the interface does not depend "
+"on it."
+msgstr ""
+"コンパイルはスクリプトごとに一度行い、再利用します。ディスパッチをジェネリクス、enum、トレイトオブジェクトのどれにするかは測定して決めます。インターフェースはそれに依存しません。"
 
 #: ../../DESIGN.md:272
-msgid "Conformance tests are written against the interface and run on every engine, so a replacement engine must pass the same differential fixtures."
-msgstr "適合テストはインターフェースに対して書き、すべてのエンジンで実行します。置き換えるエンジンも、同じ差分 fixture に通る必要があります。"
+msgid ""
+"Conformance tests are written against the interface and run on every engine,"
+" so a replacement engine must pass the same differential fixtures."
+msgstr ""
+"適合テストはインターフェースに対して書き、すべてのエンジンで実行します。置き換えるエンジンも、同じ差分 fixture に通る必要があります。"
 
 #: ../../DESIGN.md:274
 msgid "Tracking compatibility"
@@ -688,19 +936,27 @@ msgid "Treat \"parses\" and \"behaves correctly\" as separate states."
 msgstr "「パースできる」と「正しく動く」を別の状態として扱う。"
 
 #: ../../DESIGN.md:277
-msgid "Record per command whether it is unsupported, partially supported, or verified."
+msgid ""
+"Record per command whether it is unsupported, partially supported, or "
+"verified."
 msgstr "コマンドごとに、未対応・部分対応・検証済みのいずれかを記録する。"
 
 #: ../../DESIGN.md:278
-msgid "Test separately: empty regex, repeated empty matches, `&` and back-references in replacements, escaped delimiters."
+msgid ""
+"Test separately: empty regex, repeated empty matches, `&` and back-"
+"references in replacements, escaped delimiters."
 msgstr "空の正規表現、空一致の反復、置換の `&` と後方参照、区切りのエスケープを個別にテストする。"
 
 #: ../../DESIGN.md:279
-msgid "Decide whether to start with `LC_ALL=C` only or split Unicode rules into a separate mode."
+msgid ""
+"Decide whether to start with `LC_ALL=C` only or split Unicode rules into a "
+"separate mode."
 msgstr "`LC_ALL=C` のみから始めるか、Unicode の規則を別モードに分けるかを決める。"
 
 #: ../../DESIGN.md:280
-msgid "Do not use existing option names such as `--posix` before implementing their semantics."
+msgid ""
+"Do not use existing option names such as `--posix` before implementing their"
+" semantics."
 msgstr "`--posix` のような既存のオプション名は、その意味論を実装するまで使わない。"
 
 #: ../../DESIGN.md:282
@@ -708,15 +964,21 @@ msgid "PCRE2 and ReDoS protection"
 msgstr "PCRE2 と ReDoS 対策"
 
 #: ../../DESIGN.md:284
-msgid "PCRE2 is an opt-in extension candidate. Backtracking can be expensive depending on input; PCRE2 support does not imply ReDoS immunity."
-msgstr "PCRE2 は opt-in の拡張候補です。バックトラッキングは入力次第で高コストになり得ます。PCRE2 に対応することは、ReDoS を防げることを意味しません。"
+msgid ""
+"PCRE2 is an opt-in extension candidate. Backtracking can be expensive "
+"depending on input; PCRE2 support does not imply ReDoS immunity."
+msgstr ""
+"PCRE2 は opt-in の拡張候補です。バックトラッキングは入力次第で高コストになり得ます。PCRE2 に対応することは、ReDoS "
+"を防げることを意味しません。"
 
 #: ../../DESIGN.md:295
 msgid "A match limit bounds search work; it is not a millisecond timeout."
 msgstr "match limit は探索作業量の上限であり、ミリ秒単位のタイムアウトではない。"
 
 #: ../../DESIGN.md:296
-msgid "Verify which execution paths honor depth/heap limits; do not assume JIT behaves the same. Manage the JIT stack separately."
+msgid ""
+"Verify which execution paths honor depth/heap limits; do not assume JIT "
+"behaves the same. Manage the JIT stack separately."
 msgstr "depth / heap の制限がどの実行経路で効くかを確認する。JIT でも同じと仮定しない。JIT スタックは別に管理する。"
 
 #: ../../DESIGN.md:297
@@ -724,20 +986,30 @@ msgid "Bound resource use in both the compile phase and the match phase."
 msgstr "コンパイル段階とマッチ段階の両方で、資源消費に上限をかける。"
 
 #: ../../DESIGN.md:298
-msgid "Exceeding a limit is a dedicated error, never converted into \"no match\", and reports the input position."
+msgid ""
+"Exceeding a limit is a dedicated error, never converted into \"no match\", "
+"and reports the input position."
 msgstr "上限の超過は専用のエラーとし、「無一致」に変換せず、入力位置を報告する。"
 
 #: ../../DESIGN.md:299
-msgid "Enforcing total wall time needs callouts with cancellation points or process isolation; a timeout on the waiting side does not stop FFI execution."
+msgid ""
+"Enforcing total wall time needs callouts with cancellation points or process"
+" isolation; a timeout on the waiting side does not stop FFI execution."
 msgstr "総処理時間を強制するには、キャンセル点を持つ callout かプロセス隔離が必要。待機側のタイムアウトでは FFI の実行は止まらない。"
 
 #: ../../DESIGN.md:300
-msgid "Also limit script size, input, pattern/hold space, output, and worker queues."
+msgid ""
+"Also limit script size, input, pattern/hold space, output, and worker "
+"queues."
 msgstr "スクリプト、入力、pattern/hold space、出力、worker キューにも上限を設ける。"
 
 #: ../../DESIGN.md:302
-msgid "**Acceptance:** test expensive inputs, limit exhaustion, cancellation, and JIT on/off separately. Choose safe defaults from measurement and operational requirements."
-msgstr "**受け入れ条件：** 高コストな入力、上限超過、キャンセル、JIT の有効/無効を個別にテストする。安全な既定値は、測定と運用要件から決める。"
+msgid ""
+"**Acceptance:** test expensive inputs, limit exhaustion, cancellation, and "
+"JIT on/off separately. Choose safe defaults from measurement and operational"
+" requirements."
+msgstr ""
+"**受け入れ条件：** 高コストな入力、上限超過、キャンセル、JIT の有効/無効を個別にテストする。安全な既定値は、測定と運用要件から決める。"
 
 #: ../../DESIGN.md:304
 msgid "Named hold spaces"
@@ -745,15 +1017,28 @@ msgstr "名前付き hold space"
 
 #: ../../DESIGN.md:306
 #, python-brace-format
-msgid "**Tentative syntax:** `h{header}` / `g{header}` / `x{scratch}`. Plain `h/g/x` use the unnamed space. GNU-compatible mode rejects the extension; only an explicit extension mode allows it."
-msgstr "**仮の構文：** `h{header}` / `g{header}` / `x{scratch}`。通常の `h/g/x` は無名の領域を使います。GNU 互換モードではこの拡張を拒否し、明示した拡張モードでのみ許します。"
+msgid ""
+"**Tentative syntax:** `h{header}` / `g{header}` / `x{scratch}`. Plain "
+"`h/g/x` use the unnamed space. GNU-compatible mode rejects the extension; "
+"only an explicit extension mode allows it."
+msgstr ""
+"**仮の構文：** `h{header}` / `g{header}` / `x{scratch}`。通常の `h/g/x` "
+"は無名の領域を使います。GNU 互換モードではこの拡張を拒否し、明示した拡張モードでのみ許します。"
 
 #: ../../DESIGN.md:319
-msgid "**To decide:** lexical rules for names, uninitialized spaces, extending `H/G`, `x` on a nonexistent name, limits on name count and total bytes, newline handling for empty spaces. Initial leaning: every space is empty at start; dynamic creation and error handling remain open."
-msgstr "**決めること：** 名前の字句規則、未初期化の領域、`H/G` の拡張、存在しない名前への `x`、名前数と合計バイトの上限、空の領域への改行追加の規則。初期案は、実行開始時にすべての領域が空であること。動的な生成とエラーの扱いは未決です。"
+msgid ""
+"**To decide:** lexical rules for names, uninitialized spaces, extending "
+"`H/G`, `x` on a nonexistent name, limits on name count and total bytes, "
+"newline handling for empty spaces. Initial leaning: every space is empty at "
+"start; dynamic creation and error handling remain open."
+msgstr ""
+"**決めること：** 名前の字句規則、未初期化の領域、`H/G` の拡張、存在しない名前への "
+"`x`、名前数と合計バイトの上限、空の領域への改行追加の規則。初期案は、実行開始時にすべての領域が空であること。動的な生成とエラーの扱いは未決です。"
 
 #: ../../DESIGN.md:321
-msgid "Naming does not remove state dependence. Keep spaces isolated per run and never share or copy them across workers unconditionally."
+msgid ""
+"Naming does not remove state dependence. Keep spaces isolated per run and "
+"never share or copy them across workers unconditionally."
 msgstr "名前を付けても、状態への依存はなくなりません。領域は実行ごとに分離し、worker 間で無条件に共有・複製してはいけません。"
 
 #: ../../DESIGN.md:323
@@ -761,7 +1046,9 @@ msgid "Rust crate API (sketch)"
 msgstr "Rust crate API（スケッチ）"
 
 #: ../../DESIGN.md:334
-msgid "`Compiler`: takes dialect, regex backend, and allowed extensions; produces an immutable `Program`."
+msgid ""
+"`Compiler`: takes dialect, regex backend, and allowed extensions; produces "
+"an immutable `Program`."
 msgstr "`Compiler`：方言、正規表現バックエンド、許可する拡張を受け取り、不変の `Program` を生成する。"
 
 #: ../../DESIGN.md:335
@@ -769,20 +1056,32 @@ msgid "`Program`: compiled syntax; holds no execution state."
 msgstr "`Program`：コンパイル済みの構文。実行状態は持たない。"
 
 #: ../../DESIGN.md:336
-msgid "`Plan`: analysis result and strategy; design ownership so it cannot be misused with a `Program` built under different settings."
+msgid ""
+"`Plan`: analysis result and strategy; design ownership so it cannot be "
+"misused with a `Program` built under different settings."
 msgstr "`Plan`：解析結果と実行戦略。異なる設定でコンパイルされた `Program` と組み合わせて誤用されないよう、所有関係を設計する。"
 
 #: ../../DESIGN.md:337
-msgid "`RunContext` (candidate): memory limit, cancellation, I/O permissions, run statistics."
+msgid ""
+"`RunContext` (candidate): memory limit, cancellation, I/O permissions, run "
+"statistics."
 msgstr "`RunContext`（候補）：メモリ上限、キャンセル、I/O の許可、実行統計。"
 
 #: ../../DESIGN.md:338
-msgid "`RunOutcome` (candidate): termination reason, amount processed, normal early exit. I/O failures and limit overruns are `Error`s, not outcomes."
+msgid ""
+"`RunOutcome` (candidate): termination reason, amount processed, normal early"
+" exit. I/O failures and limit overruns are `Error`s, not outcomes."
 msgstr "`RunOutcome`（候補）：終了理由、処理量、正常な早期終了。I/O の失敗や上限超過は結果ではなく `Error` とする。"
 
 #: ../../DESIGN.md:340
-msgid "**To decide:** the `Read`/`Write` vs `BufRead` boundary, byte orientation, `Send`/`Sync` requirements, error type, statistics overhead, running one `Program` several times. Validate real signatures through the same code path as the minimal CLI."
-msgstr "**決めること：** `Read`/`Write` と `BufRead` の境界、バイト指向、`Send`/`Sync` の要件、エラー型、統計のオーバーヘッド、同じ `Program` の複数回実行。実際の署名は、最小の CLI と同じ処理経路を通して検証します。"
+msgid ""
+"**To decide:** the `Read`/`Write` vs `BufRead` boundary, byte orientation, "
+"`Send`/`Sync` requirements, error type, statistics overhead, running one "
+"`Program` several times. Validate real signatures through the same code path"
+" as the minimal CLI."
+msgstr ""
+"**決めること：** `Read`/`Write` と `BufRead` の境界、バイト指向、`Send`/`Sync` "
+"の要件、エラー型、統計のオーバーヘッド、同じ `Program` の複数回実行。実際の署名は、最小の CLI と同じ処理経路を通して検証します。"
 
 #: ../../DESIGN.md:342
 msgid "Differential testing against GNU sed and fuzzing"
@@ -793,51 +1092,79 @@ msgid "Contract"
 msgstr "契約"
 
 #: ../../DESIGN.md:346
-msgid "Pin the reference GNU sed version, OS, and locale. For the same script and input bytes, compare stdout, exit status, and the contents of files created or modified. For stderr, compare the error category first; exact message text is a separate requirement."
-msgstr "参照する GNU sed のバージョン、OS、ロケールを固定します。同じスクリプトと入力バイト列について、stdout、終了状態、生成・変更されたファイルの内容を比較します。stderr はまずエラーの分類を比較し、文面の完全一致は別の要件とします。"
+msgid ""
+"Pin the reference GNU sed version, OS, and locale. For the same script and "
+"input bytes, compare stdout, exit status, and the contents of files created "
+"or modified. For stderr, compare the error category first; exact message "
+"text is a separate requirement."
+msgstr ""
+"参照する GNU sed "
+"のバージョン、OS、ロケールを固定します。同じスクリプトと入力バイト列について、stdout、終了状態、生成・変更されたファイルの内容を比較します。stderr"
+" はまずエラーの分類を比較し、文面の完全一致は別の要件とします。"
 
 #: ../../DESIGN.md:358
 msgid "Test groups"
 msgstr "テスト群"
 
 #: ../../DESIGN.md:360
-msgid "Empty input, empty lines, missing final newline, NUL, invalid UTF-8, huge lines, multiple files."
+msgid ""
+"Empty input, empty lines, missing final newline, NUL, invalid UTF-8, huge "
+"lines, multiple files."
 msgstr "空入力、空行、最終改行なし、NUL、不正な UTF-8、巨大な行、複数ファイル。"
 
 #: ../../DESIGN.md:361
-msgid "Combinations of addresses, ranges, negation, substitution, empty matches, back-references, branching, hold, N/D/P."
+msgid ""
+"Combinations of addresses, ranges, negation, substitution, empty matches, "
+"back-references, branching, hold, N/D/P."
 msgstr "アドレス、範囲、反転、置換、空一致、後方参照、分岐、hold、N/D/P の組み合わせ。"
 
 #: ../../DESIGN.md:362
-msgid "Parser fuzzing: arbitrary bytes never panic, with time and memory bounded."
+msgid ""
+"Parser fuzzing: arbitrary bytes never panic, with time and memory bounded."
 msgstr "パーサー fuzz：任意のバイト列でパニックしない。時間とメモリは制限する。"
 
 #: ../../DESIGN.md:363
-msgid "Execution fuzzing: compare with GNU sed only on the accepted subset; do not confuse a limit hit on either side with a mismatch."
+msgid ""
+"Execution fuzzing: compare with GNU sed only on the accepted subset; do not "
+"confuse a limit hit on either side with a mismatch."
 msgstr "実行 fuzz：受理した部分集合に限り GNU sed と比較する。どちらかの上限到達を不一致と混同しない。"
 
 #: ../../DESIGN.md:364
-msgid "Optimization fuzzing: compare the sequential VM and the parallel path while varying worker count and chunk boundaries."
+msgid ""
+"Optimization fuzzing: compare the sequential VM and the parallel path while "
+"varying worker count and chunk boundaries."
 msgstr "最適化 fuzz：worker 数とチャンク境界を変えながら、逐次 VM と並列パスを比較する。"
 
 #: ../../DESIGN.md:365
-msgid "Minimize findings into fixtures and keep the seed and reproduction command."
+msgid ""
+"Minimize findings into fixtures and keep the seed and reproduction command."
 msgstr "見つかった例を最小化して fixture 化し、seed と再現コマンドを残す。"
 
 #: ../../DESIGN.md:366
-msgid "Run scripts using `e/r/w` in an isolated temporary area under an allow policy so they cannot reach arbitrary host commands or files."
+msgid ""
+"Run scripts using `e/r/w` in an isolated temporary area under an allow "
+"policy so they cannot reach arbitrary host commands or files."
 msgstr "`e/r/w` を含むスクリプトは、隔離した一時領域と許可ポリシーの下で実行し、ホストの任意のコマンドやファイルに到達させない。"
 
 #: ../../DESIGN.md:368
-msgid "Fixture inputs and scripts are written for this project; expected outputs are generated by executing GNU sed as a black box. See `tests/README.md` in the repository. If GNU sed's own test code is ever copied, check its license separately."
-msgstr "fixture の入力とスクリプトはこのプロジェクト用に書いたもので、期待出力は GNU sed をブラックボックスとして実行して生成します。リポジトリの `tests/README.md` を参照してください。GNU sed 自身のテストコードを複製する場合は、そのライセンスを別途確認します。"
+msgid ""
+"Fixture inputs and scripts are written for this project; expected outputs "
+"are generated by executing GNU sed as a black box. See `tests/README.md` in "
+"the repository. If GNU sed's own test code is ever copied, check its license"
+" separately."
+msgstr ""
+"fixture の入力とスクリプトはこのプロジェクト用に書いたもので、期待出力は GNU sed "
+"をブラックボックスとして実行して生成します。リポジトリの `tests/README.md` を参照してください。GNU sed "
+"自身のテストコードを複製する場合は、そのライセンスを別途確認します。"
 
 #: ../../DESIGN.md:370
 msgid "Benchmark methodology"
 msgstr "ベンチマークの方針"
 
 #: ../../DESIGN.md:372
-msgid "**There are no measurements yet.** Build workloads with equivalent results first; then measure speed and memory."
+msgid ""
+"**There are no measurements yet.** Build workloads with equivalent results "
+"first; then measure speed and memory."
 msgstr "**実測値はまだありません。** まず結果が等価な workload を作り、そのうえで速度とメモリを測ります。"
 
 #: ../../DESIGN.md
@@ -869,7 +1196,9 @@ msgid "build"
 msgstr "ビルド"
 
 #: ../../DESIGN.md
-msgid "Rust and dependency versions, optimization, features, reference tool versions"
+msgid ""
+"Rust and dependency versions, optimization, features, reference tool "
+"versions"
 msgstr "Rust と依存のバージョン、最適化、features、参照ツールのバージョン"
 
 #: ../../DESIGN.md
@@ -889,7 +1218,8 @@ msgid "wall/CPU time, peak RSS, distribution, raw data, output equality"
 msgstr "wall/CPU 時間、最大 RSS、分布、生データ、出力の一致"
 
 #: ../../DESIGN.md:382
-msgid "Separate startup/parse cost on small inputs from throughput on large ones."
+msgid ""
+"Separate startup/parse cost on small inputs from throughput on large ones."
 msgstr "小さい入力での起動・解析コストと、大きい入力でのスループットを分けて測る。"
 
 #: ../../DESIGN.md:383
@@ -897,15 +1227,20 @@ msgid "Separate I/O-bound from CPU-bound cases."
 msgstr "I/O がボトルネックの場合と CPU がボトルネックの場合を分ける。"
 
 #: ../../DESIGN.md:384
-msgid "Do not conveniently exclude reordering cost, PCRE2 compile/JIT, or input reading; label micro-benchmarks that do."
-msgstr "再整列のコスト、PCRE2 の compile/JIT、入力読み込みを、都合よく除外しない。除外するマイクロベンチマークは区別して明示する。"
+msgid ""
+"Do not conveniently exclude reordering cost, PCRE2 compile/JIT, or input "
+"reading; label micro-benchmarks that do."
+msgstr ""
+"再整列のコスト、PCRE2 の compile/JIT、入力読み込みを、都合よく除外しない。除外するマイクロベンチマークは区別して明示する。"
 
 #: ../../DESIGN.md:385
 msgid "Compare GNU sed / grep / ripgrep only on equivalent work."
 msgstr "GNU sed / grep / ripgrep とは、等価な処理だけを比較する。"
 
 #: ../../DESIGN.md:386
-msgid "Report distributions, not just best values, and keep the cases where it is slower."
+msgid ""
+"Report distributions, not just best values, and keep the cases where it is "
+"slower."
 msgstr "最速値だけでなく分布を報告し、遅くなるケースも残す。"
 
 #: ../../DESIGN.md:388
@@ -913,35 +1248,54 @@ msgid "Vim / Neovim buffer ranges"
 msgstr "Vim / Neovim のバッファ範囲処理"
 
 #: ../../DESIGN.md:390
-msgid "Interfaces that show contents and line numbers while editing already exist (Ex mode). The adapter's value is previewing a transformation before applying it."
-msgstr "内容と行番号を見ながら編集するインターフェース（Ex モード）はすでにあります。アダプターの価値は、変換を適用する前にプレビューできることです。"
+msgid ""
+"Interfaces that show contents and line numbers while editing already exist "
+"(Ex mode). The adapter's value is previewing a transformation before "
+"applying it."
+msgstr ""
+"内容と行番号を見ながら編集するインターフェース（Ex モード）はすでにあります。アダプターの価値は、変換を適用する前にプレビューできることです。"
 
 #: ../../DESIGN.md:403
-msgid "`SedG` is a proposed command defined here. The existing `:global` runs an Ex command on matching lines and is not the same as a plugin's extract-and-preview."
-msgstr "`SedG` は、ここで定義した提案のコマンドです。既存の `:global` は一致行で Ex コマンドを実行する機能であり、プラグインによる抽出とプレビューとは同じではありません。"
+msgid ""
+"`SedG` is a proposed command defined here. The existing `:global` runs an Ex"
+" command on matching lines and is not the same as a plugin's extract-and-"
+"preview."
+msgstr ""
+"`SedG` は、ここで定義した提案のコマンドです。既存の `:global` は一致行で Ex "
+"コマンドを実行する機能であり、プラグインによる抽出とプレビューとは同じではありません。"
 
 #: ../../DESIGN.md:405
 msgid "Adapter contract (proposal)"
 msgstr "アダプターの契約（提案）"
 
 #: ../../DESIGN.md:407
-msgid "Pass the selected range as one independent stream. Line numbers and `$` are relative to the range; there is no hold state outside it."
+msgid ""
+"Pass the selected range as one independent stream. Line numbers and `$` are "
+"relative to the range; there is no hold state outside it."
 msgstr "選択範囲を一つの独立したストリームとして渡す。行番号と `$` は範囲内が基準で、範囲外の hold 状態は存在しない。"
 
 #: ../../DESIGN.md:408
-msgid "Invoke the CLI through argv and stdin, never by concatenating a shell string. Recommended: CLI subprocess first, FFI later."
+msgid ""
+"Invoke the CLI through argv and stdin, never by concatenating a shell "
+"string. Recommended: CLI subprocess first, FFI later."
 msgstr "シェル文字列を連結せず、argv と stdin で CLI を呼び出す。推奨は、まず CLI のサブプロセス、FFI は後で。"
 
 #: ../../DESIGN.md:409
-msgid "Record the buffer id, range, and `changedtick` when starting an asynchronous run."
+msgid ""
+"Record the buffer id, range, and `changedtick` when starting an asynchronous"
+" run."
 msgstr "非同期実行を開始するときに、バッファ ID、範囲、`changedtick` を保存する。"
 
 #: ../../DESIGN.md:410
-msgid "Preview the result and diff; never overwrite automatically if the buffer changed."
+msgid ""
+"Preview the result and diff; never overwrite automatically if the buffer "
+"changed."
 msgstr "結果と差分をプレビューし、バッファが変更されていたら自動で上書きしない。"
 
 #: ../../DESIGN.md:411
-msgid "Apply only on explicit confirmation, as a single undo unit. Errors and cancellation leave the original buffer untouched."
+msgid ""
+"Apply only on explicit confirmation, as a single undo unit. Errors and "
+"cancellation leave the original buffer untouched."
 msgstr "明示的な確認があったときだけ、一回の undo 単位で適用する。エラーとキャンセルでは元のバッファを変更しない。"
 
 #: ../../DESIGN.md:412
@@ -949,11 +1303,19 @@ msgid "Reject `-i` and external I/O in the buffer-processing profile."
 msgstr "バッファ処理用のプロファイルでは `-i` と外部 I/O を拒否する。"
 
 #: ../../DESIGN.md:414
-msgid "**To decide:** encoding, final newline, results that span multiple lines, jumping from a `SedG` result window to the source line, which async API to use in Vim vs Neovim."
-msgstr "**決めること：** エンコーディング、最終改行、結果が複数行になる場合の扱い、`SedG` の結果ウィンドウから元の行へのジャンプ、Vim と Neovim で使う非同期 API。"
+msgid ""
+"**To decide:** encoding, final newline, results that span multiple lines, "
+"jumping from a `SedG` result window to the source line, which async API to "
+"use in Vim vs Neovim."
+msgstr ""
+"**決めること：** エンコーディング、最終改行、結果が複数行になる場合の扱い、`SedG` の結果ウィンドウから元の行へのジャンプ、Vim と "
+"Neovim で使う非同期 API。"
 
 #: ../../DESIGN.md:416
-msgid "**Acceptance:** verify Japanese text, missing final newline, edits during a run, deletion and multi-line expansion, cancellation, and undo on real buffers."
+msgid ""
+"**Acceptance:** verify Japanese text, missing final newline, edits during a "
+"run, deletion and multi-line expansion, cancellation, and undo on real "
+"buffers."
 msgstr "**受け入れ条件：** 実際のバッファで、日本語、最終改行なし、実行中の編集、削除と複数行化、キャンセル、undo を確認する。"
 
 #: ../../DESIGN.md:418
@@ -965,35 +1327,61 @@ msgid "Independent implementation"
 msgstr "独立実装"
 
 #: ../../DESIGN.md:422
-msgid "Implementing compatible behavior in original code does not by itself make GNU sed's GPL apply. The project is licensed under `MIT OR Apache-2.0`, which fits an independent implementation. Check dependencies and any borrowed tests or documents individually."
-msgstr "互換の挙動を独自のコードで実装するだけでは、GNU sed の GPL は自動的には適用されません。このプロジェクトのライセンスは**まだ決まっていません**（独立実装の候補は MIT / Apache-2.0）。依存ライブラリや、借用するテスト・文書は個別に確認します。"
+msgid ""
+"Implementing compatible behavior in original code does not by itself make "
+"GNU sed's GPL apply. The project is licensed under `MIT OR Apache-2.0`, "
+"which fits an independent implementation. Check dependencies and any "
+"borrowed tests or documents individually."
+msgstr ""
+"互換の挙動を独自のコードで実装するだけでは、GNU sed の GPL "
+"は自動的には適用されません。このプロジェクトのライセンスは**まだ決まっていません**（独立実装の候補は MIT / "
+"Apache-2.0）。依存ライブラリや、借用するテスト・文書は個別に確認します。"
 
 #: ../../DESIGN.md:424
 msgid "If existing GPLv3 code were used"
 msgstr "既存の GPLv3 コードを使う場合"
 
 #: ../../DESIGN.md:426
-msgid "GNU sed is GPLv3 or later. Copying or modifying that code in a distributed derivative requires following the applicable GPL terms: retain copyright, license, and no-warranty notices; mark changes and dates; include the license text; and provide corresponding source as the distribution form requires. A combined derivative work cannot be assumed redistributable under MIT / Apache-2.0 alone."
-msgstr "GNU sed は GPLv3 またはそれ以降です。そのコードを複製・改変して派生物を配布する場合は、適用される GPL の条件に従う必要があります。著作権・ライセンス・無保証の表示を保持し、変更とその日付を明示し、ライセンス文書を添付し、配布形態に応じて対応するソースを提供します。組み合わせた派生著作物を、MIT / Apache-2.0 だけで再配布できると扱ってはいけません。"
+msgid ""
+"GNU sed is GPLv3 or later. Copying or modifying that code in a distributed "
+"derivative requires following the applicable GPL terms: retain copyright, "
+"license, and no-warranty notices; mark changes and dates; include the "
+"license text; and provide corresponding source as the distribution form "
+"requires. A combined derivative work cannot be assumed redistributable under"
+" MIT / Apache-2.0 alone."
+msgstr ""
+"GNU sed は GPLv3 またはそれ以降です。そのコードを複製・改変して派生物を配布する場合は、適用される GPL "
+"の条件に従う必要があります。著作権・ライセンス・無保証の表示を保持し、変更とその日付を明示し、ライセンス文書を添付し、配布形態に応じて対応するソースを提供します。組み合わせた派生著作物を、MIT"
+" / Apache-2.0 だけで再配布できると扱ってはいけません。"
 
 #: ../../DESIGN.md:428
 msgid "Policy for this repository"
 msgstr "このリポジトリでの方針"
 
 #: ../../DESIGN.md:430
-msgid "Do not copy GNU sed or GNU grep source code into this repository. Local clones under `reference/` are untracked and exist for reading behavior only."
-msgstr "GNU sed や GNU grep のソースコードをこのリポジトリにコピーしない。`reference/` 以下のローカルクローンは git 管理外で、挙動を調べるためだけに置く。"
+msgid ""
+"Do not copy GNU sed or GNU grep source code into this repository. Local "
+"clones under `reference/` are untracked and exist for reading behavior only."
+msgstr ""
+"GNU sed や GNU grep のソースコードをこのリポジトリにコピーしない。`reference/` 以下のローカルクローンは git "
+"管理外で、挙動を調べるためだけに置く。"
 
 #: ../../DESIGN.md:431
-msgid "Expected test output is generated by running GNU sed as a command, not copied from its test suite."
+msgid ""
+"Expected test output is generated by running GNU sed as a command, not "
+"copied from its test suite."
 msgstr "テストの期待出力は、GNU sed をコマンドとして実行して生成し、そのテストスイートからはコピーしない。"
 
 #: ../../DESIGN.md:432
-msgid "Record provenance per file; do not try to fix a permissive label onto copied code afterwards."
+msgid ""
+"Record provenance per file; do not try to fix a permissive label onto copied"
+" code afterwards."
 msgstr "由来はファイル単位で記録する。コピーしたコードに、後から permissive なライセンス表示を付けて解消しようとしない。"
 
 #: ../../DESIGN.md:433
-msgid "Subprocess invocation, linking, and code copying are different acts; evaluate the actual composition and distribution form."
+msgid ""
+"Subprocess invocation, linking, and code copying are different acts; "
+"evaluate the actual composition and distribution form."
 msgstr "サブプロセスの呼び出し、リンク、コードの複製は別の行為である。実際の構成と配布形態を確認する。"
 
 #: ../../DESIGN.md:435
@@ -1113,18 +1501,36 @@ msgid "[PCRE2 API](https://www.pcre.org/current/doc/html/pcre2api.html)"
 msgstr ""
 
 #: ../../DESIGN.md:455
-msgid "[PCRE2 pattern specification](https://www.pcre.org/current/doc/html/pcre2pattern.html)"
+msgid ""
+"[PCRE2 pattern "
+"specification](https://www.pcre.org/current/doc/html/pcre2pattern.html)"
 msgstr ""
 
 #: ../../DESIGN.md:457
 msgid "Pin the versions of the references you rely on when implementing."
 msgstr "実装時には、依拠する参照資料のバージョンを固定してください。"
 
-#~ msgid "`--grep` is a convenient entry point, not a promise of GNU grep or ripgrep compatibility. `-v`, `-c`, recursion, ignore rules, and symlink handling for search are specified separately."
-#~ msgstr "`--grep` は便利な入り口であり、GNU grep や ripgrep との完全互換の約束ではありません。検索側の `-v`、`-c`、再帰、ignore 規則、symlink の扱いは個別に仕様化します。"
+#~ msgid ""
+#~ "`--grep` is a convenient entry point, not a promise of GNU grep or ripgrep "
+#~ "compatibility. `-v`, `-c`, recursion, ignore rules, and symlink handling for"
+#~ " search are specified separately."
+#~ msgstr ""
+#~ "`--grep` は便利な入り口であり、GNU grep や ripgrep との完全互換の約束ではありません。検索側の "
+#~ "`-v`、`-c`、再帰、ignore 規則、symlink の扱いは個別に仕様化します。"
 
-#~ msgid "**To decide:** whether `--grep` may appear after the first argument, or whether to adopt `--mode=grep`. For drop-in use, also decide whether to select the mode from the program name (`argv[0]` being `sed` or `grep`), so that GNU command lines run unchanged with no selector. Recommended: reject ambiguously placed selectors initially. In-place editing is not implemented until safe replacement writes, backups, permissions, symlinks, and retention on failure are specified."
-#~ msgstr "**決めること：** `--grep` を先頭以外でも許すか、`--mode=grep` を採用するか。drop-in として使うために、プログラム名（`argv[0]` が `sed` か `grep`）でモードを選び、セレクターなしで GNU のコマンドラインをそのまま動かせるようにするかも決めます。推奨は、初期版では位置が曖昧なセレクターを拒否すること。in-place 編集は、安全な置換書き込み、バックアップ、権限、symlink、失敗時の保持を仕様化するまで実装しません。"
+#~ msgid ""
+#~ "**To decide:** whether `--grep` may appear after the first argument, or "
+#~ "whether to adopt `--mode=grep`. For drop-in use, also decide whether to "
+#~ "select the mode from the program name (`argv[0]` being `sed` or `grep`), so "
+#~ "that GNU command lines run unchanged with no selector. Recommended: reject "
+#~ "ambiguously placed selectors initially. In-place editing is not implemented "
+#~ "until safe replacement writes, backups, permissions, symlinks, and retention"
+#~ " on failure are specified."
+#~ msgstr ""
+#~ "**決めること：** `--grep` を先頭以外でも許すか、`--mode=grep` を採用するか。drop-in "
+#~ "として使うために、プログラム名（`argv[0]` が `sed` か `grep`）でモードを選び、セレクターなしで GNU "
+#~ "のコマンドラインをそのまま動かせるようにするかも決めます。推奨は、初期版では位置が曖昧なセレクターを拒否すること。in-place "
+#~ "編集は、安全な置換書き込み、バックアップ、権限、symlink、失敗時の保持を仕様化するまで実装しません。"
 
 #~ msgid "License"
 #~ msgstr "ライセンス"
@@ -1144,11 +1550,25 @@ msgstr "実装時には、依拠する参照資料のバージョンを固定し
 #~ msgid "advanced Unicode extensions"
 #~ msgstr "高度な Unicode 拡張"
 
-#~ msgid "Full GNU sed or GNU grep compatibility in the first milestone (both are long-term goals, not P0 deliverables), compatibility with ripgrep, or parallelizing every script."
-#~ msgstr "最初のマイルストーンでの GNU sed・GNU grep の完全互換（どちらも長期目標であって P0 の成果物ではない）、ripgrep との互換、すべてのスクリプトの並列化。"
+#~ msgid ""
+#~ "Full GNU sed or GNU grep compatibility in the first milestone (both are "
+#~ "long-term goals, not P0 deliverables), compatibility with ripgrep, or "
+#~ "parallelizing every script."
+#~ msgstr ""
+#~ "最初のマイルストーンでの GNU sed・GNU grep の完全互換（どちらも長期目標であって P0 の成果物ではない）、ripgrep "
+#~ "との互換、すべてのスクリプトの並列化。"
 
-#~ msgid "Rust's `regex` is a candidate for the early stages but is not a full implementation of GNU sed's BRE/ERE. Back-references, POSIX leftmost-longest matching, locale behavior, and invalid UTF-8 handling all need checking. Because full compatibility is the goal, a dedicated regex engine with GNU semantics will probably be needed eventually; treat any other engine as a stopgap that is replaced, not as the final design."
-#~ msgstr "Rust の `regex` は初期段階の候補ですが、GNU sed の BRE / ERE の完全な実装ではありません。後方参照、POSIX の左端最長一致、ロケール、不正な UTF-8 の扱いを確認する必要があります。完全互換が目標なので、最終的には GNU の意味論を持つ専用の正規表現エンジンが必要になる可能性が高く、それ以外のエンジンは置き換える前提のつなぎとして扱います。"
+#~ msgid ""
+#~ "Rust's `regex` is a candidate for the early stages but is not a full "
+#~ "implementation of GNU sed's BRE/ERE. Back-references, POSIX leftmost-longest"
+#~ " matching, locale behavior, and invalid UTF-8 handling all need checking. "
+#~ "Because full compatibility is the goal, a dedicated regex engine with GNU "
+#~ "semantics will probably be needed eventually; treat any other engine as a "
+#~ "stopgap that is replaced, not as the final design."
+#~ msgstr ""
+#~ "Rust の `regex` は初期段階の候補ですが、GNU sed の BRE / ERE の完全な実装ではありません。後方参照、POSIX "
+#~ "の左端最長一致、ロケール、不正な UTF-8 の扱いを確認する必要があります。完全互換が目標なので、最終的には GNU "
+#~ "の意味論を持つ専用の正規表現エンジンが必要になる可能性が高く、それ以外のエンジンは置き換える前提のつなぎとして扱います。"
 
 #~ msgid "Minimum compatibility"
 #~ msgstr "最小の互換範囲"
@@ -1167,4 +1587,3 @@ msgstr "実装時には、依拠する参照資料のバージョンを固定し
 
 #~ msgid "PCRE2/JIT"
 #~ msgstr ""
-

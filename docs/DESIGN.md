@@ -1,6 +1,6 @@
 # ripgsed design notes
 
-**Status: design draft, not implemented.** There are no measurements, no compatibility claims, and no published crate. Module names, CLI options, types, and extension syntax below are proposals and may change. Statements marked "recommended" are current leanings, not settled decisions.
+**Status: design document; the sed-compatible core is implemented.** The sequential VM, the regex engine, and automatic parallel execution exist (see [ARCHITECTURE.md](ARCHITECTURE.md) and the README for measured results); the grep mode, PCRE2, and editor integration described below do not, and there is no published crate. Module names, CLI options, types, and extension syntax for the parts not yet built are proposals and may change. Statements marked "recommended" are current leanings, not settled decisions.
 
 ## How to read this
 

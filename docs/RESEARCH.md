@@ -44,10 +44,10 @@ What the literature and existing engines suggest for making ripgsed faster than 
 
 ## Candidate order of work
 
-1. Own SIMD (with portable fallback) `memchr`, `memmem` with rare-byte selection, and newline counting; no dependency.
-2. Literal extraction from the AST and a prefilter; skip the engine for pure literals; chunk-level search that skips unmatched lines.
-3. A lazy DFA for match bounds (forward, and reverse for the start), with state acceleration for self-loops and the cache fallback; the existing engine remains the capture pass and the reference.
-4. Fewer allocations per record (reuse the pattern space, borrow records from the chunk) and a cheaper output path.
+1. (Done) Own SIMD (with portable fallback) `memchr`, `memmem` with rare-byte selection, and newline counting; no dependency.
+2. (Done, except the chunk-level skip of unmatched lines) Literal extraction from the AST and a prefilter; skip the engine for pure literals.
+3. (Done, without state acceleration) A lazy DFA for match bounds (forward, and reverse for the start) with a fallback to the existing engine, which remains the capture pass and the reference.
+4. (Partly done: record buffers are reused; line-number seeks skip records by counting separators) Fewer allocations per record and a cheaper output path.
 5. Parallel reading of regular files by byte ranges, then a lighter ordered writer.
 6. Only then, research-grade options: a POSIX tagged DFA for the capture pass, or RE#-style derivatives for the span pass.
 
