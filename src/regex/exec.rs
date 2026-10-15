@@ -135,7 +135,7 @@ impl<'a> Searcher<'a> {
         }
         // The set can have second bytes that look like first bytes, so the line is read forward
         // from a position known to be a boundary.
-        let mut p = if self.bhint.get() <= pos { self.bhint.get() } else { 0 };
+        let mut p = if self.bhint.get() < pos { self.bhint.get() } else { 0 };
         let mut last = None;
         while p < pos {
             let (step, ch) = match crate::locale::mb_decode(self.hay, p) {

@@ -980,6 +980,12 @@ impl Parser {
         let mut i = 0;
         while i < text.len() {
             let b = text[i];
+            let len = crate::locale::script_char_len(&text[i..]);
+            if len > 1 {
+                literal.extend_from_slice(&text[i..i + len]);
+                i += len;
+                continue;
+            }
             i += 1;
             match b {
                 b'&' => {
@@ -1131,6 +1137,12 @@ fn normalize_escapes_for(text: &[u8], posixly_correct: bool, replacement: bool, 
     let mut in_bracket = false;
     while i < text.len() {
         let b = text[i];
+        let len = crate::locale::script_char_len(&text[i..]);
+        if len > 1 {
+            out.extend_from_slice(&text[i..i + len]);
+            i += len;
+            continue;
+        }
         if !replacement {
             if !in_bracket && b == b'[' {
                 in_bracket = true;

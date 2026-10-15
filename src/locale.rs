@@ -475,6 +475,17 @@ pub fn starts_multibyte(b: u8) -> bool {
     sys::starts_multibyte(b)
 }
 
+/// The length of the multibyte character at the start of `text` in a non-UTF-8 multibyte
+/// locale, and 1 anywhere else (also for a byte that is not part of a character). The scripts
+/// of GNU sed are read character by character there, so the second byte of a character (`\`
+/// in Shift_JIS, `[` or `]` in Big5) is never an escape or a bracket.
+pub fn script_char_len(text: &[u8]) -> usize {
+    if text.first().is_none_or(|&b| b < 0x80) || !MB.load(Relaxed) {
+        return 1;
+    }
+    mb_decode(text, 0).map_or(1, |(_, l)| l)
+}
+
 /// One character of a non-UTF-8 multibyte locale at `pos` of `hay`, with its length in bytes;
 /// `None` for an invalid or incomplete sequence.
 pub fn mb_decode(hay: &[u8], pos: usize) -> Option<(char, usize)> {
