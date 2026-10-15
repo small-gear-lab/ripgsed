@@ -1,0 +1,4 @@
+# A rarely used path of GNU sed 4.9 found by probing its coverage.
+printf 's/a/b/\r\n' > script
+printf 'a\n' > input
+sed -f script input

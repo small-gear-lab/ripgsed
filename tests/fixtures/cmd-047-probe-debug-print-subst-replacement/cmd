@@ -1,0 +1,3 @@
+# A rarely used path of GNU sed 4.9 found by probing its coverage.
+printf 'a\n' > input
+sed --debug '/a/s///' input

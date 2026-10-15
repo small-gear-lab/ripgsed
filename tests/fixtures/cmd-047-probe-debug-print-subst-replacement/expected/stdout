@@ -1,0 +1,10 @@
+SED PROGRAM:
+  /a/ s///
+INPUT:   'input' line 1
+PATTERN: a
+COMMAND: /a/ s///
+MATCHED REGEX REGISTERS
+  regex[0] = 0-1 'a'
+PATTERN: 
+END-OF-CYCLE:
+

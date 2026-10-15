@@ -1,0 +1,3 @@
+# A rarely used path of GNU sed 4.9 found by probing its coverage.
+printf 'a\000b\000b\000' > input
+sed -z 'N;N;s/\(b\)/\1X/gm' input

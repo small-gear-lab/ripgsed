@@ -1,0 +1,4 @@
+# A rarely used path of GNU sed 4.9 found by probing its coverage.
+printf 'y/a/\377/\n' > script
+printf 'a\n' > input
+LC_ALL=C.UTF-8 sed -f script input

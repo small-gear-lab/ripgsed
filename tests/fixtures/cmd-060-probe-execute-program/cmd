@@ -1,0 +1,3 @@
+# A rarely used path of GNU sed 4.9 found by probing its coverage.
+printf 'x\n' > input
+(ulimit -n 4; exec sed 'e echo hello') < input

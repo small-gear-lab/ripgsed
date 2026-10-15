@@ -1,0 +1,2 @@
+# A rarely used path of GNU sed 4.9 found by probing its coverage.
+sed -i '' /dev/ptmx

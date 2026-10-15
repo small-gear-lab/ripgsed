@@ -1,0 +1,4 @@
+# A rarely used path of GNU sed 4.9 found by probing its coverage.
+awk 'BEGIN {printf "s/"; for(i=0;i<4000000;i++) printf "a"; print "/b/"}' > script
+printf 'x\n' > input
+(ulimit -d 6000; exec sed -f script input)

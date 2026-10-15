@@ -1,0 +1,11 @@
+# A rarely used path of GNU sed 4.9 found by probing its coverage.
+long=$(printf '%0200d' 0)
+mkdir -p "$long/$long"
+printf 'old\n' > "$long/$long/file"
+ln -s "$long/file" "$long/second"
+ln -s second "$long/first"
+sed --follow-symlinks -i 's/old/new/' "$long/first" 2> error
+status=$?
+printf 'sed exit=%s\n' "$status"
+cat "$long/$long/file"
+exit "$status"
