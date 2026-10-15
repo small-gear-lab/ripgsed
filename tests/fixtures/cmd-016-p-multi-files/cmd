@@ -1,0 +1,1 @@
+sed -n '$p' a b; sed -s -n '$p' a b

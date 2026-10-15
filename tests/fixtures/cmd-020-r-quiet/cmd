@@ -1,0 +1,4 @@
+cat >in
+sed() { command sed "$@" <in; }
+sed -n '2r f'; echo ---; sed -n '2{p;r f
+}'

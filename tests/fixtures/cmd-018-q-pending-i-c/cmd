@@ -1,0 +1,7 @@
+cat >in
+sed() { command sed "$@" <in; }
+sed '2{i\
+INS
+q}'; echo ---; sed '2{c\
+CH
+q}'

@@ -1,0 +1,1 @@
+sed -i 2q f; echo $?; cat f; sed -i.bak 2q5 g; echo $?; cat g

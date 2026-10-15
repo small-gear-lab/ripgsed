@@ -1,0 +1,1 @@
+sed -i 'R f' t; cat t; sed -i -s 'R f' u v; cat u v

@@ -1,0 +1,3 @@
+cat >in
+sed() { command sed "$@" <in; }
+sed Q; echo $?; sed 1Q3; echo $?

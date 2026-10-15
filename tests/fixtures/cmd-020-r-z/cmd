@@ -1,0 +1,1 @@
+sed -z 'r f' | od -c

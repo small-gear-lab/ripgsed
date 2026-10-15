@@ -1,0 +1,3 @@
+cat >in
+sed() { command sed "$@" <in; }
+sed -n 'R f'; echo ---; sed -n 'p;R f'

@@ -1,0 +1,3 @@
+cat >in
+sed() { command sed "$@" <in; }
+sed -n '1,2l' ; echo $?; sed -n -l x l; echo $?; sed -n -l -1 l; echo $?

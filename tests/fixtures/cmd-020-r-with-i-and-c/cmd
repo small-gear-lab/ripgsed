@@ -1,0 +1,10 @@
+cat >in
+sed() { command sed "$@" <in; }
+sed '1{r f
+i\
+INS
+}'; echo ---; sed '1{r f
+c\
+CH
+}'; echo ---; sed '1{r f
+d}'

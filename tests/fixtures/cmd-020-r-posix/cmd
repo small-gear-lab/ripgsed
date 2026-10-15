@@ -1,0 +1,3 @@
+cat >in
+sed() { command sed "$@" <in; }
+sed --posix '1r f'; sed --posix '1r nothing'

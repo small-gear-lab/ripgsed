@@ -1,0 +1,5 @@
+sed '1{r f
+a\
+APP
+r f
+}'

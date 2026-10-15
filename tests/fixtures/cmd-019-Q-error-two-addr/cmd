@@ -1,0 +1,3 @@
+cat >in
+sed() { command sed "$@" <in; }
+sed '2,3Q'; echo $?; sed '/a/,/b/Q'; echo $?

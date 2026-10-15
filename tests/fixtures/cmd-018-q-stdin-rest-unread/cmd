@@ -1,0 +1,1 @@
+(sed 1q; echo rest) <input; (sed -n 1q; cat) <input

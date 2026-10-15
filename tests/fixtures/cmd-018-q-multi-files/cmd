@@ -1,0 +1,1 @@
+sed 3q a b; echo $?; sed -s 1q a b

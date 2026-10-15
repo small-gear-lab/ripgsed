@@ -1,0 +1,4 @@
+cat >in
+sed() { command sed "$@" <in; }
+sed '1{R f
+}'; sed '1{R f}'; echo $?

@@ -1,0 +1,3 @@
+cat >in
+sed() { command sed "$@" <in; }
+sed -n 'l 5'; sed -n 'l 4'
