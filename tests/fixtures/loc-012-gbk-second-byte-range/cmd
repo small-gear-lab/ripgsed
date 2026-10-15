@@ -6,12 +6,12 @@ export LC_ALL=zh_CN.GBK
 Z=$(printf '\326\320')
 AT=$(printf '\201\100')
 BS=$(printf '\201\134')
-printf '%s\n' "${Z}${AT}${BS}a" | sed 's/./[&]/g' | od -An -c
-printf '%s\n' "${AT}" | sed 's/@/x/' | od -An -c
-printf '%s\n' "${BS}" | sed 's/\\/x/' | od -An -c
-printf '%s\n' "${Z}${AT}" | sed 's/[[:alpha:]]/X/g' | od -An -c
-printf '%s\n' "${Z}${AT}a_" | sed 's/\w/X/g' | od -An -c
-printf '%s\n' "${Z}b" | sed 's/\b/|/g' | od -An -c
+printf '%s\n' "${Z}${AT}${BS}a" | sed 's/./[&]/g' | LC_ALL=C od -An -c
+printf '%s\n' "${AT}" | sed 's/@/x/' | LC_ALL=C od -An -c
+printf '%s\n' "${BS}" | sed 's/\\/x/' | LC_ALL=C od -An -c
+printf '%s\n' "${Z}${AT}" | sed 's/[[:alpha:]]/X/g' | LC_ALL=C od -An -c
+printf '%s\n' "${Z}${AT}a_" | sed 's/\w/X/g' | LC_ALL=C od -An -c
+printf '%s\n' "${Z}b" | sed 's/\b/|/g' | LC_ALL=C od -An -c
 printf '%s\n' "${Z}${Z}" | sed 's/'"${Z}"'/X/2'
 printf '%s\n' "${Z}${AT}" | sed 's/[^a]/X/g'
 printf '%s\n' "${Z}" | sed 'y/'"${Z}"'/a/'

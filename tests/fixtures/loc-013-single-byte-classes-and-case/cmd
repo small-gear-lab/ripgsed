@@ -11,14 +11,14 @@ printf '%s\n' "a${E}${EC}${SS}${MU}${Y}${TIMES}1_ " | sed 's/[[:lower:]]/X/g'
 printf '%s\n' "a${E}${EC}${SS}${MU}${Y}${TIMES}1_ " | sed 's/[[:punct:]]/X/g'
 printf '%s\n' "a${E}${EC}${SS}${MU}${Y}${TIMES}1_ " | sed 's/[^[:alnum:]]/X/g'
 printf '%s\n' "a${E}${EC}${SS}${MU}${Y}${TIMES}1_ " | sed 's/\W/X/g'
-printf '%s\n' "a${E}${EC}${SS}${MU}${Y}${TIMES}1_ " | sed 's/.*/\U&/' | od -An -c
-printf '%s\n' "a${E}${EC}${SS}${MU}${Y}${TIMES}1_ " | sed 's/.*/\L&/' | od -An -c
-printf '%s\n' "a${E}${EC}${SS}${MU}${Y}${TIMES}1_ " | sed 's/.*/\u&/' | od -An -c
+printf '%s\n' "a${E}${EC}${SS}${MU}${Y}${TIMES}1_ " | sed 's/.*/\U&/' | LC_ALL=C od -An -c
+printf '%s\n' "a${E}${EC}${SS}${MU}${Y}${TIMES}1_ " | sed 's/.*/\L&/' | LC_ALL=C od -An -c
+printf '%s\n' "a${E}${EC}${SS}${MU}${Y}${TIMES}1_ " | sed 's/.*/\u&/' | LC_ALL=C od -An -c
 printf '%s\n' "${E}${EC}" | sed 's/'"${E}"'/X/Ig'
 printf '%s\n' "${E}${EC}" | sed 's/['"${EC}"']/X/Ig'
 printf '%s\n' "${E}${EC}${E}" | sed -n '/^\(.\)\(.\)\1$/Ip'
 printf '%s\n' "${E}${EC}" | sed 'y/'"${E}${EC}"'/eE/'
-printf '%s\n' "${E} ${E}x" | sed 's/\b/|/g' | od -An -c
+printf '%s\n' "${E} ${E}x" | sed 's/\b/|/g' | LC_ALL=C od -An -c
 printf '%s\n' "${E}${EC}" | sed -n 'l'
-printf '%s\n' "${E}${EC}" | sed 's/./[&]/g' | od -An -c
+printf '%s\n' "${E}${EC}" | sed 's/./[&]/g' | LC_ALL=C od -An -c
 rm -rf loc

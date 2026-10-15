@@ -6,13 +6,13 @@ export LC_ALL=zh_TW.BIG5
 O=$(printf '\243\133')
 BS=$(printf '\245\134')
 C=$(printf '\244\244')
-printf '%s\n' "${O}${BS}${C}" | sed 's/./[&]/g' | od -An -c
-printf '%s\n' "${O}${BS}${C}" | sed 's/'"${O}"'/X/' | od -An -c
-printf '%s\n' "${O}${BS}${C}" | sed 's/['"${O}${C}"']/X/g' | od -An -c
-printf '%s\n' "${O}${BS}${C}" | sed -n '/^'"${O}"'/p' | od -An -c
-printf '%s\n' "${O}${BS}${C}" | sed 's/'"${BS}"'/X/' | od -An -c
-printf '%s\n' "${O}${BS}${C}" | sed 's/'"${BS}"'/\n/' | od -An -c
-printf '%s\n' "${O}${BS}${C}" | sed 's/[^'"${O}"']/X/g' | od -An -c
+printf '%s\n' "${O}${BS}${C}" | sed 's/./[&]/g' | LC_ALL=C od -An -c
+printf '%s\n' "${O}${BS}${C}" | sed 's/'"${O}"'/X/' | LC_ALL=C od -An -c
+printf '%s\n' "${O}${BS}${C}" | sed 's/['"${O}${C}"']/X/g' | LC_ALL=C od -An -c
+printf '%s\n' "${O}${BS}${C}" | sed -n '/^'"${O}"'/p' | LC_ALL=C od -An -c
+printf '%s\n' "${O}${BS}${C}" | sed 's/'"${BS}"'/X/' | LC_ALL=C od -An -c
+printf '%s\n' "${O}${BS}${C}" | sed 's/'"${BS}"'/\n/' | LC_ALL=C od -An -c
+printf '%s\n' "${O}${BS}${C}" | sed 's/[^'"${O}"']/X/g' | LC_ALL=C od -An -c
 printf '%s\n' "${O}${BS}${C}" | sed 'y/'"${O}${BS}"'/ab/'
-printf '%s\n' "${O}${BS}${C}" | sed 's/\x40/x/' | od -An -c
+printf '%s\n' "${O}${BS}${C}" | sed 's/\x40/x/' | LC_ALL=C od -An -c
 rm -rf loc

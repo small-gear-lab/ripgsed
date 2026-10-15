@@ -4,13 +4,13 @@ mk EUC-JP ja_JP ja_JP.eucJP
 export LC_ALL=ja_JP.eucJP
 A=$(printf '\244\242')
 # the second byte of a character is never a character of its own
-printf '%s\n' "${A}" | sed 's/\xa2/x/' | od -An -c
-printf '%s\n' "${A}" | sed 's/x*/-/g' | od -An -c
+printf '%s\n' "${A}" | sed 's/\xa2/x/' | LC_ALL=C od -An -c
+printf '%s\n' "${A}" | sed 's/x*/-/g' | LC_ALL=C od -An -c
 # a byte that is not (the start of) a character does not match . and is kept
-printf '\244a\n' | sed 's/./X/g' | od -An -c
-printf 'a\244\n' | sed 's/.*/X/' | od -An -c
-printf "${A}"'\244\n' | sed 's/.*/X/' | od -An -c
-printf '\377'"${A}"'\n' | sed 's/'"${A}"'/X/' | od -An -c
-printf '\244\n' | sed 's/./X/;s/^/[/;s/$/]/' | od -An -c
+printf '\244a\n' | sed 's/./X/g' | LC_ALL=C od -An -c
+printf 'a\244\n' | sed 's/.*/X/' | LC_ALL=C od -An -c
+printf "${A}"'\244\n' | sed 's/.*/X/' | LC_ALL=C od -An -c
+printf '\377'"${A}"'\n' | sed 's/'"${A}"'/X/' | LC_ALL=C od -An -c
+printf '\244\n' | sed 's/./X/;s/^/[/;s/$/]/' | LC_ALL=C od -An -c
 printf '%s\n' "${A}" | sed -n '/^.$/p;/^..$/p'
 rm -rf loc

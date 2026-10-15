@@ -2,7 +2,7 @@ mk() { mkdir -p "$PWD/loc"; localedef -f "$1" -i "$2" "$PWD/loc/$3" > /dev/null 
 export LOCPATH=$PWD/loc LANGUAGE=C
 t() { # locale charmap definition script input...
   mk "$2" "$3" "$1"
-  LC_ALL=$1 sed "$4" | od -An -c
+  LC_ALL=$1 sed "$4" | LC_ALL=C od -An -c
 }
 # KOI8-R: ZHE (0xd6) is lower case, its capital is 0xf6
 mk KOI8-R ru_RU ru_RU.KOI8-R
@@ -10,8 +10,8 @@ export LC_ALL=ru_RU.KOI8-R
 ZH=$(printf '\326'); ZHC=$(printf '\366')
 printf '%s\n' "${ZH}${ZHC}a" | sed 's/[[:alpha:]]/X/g'
 printf '%s\n' "${ZH}${ZHC}a" | sed 's/[[:lower:]]/X/g'
-printf '%s\n' "${ZH}${ZHC}a" | sed 's/.*/\U&/' | od -An -c
-printf '%s\n' "${ZH}${ZHC}a" | sed 's/.*/\L&/' | od -An -c
+printf '%s\n' "${ZH}${ZHC}a" | sed 's/.*/\U&/' | LC_ALL=C od -An -c
+printf '%s\n' "${ZH}${ZHC}a" | sed 's/.*/\L&/' | LC_ALL=C od -An -c
 printf '%s\n' "${ZH}${ZHC}a" | sed 's/'"${ZH}"'/X/Ig'
 # Windows-1251: ZHE is 0xe6, capital 0xc6
 mk CP1251 ru_RU ru_RU.CP1251
@@ -19,26 +19,26 @@ export LC_ALL=ru_RU.CP1251
 ZH=$(printf '\346'); ZHC=$(printf '\306')
 printf '%s\n' "${ZH}${ZHC}a" | sed 's/[[:alpha:]]/X/g'
 printf '%s\n' "${ZH}${ZHC}a" | sed 's/[[:upper:]]/X/g'
-printf '%s\n' "${ZH}${ZHC}a" | sed 's/.*/\U&/' | od -An -c
+printf '%s\n' "${ZH}${ZHC}a" | sed 's/.*/\U&/' | LC_ALL=C od -An -c
 printf '%s\n' "${ZH}${ZHC}a" | sed 's/'"${ZHC}"'/X/Ig'
 # Windows-1252: euro sign 0x80, oe ligature 0x9c and its capital 0x8c
 mk CP1252 de_DE de_DE.CP1252
 export LC_ALL=de_DE.CP1252
 EUR=$(printf '\200'); OE=$(printf '\234'); OEC=$(printf '\214')
 printf '%s\n' "${EUR}${OE}${OEC}" | sed 's/[[:alpha:]]/X/g'
-printf '%s\n' "${EUR}${OE}${OEC}" | sed 's/.*/\U&/' | od -An -c
+printf '%s\n' "${EUR}${OE}${OEC}" | sed 's/.*/\U&/' | LC_ALL=C od -An -c
 printf '%s\n' "${EUR}${OE}${OEC}" | sed 's/\w/X/g'
 # ISO-8859-15: euro sign 0xa4 is a symbol, s caron 0xa8 and its capital 0xa6 are letters
 mk ISO-8859-15 fr_FR fr_FR.ISO-8859-15
 export LC_ALL=fr_FR.ISO-8859-15
 EUR=$(printf '\244'); SC=$(printf '\250'); SCC=$(printf '\246')
 printf '%s\n' "${EUR}${SC}${SCC}" | sed 's/[[:alpha:]]/X/g'
-printf '%s\n' "${EUR}${SC}${SCC}" | sed 's/.*/\U&/' | od -An -c
+printf '%s\n' "${EUR}${SC}${SCC}" | sed 's/.*/\U&/' | LC_ALL=C od -An -c
 # ISO-8859-2: l with stroke 0xb3 and its capital 0xa3
 mk ISO-8859-2 cs_CZ cs_CZ.ISO-8859-2
 export LC_ALL=cs_CZ.ISO-8859-2
 LS=$(printf '\263'); LSC=$(printf '\243')
 printf '%s\n' "${LS}${LSC}" | sed 's/[[:upper:]]/X/g'
-printf '%s\n' "${LS}${LSC}" | sed 's/.*/\U&/' | od -An -c
+printf '%s\n' "${LS}${LSC}" | sed 's/.*/\U&/' | LC_ALL=C od -An -c
 printf '%s\n' "${LS}${LSC}" | sed 's/'"${LS}"'/X/Ig'
 rm -rf loc

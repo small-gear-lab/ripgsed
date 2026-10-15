@@ -4,7 +4,7 @@ mk EUC-JP ja_JP ja_JP.eucJP
 mk SHIFT_JIS ja_JP ja_JP.SJIS
 mk BIG5 zh_TW zh_TW.BIG5
 t() { # locale script bytes
-  printf '%s\n' "$3" | LC_ALL=$1 sed "$2" | od -An -c
+  printf '%s\n' "$3" | LC_ALL=$1 sed "$2" | LC_ALL=C od -An -c
 }
 L=$(printf '\244'); C=$(printf '\244\242')
 t ja_JP.eucJP 's/./X/g' "${L}a${C}"
@@ -23,5 +23,5 @@ t zh_TW.BIG5 's/.*/X/' "a${L}"
 t zh_TW.BIG5 's/[^a]/X/g' "${L}a${C}"
 # a lead byte cannot delimit a regular expression
 printf 'a\n' | LC_ALL=ja_JP.eucJP sed "s$(printf '\244')a$(printf '\244')b$(printf '\244')" 2>&1
-printf 'a\n' | LC_ALL=ja_JP.eucJP sed "s$(printf '\377')a$(printf '\377')b$(printf '\377')" 2>&1 | od -An -c
+printf 'a\n' | LC_ALL=ja_JP.eucJP sed "s$(printf '\377')a$(printf '\377')b$(printf '\377')" 2>&1 | LC_ALL=C od -An -c
 rm -rf loc
