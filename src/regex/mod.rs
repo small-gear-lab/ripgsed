@@ -181,6 +181,8 @@ pub struct Regex {
     syntax: Syntax,
     delim: u8,
     literals: literal::Literals,
+    /// Working memory for the breadth-first search, reused by every search.
+    scratch: std::cell::RefCell<exec::Scratch>,
 }
 
 impl Regex {
@@ -197,7 +199,7 @@ impl Regex {
         let parsed = parse::parse(pattern, syntax, delim)?;
         let prog = compile::compile(&parsed.node, parsed.ngroups, parsed.referenced, parsed.char_starts, parsed.utf8)?;
         let literals = literal::analyze(&parsed.node, syntax.locale == Locale::Utf8);
-        Ok(Regex { prog, syntax: *syntax, delim, literals })
+        Ok(Regex { prog, syntax: *syntax, delim, literals, scratch: Default::default() })
     }
 
     /// Number of parenthesized subexpressions.
@@ -228,6 +230,7 @@ impl Regex {
             }
         }
         let searcher = exec::Searcher {
+            scratch: &self.scratch,
             prog: &self.prog,
             hay: haystack,
             multiline: self.syntax.multiline,
@@ -261,6 +264,7 @@ impl Regex {
             }
         }
         let searcher = exec::Searcher {
+            scratch: &self.scratch,
             prog: &self.prog,
             hay: haystack,
             multiline: self.syntax.multiline,

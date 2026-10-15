@@ -31,7 +31,46 @@ const RING: usize = 5;
 /// bit tables.
 const BIG_TABLE_BITS: usize = 1 << 27;
 
+/// Working memory of `Searcher::longest`, kept between searches so that a search allocates
+/// nothing once the buffers have grown to the size of the program.
+#[derive(Clone, Debug, Default)]
+pub struct Scratch {
+    m: usize,
+    ring: Vec<Vec<(u32, usize)>>,
+    slot: Vec<u32>,
+    stamp: Vec<usize>,
+    generation: usize,
+    stack: Vec<(u32, bool)>,
+    consuming: Vec<(u32, usize)>,
+}
+
+impl Scratch {
+    fn prepare(&mut self, m: usize) {
+        if self.m != m {
+            self.m = m;
+            self.ring = (0..RING).map(|_| Vec::new()).collect();
+            self.slot = vec![u32::MAX; RING * m];
+            self.stamp = vec![0; 2 * m];
+            self.generation = 0;
+        }
+    }
+
+    /// Leaves the buffers ready for the next search: no seed is pending.
+    fn reset(&mut self) {
+        let m = self.m;
+        for (r, seeds) in self.ring.iter_mut().enumerate() {
+            for &(pc, _) in seeds.iter() {
+                self.slot[r * m + pc as usize] = u32::MAX;
+            }
+            seeds.clear();
+        }
+        self.stack.clear();
+        self.consuming.clear();
+    }
+}
+
 pub struct Searcher<'a> {
+    pub scratch: &'a std::cell::RefCell<Scratch>,
     pub prog: &'a Program,
     pub hay: &'a [u8],
     pub multiline: bool,
@@ -242,15 +281,13 @@ impl<'a> Searcher<'a> {
         let prog = self.prog;
         let m = prog.insts.len();
         let len = self.hay.len();
-        let mut ring: Vec<Vec<(u32, usize)>> = (0..RING).map(|_| Vec::new()).collect();
-        let mut slot = vec![u32::MAX; RING * m];
-        let mut stamp = vec![0usize; 2 * m];
-        let mut generation = 0usize;
+        let mut scratch = self.scratch.borrow_mut();
+        scratch.prepare(m);
+        scratch.reset();
+        let Scratch { ring, slot, stamp, generation, stack, consuming, .. } = &mut *scratch;
         let mut pending = 0usize;
         let mut best: Option<(usize, usize)> = None;
-        // Closure entries carry whether the path must consume a newline next.
-        let mut stack: Vec<(u32, bool)> = Vec::new();
-        let mut consuming: Vec<(u32, usize)> = Vec::new();
+        // Closure entries carry whether the path must consume a newline next (in `stack`).
         let mut next_cand = start;
         let mut p = start;
         loop {
@@ -279,7 +316,8 @@ impl<'a> Searcher<'a> {
                 p += 1;
                 continue;
             }
-            generation += 1;
+            *generation += 1;
+            let generation = *generation;
             consuming.clear();
             for &(pc0, st) in &seeds {
                 if let Some((bs, _)) = best {
@@ -324,7 +362,7 @@ impl<'a> Searcher<'a> {
             seeds.clear();
             ring[r] = seeds;
             if p < len {
-                for &(pc, st) in &consuming {
+                for &(pc, st) in consuming.iter() {
                     if let Some((bs, _)) = best {
                         if st > bs {
                             continue;
