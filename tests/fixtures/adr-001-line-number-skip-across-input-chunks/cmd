@@ -1,1 +1,1 @@
-seq 1 100000 | sed -n '2p;99999p;100000p'; seq 1 100000 > big; sed -n '70000p' big; sed -n '3p;90000p' big big | sed -n '1,4p'
+seq 1 100000 | sed -n '2p;99999p;100000p'; seq 1 100000 > big; sed -n '70000p' big; sed -n '3p;90000p' big big | sed -n '1,4p'; rm big
