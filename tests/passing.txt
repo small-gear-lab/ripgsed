@@ -92,6 +92,11 @@ adr-009-address-after-y
 adr-009-address-sees-modified
 adr-009-address-sees-modified-delete
 adr-009-range-end-sees-modified
+adr-010-active-number-overshoot
+adr-010-active-plus-overshoot
+adr-010-late-start-end-number-passed
+adr-010-late-start-plus
+adr-010-late-start-tilde
 adr-010-range-change
 adr-010-range-delete
 adr-010-range-end-number-restart
@@ -128,6 +133,7 @@ adr-011-plus-regexp-start
 adr-011-plus-restart
 adr-011-plus-zero
 adr-012-tilde-already-multiple
+adr-012-tilde-dynamic-end
 adr-012-tilde-large
 adr-012-tilde-missing-number
 adr-012-tilde-multi-files
@@ -145,6 +151,7 @@ adr-013-zero-plus-end
 adr-013-zero-regexp-I
 adr-013-zero-regexp-empty-regexp
 adr-013-zero-regexp-first-line-matches
+adr-013-zero-regexp-late-first-look
 adr-013-zero-regexp-later-line
 adr-013-zero-regexp-multi-files
 adr-013-zero-regexp-negated
@@ -216,6 +223,7 @@ adr-018-last-line-start
 adr-018-start-after-end-numbers
 cmd-001-a-continuation-multiline
 cmd-001-a-empty-input
+cmd-001-a-empty-text-after-blanks
 cmd-001-a-escapes
 cmd-001-a-gnu-oneliner
 cmd-001-a-in-braces-semicolon
@@ -324,6 +332,7 @@ cmd-011-H-z-mode
 cmd-012-i-address-forms
 cmd-012-i-continuation-multiline
 cmd-012-i-empty-input-and-N
+cmd-012-i-empty-text-after-blanks
 cmd-012-i-escapes
 cmd-012-i-immediate-output
 cmd-012-i-in-braces

@@ -132,14 +132,24 @@ impl Captures {
 pub struct Regex {
     prog: compile::Program,
     syntax: Syntax,
+    delim: u8,
 }
 
 impl Regex {
     /// Compiles `pattern`. Errors carry GNU's message text.
     pub fn compile(pattern: &[u8], syntax: &Syntax) -> Result<Regex, CompileError> {
-        let parsed = parse::parse(pattern, syntax)?;
+        Regex::compile_with_delimiter(pattern, syntax, b'\n')
+    }
+
+    /// Compiles `pattern` for records delimited by `delim`: pass `b'\0'`
+    /// under `sed -z`. GNU sed then anchors `^` and `$` of `M` mode at NUL
+    /// bytes (and `.` and `[^...]` in `M` mode exclude NUL instead of the
+    /// newline), and it no longer lets a `^` or `$` inside a match meet a
+    /// newline the match consumes. `compile` is this with `b'\n'`.
+    pub fn compile_with_delimiter(pattern: &[u8], syntax: &Syntax, delim: u8) -> Result<Regex, CompileError> {
+        let parsed = parse::parse(pattern, syntax, delim)?;
         let prog = compile::compile(&parsed.node, parsed.ngroups, parsed.referenced)?;
-        Ok(Regex { prog, syntax: *syntax })
+        Ok(Regex { prog, syntax: *syntax, delim })
     }
 
     /// Number of parenthesized subexpressions.
@@ -155,6 +165,7 @@ impl Regex {
             prog: &self.prog,
             hay: haystack,
             multiline: self.syntax.multiline,
+            delim: self.delim,
             utf8: self.syntax.locale == Locale::Utf8,
             icase: self.syntax.icase,
         };

@@ -150,10 +150,12 @@ impl Compiler {
                         self.insts[l as usize] = Inst::Split(l + 1, end);
                     }
                     Some(max) => {
+                        // With a minimum of 0 only the original copy is
+                        // marked; copies made from it are not.
                         let mut holes = Vec::new();
                         for _ in *min..*max {
                             holes.push(self.push(Inst::Split(0, 0))?);
-                            self.emit(body, mark, dup || copy > 0)?;
+                            self.emit(body, mark && (*min > 0 || copy == 0), dup || copy > 0)?;
                             copy += 1;
                         }
                         let end = self.pc();

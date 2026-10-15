@@ -27,6 +27,8 @@ struct Flags {
     icase: bool,
     multiline: bool,
     utf8: bool,
+    /// `sed -z`: NUL-delimited records.
+    z: bool,
 }
 
 impl Flags {
@@ -40,6 +42,7 @@ impl Flags {
                 'I' => f.icase = true,
                 'M' => f.multiline = true,
                 'U' => f.utf8 = true,
+                'Z' => f.z = true,
                 _ => panic!("bad flag {c}"),
             }
         }
@@ -55,6 +58,7 @@ impl Flags {
             (self.icase, 'I'),
             (self.multiline, 'M'),
             (self.utf8, 'U'),
+            (self.z, 'Z'),
         ] {
             if on {
                 s.push(c);
@@ -90,13 +94,23 @@ fn replacement(groups: usize) -> Vec<u8> {
 }
 
 fn pick_delimiter(pattern: &[u8]) -> Option<u8> {
-    b"/,#%@!;~\"'=:_".iter().copied().find(|d| !pattern.contains(d))
+    b"/,#%!;~\"'=:_".iter().copied().find(|d| !pattern.contains(d))
 }
 
 /// Runs GNU sed. `groups` is the number of groups to show.
+///
+/// Records may contain newlines. Normally each record is fed as its lines
+/// followed by a marker line `@@`, and the script joins lines up to the
+/// marker, removes it, substitutes, and appends the marker again. With `Z`
+/// the records are NUL-terminated and sed runs with `-z`.
 fn run_sed(flags: Flags, pattern: &[u8], groups: usize, inputs: &[Vec<u8>]) -> Option<Outcome> {
     let delim = pick_delimiter(pattern)?;
-    let mut script = vec![b's', delim];
+    let mut script = Vec::new();
+    if !flags.z {
+        script.extend_from_slice(b":a\n/\\n@@$/!{N;ba\n}\ns/\\n@@$//\n");
+    }
+    script.push(b's');
+    script.push(delim);
     for &b in pattern {
         if b == b'\n' {
             script.extend_from_slice(b"\\n");
@@ -114,22 +128,11 @@ fn run_sed(flags: Flags, pattern: &[u8], groups: usize, inputs: &[Vec<u8>]) -> O
     if flags.multiline {
         script.push(b'M');
     }
+    if !flags.z {
+        script.extend_from_slice(b"\ns/$/\\n@@/");
+    }
     let mut cmd = Command::new("sed");
-    // GNU sed's M flag anchors at the record delimiter, so a case with M
-    // runs one record at a time as a whole input joined with N.
-    if flags.multiline {
-        if inputs.len() != 1 {
-            let mut recs = Vec::new();
-            for i in inputs {
-                match run_sed(flags, pattern, groups, std::slice::from_ref(i))? {
-                    Outcome::Records(mut r) => recs.append(&mut r),
-                    e @ Outcome::Error(_) => return Some(e),
-                }
-            }
-            return Some(Outcome::Records(recs));
-        }
-        cmd.arg("-e").arg(":a").arg("-e").arg("$!{N;ba;}");
-    } else {
+    if flags.z {
         cmd.arg("-z");
     }
     if flags.ere {
@@ -151,7 +154,11 @@ fn run_sed(flags: Flags, pattern: &[u8], groups: usize, inputs: &[Vec<u8>]) -> O
     let mut data = Vec::new();
     for i in inputs {
         data.extend_from_slice(i);
-        data.push(if flags.multiline { b'\n' } else { 0 });
+        if flags.z {
+            data.push(0);
+        } else {
+            data.extend_from_slice(b"\n@@\n");
+        }
     }
     let mut stdin = child.stdin.take().unwrap();
     let writer = std::thread::spawn(move || {
@@ -176,14 +183,18 @@ fn run_sed(flags: Flags, pattern: &[u8], groups: usize, inputs: &[Vec<u8>]) -> O
         };
         return Some(Outcome::Error(msg));
     }
-    if flags.multiline {
-        let mut o = out.stdout;
-        if o.last() == Some(&b'\n') {
-            o.pop();
+    let mut recs: Vec<Vec<u8>> = if flags.z {
+        out.stdout.split(|&b| b == 0).map(|s| s.to_vec()).collect()
+    } else {
+        let mut v = Vec::new();
+        let mut rest: &[u8] = &out.stdout;
+        while let Some(k) = rest.windows(4).position(|w| w == b"\n@@\n") {
+            v.push(rest[..k].to_vec());
+            rest = &rest[k + 4..];
         }
-        return Some(Outcome::Records(vec![o]));
-    }
-    let mut recs: Vec<Vec<u8>> = out.stdout.split(|&b| b == 0).map(|s| s.to_vec()).collect();
+        v.push(rest.to_vec());
+        v
+    };
     if recs.last().is_some_and(|r| r.is_empty()) {
         recs.pop();
     }
@@ -240,7 +251,8 @@ fn run_engine(re: &Regex, input: &[u8]) -> Vec<u8> {
 }
 
 fn engine_outcome(flags: Flags, pattern: &[u8], inputs: &[Vec<u8>]) -> (Outcome, usize) {
-    match Regex::compile(pattern, &flags.syntax()) {
+    let delim = if flags.z { b'\0' } else { b'\n' };
+    match Regex::compile_with_delimiter(pattern, &flags.syntax(), delim) {
         Err(e) => (Outcome::Error(e.message), 0),
         Ok(re) => {
             let recs = inputs.iter().map(|i| run_engine(&re, i)).collect();
@@ -698,6 +710,7 @@ fn random_cases(report: &mut Report, count: usize, seed: u64) {
             icase: !posix && rng.chance(15),
             multiline: !posix && rng.chance(15),
             utf8: false,
+            z: rng.chance(5),
         };
         let mut g = Gen { rng: &mut rng, ere, gnu: !posix, groups: 0, budget: 8 };
         let pattern = g.regex(0);

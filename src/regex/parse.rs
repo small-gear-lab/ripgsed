@@ -36,7 +36,7 @@ pub struct Parsed {
     pub referenced: Vec<bool>,
 }
 
-pub fn parse(pattern: &[u8], syntax: &Syntax) -> Result<Parsed, CompileError> {
+pub fn parse(pattern: &[u8], syntax: &Syntax, delim: u8) -> Result<Parsed, CompileError> {
     let mut p = Parser {
         pat: pattern,
         pos: 0,
@@ -44,6 +44,7 @@ pub fn parse(pattern: &[u8], syntax: &Syntax) -> Result<Parsed, CompileError> {
         gnu: !syntax.posix,
         icase: syntax.icase,
         multiline: syntax.multiline,
+        delim,
         utf8: syntax.locale == Locale::Utf8,
         ngroups: 0,
         completed: 0,
@@ -87,6 +88,8 @@ struct Parser<'a> {
     gnu: bool,
     icase: bool,
     multiline: bool,
+    /// The line delimiter of `M` mode (a newline, or NUL under `sed -z`).
+    delim: u8,
     utf8: bool,
     ngroups: usize,
     /// Groups 1..=9 that a back-reference may refer to at this point.
@@ -451,10 +454,11 @@ impl<'a> Parser<'a> {
 
     fn dot(&self) -> Unit {
         if self.utf8 {
-            Unit::Any { newline: !self.multiline }
+            Unit::Any { exclude: self.multiline.then_some(self.delim) }
         } else {
             let mut set = ByteSet::full();
             if self.multiline {
+                set.remove(self.delim);
                 set.remove(b'\n');
             }
             Unit::Byte(set)
@@ -579,7 +583,7 @@ impl<'a> Parser<'a> {
         if self.utf8 {
             cs.negated = negated;
             cs.icase = self.icase;
-            cs.no_newline = negated && self.multiline;
+            cs.exclude = (negated && self.multiline).then_some(self.delim);
             if self.icase {
                 let mut raw = cs.raw;
                 raw.fold_ascii_case();
@@ -593,6 +597,7 @@ impl<'a> Parser<'a> {
         if negated {
             bytes.negate();
             if self.multiline {
+                bytes.remove(self.delim);
                 bytes.remove(b'\n');
             }
         }

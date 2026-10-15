@@ -29,6 +29,8 @@ pub struct Searcher<'a> {
     pub prog: &'a Program,
     pub hay: &'a [u8],
     pub multiline: bool,
+    /// The line delimiter: `^` and `$` match next to it in `M` mode.
+    pub delim: u8,
     pub utf8: bool,
     pub icase: bool,
 }
@@ -39,9 +41,9 @@ impl<'a> Searcher<'a> {
         let b = *self.hay.get(pos)?;
         match &self.prog.units[u as usize] {
             Unit::Byte(set) => set.contains(b).then_some(1),
-            Unit::Any { newline } => {
+            Unit::Any { exclude } => {
                 let (c, len) = decode_utf8(self.hay, pos)?;
-                (*newline || c != '\n').then_some(len)
+                (exclude.is_none_or(|b| c as u32 != b as u32 && c != '\n')).then_some(len)
             }
             Unit::Chars(cs) => {
                 if let Some((c, len)) = decode_utf8(self.hay, pos) {
@@ -93,13 +95,15 @@ impl<'a> Searcher<'a> {
         let len = self.hay.len();
         let hold = |b: bool| if b { Check::Pass } else { Check::Fail };
         match a {
-            Assert::LineStart => {
-                hold(pos == 0 || (self.hay[pos - 1] == b'\n' && (self.multiline || pos > start)))
-            }
+            Assert::LineStart => hold(
+                pos == 0
+                    || (self.multiline && self.hay[pos - 1] == self.delim)
+                    || (self.delim == b'\n' && self.hay[pos - 1] == b'\n' && pos > start),
+            ),
             Assert::LineEnd => {
-                if pos == len || (self.multiline && self.hay[pos] == b'\n') {
+                if pos == len || (self.multiline && self.hay[pos] == self.delim) {
                     Check::Pass
-                } else if self.hay[pos] == b'\n' {
+                } else if self.delim == b'\n' && self.hay[pos] == b'\n' {
                     Check::NeedNewline
                 } else {
                     Check::Fail
@@ -112,8 +116,8 @@ impl<'a> Searcher<'a> {
     fn assert_ok(&self, a: Assert, pos: usize) -> bool {
         let len = self.hay.len();
         match a {
-            Assert::LineStart => pos == 0 || (self.multiline && self.hay[pos - 1] == b'\n'),
-            Assert::LineEnd => pos == len || (self.multiline && self.hay[pos] == b'\n'),
+            Assert::LineStart => pos == 0 || (self.multiline && self.hay[pos - 1] == self.delim),
+            Assert::LineEnd => pos == len || (self.multiline && self.hay[pos] == self.delim),
             Assert::BufStart => pos == 0,
             Assert::BufEnd => pos == len,
             Assert::WordBoundary => self.word_before(pos) != self.word_after(pos),
@@ -142,40 +146,51 @@ impl<'a> Searcher<'a> {
     /// Finds the leftmost-longest match starting at or after `start`.
     pub fn search(&self, start: usize) -> Option<(usize, Vec<Option<(usize, usize)>>)> {
         let len = self.hay.len();
-        if start > len {
-            return None;
-        }
-        let (s, e) = if self.prog.has_backrefs {
-            let mut bt = Backtracker::new(self);
-            let mut s = start;
-            loop {
-                if self.may_start(s) {
-                    if let Some(e) = bt.run(s, None) {
-                        break (s, e);
+        let mut from = start;
+        loop {
+            if from > len {
+                return None;
+            }
+            let (s, e) = if self.prog.has_backrefs {
+                let mut bt = Backtracker::new(self, false);
+                let mut s = from;
+                loop {
+                    if self.may_start(s) {
+                        if let Some(e) = bt.run(s, None) {
+                            break (s, e);
+                        }
+                    }
+                    if s >= len {
+                        return None;
+                    }
+                    s += self.step_len(s);
+                }
+            } else {
+                self.longest(from)?
+            };
+            let mut groups = vec![None; self.prog.ngroups + 1];
+            groups[0] = Some((s, e));
+            if self.prog.ngroups == 0 {
+                return Some((s, groups));
+            }
+            // GNU sed assigns the subexpressions with the strict reading of
+            // `$` (see `assert_check`); when no such path reaches the end,
+            // it gives up this start and searches on.
+            let mut bt = Backtracker::new(self, true);
+            if bt.run(s, Some(e)).is_some() {
+                for g in 1..=self.prog.ngroups {
+                    let (a, b) = (bt.caps[2 * g], bt.caps[2 * g + 1]);
+                    if a != NONE && b != NONE {
+                        groups[g] = Some((a, b));
                     }
                 }
-                if s >= len {
-                    return None;
-                }
-                s += self.step_len(s);
+                return Some((s, groups));
             }
-        } else {
-            self.longest(start)?
-        };
-        let mut groups = vec![None; self.prog.ngroups + 1];
-        groups[0] = Some((s, e));
-        if self.prog.ngroups > 0 {
-            let mut bt = Backtracker::new(self);
-            let found = bt.run(s, Some(e));
-            debug_assert!(found.is_some(), "the capture pass must find the match");
-            for g in 1..=self.prog.ngroups {
-                let (a, b) = (bt.caps[2 * g], bt.caps[2 * g + 1]);
-                if a != NONE && b != NONE {
-                    groups[g] = Some((a, b));
-                }
+            if s >= len {
+                return None;
             }
+            from = s + self.step_len(s);
         }
-        Some((s, groups))
     }
 
     /// Breadth-first simulation for patterns without back-references.
@@ -333,6 +348,8 @@ struct Backtracker<'s, 'a> {
     memo_bits: Vec<u64>,
     memo_set: HashSet<Vec<usize>>,
     keyed: Vec<usize>,
+    /// `$` only matches at a real line end (no newline consumed later).
+    strict: bool,
 }
 
 #[derive(Clone, Copy)]
@@ -353,7 +370,7 @@ struct Choice {
 }
 
 impl<'s, 'a> Backtracker<'s, 'a> {
-    fn new(s: &'s Searcher<'a>) -> Self {
+    fn new(s: &'s Searcher<'a>, strict: bool) -> Self {
         let n = 2 * (s.prog.ngroups + 1);
         let keyed = (1..=s.prog.ngroups).filter(|&g| s.prog.referenced[g]).collect();
         Backtracker {
@@ -370,6 +387,7 @@ impl<'s, 'a> Backtracker<'s, 'a> {
             memo_bits: Vec::new(),
             memo_set: HashSet::new(),
             keyed,
+            strict,
         }
     }
 
@@ -470,7 +488,7 @@ impl<'s, 'a> Backtracker<'s, 'a> {
                         match self.s.assert_check(a, pos, start) {
                             Check::Pass => {}
                             // The newline is consumed next unless the match ends here.
-                            Check::NeedNewline if pos != end => {}
+                            Check::NeedNewline if pos != end && !self.strict => {}
                             _ => continue,
                         }
                     }
@@ -634,8 +652,8 @@ impl<'s, 'a> Backtracker<'s, 'a> {
                     Inst::Assert(a) => {
                         match self.s.assert_check(a, pos, start) {
                             Check::Pass => {}
-                            Check::NeedNewline => nl = true,
-                            Check::Fail => break,
+                            Check::NeedNewline if !self.strict => nl = true,
+                            Check::NeedNewline | Check::Fail => break,
                         }
                         pc += 1;
                     }

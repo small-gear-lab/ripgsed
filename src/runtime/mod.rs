@@ -69,8 +69,12 @@ enum Flow {
 #[derive(Clone, Copy)]
 enum RangeState {
     Inactive,
-    /// Active until this line (inclusive), or until a regexp matches.
-    Active { until: Option<u64> },
+    /// A range with a numeric start has ended; it cannot start again.
+    Closed,
+    /// Active until this line (inclusive), or until a regexp matches. For `addr,+N` a line
+    /// past the end (the end line was skipped) still belongs to the range; for `addr,N` it
+    /// does not (`overshoot`).
+    Active { until: Option<u64>, overshoot: bool },
 }
 
 enum Pending {
@@ -409,19 +413,36 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
         Ok(matched != command.negate)
     }
 
+    /// What a range becomes once it has ended: a numeric start never matches again, while a
+    /// regexp start can begin a new range.
+    fn ended(a1: &Addr) -> RangeState {
+        if matches!(a1, Addr::Line(_)) { RangeState::Closed } else { RangeState::Inactive }
+    }
+
     fn range_matches(&mut self, index: usize, a1: &Addr, a2: &Addr2) -> Result<bool, Fatal> {
         let line = self.line;
         let mut state = self.ranges[index];
-        if let RangeState::Inactive = state {
+        if matches!(state, RangeState::Inactive | RangeState::Closed) {
             let starts = match a1 {
                 // `0,/re/`: the range is already active before the first line.
                 Addr::Line(0) => {
-                    if line == 1 && !self.range_zero_done(index) {
-                        state = RangeState::Active { until: None };
+                    // It is active from the first time it is looked at, even if that is not line 1.
+                    if !self.range_zero_done(index) {
+                        state = RangeState::Active { until: None, overshoot: false };
                         true
                     } else {
                         false
                     }
+                }
+                // A numeric start also begins the range on a later line, if the line it names was
+                // skipped (by `n`, `N`, or `D`), but only once.
+                Addr::Line(n) => {
+                    // ... unless the end line number has already been passed.
+                    let passed_end = line > *n && matches!(a2, Addr2::Line(m) if line > *m);
+                    if passed_end && line >= *n {
+                        self.ranges[index] = RangeState::Closed;
+                    }
+                    !matches!(state, RangeState::Closed) && line >= *n && !passed_end
                 }
                 other => self.addr_matches(other)?,
             };
@@ -432,55 +453,62 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                 match a2 {
                     Addr2::Line(n) => {
                         if *n <= line {
+                            self.ranges[index] = Self::ended(a1);
                             return Ok(true);
                         }
-                        state = RangeState::Active { until: Some(*n) };
+                        state = RangeState::Active { until: Some(*n), overshoot: false };
                     }
                     Addr2::Plus(n) => {
                         if *n == 0 {
+                            self.ranges[index] = Self::ended(a1);
                             return Ok(true);
                         }
-                        state = RangeState::Active { until: Some(line + n) };
+                        state = RangeState::Active { until: Some(line + n), overshoot: true };
                     }
                     Addr2::Multiple(n) => {
-                        // The next multiple strictly after this line; `,~0` is a single line.
+                        // It ends at the first later line that is a multiple of N; `,~0` is a
+                        // single line.
                         if *n == 0 {
+                            self.ranges[index] = Self::ended(a1);
                             return Ok(true);
                         }
-                        state = RangeState::Active { until: Some((line / n + 1) * n) };
+                        state = RangeState::Active { until: None, overshoot: false };
                     }
-                    Addr2::Step { .. } => state = RangeState::Active { until: None },
+                    Addr2::Step { .. } => state = RangeState::Active { until: None, overshoot: false },
                     Addr2::Last => {
                         if self.is_last()? {
+                            self.ranges[index] = Self::ended(a1);
                             return Ok(true);
                         }
-                        state = RangeState::Active { until: None };
+                        state = RangeState::Active { until: None, overshoot: false };
                     }
-                    Addr2::Regex(_) => state = RangeState::Active { until: None },
+                    Addr2::Regex(_) => state = RangeState::Active { until: None, overshoot: false },
                 }
                 self.ranges[index] = state;
                 return Ok(true);
             }
         }
         // The range is active: does it end on this line?
-        let RangeState::Active { until } = state else { unreachable!() };
+        let RangeState::Active { until, overshoot } = state else { unreachable!() };
         let ends = match (until, a2) {
             (Some(n), _) => {
-                if line > n {
-                    self.ranges[index] = RangeState::Inactive;
+                if line > n && !overshoot {
+                    // The end line was skipped: this line is already outside the range.
+                    self.ranges[index] = Self::ended(a1);
                     return Ok(false);
                 }
-                line == n
+                line >= n
             }
             (None, Addr2::Last) => self.is_last()?,
             (None, Addr2::Regex(p)) => self.regex_matches(p)?,
             (None, Addr2::Line(n)) => line >= *n,
+            (None, Addr2::Multiple(n)) => *n != 0 && line % *n == 0,
             (None, Addr2::Step { first, step }) => {
                 line >= *first && if *step == 0 { line == *first } else { (line - *first) % *step == 0 }
             }
             (None, _) => false,
         };
-        self.ranges[index] = if ends { RangeState::Inactive } else { RangeState::Active { until } };
+        self.ranges[index] = if ends { Self::ended(a1) } else { RangeState::Active { until, overshoot } };
         if matches!(a1, Addr::Line(0)) && ends {
             self.zero_done(index);
         }

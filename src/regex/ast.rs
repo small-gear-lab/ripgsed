@@ -9,8 +9,8 @@ pub enum Unit {
     /// bracket expression is a byte set; in UTF-8 it is used for ASCII and
     /// for raw bytes written in the pattern.
     Byte(ByteSet),
-    /// `.` in UTF-8: one valid character (not a newline in `M` mode).
-    Any { newline: bool },
+    /// `.` in UTF-8: one valid character (not the line delimiter in `M` mode).
+    Any { exclude: Option<u8> },
     /// A character set in UTF-8.
     Chars(Box<CharSet>),
 }

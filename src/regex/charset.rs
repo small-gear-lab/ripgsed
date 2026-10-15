@@ -53,10 +53,6 @@ impl ByteSet {
         }
     }
 
-    pub fn is_empty(&self) -> bool {
-        self.bits == [0; 4]
-    }
-
     pub fn is_full(&self) -> bool {
         self.bits == [u64::MAX; 4]
     }
@@ -72,14 +68,6 @@ impl ByteSet {
         }
     }
 
-    /// The single member, if the set has exactly one.
-    pub fn single_member(&self) -> Option<u8> {
-        let count: u32 = self.bits.iter().map(|w| w.count_ones()).sum();
-        if count != 1 {
-            return None;
-        }
-        (0..=255u8).find(|&b| self.contains(b))
-    }
 }
 
 /// The POSIX character classes of `[[:name:]]`.
@@ -221,8 +209,8 @@ pub struct CharSet {
     /// single bytes of the input.
     pub raw: ByteSet,
     pub icase: bool,
-    /// The set never matches a newline (negated lists in `M` mode).
-    pub no_newline: bool,
+    /// A byte (the line delimiter) the set never matches (negated lists in `M` mode).
+    pub exclude: Option<u8>,
 }
 
 impl CharSet {
@@ -235,7 +223,7 @@ impl CharSet {
     }
 
     pub fn matches_char(&self, c: char) -> bool {
-        if self.no_newline && c == '\n' {
+        if self.exclude.is_some_and(|b| c as u32 == b as u32 || c == '\n') {
             return false;
         }
         let mut hit = self.positive(c);

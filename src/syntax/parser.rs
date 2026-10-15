@@ -579,7 +579,7 @@ impl Parser {
                     return Err(self.error("e/r/w commands disabled in sandbox mode"));
                 }
                 if matches!(ch, b'w' | b'W') {
-                    self.touched.push(name.clone());
+                    self.create_write_file(&name)?;
                 }
                 match ch {
                     b'r' => Kind::ReadFile(name),
@@ -698,7 +698,7 @@ impl Parser {
         self.src[start..self.pos].to_vec()
     }
 
-    /// A file name runs to the end of the line.
+    /// A file name runs to the end of the line, and the newline is consumed with it.
     fn read_filename(&mut self) -> Result<Vec<u8>> {
         self.skip_blanks();
         let start = self.pos;
@@ -708,7 +708,29 @@ impl Parser {
         if self.pos == start {
             return Err(self.error("missing filename in r/R/w/W commands"));
         }
-        Ok(self.src[start..self.pos].to_vec())
+        let name = self.src[start..self.pos].to_vec();
+        if self.peek() == Some(b'\n') {
+            self.pos += 1;
+        }
+        Ok(name)
+    }
+
+    /// GNU sed creates (truncates) every `w` file while it reads the script, so a file that
+    /// cannot be created stops the run with status 4 even before later syntax errors.
+    fn create_write_file(&mut self, name: &[u8]) -> Result<()> {
+        if name == b"/dev/stdout" || name == b"/dev/stderr" {
+            return Ok(());
+        }
+        let path = String::from_utf8_lossy(name).into_owned();
+        match std::fs::File::create(&path) {
+            Ok(_) => Ok(()),
+            Err(e) => Err(SyntaxError {
+                location: Location::Bare,
+                message: format!("couldn't open file {path}: {}", crate::io::strerror(&e)),
+                status: 4,
+                touched: Vec::new(),
+            }),
+        }
     }
 
     /// Text of `a`, `i`, `c`: the one-liner form (`a text`, or `a\text` which keeps
@@ -732,8 +754,6 @@ impl Parser {
                 Some(b'\n') => self.pos += 1,
                 Some(_) => {}
             }
-        } else if first == b'\n' {
-            return Err(self.error("expected \\ after `a', `c' or `i'"));
         }
         let mut raw = Vec::new();
         while let Some(ch) = self.next() {
@@ -837,7 +857,7 @@ impl Parser {
                         return Err(self.error("e/r/w commands disabled in sandbox mode"));
                     }
                     let name = self.read_filename()?;
-                    self.touched.push(name.clone());
+                    self.create_write_file(&name)?;
                     write = Some(name);
                     break;
                 }

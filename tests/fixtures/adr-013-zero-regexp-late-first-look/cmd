@@ -1,0 +1,1 @@
+seq 6 | sed -n '2{n;n};0,/4/p'; echo --; seq 6 | sed -n '3{n};0,/2/p'
