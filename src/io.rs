@@ -67,6 +67,11 @@ pub fn stdin_record(separator: u8, unbuffered: bool) -> io::Result<Option<Record
     with_stdin(|s| s.source.next_record(), unbuffered, separator)
 }
 
+/// Like `stdin_record`, reading the record into `body` (which is cleared first).
+fn stdin_record_into(body: Vec<u8>, separator: u8, unbuffered: bool) -> io::Result<Option<Record>> {
+    with_stdin(|s| s.source.next_record_into(body), unbuffered, separator)
+}
+
 /// Takes back `n` bytes of records that were read ahead but not used (the record looked at
 /// to find out whether the current one is the last).
 fn stdin_unconsume(n: u64) {
@@ -111,12 +116,24 @@ impl<R: Read> ChunkedSource<R> {
 
     /// The next record, or `None` at the end of the input.
     pub fn next_record(&mut self) -> io::Result<Option<Record>> {
+        self.next_record_into(Vec::new())
+    }
+
+    /// The next record, stored in `body` (cleared first, its capacity reused).
+    pub fn next_record_into(&mut self, mut body: Vec<u8>) -> io::Result<Option<Record>> {
+        body.clear();
         loop {
             if self.pos < self.chunk.len() {
                 let rest = &self.chunk[self.pos..];
-                let (body, used, terminated) = match crate::search::memchr(self.separator, rest) {
-                    Some(i) => (rest[..i].to_vec(), i + 1, true),
-                    None => (rest.to_vec(), rest.len(), false),
+                let (used, terminated) = match crate::search::memchr(self.separator, rest) {
+                    Some(i) => {
+                        body.extend_from_slice(&rest[..i]);
+                        (i + 1, true)
+                    }
+                    None => {
+                        body.extend_from_slice(rest);
+                        (rest.len(), false)
+                    }
                 };
                 self.pos += used;
                 self.consumed += used as u64;
@@ -171,6 +188,8 @@ pub struct Fetched {
 /// A source of input records with one record of lookahead (for `$`).
 pub trait RecordSource {
     fn next_record(&mut self) -> Result<Option<Fetched>, Fatal>;
+    /// Hands back a buffer the caller is done with, to be reused for a later record.
+    fn recycle(&mut self, _buf: Vec<u8>) {}
     /// Whether the record last returned is the last one: of all input, or of
     /// its file when `separate` is set.
     fn is_last(&mut self, separate: bool) -> Result<bool, Fatal>;
@@ -192,6 +211,8 @@ pub struct FileInputs {
     current: Option<(Source, Rc<str>)>,
     /// A record read ahead of time, and whether it starts a new file.
     peeked: Option<Fetched>,
+    /// A buffer for the next record (see `RecordSource::recycle`).
+    spare: Vec<u8>,
     started_file: bool,
     separator: u8,
     program: String,
@@ -218,6 +239,7 @@ impl FileInputs {
             names: names.into_iter(),
             current: None,
             peeked: None,
+            spare: Vec::new(),
             started_file: false,
             separator,
             program: program.to_string(),
@@ -321,8 +343,8 @@ impl FileInputs {
             }
             let (source, name) = self.current.as_mut().unwrap();
             let read = match source {
-                Source::Chunked(source) => source.next_record(),
-                Source::Stdin => stdin_record(self.separator, self.unbuffered),
+                Source::Chunked(source) => source.next_record_into(std::mem::take(&mut self.spare)),
+                Source::Stdin => stdin_record_into(std::mem::take(&mut self.spare), self.separator, self.unbuffered),
             };
             match read {
                 Ok(Some(record)) => {
@@ -348,6 +370,12 @@ impl RecordSource for FileInputs {
     fn next_record(&mut self) -> Result<Option<Fetched>, Fatal> {
         self.fill(false)?;
         Ok(self.peeked.take())
+    }
+
+    fn recycle(&mut self, buf: Vec<u8>) {
+        if buf.capacity() > self.spare.capacity() && buf.capacity() <= 1 << 20 {
+            self.spare = buf;
+        }
     }
 
     fn is_last(&mut self, separate: bool) -> Result<bool, Fatal> {

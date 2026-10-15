@@ -269,8 +269,10 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
         if append {
             self.pattern.push(self.options.separator);
             self.pattern.extend_from_slice(&record.body);
+            self.input.recycle(record.body);
         } else {
-            self.pattern = record.body;
+            let old = std::mem::replace(&mut self.pattern, record.body);
+            self.input.recycle(old);
         }
         self.terminated = record.terminated;
         Ok(true)
@@ -425,6 +427,9 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
     }
 
     fn flush_pending(&mut self) -> Result<(), Fatal> {
+        if self.pending.is_empty() {
+            return Ok(());
+        }
         for item in std::mem::take(&mut self.pending) {
             match item {
                 Pending::Text(text) => self.write_raw(&text)?,
