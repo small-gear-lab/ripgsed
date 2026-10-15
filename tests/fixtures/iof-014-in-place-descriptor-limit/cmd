@@ -1,0 +1,9 @@
+# With no file descriptor left for the temporary file, -i fails and leaves the file alone.
+printf 'a\n' > f
+for n in 4 5; do
+  echo "== ulimit -n $n"
+  ( ulimit -n $n; sed -i 's/a/b/' f; echo "rc=$?" ) 2>&1 | sed 's/sed[A-Za-z0-9]\{6\}/sedXXXXXX/'
+  cat f
+  printf 'a\n' > f
+done
+rm -f f
