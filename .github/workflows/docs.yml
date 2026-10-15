@@ -1,9 +1,7 @@
 name: docs
 
 on:
-  push:
-    branches: [main]
-    paths: ["docs/**", "tools/build-docs.sh", ".github/workflows/docs.yml"]
+  # Run by hand until the repository is public (Pages is not available while it is private).
   workflow_dispatch:
 
 permissions:
