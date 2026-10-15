@@ -14,12 +14,23 @@ One crate (lib + bin). No workspace split until dependency boundaries settle.
 | `io` | record reading, output streams, `w` files, in-place editing, standard input | script syntax |
 | `debug` | the canonical program text and the execution trace of `--debug` | running the script |
 | `cli` | option parsing, mode selection, exit status | a second implementation of the transformation logic |
+| `analysis` | deciding statically whether a script is record-local (can run on chunks independently) | running the script |
+| `parallel`, `stream` | the ordered chunk stream, workers, and the ordered merge of their output | script semantics |
+| `search` | byte and substring search (SSE2/AVX2 with scalar fallbacks) | regular expressions |
 
-`analysis` and `plan` (parallel execution) are not written yet; they come after full GNU sed compatibility.
+## The regex engine
+
+A search goes through up to three stages, each cheaper than the next and each producing exactly what the NFA simulation would:
+
+1. **Literal prefilter** (`regex::literal`). A pattern that is only a literal is answered by a substring search; a pattern that requires a literal (possibly spread over plain groups) rejects a haystack that lacks it before any automaton runs.
+2. **Lazy DFAs** (`regex::dfa`), used when the pattern has no back-reference and the haystack has no delimiter or newline byte (and, in a UTF-8 locale, only ASCII). A forward unanchored DFA finds the earliest match end; a reverse DFA (built from the mirrored pattern) finds the leftmost start of a match ending there; earlier starts, whose matches must end later, are tried with a forward anchored DFA inside a work budget; and the forward anchored DFA gives the longest end. States are built on demand (at most 2000; beyond that the search falls back). Looking for the earliest end first keeps repeated searches on one long line linear.
+3. **NFA simulation and backtracking** (`regex::exec`). The reference: it handles back-references, non-ASCII input, and everything the DFAs decline, and it assigns the sub-matches on the span the DFAs found.
+
+The DFA path is tested against the simulation on random patterns and haystacks (`regex::tests`), and by the fixtures and the execution fuzz test, which run with it enabled.
 
 ## Policies
 
-- There is only the sequential VM so far. The CLI and the Rust API share one path (parse, then run).
+- The CLI and the Rust API share one path (parse, then run). Record-local scripts on large regular files run in parallel over an ordered chunk stream; everything else runs on the sequential VM.
 - Unsupported syntax is a compile-time error and is never silently reinterpreted.
 - Input is held as bytes. The record terminator is kept separate from the record body.
 

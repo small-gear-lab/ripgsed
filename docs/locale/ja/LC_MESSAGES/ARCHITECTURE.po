@@ -6,17 +6,17 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: ripgsed \n"
+"Project-Id-Version: ripgsed\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-15 14:45+0900\n"
+"POT-Creation-Date: 2026-10-15 16:01+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language: ja\n"
 "Language-Team: ja <LL@li.org>\n"
-"Plural-Forms: nplurals=1; plural=0;\n"
+"Language: ja\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
 "Generated-By: Babel 2.18.0\n"
 
 #: ../../ARCHITECTURE.md:1
@@ -24,7 +24,9 @@ msgid "Architecture"
 msgstr "アーキテクチャ"
 
 #: ../../ARCHITECTURE.md:3
-msgid "Background and rationale are in [DESIGN.md](DESIGN.md). This file records the current layout and policies; it is not a settled specification."
+msgid ""
+"Background and rationale are in [DESIGN.md](DESIGN.md). This file records "
+"the current layout and policies; it is not a settled specification."
 msgstr "背景と根拠は [DESIGN.md](DESIGN.md) にあります。本書は現時点の構成と方針の記録であり、確定仕様ではありません。"
 
 #: ../../ARCHITECTURE.md:5
@@ -32,7 +34,9 @@ msgid "Layout"
 msgstr "構成"
 
 #: ../../ARCHITECTURE.md:7
-msgid "One crate (lib + bin). No workspace split until dependency boundaries settle."
+msgid ""
+"One crate (lib + bin). No workspace split until dependency boundaries "
+"settle."
 msgstr "crate は一つ（lib + bin）。依存境界が固まるまで workspace 分割はしません。"
 
 #: ../../ARCHITECTURE.md
@@ -64,7 +68,9 @@ msgid "`regex`"
 msgstr ""
 
 #: ../../ARCHITECTURE.md
-msgid "the regular expression engine: BRE/ERE dialects, leftmost-longest matching, captures"
+msgid ""
+"the regular expression engine: BRE/ERE dialects, leftmost-longest matching, "
+"captures"
 msgstr "正規表現エンジン：BRE/ERE の方言、左端最長一致、キャプチャ"
 
 #: ../../ARCHITECTURE.md
@@ -88,7 +94,8 @@ msgid "`io`"
 msgstr ""
 
 #: ../../ARCHITECTURE.md
-msgid "record reading, output streams, `w` files, in-place editing, standard input"
+msgid ""
+"record reading, output streams, `w` files, in-place editing, standard input"
 msgstr "レコードの読み込み、出力ストリーム、`w` ファイル、インプレース編集、標準入力"
 
 #: ../../ARCHITECTURE.md
@@ -119,43 +126,151 @@ msgstr "オプション解析、モード決定、終了状態"
 msgid "a second implementation of the transformation logic"
 msgstr "変換ロジックの別実装"
 
-#: ../../ARCHITECTURE.md:18
-msgid "`analysis` and `plan` (parallel execution) are not written yet; they come after full GNU sed compatibility."
-msgstr "`analysis` と `plan`（並列実行）はまだ書いていません。GNU sed の完全互換の後に取り組みます。"
+#: ../../ARCHITECTURE.md
+msgid "`analysis`"
+msgstr "`analysis`"
 
-#: ../../ARCHITECTURE.md:20
+#: ../../ARCHITECTURE.md
+msgid ""
+"deciding statically whether a script is record-local (can run on chunks "
+"independently)"
+msgstr "スクリプトがレコード内で完結する（チャンクごとに独立して実行できる）かを静的に判定する"
+
+#: ../../ARCHITECTURE.md
+msgid "`parallel`, `stream`"
+msgstr "`parallel`, `stream`"
+
+#: ../../ARCHITECTURE.md
+msgid ""
+"the ordered chunk stream, workers, and the ordered merge of their output"
+msgstr "順序つきチャンクストリーム、ワーカー、出力の順序つきマージ"
+
+#: ../../ARCHITECTURE.md
+msgid "script semantics"
+msgstr "スクリプトの意味"
+
+#: ../../ARCHITECTURE.md
+msgid "`search`"
+msgstr "`search`"
+
+#: ../../ARCHITECTURE.md
+msgid "byte and substring search (SSE2/AVX2 with scalar fallbacks)"
+msgstr "バイト・部分文字列検索（SSE2/AVX2、スカラー実装へのフォールバック付き）"
+
+#: ../../ARCHITECTURE.md
+msgid "regular expressions"
+msgstr "正規表現"
+
+#: ../../ARCHITECTURE.md:21
+msgid "The regex engine"
+msgstr "正規表現エンジン"
+
+#: ../../ARCHITECTURE.md:23
+msgid ""
+"A search goes through up to three stages, each cheaper than the next and "
+"each producing exactly what the NFA simulation would:"
+msgstr "検索は最大3段階を通ります。後の段階ほど高価で、どの段階も NFA シミュレーションと完全に同じ結果を返します。"
+
+#: ../../ARCHITECTURE.md:25
+msgid ""
+"**Literal prefilter** (`regex::literal`). A pattern that is only a literal "
+"is answered by a substring search; a pattern that requires a literal "
+"(possibly spread over plain groups) rejects a haystack that lacks it before "
+"any automaton runs."
+msgstr ""
+"**リテラル先読み**（`regex::literal`）。リテラルだけのパターンは部分文字列検索で答えます。あるリテラルを必須とするパターン（単純なグループにまたがってもよい）は、それを含まない入力をオートマトンを動かす前に弾きます。"
+
+#: ../../ARCHITECTURE.md:26
+msgid ""
+"**Lazy DFAs** (`regex::dfa`), used when the pattern has no back-reference "
+"and the haystack has no delimiter or newline byte (and, in a UTF-8 locale, "
+"only ASCII). A forward unanchored DFA finds the earliest match end; a "
+"reverse DFA (built from the mirrored pattern) finds the leftmost start of a "
+"match ending there; earlier starts, whose matches must end later, are tried "
+"with a forward anchored DFA inside a work budget; and the forward anchored "
+"DFA gives the longest end. States are built on demand (at most 2000; beyond "
+"that the search falls back). Looking for the earliest end first keeps "
+"repeated searches on one long line linear."
+msgstr ""
+"**遅延 DFA**（`regex::dfa`）。パターンに後方参照がなく、入力に区切り文字・改行バイトがない（UTF-8 ロケールでは ASCII "
+"のみ）ときに使います。前向きの非アンカー DFA が最も早いマッチ終端を見つけ、逆向き "
+"DFA（パターンを鏡写しにして構築）がそこで終わるマッチの最左の開始位置を見つけます。それより前の開始位置から始まるマッチは終端がより後ろになるはずなので、前向きのアンカー"
+" DFA を作業量の上限内で順に試し、最長の終端も前向きのアンカー DFA "
+"が求めます。状態は必要になったときに作ります（最大2000。超えたらフォールバック）。最初に最も早い終端を探すことで、長い1行に対する繰り返し検索も線形時間に収まります。"
+
+#: ../../ARCHITECTURE.md:27
+msgid ""
+"**NFA simulation and backtracking** (`regex::exec`). The reference: it "
+"handles back-references, non-ASCII input, and everything the DFAs decline, "
+"and it assigns the sub-matches on the span the DFAs found."
+msgstr ""
+"**NFA シミュレーションとバックトラック**（`regex::exec`）。基準となる実装です。後方参照、非 ASCII 入力、DFA "
+"が引き受けないものすべてを扱い、DFA が見つけた範囲に対して部分マッチを割り当てます。"
+
+#: ../../ARCHITECTURE.md:29
+msgid ""
+"The DFA path is tested against the simulation on random patterns and "
+"haystacks (`regex::tests`), and by the fixtures and the execution fuzz test,"
+" which run with it enabled."
+msgstr ""
+"DFA 経路は、ランダムなパターンと入力でシミュレーションと突き合わせ（`regex::tests`）、有効にした状態で fixture と実行 "
+"fuzz テストも通しています。"
+
+#: ../../ARCHITECTURE.md:31
 msgid "Policies"
 msgstr "方針"
 
-#: ../../ARCHITECTURE.md:22
-msgid "There is only the sequential VM so far. The CLI and the Rust API share one path (parse, then run)."
-msgstr "今のところ逐次 VM だけです。CLI と Rust API は同じ経路（パースしてから実行）を使います。"
+#: ../../ARCHITECTURE.md:33
+msgid ""
+"The CLI and the Rust API share one path (parse, then run). Record-local "
+"scripts on large regular files run in parallel over an ordered chunk stream;"
+" everything else runs on the sequential VM."
+msgstr ""
+"CLI と Rust API "
+"は同じ経路（パースしてから実行）を共有します。大きな通常ファイルに対するレコード内完結のスクリプトは、順序つきチャンクストリーム上で並列に実行し、それ以外は逐次"
+" VM で実行します。"
 
-#: ../../ARCHITECTURE.md:23
-msgid "Unsupported syntax is a compile-time error and is never silently reinterpreted."
+#: ../../ARCHITECTURE.md:34
+msgid ""
+"Unsupported syntax is a compile-time error and is never silently "
+"reinterpreted."
 msgstr "未対応構文はコンパイル時エラーとし、黙って別の意味に解釈しません。"
 
-#: ../../ARCHITECTURE.md:24
-msgid "Input is held as bytes. The record terminator is kept separate from the record body."
+#: ../../ARCHITECTURE.md:35
+msgid ""
+"Input is held as bytes. The record terminator is kept separate from the "
+"record body."
 msgstr "入力はバイト列として保持します。レコード末尾の区切りは本文と区別して扱います。"
 
-#: ../../ARCHITECTURE.md:26
+#: ../../ARCHITECTURE.md:37
 msgid "Provenance and licensing"
 msgstr "由来とライセンス"
 
-#: ../../ARCHITECTURE.md:28
-msgid "GNU sed and GNU grep sources live in `reference/` (untracked) for reading behavior only. Code is not copied from them."
-msgstr "GNU sed と GNU grep のソースは、挙動を調べるためだけに `reference/`（git 管理外）に置きます。そこからコードは写しません。"
+#: ../../ARCHITECTURE.md:39
+msgid ""
+"GNU sed and GNU grep sources live in `reference/` (untracked) for reading "
+"behavior only. Code is not copied from them."
+msgstr ""
+"GNU sed と GNU grep のソースは、挙動を調べるためだけに `reference/`（git "
+"管理外）に置きます。そこからコードは写しません。"
 
-#: ../../ARCHITECTURE.md:29
-msgid "Expected test output is generated by running GNU sed as a command (see `tests/README.md` in the repository)."
+#: ../../ARCHITECTURE.md:40
+msgid ""
+"Expected test output is generated by running GNU sed as a command (see "
+"`tests/README.md` in the repository)."
 msgstr "テストの期待値は GNU sed をコマンドとして実行して生成します（リポジトリの `tests/README.md` を参照）。"
 
-#: ../../ARCHITECTURE.md:30
-msgid "The project is licensed under `MIT OR Apache-2.0`. Nothing derived from GPL code may be added, because that would conflict with the license."
-msgstr "プロジェクトは `MIT OR Apache-2.0` でライセンスされています。このライセンスと衝突するため、GPL のコードに由来するものは追加してはいけません。"
+#: ../../ARCHITECTURE.md:41
+msgid ""
+"The project is licensed under `MIT OR Apache-2.0`. Nothing derived from GPL "
+"code may be added, because that would conflict with the license."
+msgstr ""
+"プロジェクトは `MIT OR Apache-2.0` でライセンスされています。このライセンスと衝突するため、GPL "
+"のコードに由来するものは追加してはいけません。"
 
-#~ msgid "The project license is undecided. `Cargo.toml` has no `license` field until it is."
+#~ msgid ""
+#~ "The project license is undecided. `Cargo.toml` has no `license` field until "
+#~ "it is."
 #~ msgstr "プロジェクトのライセンスは未決定です。決まるまで `Cargo.toml` に `license` は書きません。"
 
 #~ msgid "record reading and output"
@@ -164,6 +279,17 @@ msgstr "プロジェクトは `MIT OR Apache-2.0` でライセンスされてい
 #~ msgid "mode selection, argument validation, exit status"
 #~ msgstr "モード決定、引数検証、終了状態"
 
-#~ msgid "`regex`, `analysis`, and `plan` are not part of P0; they are added from P1 onward."
+#~ msgid ""
+#~ "`regex`, `analysis`, and `plan` are not part of P0; they are added from P1 "
+#~ "onward."
 #~ msgstr "`regex`・`analysis`・`plan` は P0 に含めず、P1 以降で追加します。"
 
+#~ msgid ""
+#~ "`analysis` and `plan` (parallel execution) are not written yet; they come "
+#~ "after full GNU sed compatibility."
+#~ msgstr "`analysis` と `plan`（並列実行）はまだ書いていません。GNU sed の完全互換の後に取り組みます。"
+
+#~ msgid ""
+#~ "There is only the sequential VM so far. The CLI and the Rust API share one "
+#~ "path (parse, then run)."
+#~ msgstr "今のところ逐次 VM だけです。CLI と Rust API は同じ経路（パースしてから実行）を使います。"
