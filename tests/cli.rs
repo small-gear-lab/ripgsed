@@ -100,15 +100,8 @@ mod sed_pcre {
         (String::from_utf8_lossy(&out.stdout).into_owned(), String::from_utf8_lossy(&out.stderr).into_owned(), out.status.code().unwrap_or(-1))
     }
 
-    fn have_pcre() -> bool {
-        sed(&["-P", "s/a/b/"], "a\n").2 == 0
-    }
-
     #[test]
     fn perl_syntax_in_substitution_and_address() {
-        if !have_pcre() {
-            return;
-        }
         assert_eq!(sed(&["-P", "s/(\\d+)\\s(?=bar)/<\\1>/"], "foo123 bar\n").0, "foo<123>bar\n");
         assert_eq!(sed(&["--perl-regexp", "-n", "/^(?i)hello/p"], "abc\nHello\n").0, "Hello\n");
         assert_eq!(sed(&["--perl-regexp", "s/\\b(\\w)(\\w*)/\\U\\1\\E\\2/g"], "ab cd\n").0, "Ab Cd\n");
@@ -116,9 +109,6 @@ mod sed_pcre {
 
     #[test]
     fn flags_and_unset_groups() {
-        if !have_pcre() {
-            return;
-        }
         assert_eq!(sed(&["-P", "s/(x)?c/[\\1]/"], "abc\n").0, "ab[]\n");
         assert_eq!(sed(&["-P", "N;s/a$/X/M"], "a\nb\n").0, "X\nb\n");
         assert_eq!(sed(&["-P", "N;s/a$/X/"], "a\nb\n").0, "a\nb\n");
@@ -127,9 +117,6 @@ mod sed_pcre {
 
     #[test]
     fn errors_are_reported_like_other_regexp_errors() {
-        if !have_pcre() {
-            return;
-        }
         let (_, err, status) = sed(&["-P", "s/(/x/"], "a\n");
         assert_eq!(status, 1);
         assert!(err.starts_with("ripgsed: -e expression #1, char 6: "), "{err}");

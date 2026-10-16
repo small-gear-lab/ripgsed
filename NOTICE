@@ -1,3 +1,11 @@
 ripgsed
 Copyright 2026 Small Gear Lab
 Copyright 2026 Marie
+
+Third-party software that the program is built with (the option -P):
+
+pcre2-sys, Unlicense OR MIT, Copyright (c) Andrew Gallant and contributors.
+
+PCRE2 (carried by pcre2-sys), BSD-3-Clause WITH PCRE2-exception,
+Copyright (c) 1997-2024 University of Cambridge, 2007-2024 Zoltan Herczeg,
+2007-2024 Google Inc. See https://github.com/PCRE2Project/pcre2 (LICENCE.md).

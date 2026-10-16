@@ -43,7 +43,7 @@ The syntaxes are the ones of GNU grep (`RE_SYNTAX_GREP`, `RE_SYNTAX_EGREP`), not
 
 ## `-P`
 
-The PCRE2 library of the system is opened with `dlopen` when `-P` is first used, so a build does not need its files and `-P` is the only option that fails if the library is missing (`grep: Perl matching not supported in a --disable-perl-regexp build`). The results and the error messages are the library's, and follow its version. The flags are the ones of GNU grep: `DOLLAR_ENDONLY`, `CASELESS` for `-i`, `UTF`, `UCP` and `MATCH_INVALID_UTF` in a UTF-8 locale, and the pattern wrapped for `-w` and `-x`. Only one pattern is accepted, as in GNU grep.
+`-P` is the PCRE2 library that the crate `pcre2-sys` carries (10.46 at this writing), built with the program and linked statically, so no PCRE2 file of the system is needed at run time (`PCRE2_SYS_STATIC=1`, set in `.cargo/config.toml`, keeps a build from taking the library of the system). The results and the error messages are the library's, and follow its version. The flags are the ones of GNU grep: `DOLLAR_ENDONLY`, `CASELESS` for `-i`, `UTF`, `UCP` and `MATCH_INVALID_UTF` in a UTF-8 locale, and the pattern wrapped for `-w` and `-x`. Only one pattern is accepted, as in GNU grep.
 
 ## Speed
 

@@ -310,9 +310,7 @@ impl Regex {
         if syntax.locale.is_utf8() {
             flags |= pcre::UTF | pcre::MATCH_INVALID_UTF | pcre::UCP;
         }
-        let compiled = pcre::Pcre::new(pattern, flags).map_err(|message| CompileError {
-            message: if message.starts_with("Perl matching not supported") { "the PCRE2 library (libpcre2-8) is not installed".to_string() } else { message },
-        })?;
+        let compiled = pcre::Pcre::new(pattern, flags).map_err(|message| CompileError { message })?;
         let mut re = Regex::compile(b"", &Syntax { locale: syntax.locale, ..Syntax::default() })?;
         re.pcre = Some(std::rc::Rc::new(compiled));
         Ok(re)

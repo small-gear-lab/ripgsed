@@ -95,7 +95,7 @@ pub enum Dialect {
     Basic,
     /// Extended regular expressions (`sed -E`).
     Extended,
-    /// Perl-style regular expressions from the PCRE2 library of the system (`sed -P`).
+    /// Perl-style regular expressions from the PCRE2 library (`sed -P`).
     Perl,
 }
 
@@ -111,8 +111,7 @@ impl Script {
     }
 
     /// A script whose regular expressions are Perl-style (as with `sed -P`). They are read by the
-    /// PCRE2 library of the system when the script runs, and the script is rejected if it is not
-    /// installed.
+    /// PCRE2 library.
     pub fn parse_perl(text: &str) -> Result<Script, Error> {
         Script::from_text(text.to_string(), Dialect::Perl)
     }

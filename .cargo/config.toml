@@ -1,0 +1,4 @@
+[env]
+# Always build the PCRE2 that pcre2-sys carries: the same library on every machine, and no
+# libpcre2 of the system at run time.
+PCRE2_SYS_STATIC = "1"

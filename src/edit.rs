@@ -11,7 +11,7 @@ use crate::api::{Dialect, Error, Script};
 const MIXED: &str = "a script cannot mix basic, extended and Perl-style patterns";
 
 /// A regular expression, basic (as in `sed`), extended (as with `sed -E`) or Perl-style (as with
-/// `sed -P`, from the PCRE2 library of the system).
+/// `sed -P`, from the PCRE2 library).
 ///
 /// A script uses one syntax: mixing syntaxes in one [`Edit`] is an error
 /// when the script is built.
@@ -34,8 +34,7 @@ impl Pattern {
         Pattern { text: text.into(), dialect: Dialect::Extended, ignore_case: false, multiline: false }
     }
 
-    /// A Perl-style regular expression, read by the PCRE2 library of the system (`sed -P`).
-    /// Building the script fails when the library is not installed.
+    /// A Perl-style regular expression, read by the PCRE2 library (`sed -P`).
     pub fn perl(text: impl Into<String>) -> Pattern {
         Pattern { text: text.into(), dialect: Dialect::Perl, ignore_case: false, multiline: false }
     }

@@ -43,7 +43,7 @@ GNU grep はパターンを 2 度読みます。自前の DFA（gnulib のもの
 
 ## `-P`
 
-`-P` を最初に使うとき、システムの PCRE2 ライブラリを `dlopen` で開きます。そのため、ビルドにそのファイルは要らず、ライブラリがなければ失敗するのは `-P` だけです（`grep: Perl matching not supported in a --disable-perl-regexp build`）。結果とエラーメッセージはライブラリのもので、その版に従います。フラグは GNU grep と同じです。`DOLLAR_ENDONLY`、`-i` のための `CASELESS`、UTF-8 ロケールでの `UTF`・`UCP`・`MATCH_INVALID_UTF`、そして `-w` と `-x` のために包んだパターンです。受け付けるパターンは 1 つだけで、これも GNU grep と同じです。
+`-P` は crate `pcre2-sys` が抱える PCRE2 ライブラリ（この文を書いた時点で 10.46）で、プログラムと一緒にビルドして静的にリンクします。そのため、実行時にシステムの PCRE2 のファイルは要りません（`.cargo/config.toml` に置いた `PCRE2_SYS_STATIC=1` で、ビルドがシステムのライブラリを使わないようにしています）。結果とエラーメッセージはライブラリのもので、その版に従います。フラグは GNU grep のものです。`DOLLAR_ENDONLY`、`-i` なら `CASELESS`、UTF-8 ロケールでは `UTF`、`UCP`、`MATCH_INVALID_UTF`、そして `-w` と `-x` のためにパターンを包みます。GNU grep と同じく、パターンは 1 つだけ受け付けます。
 
 ## 速度
 

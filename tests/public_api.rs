@@ -259,11 +259,7 @@ fn a_perl_script_uses_pcre2_and_parses_back_perl() {
         .build()
     {
         Ok(script) => script,
-        // The PCRE2 library is not installed here.
-        Err(error) => {
-            assert!(error.to_string().contains("PCRE2"), "{error}");
-            return;
-        }
+        Err(error) => panic!("{error}"),
     };
     assert_eq!(script.dialect(), ripgsed::Dialect::Perl);
     assert_eq!(run(&script, "A/b 12px\nA/b 3em\nx 4px\n"), "A/b <12>px\nA/b 3em\nx 4px\n");
