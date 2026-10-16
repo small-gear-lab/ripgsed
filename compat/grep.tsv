@@ -82,3 +82,4 @@ GPCRE-002	perl	-P: lookaround, \K, -o and -b	verified	Invoking grep
 GPCRE-003	perl	-P: errors of the library, one pattern only, the empty pattern	verified	Invoking grep	
 GPCRE-004	perl	-P with -i, -w, -x, -v, -c, context and -z	verified	Invoking grep	
 GPCRE-005	perl	-P in UTF-8 and in the C locale	verified	Invoking grep	
+GPCRE-006	perl	-P: a match that PCRE2 gives up on (its match limit) is an error that ends the run with status 2	verified	Invoking grep	

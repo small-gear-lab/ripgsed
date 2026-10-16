@@ -282,7 +282,7 @@ trait Matcher {
 
 PCRE2 is an opt-in extension: `-P` in the sed mode and in the grep mode, with the library built into the program through `pcre2-sys` (D14). Backtracking can be expensive depending on input; PCRE2 support does not imply ReDoS immunity.
 
-**Not built yet:** the options for the limits below, and the error for an exceeded limit. The library's own default limits apply, and an error of the library during a match (the match limit, for example) is treated as no match, which this section forbids. GNU grep reports `exceeded PCRE's backtracking limit` and exits with status 2; ripgsed has to do the same.
+**Built:** the error for an exceeded limit (issue #1). A match that the library gives up on is an error, never "no match": `grep -P` says `grep: FILE: exceeded PCRE's backtracking limit` and ends the whole run with status 2 at that file, as GNU grep does (the files after it are not searched, `-s` does not silence it); the sed mode and the library give an error of the run (`ripgsed: exceeded PCRE's backtracking limit`, status 4). **Not built yet:** the options for the limits below; the default limits of the library apply.
 
 ```sh
 # Hypothetical CLI: the options for the limits do not exist. Values are examples, not recommended safe defaults.
@@ -439,7 +439,7 @@ This document contains no GNU sed implementation code.
 
 | Decision | Recommended first step | Can defer |
 | --- | --- | --- |
-| PCRE2 | built: `-P`, through `pcre2-sys` (D14) | limits and the error for an exceeded limit; a pure-Rust engine |
+| PCRE2 | built: `-P`, through `pcre2-sys` (D14), with the error for an exceeded limit | the options for the limits; a pure-Rust engine |
 | explain | plan-only, fixed output stream | machine-readable schema |
 | workers / chunks | built: record-local scripts run in parallel over ordered chunks (D9) | thresholds, auto-tuning |
 | Named hold | specify grammar and initial state separately | the full extension commands |

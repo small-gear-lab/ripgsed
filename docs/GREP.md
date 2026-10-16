@@ -66,6 +66,7 @@ The syntaxes are the ones of GNU grep (`RE_SYNTAX_GREP`, `RE_SYNTAX_EGREP`), not
 - The results and the error messages are the library's, and follow its version.
 - The flags are the ones of GNU grep: `DOLLAR_ENDONLY`, `CASELESS` for `-i`, `UTF`, `UCP` and `MATCH_INVALID_UTF` in a UTF-8 locale, and the pattern wrapped for `-w` and `-x`.
 - Only one pattern is accepted, as in GNU grep.
+- A line that PCRE2 gives up on (its match limit, for example `^(a|aa)+$` on sixty `a` and a `!`) is an error, not "no match": `grep: FILE: exceeded PCRE's backtracking limit`, and the whole run ends with status 2 at that file, as in GNU grep. The files after it are not searched, no count is printed for it, and `-s` does not silence the message. With threads, the files before it in the order of the files are printed first.
 
 ## Speed
 

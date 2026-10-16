@@ -295,6 +295,8 @@ pub struct Regex {
     /// `sed -P`: the pattern is a PCRE2 one and this is what matches; everything above is then an
     /// empty pattern's.
     pcre: Option<std::rc::Rc<crate::pcre::Pcre>>,
+    /// `sed -P`: the first error of the library since the last `take_error` (a match it gave up on).
+    pcre_error: std::cell::RefCell<Option<crate::pcre::PcreError>>,
 }
 
 impl Regex {
@@ -358,7 +360,21 @@ impl Regex {
         let prog_has_no_backrefs = !prog.has_backrefs;
         let literals = literal::analyze(&parsed.node, syntax.locale.is_chars(), syntax.locale == Locale::Mb);
         let prog_has_lone_high_byte = prog.units.iter().any(|u| matches!(u, ast::Unit::Byte(set) if (0x80..=0xffu8).any(|b| set.contains(b))));
-        Ok(Regex { prog, syntax: *syntax, delim, literals, scratch: Default::default(), quirk_stars: if syntax.glibc_compat { star_before_not_word_boundary(&parsed.node) } else { 0 }, fixed: if prog_has_no_backrefs { dfa::fixed_groups(&parsed.node, parsed.ngroups) } else { None }, node: parsed.node, dfa: Default::default(), boundaries: Default::default(), tails: syntax.locale == Locale::Mb && (syntax.glibc_compat || prog_has_lone_high_byte), relaxed: None, warnings: Vec::new(), regex_alt: None, regex_selects: false, use_dfa: syntax.locale != Locale::Mb || (crate::locale::ascii_bytes_are_characters() && !syntax.glibc_compat), filter, pcre: None })
+        Ok(Regex { prog, syntax: *syntax, delim, literals, scratch: Default::default(), quirk_stars: if syntax.glibc_compat { star_before_not_word_boundary(&parsed.node) } else { 0 }, fixed: if prog_has_no_backrefs { dfa::fixed_groups(&parsed.node, parsed.ngroups) } else { None }, node: parsed.node, dfa: Default::default(), boundaries: Default::default(), tails: syntax.locale == Locale::Mb && (syntax.glibc_compat || prog_has_lone_high_byte), relaxed: None, warnings: Vec::new(), regex_alt: None, regex_selects: false, use_dfa: syntax.locale != Locale::Mb || (crate::locale::ascii_bytes_are_characters() && !syntax.glibc_compat), filter, pcre: None, pcre_error: Default::default() })
+    }
+
+    /// A match the library gave up on counts as no match here, and is kept for `take_error`.
+    fn pcre_result(&self, result: Result<bool, crate::pcre::PcreError>) -> bool {
+        result.unwrap_or_else(|e| {
+            self.pcre_error.borrow_mut().get_or_insert(e);
+            false
+        })
+    }
+
+    /// `sed -P`: the text of the error the library gave in a search since the last call, if any.
+    /// The caller of a search asks for it afterwards: a search that failed said "no match".
+    pub fn take_error(&self) -> Option<String> {
+        self.pcre_error.borrow_mut().take().map(|e| e.message())
     }
 
     /// What GNU grep warns about in the pattern, in the order it meets it.
@@ -382,7 +398,7 @@ impl Regex {
     /// what this one learned about character boundaries (`Mb`).
     pub fn captures_at(&self, haystack: &[u8], start: usize, caps: &mut Captures) -> bool {
         if let Some(p) = &self.pcre {
-            return p.captures(haystack, start, &mut caps.groups);
+            return self.pcre_result(p.captures(haystack, start, &mut caps.groups));
         }
         if let Some(alt) = &self.regex_alt {
             return alt.captures_at(haystack, start, caps);
@@ -538,7 +554,7 @@ impl Regex {
     /// has groups. Use this for addresses and `captures_at` for `s`.
     pub fn is_match(&self, haystack: &[u8]) -> bool {
         if let Some(p) = &self.pcre {
-            return p.find(haystack, 0).is_some();
+            return self.pcre_result(p.find(haystack, 0).map(|m| m.is_some()));
         }
         if let (Some(alt), true) = (&self.regex_alt, self.regex_selects) {
             return alt.is_match(haystack);

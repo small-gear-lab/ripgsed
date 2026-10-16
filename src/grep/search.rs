@@ -35,6 +35,30 @@ impl Writing {
     }
 }
 
+/// The library of `-P` gave up on a line (a limit of PCRE2): GNU grep says so and ends the whole run
+/// with status 2, without looking at the other files.
+#[derive(Debug)]
+pub struct MatchFailure(pub String);
+
+impl std::fmt::Display for MatchFailure {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+
+impl std::error::Error for MatchFailure {}
+
+impl MatchFailure {
+    fn error(message: String) -> io::Error {
+        io::Error::other(MatchFailure(message))
+    }
+
+    /// The message, if the error is one of these.
+    pub fn message(e: &io::Error) -> Option<String> {
+        e.get_ref().and_then(|inner| inner.downcast_ref::<MatchFailure>()).map(|f| f.0.clone())
+    }
+}
+
 /// A literal looked for in a whole input.
 enum Needle {
     Exact(crate::search::Finder),
@@ -407,7 +431,11 @@ impl<'a> Printer<'a> {
         let mut mid: Option<usize> = None;
         // (GNU grep's line includes its terminator: the search goes on while `cur` is before it.)
         while cur <= text.len() {
-            let Some((s, e)) = m.find(text, cur) else { break };
+            let found = m.find(text, cur);
+            if let Some(message) = m.take_error() {
+                return Err(MatchFailure::error(message));
+            }
+            let Some((s, e)) = found else { break };
             let b = s;
             let mut size = e - s;
             if size == 0 {
@@ -657,6 +685,10 @@ impl<'a> Printer<'a> {
             let text = &buf[pos..text_end];
             st.line_no += 1;
             let selected = m.is_match(text) != o.invert;
+            // (A line the library gave up on said "no match": the file is an error, not a line to skip.)
+            if let Some(message) = m.take_error() {
+                return Err(MatchFailure::error(message));
+            }
 
             if st.stopped {
                 // After `-m`: only the trailing context is left (selected lines included).

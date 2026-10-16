@@ -544,7 +544,11 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
 
     fn regex_matches(&mut self, pattern: &Pattern) -> Result<bool, Fatal> {
         let re = self.resolve(pattern, true)?;
-        Ok(re.is_match(&self.pattern))
+        let matched = re.is_match(&self.pattern);
+        match re.take_error() {
+            Some(message) => Err(Fatal::new(message, 4)),
+            None => Ok(matched),
+        }
     }
 
     fn addr_matches(&mut self, addr: &Addr) -> Result<bool, Fatal> {
@@ -1019,6 +1023,10 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
             } else {
                 pos = end;
             }
+        }
+        // (A search the library gave up on said "no match": that is an error, not the end of the line.)
+        if let Some(message) = re.take_error() {
+            return Err(Fatal::new(message, 4));
         }
         if !replaced {
             return Ok(());

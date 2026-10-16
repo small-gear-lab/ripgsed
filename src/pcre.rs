@@ -19,6 +19,50 @@ const INFO_CAPTURECOUNT: u32 = 4;
 /// The value of an offset of a group that took no part in the match.
 const UNSET: usize = usize::MAX;
 
+/// The library gave up on a match: a limit (the number of backtracking steps, the depth, the heap, the
+/// stack of the JIT) or another error. It is never the same as "no match".
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PcreError {
+    code: i32,
+}
+
+impl PcreError {
+    /// The code of the library (a negative number).
+    pub fn code(&self) -> i32 {
+        self.code
+    }
+
+    /// The match limit: the pattern backtracks too much for this text.
+    pub fn is_backtracking_limit(&self) -> bool {
+        self.code == sys::PCRE2_ERROR_MATCHLIMIT
+    }
+
+    /// The text of the error. The limits have the words of GNU grep.
+    pub fn message(&self) -> String {
+        match self.code {
+            sys::PCRE2_ERROR_MATCHLIMIT => "exceeded PCRE's backtracking limit".to_string(),
+            sys::PCRE2_ERROR_DEPTHLIMIT => "exceeded PCRE's nested backtracking limit".to_string(),
+            sys::PCRE2_ERROR_JIT_STACKLIMIT => "exhausted PCRE JIT stack".to_string(),
+            sys::PCRE2_ERROR_NOMEMORY => "memory exhausted".to_string(),
+            code => {
+                let mut buffer = [0u8; 256];
+                // SAFETY: the buffer is as long as it is declared to be.
+                let n = unsafe { sys::pcre2_get_error_message_8(code, buffer.as_mut_ptr(), buffer.len()) };
+                match usize::try_from(n) {
+                    Ok(n) if n > 0 => String::from_utf8_lossy(&buffer[..n.min(buffer.len())]).into_owned(),
+                    _ => format!("internal PCRE error: {code}"),
+                }
+            }
+        }
+    }
+}
+
+impl std::fmt::Display for PcreError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.message())
+    }
+}
+
 /// A compiled pattern with its working memory.
 pub struct Pcre {
     code: *mut sys::pcre2_code_8,
@@ -67,25 +111,29 @@ impl Pcre {
         self.groups
     }
 
-    /// The first match in `subject` that starts at or after `start`: its start and end.
-    pub fn find(&self, subject: &[u8], start: usize) -> Option<(usize, usize)> {
+    /// The first match in `subject` that starts at or after `start`: its start and end. A match that
+    /// the library gives up on is an error, not `None`.
+    pub fn find(&self, subject: &[u8], start: usize) -> Result<Option<(usize, usize)>, PcreError> {
         // SAFETY: the subject is valid for its length; `data` belongs to `code`.
         let rc = unsafe { sys::pcre2_match_8(self.code, subject.as_ptr(), subject.len(), start, 0, self.data, std::ptr::null_mut()) };
+        if rc == sys::PCRE2_ERROR_NOMATCH {
+            return Ok(None);
+        }
         if rc < 0 {
-            return None;
+            return Err(PcreError { code: rc });
         }
         // SAFETY: after a match the vector holds at least the start and end of the whole match.
         let (s, e) = unsafe {
             let ov = sys::pcre2_get_ovector_pointer_8(self.data);
             (*ov, *ov.add(1))
         };
-        Some((s, e))
+        Ok(Some((s, e)))
     }
 
     /// Like `find`, with the offsets of every group (`None` for a group that took no part).
-    pub fn captures(&self, subject: &[u8], start: usize, out: &mut Vec<Option<(usize, usize)>>) -> bool {
-        let Some((s, e)) = self.find(subject, start) else {
-            return false;
+    pub fn captures(&self, subject: &[u8], start: usize, out: &mut Vec<Option<(usize, usize)>>) -> Result<bool, PcreError> {
+        let Some((s, e)) = self.find(subject, start)? else {
+            return Ok(false);
         };
         out.clear();
         out.push(Some((s, e)));
@@ -97,7 +145,7 @@ impl Pcre {
             let (a, b) = unsafe { (*ov.add(2 * g), *ov.add(2 * g + 1)) };
             out.push((a != UNSET && b != UNSET).then_some((a, b)));
         }
-        true
+        Ok(true)
     }
 }
 
@@ -108,5 +156,24 @@ impl Drop for Pcre {
             sys::pcre2_match_data_free_8(self.data);
             sys::pcre2_code_free_8(self.code);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_match_the_library_gives_up_on_is_an_error_not_no_match() {
+        let re = Pcre::new(b"^(a|aa)+$", DOLLAR_ENDONLY).unwrap();
+        let subject = format!("{}!", "a".repeat(60));
+        let error = re.find(subject.as_bytes(), 0).unwrap_err();
+        assert!(error.is_backtracking_limit(), "{error:?}");
+        assert_eq!(error.message(), "exceeded PCRE's backtracking limit");
+        assert_eq!(re.find(b"aaaa", 0), Ok(Some((0, 4))));
+        assert_eq!(re.find(b"b", 0), Ok(None));
+        let mut groups = Vec::new();
+        assert_eq!(re.captures(b"aa", 0, &mut groups), Ok(true));
+        assert_eq!(re.captures(b"b", 0, &mut groups), Ok(false));
     }
 }

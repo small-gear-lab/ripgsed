@@ -21,6 +21,8 @@ pub struct Matcher {
     /// `-P`: the one pattern, in the PCRE2 library.
     perl: Option<Pcre>,
     perl_enabled: bool,
+    /// `-P`: the first match the library gave up on since the last `take_error`.
+    perl_error: std::cell::RefCell<Option<String>>,
     /// The text is read as characters: the class of non-word characters that `-w` adds to a
     /// pattern is one GNU grep's DFA cannot decide, so the C library's matcher selects the lines.
     multibyte: bool,
@@ -86,7 +88,7 @@ impl Matcher {
                 Err(e) => return Err(PatternError(e.message)),
             }
         }
-        Ok(Matcher { select, plain, word: wrap == Wrap::Word, both: options.word && options.line, perl: None, perl_enabled: false, multibyte: locale.is_chars(), utf8: locale.is_utf8(), libc: matches!(locale, Locale::Libc | Locale::Mb), warnings })
+        Ok(Matcher { select, plain, word: wrap == Wrap::Word, both: options.word && options.line, perl: None, perl_enabled: false, perl_error: Default::default(), multibyte: locale.is_chars(), utf8: locale.is_utf8(), libc: matches!(locale, Locale::Libc | Locale::Mb), warnings })
     }
 
     /// `-P`: a single pattern, wrapped for `-x` and `-w` as GNU grep does.
@@ -129,6 +131,7 @@ impl Matcher {
             both: false,
             perl,
             perl_enabled: true,
+            perl_error: Default::default(),
             multibyte: false,
             utf8: false,
             libc: false,
@@ -154,10 +157,28 @@ impl Matcher {
         Some(out)
     }
 
+    /// `-P`: a match the library gives up on is "no match" to the caller, and is kept for `take_error`.
+    fn perl_find(&self, line: &[u8], start: usize) -> Option<(usize, usize)> {
+        let p = self.perl.as_ref()?;
+        match p.find(line, start) {
+            Ok(found) => found,
+            Err(e) => {
+                self.perl_error.borrow_mut().get_or_insert_with(|| e.message());
+                None
+            }
+        }
+    }
+
+    /// `-P`: the text of the error of the library in a search since the last call, if any. The
+    /// search that failed said "no match", so the caller asks for it after each line.
+    pub fn take_error(&self) -> Option<String> {
+        self.perl_error.borrow_mut().take()
+    }
+
     /// Whether the line (without its terminator) has a match.
     pub fn is_match(&self, line: &[u8]) -> bool {
         if self.perl_enabled {
-            return self.perl.as_ref().is_some_and(|p| p.find(line, 0).is_some());
+            return self.perl_find(line, 0).is_some();
         }
         if self.word && (self.multibyte || self.plain.iter().any(Regex::has_backrefs)) {
             // With a back-reference GNU grep leaves the decision to its words test.
@@ -169,7 +190,7 @@ impl Matcher {
     /// The leftmost match that starts at or after `start`, the longest of those that start there.
     pub fn find(&self, line: &[u8], start: usize) -> Option<(usize, usize)> {
         if self.perl_enabled {
-            return self.perl.as_ref().and_then(|p| p.find(line, start));
+            return self.perl_find(line, start);
         }
         if self.word {
             return self.find_word(line, start);

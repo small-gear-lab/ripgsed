@@ -73,6 +73,53 @@ mod grep_mode {
         assert_eq!(out, "b\n");
     }
 
+    /// A pattern that PCRE2 gives up on (its match limit) is an error, never "no match".
+    #[test]
+    fn an_exceeded_pcre_limit_is_an_error_of_grep_not_no_match() {
+        let input = format!("{}!\n", "a".repeat(60));
+        let (out, err, status) = run_as("grep", &["-P", "^(a|aa)+$"], &input);
+        assert_eq!((out.as_str(), status), ("", 2));
+        assert_eq!(err, "grep: (standard input): exceeded PCRE's backtracking limit\n");
+        // Lines before the one that fails are selected, and the status is 2 all the same.
+        let input = format!("a\n{}!\nb\n", "a".repeat(60));
+        let (out, err, status) = run_as("grep", &["-P", "^(a|aa)+$"], &input);
+        assert_eq!((out.as_str(), status), ("a\n", 2));
+        assert!(err.contains("exceeded PCRE's backtracking limit"), "{err}");
+        // The status of an error wins over -q as well.
+        let input = format!("{}!\n", "a".repeat(60));
+        let (_, _, status) = run_as("grep", &["-qP", "^(a|aa)+$"], &input);
+        assert_eq!(status, 2);
+    }
+
+    /// GNU grep ends the whole run at the file it gave up on: the files after it are not looked at,
+    /// the count of that file is not printed, and -s does not silence the message.
+    #[test]
+    fn an_exceeded_pcre_limit_ends_the_run_at_that_file() {
+        let dir = std::env::temp_dir().join(format!("ripgsed-cli-limit-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("ok.txt"), "aa\nb\n").unwrap();
+        std::fs::write(dir.join("deep.txt"), format!("{}!\n", "a".repeat(60))).unwrap();
+        std::fs::write(dir.join("after.txt"), "a\n").unwrap();
+        let run = |args: &[&str]| {
+            let out = Command::new(BIN).arg("--grep").args(args).current_dir(&dir).env("LC_ALL", "C").output().unwrap();
+            (String::from_utf8_lossy(&out.stdout).into_owned(), String::from_utf8_lossy(&out.stderr).into_owned(), out.status.code().unwrap())
+        };
+        let (out, err, status) = run(&["-P", "^(a|aa)+$", "ok.txt", "deep.txt", "after.txt"]);
+        assert_eq!((out.as_str(), status), ("ok.txt:aa\n", 2));
+        assert_eq!(err, "grep: deep.txt: exceeded PCRE's backtracking limit\n");
+        let (out, _, status) = run(&["-cP", "^(a|aa)+$", "ok.txt", "deep.txt", "after.txt"]);
+        assert_eq!((out.as_str(), status), ("ok.txt:1\n", 2));
+        let (out, err, status) = run(&["-sP", "^(a|aa)+$", "deep.txt"]);
+        assert_eq!((out.as_str(), status), ("", 2));
+        assert!(err.contains("exceeded PCRE's backtracking limit"), "{err}");
+        // With threads the run ends in the same place.
+        let out = Command::new(BIN).arg("--grep").args(["-rP", "^(a|aa)+$", "."]).current_dir(&dir).env("LC_ALL", "C").env("RIPGSED_JOBS", "4").output().unwrap();
+        assert_eq!(out.status.code(), Some(2));
+        assert!(String::from_utf8_lossy(&out.stderr).contains("deep.txt: exceeded PCRE's backtracking limit"));
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
     #[test]
     fn the_exit_status_is_one_without_a_selected_line() {
         let (out, err, status) = run_as("grep", &["zzz"], "a\n");
@@ -115,6 +162,19 @@ mod sed_pcre {
         assert_eq!(sed(&["-P", "N;s/a$/X/M"], "a\nb\n").0, "X\nb\n");
         assert_eq!(sed(&["-P", "N;s/a$/X/"], "a\nb\n").0, "a\nb\n");
         assert_eq!(sed(&["-P", "s/é/E/I"], "É\n").0, "E\n");
+    }
+
+    #[test]
+    fn an_exceeded_limit_is_an_error_of_the_run_not_no_match() {
+        let input = format!("{}!\n", "a".repeat(60));
+        for script in ["s/^(a|aa)+$/X/", "/^(a|aa)+$/d"] {
+            let (out, err, status) = sed(&["-P", script], &input);
+            assert_eq!(status, 4, "{script}: {err}");
+            assert_eq!(out, "", "{script}");
+            assert!(err.starts_with("ripgsed: ") && err.contains("exceeded PCRE's backtracking limit"), "{script}: {err}");
+        }
+        // A script that stays within the limits is not touched.
+        assert_eq!(sed(&["-P", "s/^(a|aa)+$/X/"], "aaaa\n").0, "X\n");
     }
 
     #[test]

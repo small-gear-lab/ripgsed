@@ -40,6 +40,12 @@ printf '{"reference": "%s"}\n' "$version" > "$root/tests/reference.json"
 # GREP_DIR=target/reference/grep/bin (made by tools/ref-grep.sh) records the results of that
 # release instead: GNU grep 3.11 and PCRE2 10.42, which are what the CI runner has.
 real_grep=${GREP:-$(command -v grep)}
+# The reference must be GNU grep: a link named grep that leads to ripgsed (on the PATH of the person
+# who installed it) must not become the reference of its own fixtures.
+if [ -z "${GREP_DIR:-}" ] && ! LC_ALL=C "$real_grep" --version 2> /dev/null | LC_ALL=C sed -n '1p' | LC_ALL=C sed -n '/^grep (GNU grep)/p' | LC_ALL=C sed -n '1p' | read -r _; then
+  echo "$real_grep is not GNU grep: set GREP=/usr/bin/grep (or GREP_DIR=...)" >&2
+  exit 1
+fi
 reference_grep() {
   if [ -n "${GREP_DIR:-}" ]; then
     cp "$GREP_DIR/../versions.json" "$root/tests/reference-grep.json"
@@ -76,7 +82,7 @@ for name in "${names[@]}"; do
         if [ -n "${GREP_DIR:-}" ]; then
           ln -s "$(cd "$GREP_DIR" && pwd)/$t" "$w/bin/$t"
         else
-          printf '#!/bin/bash\nexec -a %s %s "$@"\n' "$t" "$(command -v "$t")" > "$w/bin/$t"
+          printf '#!/bin/bash\nexec -a %s %s "$@"\n' "$t" "$(dirname "$real_grep")/$t" > "$w/bin/$t"
           chmod +x "$w/bin/$t"
         fi
       done ;;

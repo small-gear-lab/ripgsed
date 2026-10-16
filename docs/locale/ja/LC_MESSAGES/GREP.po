@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ripgsed\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-16 16:48+0900\n"
+"POT-Creation-Date: 2026-10-16 18:50+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: ja <LL@li.org>\n"
@@ -443,11 +443,26 @@ msgstr ""
 msgid "Only one pattern is accepted, as in GNU grep."
 msgstr "GNU grep と同じく、パターンは 1 つだけ受け付けます。"
 
-#: ../../GREP.md:70
+#: ../../GREP.md:69
+msgid ""
+"A line that PCRE2 gives up on (its match limit, for example `^(a|aa)+$` on "
+"sixty `a` and a `!`) is an error, not \"no match\": `grep: FILE: exceeded "
+"PCRE's backtracking limit`, and the whole run ends with status 2 at that "
+"file, as in GNU grep. The files after it are not searched, no count is "
+"printed for it, and `-s` does not silence the message. With threads, the "
+"files before it in the order of the files are printed first."
+msgstr ""
+"PCRE2 が諦める行（マッチ回数の上限など。たとえば、`a` が 60 個と `!` に対する "
+"`^(a|aa)+$`）は、「マッチなし」ではなくエラーです。`grep: FILE: exceeded PCRE's backtracking "
+"limit` と出力し、GNU grep と同じく、そのファイルで全体を終了状態 2 "
+"で終えます。そのあとのファイルは検索せず、そのファイルの件数も出力せず、`-s` "
+"でもメッセージは消えません。スレッドで検索するときは、ファイルの順でそのファイルより前の出力が先に出ます。"
+
+#: ../../GREP.md:71
 msgid "Speed"
 msgstr "速度"
 
-#: ../../GREP.md:72
+#: ../../GREP.md:73
 msgid ""
 "Measured with `gbench`-style runs on 1,000,000 log-like lines (57 MB), in "
 "`C.UTF-8`, one thread, median of three, GNU grep 3.12 (the grep of the "
@@ -646,7 +661,7 @@ msgstr "0.070"
 msgid "0.19"
 msgstr "0.19"
 
-#: ../../GREP.md:88
+#: ../../GREP.md:89
 msgid ""
 "A literal that every match contains is looked for in the whole input (also "
 "without regard to case), and only the lines that have it are tested. The "
@@ -657,11 +672,11 @@ msgstr ""
 "すべての一致が含むリテラルを入力全体から探し（大文字小文字を区別しない場合も）、それを含む行だけを調べます。遅いのは、いくつもの選択肢と繰り返しを持つパターン（エンジンは行ごとに調べますが、GNU"
 " grep の DFA はバッファ全体を走査します）と、後方参照です。"
 
-#: ../../GREP.md:89
+#: ../../GREP.md:90
 msgid "Threads"
 msgstr "スレッド"
 
-#: ../../GREP.md:91
+#: ../../GREP.md:92
 msgid ""
 "The files of a directory tree (`-r`, `-R`) and several file operands are "
 "searched on several threads, each file on one of them; what the threads "
@@ -671,7 +686,7 @@ msgstr ""
 "ディレクトリツリー（`-r`、`-R`）のファイルと、複数のファイルオペランドは複数のスレッドで検索します。1 つのファイルは 1 "
 "つのスレッドが受け持ち、各スレッドの出力と標準エラー出力へのメッセージは、ファイルの順に並べ直して書き出します。そのため出力は単一スレッドで検索したときと同じバイト列になります。"
 
-#: ../../GREP.md:93
+#: ../../GREP.md:94
 msgid ""
 "It is not done with context (`-A`, `-B`, `-C`: the separator between groups "
 "depends on the files before), with `--line-buffered`, or when standard input"
@@ -683,11 +698,11 @@ msgstr ""
 "buffered`、標準入力がオペランドのときは並列にしません。`RIPGSED_JOBS=1` で 1 スレッド、`RIPGSED_JOBS=N` で"
 " N スレッドを指定できます。`-q` では、ファイルの順で最初に選択行を持つ結果が出た時点でプロセスを終了します。"
 
-#: ../../GREP.md:95
+#: ../../GREP.md:96
 msgid "One large file is searched on one thread."
 msgstr "大きな 1 つのファイルは 1 つのスレッドで検索します。"
 
-#: ../../GREP.md:97
+#: ../../GREP.md:98
 msgid ""
 "A tree of 1,000 files (71 MB), the same machine and data as above, GNU grep "
 "3.12 against ripgsed with one thread and with all threads (16):"

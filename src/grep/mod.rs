@@ -57,6 +57,8 @@ struct Run<'a> {
     dirs: Skip,
     /// An error was reported: the status is 2.
     error_seen: bool,
+    /// A match the library of `-P` gave up on: the run ends with status 2 (in a worker, the merge says so).
+    fatal: bool,
     /// Something was selected.
     matched: bool,
     stdin_name: Vec<u8>,
@@ -87,6 +89,8 @@ struct Done {
     events: Vec<Event>,
     matched: bool,
     error: bool,
+    /// The search of this file ended the run (see `search::MatchFailure`).
+    fatal: bool,
 }
 
 /// The walking thread's side of the search by several threads.
@@ -170,6 +174,7 @@ pub fn main(program: &str, args: Vec<Vec<u8>>, kind: Kind) -> i32 {
         files,
         dirs,
         error_seen: false,
+        fatal: false,
         matched: false,
         stdin_name: options.label.clone().unwrap_or_else(|| b"(standard input)".to_vec()),
         omit_dot_slash,
@@ -259,6 +264,7 @@ fn run_in_threads(mut run: Run<'_>, operands: &[Vec<u8>], jobs: usize, program: 
                     files: Skip::default(),
                     dirs: Skip::default(),
                     error_seen: false,
+                    fatal: false,
                     matched: false,
                     stdin_name: Vec::new(),
                     omit_dot_slash: false,
@@ -271,9 +277,10 @@ fn run_in_threads(mut run: Run<'_>, operands: &[Vec<u8>], jobs: usize, program: 
                     let job = job_rx.lock().expect("job queue").recv();
                     let Ok(job) = job else { return };
                     worker.error_seen = false;
+                    worker.fatal = false;
                     worker.matched = false;
                     let _ = worker.file(&job.path, &job.name, job.in_directory);
-                    let done = Done { seq: job.seq, events: worker.printer.take_events(), matched: worker.matched, error: worker.error_seen };
+                    let done = Done { seq: job.seq, events: worker.printer.take_events(), matched: worker.matched, error: worker.error_seen, fatal: worker.fatal };
                     if done_tx.send(done).is_err() {
                         return;
                     }
@@ -324,6 +331,10 @@ fn merge_results(done: Receiver<Done>, exit_on_match: bool) -> (bool, bool) {
                         let _ = io::stderr().lock().write_all(&bytes);
                     }
                 }
+            }
+            if item.fatal {
+                let _ = out.flush();
+                std::process::exit(2);
             }
             matched |= item.matched;
             error |= item.error;
@@ -393,7 +404,7 @@ impl Run<'_> {
         }
         let seq = pool.next_seq;
         pool.next_seq += 1;
-        let _ = pool.done.send(Done { seq, events, matched: false, error: false });
+        let _ = pool.done.send(Done { seq, events, matched: false, error: false, fatal: false });
     }
 
     /// Searches a file found by the walk: here, or on another thread.
@@ -619,6 +630,19 @@ impl Run<'_> {
         };
         let found = match self.printer.search_stream(&self.matcher, name, input, regular) {
             Ok(f) => f,
+            Err(e) if search::MatchFailure::message(&e).is_some() => {
+                // (No summary: GNU grep does not print the count of the file it gave up on.)
+                let message = search::MatchFailure::message(&e).unwrap_or_default();
+                // (Not `report`: -s does not silence this error, as in GNU grep.)
+                self.error_seen = true;
+                self.say(name, message.as_bytes());
+                self.fatal = true;
+                if !self.worker {
+                    self.printer.flush()?;
+                    std::process::exit(2);
+                }
+                return Ok(None);
+            }
             Err(e) if self.printer.is_read_error(&e) => {
                 self.report(name, &crate::io::strerror(&e));
                 let found = search::Found { count: 0, binary_matches: false, last_selected_end: None, ended_early: false, max_reached: false };

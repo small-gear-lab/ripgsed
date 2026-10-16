@@ -124,6 +124,7 @@ ITEMS = [
     ("GPCRE-003", "perl", "-P: errors of the library, one pattern only, the empty pattern", "Invoking grep", ""),
     ("GPCRE-004", "perl", "-P with -i, -w, -x, -v, -c, context and -z", "Invoking grep", ""),
     ("GPCRE-005", "perl", "-P in UTF-8 and in the C locale", "Invoking grep", ""),
+    ("GPCRE-006", "perl", "-P: a match that PCRE2 gives up on (its match limit) is an error that ends the run with status 2", "Invoking grep", ""),
 ]
 
 # ---- the fixtures ------------------------------------------------------------------------------
@@ -236,6 +237,8 @@ fx("pcre-lookaround-and-keep", "GPCRE-002", "grep -oP 'a\\Kl' a.txt", "grep -oP 
 fx("pcre-errors", "GPCRE-003", "grep -P '(' a.txt", "grep -P '[a' a.txt", "grep -P '*a' a.txt", "grep -P 'a{2,1}' a.txt", "grep -P '\\' a.txt", "grep -P -e a -e b a.txt", "grep -P 'a\nb' a.txt", "grep -P -f pats.txt a.txt", "grep -P '' a.txt", "grep -P -c '' a.txt", "grep -P -f /dev/null a.txt; echo $?", "grep -P '\\p{Foo}' a.txt", "grep -P '(?P<n>a)(?P=n)' a.txt; echo $?", "grep -P '\\1' a.txt", "grep -P 'a)' a.txt")
 fx("pcre-with-other-options", "GPCRE-004", "grep -iP ALPHA a.txt", "grep -wP foo words.txt", "grep -xP foo words.txt", "grep -xP 'foo|foo bar' words.txt", "grep -wP 'fo*' words.txt", "grep -P -w 'foo|foobar' -o words.txt", "grep -vP foo words.txt", "grep -cP alpha a.txt", "grep -nP -A1 alpha a.txt", "grep -P -C1 beta a.txt", "grep -zP '^beta' a.txt; echo $?", "grep -zoP 'alpha.*' a.txt | od -c", "grep -zP 'a$' a.txt; echo $?", "grep -P -m1 alpha a.txt", "grep -P -H alpha a.txt", "grep -P --color=always alpha a.txt", "grep -P --color=always -o 'a.' a.txt", "grep -P -x -o 'alpha' a.txt", "grep -P -b -o alpha a.txt", "grep -P -r alpha d 2>&1 | sort", "grep -P -L alpha a.txt b.txt")
 fx("pcre-utf8-locale", "GPCRE-005", "grep -oP '\\w+' utf8.txt", "grep -oP '[[:alpha:]]+' utf8.txt", "grep -oP '.' utf8.txt", "grep -iP 'CAFÉ' utf8.txt", "grep -oP '\\p{L}+' utf8.txt", "grep -cP '^.{3}$' utf8.txt", "grep -P 'あ' utf8.txt", "grep -oP '[あ-う]+' utf8.txt", "grep -oP '(?<=na)ï' utf8.txt", "grep -wP 'naïve' utf8.txt", "grep -P alpha bad.txt", "grep -c alpha bad.txt -P", "grep -P -a alpha bad.txt | od -c", "grep -P -o 'caf.' bad.txt | od -c", env=["LC_ALL=C.UTF-8"])
+DEEP = r"""awk 'BEGIN { s = sprintf("%60s", ""); gsub(/ /, "a", s); print s "!" }' > deep.txt"""
+fx("pcre-limit", "GPCRE-006", "!" + DEEP, "grep -P '^(a|aa)+$' deep.txt; echo $?", "grep -cP '^(a|aa)+$' a.txt deep.txt b.txt; echo $?", "grep -P 'al|^(a|aa)+$' a.txt deep.txt b.txt; echo $?", "grep -oP '(a|aa)+$' deep.txt; echo $?", "grep -qP '^(a|aa)+$' deep.txt; echo $?", "grep -qP alpha a.txt deep.txt; echo $?", "grep -sP '^(a|aa)+$' deep.txt; echo $?", "grep -lP '^(a|aa)+$' a.txt deep.txt b.txt; echo $?", "grep -vP '^(a|aa)+$' deep.txt a.txt; echo $?")
 fx("pcre-c-locale", "GPCRE-005", "grep -oP '\\w+' utf8.txt | od -c | sed -n '1,3p'", "grep -oP '.' utf8.txt | od -c | sed -n '1,3p'", "grep -iP 'CAFÉ' utf8.txt; echo $?", "grep -cP '^.{3}$' utf8.txt", "grep -P 'caf' utf8.txt", "grep -P alpha bad.txt | od -c", "grep -oP '[^a-z]' utf8.txt | od -c | sed -n '1,2p'")
 
 

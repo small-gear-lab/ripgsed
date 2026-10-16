@@ -1,0 +1,30 @@
+=== grep -P '^(a|aa)+$' deep.txt; echo $?
+2
+[0]
+=== grep -cP '^(a|aa)+$' a.txt deep.txt b.txt; echo $?
+a.txt:0
+2
+[0]
+=== grep -P 'al|^(a|aa)+$' a.txt deep.txt b.txt; echo $?
+a.txt:alpha
+a.txt:alpha beta
+2
+[0]
+=== grep -oP '(a|aa)+$' deep.txt; echo $?
+2
+[0]
+=== grep -qP '^(a|aa)+$' deep.txt; echo $?
+2
+[0]
+=== grep -qP alpha a.txt deep.txt; echo $?
+0
+[0]
+=== grep -sP '^(a|aa)+$' deep.txt; echo $?
+2
+[0]
+=== grep -lP '^(a|aa)+$' a.txt deep.txt b.txt; echo $?
+2
+[0]
+=== grep -vP '^(a|aa)+$' deep.txt a.txt; echo $?
+2
+[0]

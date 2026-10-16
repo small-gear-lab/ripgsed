@@ -267,3 +267,15 @@ fn a_perl_script_uses_pcre2_and_parses_back_perl() {
     let mixed = Edit::new().substitute(Pattern::perl("a"), "b").substitute(Pattern::extended("a"), "b").build().unwrap_err();
     assert_eq!(mixed.kind(), ErrorKind::Build);
 }
+
+#[test]
+fn an_exceeded_pcre_limit_is_an_error_of_the_run() {
+    let script = Script::parse_perl("s/^(a|aa)+$/X/").unwrap();
+    let input = format!("{}!\n", "a".repeat(60));
+    let error = Run::new().encoding(Encoding::Bytes).apply(&script, input.as_bytes()).unwrap_err();
+    assert_eq!(error.kind(), ErrorKind::Run);
+    assert_eq!(error.exit_status(), 4);
+    assert!(error.message().contains("exceeded PCRE's backtracking limit"), "{}", error.message());
+    // The same script on a line within the limits.
+    assert_eq!(run(&script, "aaaa\n"), "X\n");
+}

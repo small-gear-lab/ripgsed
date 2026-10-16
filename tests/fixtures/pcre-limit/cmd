@@ -1,0 +1,30 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+awk 'BEGIN { s = sprintf("%60s", ""); gsub(/ /, "a", s); print s "!" }' > deep.txt
+printf '%s\n' '=== grep -P '\''^(a|aa)+$'\'' deep.txt; echo $?'
+grep -P '^(a|aa)+$' deep.txt; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -cP '\''^(a|aa)+$'\'' a.txt deep.txt b.txt; echo $?'
+grep -cP '^(a|aa)+$' a.txt deep.txt b.txt; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -P '\''al|^(a|aa)+$'\'' a.txt deep.txt b.txt; echo $?'
+grep -P 'al|^(a|aa)+$' a.txt deep.txt b.txt; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -oP '\''(a|aa)+$'\'' deep.txt; echo $?'
+grep -oP '(a|aa)+$' deep.txt; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -qP '\''^(a|aa)+$'\'' deep.txt; echo $?'
+grep -qP '^(a|aa)+$' deep.txt; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -qP alpha a.txt deep.txt; echo $?'
+grep -qP alpha a.txt deep.txt; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -sP '\''^(a|aa)+$'\'' deep.txt; echo $?'
+grep -sP '^(a|aa)+$' deep.txt; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -lP '\''^(a|aa)+$'\'' a.txt deep.txt b.txt; echo $?'
+grep -lP '^(a|aa)+$' a.txt deep.txt b.txt; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -vP '\''^(a|aa)+$'\'' deep.txt a.txt; echo $?'
+grep -vP '^(a|aa)+$' deep.txt a.txt; echo $?
+echo "[$?]"
