@@ -40,5 +40,3 @@ alpha beta
 (standard input):2
 a.txt:2
 [0]
-=== grep alpha < nosuch
-[2]

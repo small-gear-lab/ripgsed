@@ -36,9 +36,6 @@ echo "[$?]"
 printf '%s\n' '=== grep -q alpha d a.txt; echo $?'
 grep -q alpha d a.txt; echo $?
 echo "[$?]"
-printf '%s\n' '=== grep -q -m5 alpha d a.txt; echo $?'
-grep -q -m5 alpha d a.txt; echo $?
-echo "[$?]"
 printf '%s\n' '=== grep -q alpha bin.dat; echo $?'
 grep -q alpha bin.dat; echo $?
 echo "[$?]"

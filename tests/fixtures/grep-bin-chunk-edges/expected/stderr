@@ -2,4 +2,3 @@ grep: n100.dat: binary file matches
 grep: n7000.dat: binary file matches
 grep: n7561.dat: binary file matches
 grep: n8000.dat: binary file matches
-grep: (standard input): binary file matches

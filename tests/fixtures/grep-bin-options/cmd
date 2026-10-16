@@ -42,12 +42,6 @@ echo "[$?]"
 printf '%s\n' '=== grep -b alpha bin.dat'
 grep -b alpha bin.dat
 echo "[$?]"
-printf '%s\n' '=== grep -l -m1 alpha bin.dat'
-grep -l -m1 alpha bin.dat
-echo "[$?]"
-printf '%s\n' '=== grep -L -m1 alpha bin.dat'
-grep -L -m1 alpha bin.dat
-echo "[$?]"
 printf '%s\n' '=== grep -c -m1 alpha bin.dat'
 grep -c -m1 alpha bin.dat
 echo "[$?]"

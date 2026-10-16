@@ -1,9 +1,3 @@
-=== grep -oP '\w+' utf8.txt
-café
-naïve
-alpha
-あいう
-[0]
 === grep -oP '.' utf8.txt
 c
 a

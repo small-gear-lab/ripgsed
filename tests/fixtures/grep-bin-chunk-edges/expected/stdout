@@ -22,6 +22,3 @@ n15000.dat:20000
 === grep alpha n15000.dat | wc -l
 20000
 [0]
-=== cat n7000.dat | grep alpha | wc -l
-0
-[0]

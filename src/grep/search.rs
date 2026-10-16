@@ -513,7 +513,7 @@ impl<'a> Printer<'a> {
         let mut cur = st.last_out.map_or(0, |l| l.saturating_sub(base) as usize);
         while st.pending > 0 && cur < upto {
             let e = crate::search::memchr(eol, &buf[cur..]).map_or(buf.len(), |i| cur + i);
-            let n = st.line_no - crate::search::count(eol, &buf[cur.min(pos)..pos]) as u64;
+            let n = st.line_no.wrapping_sub(crate::search::count(eol, &buf[cur.min(pos)..pos]) as u64);
             let terminated = e < buf.len();
             if self.print_line(m, name, &buf[cur..e], n, base + cur as u64, SEP_CONTEXT, terminated)? {
                 cur = (e + 1).min(buf.len());
@@ -651,7 +651,8 @@ impl<'a> Printer<'a> {
                             let prev_end = first - 1;
                             let prev_start = buf[lower..prev_end].iter().rposition(|&c| c == eol).map_or(lower, |i| lower + i + 1);
                             first = prev_start;
-                            first_no -= 1;
+                            // (The line numbers are kept only for -n; they wrap otherwise.)
+                            first_no = first_no.wrapping_sub(1);
                             k += 1;
                         }
                     }
@@ -676,7 +677,7 @@ impl<'a> Printer<'a> {
                         let e = crate::search::memchr(eol, &buf[p..]).map_or(buf.len(), |i| p + i);
                         self.print_line(m, name, &buf[p..e], n, base + p as u64, SEP_CONTEXT, true)?;
                         p = e + 1;
-                        n += 1;
+                        n = n.wrapping_add(1);
                     }
                     if self.print_line(m, name, text, st.line_no, line_offset, SEP_SELECTED, terminated)? {
                         st.last_out = Some(base + next as u64);

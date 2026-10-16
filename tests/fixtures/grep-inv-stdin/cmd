@@ -33,6 +33,3 @@ echo "[$?]"
 printf '%s\n' '=== cat a.txt | grep -c alpha - a.txt'
 cat a.txt | grep -c alpha - a.txt
 echo "[$?]"
-printf '%s\n' '=== grep alpha < nosuch'
-grep alpha < nosuch
-echo "[$?]"

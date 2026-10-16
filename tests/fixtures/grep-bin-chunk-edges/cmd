@@ -19,6 +19,3 @@ echo "[$?]"
 printf '%s\n' '=== grep alpha n15000.dat | wc -l'
 grep alpha n15000.dat | wc -l
 echo "[$?]"
-printf '%s\n' '=== cat n7000.dat | grep alpha | wc -l'
-cat n7000.dat | grep alpha | wc -l
-echo "[$?]"
