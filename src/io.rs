@@ -187,6 +187,8 @@ impl<R: Read> ChunkedSource<R> {
 /// Set before `main` if file descriptor 1 was closed when the process started (Rust
 /// reopens closed standard descriptors on `/dev/null`).
 pub static STDOUT_WAS_CLOSED: AtomicBool = AtomicBool::new(false);
+/// Descriptor 0 was closed when the program started (Rust's start-up opens /dev/null in its place).
+pub static STDIN_WAS_CLOSED: AtomicBool = AtomicBool::new(false);
 
 /// One input record: the body without its terminator, and whether the
 /// terminator was present. A missing final terminator is preserved.

@@ -102,7 +102,10 @@ impl Matcher {
             flags |= pcre::CASELESS;
         }
         if locale.is_utf8() {
-            flags |= pcre::UTF | pcre::UCP | pcre::MATCH_INVALID_UTF;
+            flags |= pcre::UTF | pcre::MATCH_INVALID_UTF;
+            if super::GNU_GREP_3_12 {
+                flags |= pcre::UCP;
+            }
         }
         let mut text = Vec::new();
         if options.line {

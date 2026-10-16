@@ -43,7 +43,7 @@ This needs `localedef` and the definitions in `/usr/share/i18n` (Debian and Ubun
 
 ## Fixtures of the grep mode
 
-The fixtures whose names start with `grep-` or `pcre-` call `grep`, `egrep` and `fgrep`, which are ripgsed under those names when testing and the GNU grep of the machine when generating. Their items are in `compat/grep.tsv`. They are written by `tools/gen-grep-fixtures.py` (the commands are in that file; it also writes `compat/grep.tsv`), and the expected results are recorded by `tools/gen-fixtures.sh` as for the others. The version of GNU grep and of PCRE2 that made them is in `tests/reference-grep.json`. Commands that list a directory tree are piped through `sort` (the order is the file system's), and a fixture that needs a large file makes it with `awk` in its `cmd`.
+The fixtures whose names start with `grep-` or `pcre-` call `grep`, `egrep` and `fgrep`, which are ripgsed under those names when testing and the GNU grep of the machine when generating. Their items are in `compat/grep.tsv`. They are written by `tools/gen-grep-fixtures.py` (the commands are in that file; it also writes `compat/grep.tsv`), and the expected results are recorded by `tools/gen-fixtures.sh` as for the others. The version of GNU grep and of PCRE2 that made them is in `tests/reference-grep.json`. The recorded results are those of GNU grep 3.11 and PCRE2 10.42 (`GREP_DIR=target/reference/grep/bin tools/gen-fixtures.sh ...` after `tools/ref-grep.sh`), whatever grep the machine has. Commands that list a directory tree are piped through `sort` (the order is the file system's), and a fixture that needs a large file makes it with `awk` in its `cmd`.
 
 ## Generating the expected results
 

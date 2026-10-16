@@ -37,11 +37,18 @@ printf '{"reference": "%s"}\n' "$version" > "$root/tests/reference.json"
 # which the `fixtures` job of CI compares too: when the runner brings other versions, the job
 # fails and says so, and the expected results are made again (tools/ref-grep.sh unpacks another
 # release of grep to see what its version changes).
+# GREP_DIR=target/reference/grep/bin (made by tools/ref-grep.sh) records the results of that
+# release instead: GNU grep 3.11 and PCRE2 10.42, which are what the CI runner has.
 real_grep=${GREP:-$(command -v grep)}
 reference_grep() {
+  if [ -n "${GREP_DIR:-}" ]; then
+    cp "$GREP_DIR/../versions.json" "$root/tests/reference-grep.json"
+    return
+  fi
+  # (The numbers are major.minor: the package revisions of the machines differ.)
   printf '{"grep": "%s", "pcre2": "%s"}\n' \
     "$(LC_ALL=C "$real_grep" --version | LC_ALL=C sed -n '1p')" \
-    "$(LC_ALL=C pcre2-config --version 2> /dev/null || LC_ALL=C dpkg-query -W -f='${Version}' libpcre2-8-0 2> /dev/null || echo unknown)" \
+    "$( (LC_ALL=C pcre2-config --version 2> /dev/null || LC_ALL=C dpkg-query -W -f='${Version}' libpcre2-8-0 2> /dev/null || echo unknown) | sed -E 's/^([0-9]+\.[0-9]+).*/\1/')" \
     > "$root/tests/reference-grep.json"
 }
 reference_grep
@@ -66,8 +73,12 @@ for name in "${names[@]}"; do
     grep-* | pcre-*)
       # GNU grep prints argv[0] in its messages, so run it as plain `grep` (and `egrep`, `fgrep`).
       for t in grep egrep fgrep; do
-        printf '#!/bin/bash\nexec -a %s %s "$@"\n' "$t" "$(command -v "$t")" > "$w/bin/$t"
-        chmod +x "$w/bin/$t"
+        if [ -n "${GREP_DIR:-}" ]; then
+          ln -s "$(cd "$GREP_DIR" && pwd)/$t" "$w/bin/$t"
+        else
+          printf '#!/bin/bash\nexec -a %s %s "$@"\n' "$t" "$(command -v "$t")" > "$w/bin/$t"
+          chmod +x "$w/bin/$t"
+        fi
       done ;;
   esac
 

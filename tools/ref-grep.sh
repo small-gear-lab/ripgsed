@@ -76,5 +76,9 @@ for name in egrep fgrep; do
   sed "s|exec -a grep|exec -a $name|; s|usr/bin/grep|usr/bin/$name|" "$wrapper" > "$dir/bin/$name"
   chmod +x "$dir/bin/$name"
 done
+# The versions, in the form of tests/reference-grep.json (the numbers of the packages).
+grep_version=${packages[0]#*=}
+pcre_version=${packages[1]#*=}
+printf '{"grep": "grep (GNU grep) %s", "pcre2": "%s"}\n' "${grep_version%%-*}" "${pcre_version%%-*}" > "$dir/versions.json"
 touch "$dir/.done"
 echo "$wrapper"

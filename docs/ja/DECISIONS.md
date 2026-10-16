@@ -85,7 +85,7 @@
 ## D12. grep モードは GNU grep 3.x に従う
 
 - このプロジェクトは GNU grep としても振る舞います。同じコマンドラインに対して、同じ出力、メッセージ、終了状態を返します（grep についての D4 と D5）。モードは、プログラムが実行されるときの名前（`grep`、`egrep`、`fgrep`、`rgrep`）か、最初の引数 `--grep` で選びます。sed モードは変わりません。
-- 基準は、期待結果を記録するマシンの GNU grep です（`tools/gen-fixtures.sh`）。sed モードの基準がそのマシンの GNU sed であるのと同じです（D6）。grep と PCRE2 の版は `tests/reference-grep.json` に記録します。CI は最新のランナーイメージ（`ubuntu-latest`）に追従し、その記録を比べます。ランナーが別の版を持ち込めば `fixtures` ジョブが失敗しますが、それは隠すものではなく、確かめるべき変化です。`tools/ref-grep.sh` は、別のリリースの grep と PCRE2 を取り出して、何が変わるかを見るためのものです。
+- 基準は GNU grep 3.11 と PCRE2 10.42 です。CI のランナーが持つリリースで、sed モードの基準が GNU sed 4.9 であるのと同じです（D6）。その版は `tests/reference-grep.json` に記録します。CI は最新のランナーイメージ（`ubuntu-latest`）に追従し、その記録を比べます。ランナーが別のリリースを持ち込めば `fixtures` ジョブが失敗しますが、それは隠すものではなく、確かめるべき変化です。`tools/ref-grep.sh` は、あるリリースの grep と PCRE2 を取り出し（署名つきのアーカイブ索引で確かめます）、`GREP_DIR=... tools/gen-fixtures.sh` はそれで期待結果を記録します。そのため fixture はマシンの grep に依存しません。3.12 で違う点は `src/grep/mod.rs` の `GNU_GREP_3_12` が選びます。ランナーが 3.12 になる日の手順は docs/GREP.md にあります。
 - 正規表現エンジンは同じものです（D7）。GNU grep の構文（`Syntax::grep`）を読むよう頼まれ、GNU grep の DFA と C ライブラリのマッチャが食い違う場所では、両方の読み方（`Syntax::regex_semantic`）を持ちます。ロケールの規則は sed モードのものです（D11）。
 - `-P` はシステムの PCRE2 ライブラリで、`dlopen` で開きます。そのため crate に依存はなく、ビルドの要件も増えません（D1、D8）。BSD ライセンスのライブラリを写すことはしません。GNU sed のソースを読まなかったのと同じく、GNU grep のソースも読んでいません。動かして挙動を調べ、それを実現するコードはここで書きました。
 - GNU grep の挙動が明らかなバグである場合も、GNU sed の場合と同じ規則に従います（D10）。`-w -o` で、検索を始めた位置から測って短い一致を探す動作は、fixture とランダムテストが GNU grep の結果として示し、マニュアルがそれに反していないので、再現します。

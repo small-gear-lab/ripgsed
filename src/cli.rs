@@ -403,6 +403,7 @@ extern "C" fn save_inherited_sigpipe() {
         INHERITED_SIGPIPE.store(old, std::sync::atomic::Ordering::Relaxed);
     }
     crate::io::STDOUT_WAS_CLOSED.store(crate::io::fd_is_closed(1), std::sync::atomic::Ordering::Relaxed);
+    crate::io::STDIN_WAS_CLOSED.store(crate::io::fd_is_closed(0), std::sync::atomic::Ordering::Relaxed);
 }
 
 #[used]

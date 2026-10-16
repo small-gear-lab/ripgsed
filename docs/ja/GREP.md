@@ -7,8 +7,18 @@ ripgsed は GNU grep としても振る舞います。モードはプログラ�
 ## GNU grep と何を比べているか
 
 - `compat/grep.tsv` は、挙動を領域ごとに挙げます。起動、パターン、出力、文脈、ファイル、バイナリファイル、色、`-P` です。83 項目すべてが `verified` で、それを覆う fixture が、GNU grep と同じ標準出力、標準エラー、終了状態、ファイルを返すという意味です（`tests/README.md`）。grep モードの fixture は 89 個あり（`tests/fixtures/grep-*` と `pcre-*`）、`tools/gen-grep-fixtures.py` が書き、`tools/gen-fixtures.sh` がそのマシンの grep の出力を記録します。
-- 基準は、期待結果を作るマシンの GNU grep です（D12）。その版と PCRE2 の版は `tests/reference-grep.json` にあり、CI の `fixtures` ジョブもこれを調べます。ランナーが別の版を持ち込めば、ジョブがそれを知らせます。GNU grep 3.11（Ubuntu 24.04 のリリース）と 3.12 は、試したすべての場合で同じ結果を返します。ただし `-u` と `--unix-byte-offsets` は 3.12 でなくなっていて（ripgsed は 3.12 に従います）、PCRE2 のメッセージは版によって違います。`tools/ref-grep.sh` は別のリリースを取り出して（署名つきのアーカイブ索引でハッシュを確かめます）、版が何を変えるかを見られるようにします。
+- 基準は GNU grep 3.11 と PCRE2 10.42 です。Ubuntu 24.04 のリリースで、CI のランナーが持つものです（D12）。その版は `tests/reference-grep.json` にあり、CI の `fixtures` ジョブもこれを調べます。ランナーが別のリリースを持ち込めば、ジョブがそれを知らせます。fixture の期待結果は、そのリリースで作りました（`tools/ref-grep.sh` がそれを取り出し、署名つきのアーカイブ索引でハッシュを確かめます。`GREP_DIR=target/reference/grep/bin tools/gen-fixtures.sh` が、それの出力を記録します）。そのため、別のリリースを持つマシンでも、ripgsed が fixture を作ったリリースに従っている限り、fixture は通ります。
+- GNU grep 3.12（Ubuntu 26.04）は 3.11 と 4 つの点で違い、fixture はそれを覆っています（`src/grep/mod.rs` の `GNU_GREP_3_12`）。`-u` と `--unix-byte-offsets` は、3.11 では警告が出て、3.12 では不正なオプションです。UTF-8 ロケールの `-P` は、`\w`、`[[:alpha:]]`、`\b` を、3.11 では ASCII として、3.12 では Unicode として読みます（`PCRE2_UCP`）。`-q -m N` は、3.11 では最初に選んだ行で終わり（エラーのあとでも状態は 0）、3.12 では続けるので、あとのエラーで状態が 2 になります。`-l` や `-L` に `-m N` を付けると、3.11 では最初に選んだ行で止まり `binary file matches` を出さず、3.12 では入力全体を読んでそれを出します。ripgsed は今は 3.11 に従います。PCRE2 のメッセージも版によって違い、fixture はそれを含めていません。
 - 細部の多くは、`cargo test` に含まれないランダムテストが見つけました。ランダムなパターン（基本、拡張、固定。`-i` `-w` `-x` `-v` つき、C ロケールと UTF-8 ロケール）と、サンプルファイルへのランダムなオプションの組み合わせを、両方のプログラムで実行し、出力、メッセージ、終了状態を比べます。数千件ずつの直近の実行で、食い違うのは 500 件に 1 件ほどで、それは `docs/KNOWN-DIFFERENCES.md` の場合です。
+
+## ランナーが GNU grep 3.12 になったとき
+
+CI の `fixtures` ジョブは、ランナーの grep で期待結果を作り直し、コミット済みのファイルと違えば失敗します。イメージが Ubuntu 26.04（grep 3.12、PCRE2 10.46）に移ると、このジョブは `tests/reference-grep.json` と、上の 4 つの違いのコマンドで失敗し、ほかは変わらないはずです。3.12 に従うには:
+
+1. `src/grep/mod.rs` の `GNU_GREP_3_12` を `true` にします（上の 4 つの挙動だけが変わります）。
+2. grep 3.12 と PCRE2 10.46 のあるマシンで、または失敗したジョブのログをもとに、`tools/gen-fixtures.sh $(ls tests/fixtures | rg '^(grep|pcre)-')` を（`GREP_DIR` なしで）実行し、変わった期待結果と `tests/reference-grep.json` をコミットします。
+3. デバッグビルドとリリースビルドで `cargo test` を実行します。まだ失敗する fixture は、この一覧にない違いを示しています。`tools/ref-grep.sh` と `GREP_DIR` で（別のリリースで fixture を動かせます）見つけ、定数とこの一覧に加えます。
+4. このページと `docs/KNOWN-DIFFERENCES.md` にある、3.11 を名指しした文と、日本語訳（`tools/build-docs.sh update`）を直します。
 
 ## パターン
 
@@ -37,7 +47,7 @@ GNU grep はパターンを 2 度読みます。自前の DFA（gnulib のもの
 
 ## 速度
 
-`gbench` 式の実行で測りました。100 万行のログ風の行（57 MB）、`C.UTF-8`、1 スレッド、3 回の中央値、同じマシンの GNU grep 3.12 と比べています。比が 1 より小さければ GNU grep より速いことを表します。
+`gbench` 式の実行で測りました。100 万行のログ風の行（57 MB）、`C.UTF-8`、1 スレッド、3 回の中央値で、同じマシンの GNU grep 3.12（そのマシンの grep）と ripgsed を比べています。比が 1 より小さければ GNU grep より速いことを表します。
 
 | 処理                                    |   GNU grep（秒） |   ripgsed（秒） |    比 |
 |---------------------------------------|---------------|--------------|------|

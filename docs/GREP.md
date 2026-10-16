@@ -7,8 +7,18 @@ The aim is the one of the sed mode (D4 in [DECISIONS.md](DECISIONS.md)): the sam
 ## What is compared with GNU grep
 
 - `compat/grep.tsv` lists the behavior by area: invocation, patterns, output, context, files, binary files, colors, and `-P`. Every one of its 83 items is `verified`, which means that the fixtures that cover it give the same standard output, standard error, exit status and files as GNU grep (`tests/README.md`). There are 89 fixtures of the grep mode (`tests/fixtures/grep-*` and `pcre-*`); they are written by `tools/gen-grep-fixtures.py`, and `tools/gen-fixtures.sh` records what the grep of the machine prints.
-- The reference is the GNU grep of the machine that makes the expected results (D12). Its version and the version of PCRE2 are in `tests/reference-grep.json`, which the `fixtures` job of CI checks too: when the runner brings other versions, the job says so. GNU grep 3.11 (the release of Ubuntu 24.04) and 3.12 give the same results on every case of the fixtures, and on the random tests, except these, where ripgsed follows 3.12: `-u` and `--unix-byte-offsets` are gone in 3.12; `-P` reads `\w` as a Unicode letter in UTF-8 locales (3.12 sets `PCRE2_UCP`); `-q -m N` does not stop at the first selected line, so a later error still makes the status 2; and with `-l` or `-L` together with `-m` the `binary file matches` message is printed. The messages of PCRE2 differ between its releases too. The fixtures leave these cases out, so that they give the same result on both. `tools/ref-grep.sh` unpacks another release (checking its hash against the signed archive index) to see what a version changes.
+- The reference is GNU grep 3.11 with PCRE2 10.42, the releases of Ubuntu 24.04, which is what the CI runner has (D12). Their versions are in `tests/reference-grep.json`, which the `fixtures` job of CI checks too: when the runner brings other releases, the job says so. The expected results of the fixtures were made with those releases (`tools/ref-grep.sh` unpacks them, checking their hash against the signed archive index, and `GREP_DIR=target/reference/grep/bin tools/gen-fixtures.sh` records what they print), so a machine with other releases still passes the fixtures, as long as ripgsed follows the release the fixtures were made with.
+- GNU grep 3.12 (Ubuntu 26.04) differs from 3.11 in four things, which the fixtures cover (they are in `GNU_GREP_3_12` of `src/grep/mod.rs`): `-u` and `--unix-byte-offsets` warn in 3.11 and are invalid options in 3.12; `-P` in a UTF-8 locale reads `\w`, `[[:alpha:]]` and `\b` as ASCII in 3.11 and as Unicode in 3.12 (`PCRE2_UCP`); `-q -m N` exits at the first selected line in 3.11 (status 0 even after an error) and goes on in 3.12 (so a later error makes the status 2); and `-l` or `-L` with `-m N` stop at the first selected line and print no `binary file matches` message in 3.11, and read the whole input and print it in 3.12. ripgsed follows 3.11 now. The messages of PCRE2 differ between its releases too, and the fixtures leave those out.
 - Random tests that are not part of `cargo test` found most of the details: random patterns (basic, extended, fixed, with `-i`, `-w`, `-x`, `-v`, in the C locale and in UTF-8 locales) and random combinations of options on sample files, run with both programs and compared on the output, the messages and the status. The last runs of several thousand cases each differ in about one case in five hundred, and those are the cases of `docs/KNOWN-DIFFERENCES.md`.
+
+## When the runner brings GNU grep 3.12
+
+The `fixtures` job of CI makes the expected results again with the grep of the runner and fails when they differ from the files that are checked in. When the image moves to Ubuntu 26.04 (grep 3.12, PCRE2 10.46) the job will fail on `tests/reference-grep.json` and on the commands of the four differences above, and nothing else should change. To follow 3.12:
+
+1. Set `GNU_GREP_3_12` to `true` in `src/grep/mod.rs` (it changes the four behaviors above and nothing else).
+2. On a machine with grep 3.12 and PCRE2 10.46, or from the log of the failed job, run `tools/gen-fixtures.sh $(ls tests/fixtures | rg '^(grep|pcre)-')` (without `GREP_DIR`) and commit the changed expected results and `tests/reference-grep.json`.
+3. Run `cargo test` in a debug build and in a release build. A fixture that still fails shows a difference that this list does not have: find it with `tools/ref-grep.sh` and `GREP_DIR`, which run the fixtures with the other release, and add it to the constant and to this list.
+4. Update the sentences of this page and of `docs/KNOWN-DIFFERENCES.md` that name 3.11, and the Japanese translation (`tools/build-docs.sh update`).
 
 ## Patterns
 
@@ -37,7 +47,7 @@ The PCRE2 library of the system is opened with `dlopen` when `-P` is first used,
 
 ## Speed
 
-Measured with `gbench`-style runs on 1,000,000 log-like lines (57 MB), in `C.UTF-8`, one thread, median of three, GNU grep 3.12 on the same machine. A ratio below 1 is faster than GNU grep.
+Measured with `gbench`-style runs on 1,000,000 log-like lines (57 MB), in `C.UTF-8`, one thread, median of three, GNU grep 3.12 (the grep of the machine) against ripgsed on the same machine. A ratio below 1 is faster than GNU grep.
 
 | workload | GNU grep (s) | ripgsed (s) | ratio |
 |---|---:|---:|---:|

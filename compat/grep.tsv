@@ -11,7 +11,7 @@ GINV-009	invocation	standard input: no file operand, `-`, and --label	verified	I
 GINV-010	invocation	egrep and fgrep are grep -E and grep -F	verified	Invoking grep	messages say grep
 GINV-011	invocation	exit status: 0 for a selected line, 1 for none, 2 for an error	verified	Exit Status	
 GINV-012	invocation	-s hides the messages about files, the status is still 2	verified	Invoking grep	
-GINV-013	invocation	obsolete option -y (as -i)	verified	Invoking grep	-u is gone in grep 3.12 and warns in 3.11
+GINV-013	invocation	obsolete options -y (as -i) and -u (a warning)	verified	Invoking grep	-u is an invalid option from grep 3.12 on
 GPAT-001	patterns	basic regular expressions: literals, `.`, `*`, `^` and `$`	verified	Regular Expressions	
 GPAT-002	patterns	basic regular expressions, GNU operators: \+ \? \| \( \) and back-references	verified	Regular Expressions	
 GPAT-003	patterns	intervals: \{m\} \{m,\} \{,n\} \{m,n\} (ERE: {m,n})	verified	Regular Expressions	

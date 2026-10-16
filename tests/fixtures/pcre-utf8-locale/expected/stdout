@@ -1,3 +1,15 @@
+=== grep -oP '\w+' utf8.txt
+caf
+na
+ve
+alpha
+[0]
+=== grep -oP '[[:alpha:]]+' utf8.txt
+caf
+na
+ve
+alpha
+[0]
 === grep -oP '.' utf8.txt
 c
 a

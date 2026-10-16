@@ -3,3 +3,12 @@
 printf '%s\n' '=== grep -y ALPHA a.txt'
 grep -y ALPHA a.txt
 echo "[$?]"
+printf '%s\n' '=== grep -u alpha a.txt'
+grep -u alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -uy ALPHA a.txt'
+grep -uy ALPHA a.txt
+echo "[$?]"
+printf '%s\n' '=== grep --unix-byte-offsets alpha a.txt'
+grep --unix-byte-offsets alpha a.txt
+echo "[$?]"

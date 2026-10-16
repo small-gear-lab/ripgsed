@@ -148,6 +148,7 @@ enum Opt {
     Color,
     Binary,
     ObsoleteIgnoreCase,
+    UnixByteOffsets,
     Digit(u8),
 }
 
@@ -198,6 +199,7 @@ const LONG_OPTIONS: &[(&str, Arg, Opt)] = &[
     ("silent", Arg::No, Opt::Quiet),
     ("text", Arg::No, Opt::Text),
     ("binary", Arg::No, Opt::Binary),
+    ("unix-byte-offsets", Arg::No, Opt::UnixByteOffsets),
     ("version", Arg::No, Opt::Version),
     ("with-filename", Arg::No, Opt::WithFilename),
     ("word-regexp", Arg::No, Opt::Word),
@@ -235,6 +237,7 @@ const SHORT_OPTIONS: &[(char, Arg, Opt)] = &[
     ('q', Arg::No, Opt::Quiet),
     ('r', Arg::No, Opt::Recursive),
     ('s', Arg::No, Opt::NoMessages),
+    ('u', Arg::No, Opt::UnixByteOffsets),
     ('v', Arg::No, Opt::Invert),
     ('w', Arg::No, Opt::Word),
     ('x', Arg::No, Opt::Line),
@@ -243,12 +246,17 @@ const SHORT_OPTIONS: &[(char, Arg, Opt)] = &[
     ('z', Arg::No, Opt::NullData),
 ];
 
+/// Whether the release of GNU grep that is followed has the option (see `GNU_GREP_3_12`).
+fn available(opt: Opt) -> bool {
+    !(super::GNU_GREP_3_12 && opt == Opt::UnixByteOffsets)
+}
+
 /// Resolves `--name`, accepting an unambiguous prefix as getopt_long does.
 fn find_long(name: &str, program: &str) -> Result<(&'static str, Arg, Opt), String> {
-    if let Some(&(n, a, o)) = LONG_OPTIONS.iter().find(|(n, ..)| *n == name) {
+    if let Some(&(n, a, o)) = LONG_OPTIONS.iter().filter(|e| available(e.2)).find(|(n, ..)| *n == name) {
         return Ok((n, a, o));
     }
-    let candidates: Vec<_> = LONG_OPTIONS.iter().filter(|(n, ..)| n.starts_with(name)).collect();
+    let candidates: Vec<_> = LONG_OPTIONS.iter().filter(|e| available(e.2)).filter(|(n, ..)| n.starts_with(name)).collect();
     // Names that stand for the same option are not ambiguous.
     let mut distinct: Vec<&(&str, Arg, Opt)> = Vec::new();
     for c in &candidates {
@@ -391,7 +399,7 @@ pub fn parse(args: Vec<Vec<u8>>, program: &str, default_kind: Kind) -> Parsed {
                     pending.push((Opt::Digit(c as u8 - b'0'), None, format!("-{c}")));
                     continue;
                 }
-                let Some(&(_, kind, opt)) = SHORT_OPTIONS.iter().find(|(l, ..)| *l == c) else {
+                let Some(&(_, kind, opt)) = SHORT_OPTIONS.iter().filter(|e| available(e.2)).find(|(l, ..)| *l == c) else {
                     usage!(format!("{program}: invalid option -- '{c}'"));
                 };
                 let value = match kind {
@@ -601,6 +609,11 @@ pub fn parse(args: Vec<Vec<u8>>, program: &str, default_kind: Kind) -> Parsed {
                 Opt::NoGroupSeparator => o.group_separator = Some(None),
                 Opt::Color => color_when = Some(value_text),
                 Opt::Binary => {}
+                // (An option of GNU grep 3.11 and earlier; 3.12 does not have it.)
+                Opt::UnixByteOffsets if !super::GNU_GREP_3_12 => {
+                    eprintln!("{program}: warning: --unix-byte-offsets (-u) is obsolete");
+                }
+                Opt::UnixByteOffsets => unreachable!("rejected when the options are read"),
             }
             if status_error {
                 return Parsed::Error(2);

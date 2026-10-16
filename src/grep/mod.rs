@@ -20,6 +20,22 @@ pub use options::Kind;
 use options::{Devices, Directories, ListFiles, Options, Parsed};
 use search::Printer;
 
+/// The release of GNU grep that the grep mode follows where releases differ: `false` for 3.11 (the
+/// grep of Ubuntu 24.04, what CI has), `true` for 3.12 (Ubuntu 26.04). Four things depend on it:
+///
+/// - `-u` and `--unix-byte-offsets`: a warning in 3.11, an invalid option in 3.12;
+/// - `-P` in a UTF-8 locale: `\w`, `[[:alpha:]]`, `\b` see ASCII only in 3.11, Unicode in 3.12
+///   (`PCRE2_UCP`);
+/// - `-q` with `-m N`: 3.11 exits at the first selected line (status 0 even after an error), 3.12
+///   goes on, so a later error makes the status 2;
+/// - `-l` and `-L` with `-m N`: 3.12 reads the whole input and prints `binary file matches` for a
+///   binary file, 3.11 stops at the first selected line and prints nothing.
+///
+/// To follow 3.12: set this to `true`, run `tools/gen-fixtures.sh` on a machine with 3.12 and PCRE2
+/// 10.46, and put back the commands that `tools/gen-grep-fixtures.py` keeps in `ONLY_312`
+/// (`GREP_FIXTURES=312 tools/gen-grep-fixtures.py`). docs/GREP.md has the list.
+pub const GNU_GREP_3_12: bool = false;
+
 /// The kind of patterns a program name stands for.
 pub fn kind_for_name(name: &str) -> Option<Kind> {
     match name {
@@ -45,6 +61,10 @@ struct Run<'a> {
     stdin_name: Vec<u8>,
     /// `-r` without operands: names are printed without the leading `./`.
     omit_dot_slash: bool,
+    /// The device and i-node of standard output, if it is a regular file.
+    stdout_id: Option<(u64, u64)>,
+    /// The directories being read, for the loops that `-R` can make.
+    dir_stack: Vec<(u64, u64)>,
 }
 
 pub fn main(program: &str, args: Vec<Vec<u8>>, kind: Kind) -> i32 {
@@ -72,10 +92,8 @@ pub fn main(program: &str, args: Vec<Vec<u8>>, kind: Kind) -> i32 {
             return 2;
         }
     };
-    if std::env::var_os("POSIXLY_CORRECT").is_none() {
-        for w in &matcher.warnings {
-            eprintln!("{program}: warning: {w}");
-        }
+    for w in &matcher.warnings {
+        eprintln!("{program}: warning: {w}");
     }
     // Nothing can be selected: no line may be (`-m 0`), or `-v` with the one empty pattern, which
     // every line matches. Only `-L` still has something to say.
@@ -130,6 +148,8 @@ pub fn main(program: &str, args: Vec<Vec<u8>>, kind: Kind) -> i32 {
         matched: false,
         stdin_name: options.label.clone().unwrap_or_else(|| b"(standard input)".to_vec()),
         omit_dot_slash,
+        stdout_id: stdout_identity(),
+        dir_stack: Vec::new(),
     };
     for operand in &operands {
         if run.operand(operand).is_err() {
@@ -150,7 +170,29 @@ pub fn main(program: &str, args: Vec<Vec<u8>>, kind: Kind) -> i32 {
     }
 }
 
+/// The device and i-node of standard output when it is a regular file.
+fn stdout_identity() -> Option<(u64, u64)> {
+    use std::os::fd::FromRawFd;
+    use std::os::unix::fs::MetadataExt;
+    // SAFETY: descriptor 1 belongs to the process; `ManuallyDrop` keeps it open.
+    let file = std::mem::ManuallyDrop::new(unsafe { std::fs::File::from_raw_fd(1) });
+    let meta = file.metadata().ok()?;
+    meta.is_file().then(|| (meta.dev(), meta.ino()))
+}
+
 impl Run<'_> {
+    /// Whether the file with this metadata is the regular file that standard output is: searching
+    /// it would read what this run writes. GNU grep skips it when it would print lines (not
+    /// with -c, -l, -L or -q) and `-m 1` does not read on.
+    fn is_the_output(&self, meta: &std::fs::Metadata) -> bool {
+        use std::os::unix::fs::MetadataExt;
+        let o = self.options;
+        if o.quiet || o.count || o.list_files != ListFiles::No || o.max_count.is_some_and(|m| m <= 1) || !meta.is_file() {
+            return false;
+        }
+        self.stdout_id.is_some_and(|(dev, ino)| dev == meta.dev() && ino == meta.ino())
+    }
+
     /// Reports an error about `name` (`program: name: message`), unless `-s`.
     fn report(&mut self, name: &[u8], message: &str) {
         self.error_seen = true;
@@ -222,10 +264,21 @@ impl Run<'_> {
     fn standard_input(&mut self, name: &[u8]) -> io::Result<()> {
         use std::io::{Seek, SeekFrom};
         use std::os::fd::FromRawFd;
+        if crate::io::STDIN_WAS_CLOSED.load(std::sync::atomic::Ordering::Relaxed) {
+            // (Rust's start-up has put /dev/null in the place of a closed standard input.)
+            self.report(name, "Bad file descriptor");
+            let found = search::Found { count: 0, binary_matches: false, last_selected_end: None, ended_early: false, max_reached: false };
+            self.printer.with_filename = self.printer.default_with_filename;
+            return self.printer.summary(name, &found);
+        }
         // SAFETY: descriptor 0 belongs to the process; `ManuallyDrop` keeps it open.
         let mut file = std::mem::ManuallyDrop::new(unsafe { std::fs::File::from_raw_fd(0) });
         let meta = file.metadata().ok();
         let regular = meta.as_ref().is_some_and(|m| m.is_file());
+        if meta.as_ref().is_some_and(|m| self.is_the_output(m)) {
+            self.report(name, "input file is also the output");
+            return Ok(());
+        }
         let start = if regular { file.stream_position().ok() } else { None };
         let size = meta.filter(|m| m.is_file()).map(|m| m.len().saturating_sub(start.unwrap_or(0)));
         let found = self.search_reader(name, &mut *file, regular, size, false)?;
@@ -252,6 +305,31 @@ impl Run<'_> {
 
     /// Searches the files of a directory (recursively), naming them by joining the names.
     fn walk(&mut self, dir: &Path, display: Vec<u8>) -> io::Result<()> {
+        use std::os::unix::fs::MetadataExt;
+        // A directory that is one of those being read (through a symbolic link) is a loop.
+        let id = std::fs::metadata(dir).ok().map(|m| (m.dev(), m.ino()));
+        if let Some(id) = id {
+            if self.dir_stack.contains(&id) {
+                if !self.options.no_messages {
+                    let _ = self.printer.flush();
+                    let mut err = io::stderr().lock();
+                    let _ = err.write_all(self.program.as_bytes());
+                    let _ = err.write_all(b": ");
+                    let _ = err.write_all(&display);
+                    let _ = err.write_all(b": warning: recursive directory loop\n");
+                }
+                return Ok(());
+            }
+            self.dir_stack.push(id);
+        }
+        let result = self.walk_entries(dir, display);
+        if id.is_some() {
+            self.dir_stack.pop();
+        }
+        result
+    }
+
+    fn walk_entries(&mut self, dir: &Path, display: Vec<u8>) -> io::Result<()> {
         let entries = match std::fs::read_dir(dir) {
             Ok(e) => e,
             Err(e) => {
@@ -316,6 +394,10 @@ impl Run<'_> {
         };
         let meta = file.metadata().ok();
         let regular = meta.as_ref().is_some_and(|m| m.is_file());
+        if meta.as_ref().is_some_and(|m| self.is_the_output(m)) {
+            self.report(name, "input file is also the output");
+            return Ok(());
+        }
         let size = meta.filter(|m| m.is_file()).map(|m| m.len());
         let found = self.search_reader(name, &mut file, regular, size, in_directory)?;
         if found.is_some_and(|f| f.count > 0) && self.printer.exit_on_match {

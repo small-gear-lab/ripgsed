@@ -2,3 +2,15 @@
 alpha
 alpha beta
 [0]
+=== grep -u alpha a.txt
+alpha
+alpha beta
+[0]
+=== grep -uy ALPHA a.txt
+alpha
+alpha beta
+[0]
+=== grep --unix-byte-offsets alpha a.txt
+alpha
+alpha beta
+[0]

@@ -1,5 +1,11 @@
 # Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
 
+printf '%s\n' '=== grep -oP '\''\w+'\'' utf8.txt'
+grep -oP '\w+' utf8.txt
+echo "[$?]"
+printf '%s\n' '=== grep -oP '\''[[:alpha:]]+'\'' utf8.txt'
+grep -oP '[[:alpha:]]+' utf8.txt
+echo "[$?]"
 printf '%s\n' '=== grep -oP '\''.'\'' utf8.txt'
 grep -oP '.' utf8.txt
 echo "[$?]"

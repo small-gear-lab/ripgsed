@@ -11,9 +11,9 @@ ripgsed behaves like GNU sed 4.9: same output, same error messages in the C loca
 
 ## The grep mode
 
-The grep mode is compared with GNU grep 3.12 (D12); GNU grep 3.11 gives the same results on every case of the fixtures; ripgsed follows 3.12 where they differ (docs/GREP.md lists the cases).
+The grep mode is compared with GNU grep 3.11 and PCRE2 10.42 (D12). Four things differ in 3.12 and are followed by switching `GNU_GREP_3_12` in `src/grep/mod.rs` (docs/GREP.md lists them and the steps).
 
-- `--version` and `--help` print ripgsed's own text (the usage message and the option list are the same, the closing lines are not). `-u` and `--unix-byte-offsets` are options GNU grep 3.12 does not have: they are errors here too.
+- `--version` and `--help` print ripgsed's own text (the usage message and the option list are the same, the closing lines are not). `-u` and `--unix-byte-offsets` warn, as in 3.11 (they are errors from 3.12 on).
 - The translated messages of GNU grep (`LANGUAGE=ja`) are not available: their catalogs are under the GPL, as the ones of GNU sed (the English messages are the same). The messages of the PCRE2 library are the library's.
 - `-P` uses the PCRE2 library of the system, so its results and its messages follow the version installed; without the library `-P` fails with a message.
 - A pattern in which GNU grep's DFA and the C library's matcher differ is read both ways, for the lines and for the matches. Not reproduced: `-w` and `-x` are applied to the DFA as syntax (the text `)` that closes the added group), so a pattern with an unmatched `)` can select other lines under `-w` or `-x`; `grep: stack overflow` for a huge nested repetition such as `((a{256}){256})`; the quirks of the C library's matcher that the sed mode lists (`a?(a+)+\1`, the groups of `(c+){0,2}`), which GNU grep has too.

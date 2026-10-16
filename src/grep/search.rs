@@ -97,11 +97,11 @@ impl State {
             done: false,
             quiet,
             // (With -m, the message is not held back by -l and -L.)
-            originally_quiet: count_only || o.quiet || (list && o.max_count.is_none()),
+            originally_quiet: count_only || o.quiet || (list && (o.max_count.is_none() || !super::GNU_GREP_3_12)),
             count_only,
-            // (With -m, -l and -L do not stop at the first selected line, as in GNU grep: the
+            // (From 3.12 on, with -m, -l and -L do not stop at the first selected line: the
             // whole input is read, so that a binary part after it is noticed.)
-            done_on_match: exit_on_match || (list && o.max_count.is_none()),
+            done_on_match: exit_on_match || (list && (o.max_count.is_none() || !super::GNU_GREP_3_12)),
             binary_from: None,
             in_binary: false,
             count_at_binary: None,
@@ -173,7 +173,7 @@ impl<'a> Printer<'a> {
             default_with_filename: false,
             offset_width: 0,
             // (-m holds back the early exit of -q as well.)
-            exit_on_match: options.quiet && options.max_count.is_none(),
+            exit_on_match: options.quiet && (options.max_count.is_none() || !super::GNU_GREP_3_12),
             encoding_errors: false,
         }
     }
@@ -536,6 +536,7 @@ impl<'a> Printer<'a> {
         let context = before.is_some() || after.is_some();
         // (-m does not stop a search that only lists.)
         let max = if o.list_files != ListFiles::No { None } else { o.max_count };
+        let _ = super::GNU_GREP_3_12;
         let finders_owned: Option<Vec<Needle>> = st.needles.take();
         let finders = &finders_owned;
         let mut hits: Vec<Option<usize>> = vec![None; finders.as_ref().map_or(0, Vec::len)];

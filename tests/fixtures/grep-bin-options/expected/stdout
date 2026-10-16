@@ -35,6 +35,11 @@ alpha
 [0]
 === grep -b alpha bin.dat
 [0]
+=== grep -l -m1 alpha bin.dat
+bin.dat
+[0]
+=== grep -L -m1 alpha bin.dat
+[0]
 === grep -c -m1 alpha bin.dat
 1
 [0]
