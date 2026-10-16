@@ -82,16 +82,16 @@
 - GNU sed はマルチバイト集合ではスクリプトを文字単位で読みます（正規表現、`y` の文字列、その周りのテキストで、2 バイト目のバックスラッシュ、括弧、区切り文字は、その文字の一部です）が、`s` の置換文はバイト単位で読みます。どちらも再現します。追加のバイトを要求する先頭バイトはコマンドの区切りにできません（`delimiter character is not a single-byte character`）。集合の文字でないバイトはそのまま残り、`.` や括弧式にはマッチせず、`\U \L` はそこで止まります（不正な UTF-8 バイトと同じです）。
 - 各集合のすべての文字と 2 バイト列を GNU sed 4.9 と比べました（`tools/locale-diff.py`。続けて `tools/locale-fuzz.py` でランダムなパターン）。残る差は docs/KNOWN-DIFFERENCES.md に挙げています。
 
-## D12. The grep mode follows GNU grep 3.x
+## D12. grep モードは GNU grep 3.x に従う
 
-- The project also behaves like GNU grep: the same output, messages and status for the same command line (D4 and D5 for grep). The mode is chosen by the name the program runs under (`grep`, `egrep`, `fgrep`, `rgrep`) or by a first argument `--grep`. The sed mode is unchanged.
-- The reference is the GNU grep of the machine that records the expected results (`tools/gen-fixtures.sh`), as the sed mode's is its GNU sed (D6). The versions of grep and of PCRE2 are recorded in `tests/reference-grep.json`, and CI follows the latest runner image (`ubuntu-latest`) and compares that record: a runner that brings other versions makes the `fixtures` job fail, and that is a change to look at, not to hide. `tools/ref-grep.sh` unpacks the grep and PCRE2 of another release to see what it changes.
-- The regular expression engine is the same engine (D7), asked to read the syntax of GNU grep (`Syntax::grep`) and, where GNU grep's DFA and the C library's matcher differ, both readings (`Syntax::regex_semantic`). The locale rules are the sed mode's (D11).
-- `-P` is the PCRE2 library of the system, opened with `dlopen`, so the crate has no dependency and no build requirement (D1, D8); the BSD-licensed library is never copied. The sources of GNU grep were not read, as those of GNU sed were not: the behavior was learned by running it, and the code that implements it is written here.
-- GNU grep's behavior that is plainly a bug follows the same rule as GNU sed's (D10): the shorter-match search of `-w -o` that measures from where the search began is reproduced because the fixtures and the random tests show it as the result of GNU grep and nothing in the manual contradicts it.
+- このプロジェクトは GNU grep としても振る舞います。同じコマンドラインに対して、同じ出力、メッセージ、終了状態を返します（grep についての D4 と D5）。モードは、プログラムが実行されるときの名前（`grep`、`egrep`、`fgrep`、`rgrep`）か、最初の引数 `--grep` で選びます。sed モードは変わりません。
+- 基準は、期待結果を記録するマシンの GNU grep です（`tools/gen-fixtures.sh`）。sed モードの基準がそのマシンの GNU sed であるのと同じです（D6）。grep と PCRE2 の版は `tests/reference-grep.json` に記録します。CI は最新のランナーイメージ（`ubuntu-latest`）に追従し、その記録を比べます。ランナーが別の版を持ち込めば `fixtures` ジョブが失敗しますが、それは隠すものではなく、確かめるべき変化です。`tools/ref-grep.sh` は、別のリリースの grep と PCRE2 を取り出して、何が変わるかを見るためのものです。
+- 正規表現エンジンは同じものです（D7）。GNU grep の構文（`Syntax::grep`）を読むよう頼まれ、GNU grep の DFA と C ライブラリのマッチャが食い違う場所では、両方の読み方（`Syntax::regex_semantic`）を持ちます。ロケールの規則は sed モードのものです（D11）。
+- `-P` はシステムの PCRE2 ライブラリで、`dlopen` で開きます。そのため crate に依存はなく、ビルドの要件も増えません（D1、D8）。BSD ライセンスのライブラリを写すことはしません。GNU sed のソースを読まなかったのと同じく、GNU grep のソースも読んでいません。動かして挙動を調べ、それを実現するコードはここで書きました。
+- GNU grep の挙動が明らかなバグである場合も、GNU sed の場合と同じ規則に従います（D10）。`-w -o` で、検索を始めた位置から測って短い一致を探す動作は、fixture とランダムテストが GNU grep の結果として示し、マニュアルがそれに反していないので、再現します。
 
-## D13. The library interface is small
+## D13. ライブラリのインターフェースは小さい
 
-- The public interface is `Script` (sed text, or built with methods), `Edit` with `Address` and `Pattern` (the builder), `Run` (the settings of a run, also with threads), `Outcome` and `Error`. Every other module is `#[doc(hidden)]` and may change in any release.
-- The builder writes sed text and the parser of the command line reads it: there is one parser and one VM, a script made with methods is the script written by hand, and a mistake has the message of GNU sed. A command is an address and an operation, and no address is the address that selects every line.
-- It does not claim to beat plain Rust on a trivial job: one literal replacement is faster with `str::replace`. What it gives is what GNU sed means by a script, checked against GNU sed 4.9, and threads where the script allows them (`docs/GREP.md` and the README give the measured numbers).
+- 公開するインターフェースは、`Script`（sed のテキスト、またはメソッドで組み立てたもの）、`Address` と `Pattern` を使う `Edit`（ビルダー）、`Run`（実行の設定。スレッドも含む）、`Outcome`、`Error` です。ほかのモジュールはすべて `#[doc(hidden)]` で、どのリリースでも変わりえます。
+- ビルダーは sed のテキストを書き、コマンドラインのパーサーがそれを読みます。パーサーも VM も 1 つで、メソッドで作ったスクリプトは手で書いたスクリプトと同じものであり、間違いには GNU sed のメッセージが出ます。コマンドはアドレスと操作から成り、アドレスがないことは「すべての行を選ぶアドレス」です。
+- ささいな仕事で素の Rust に勝つとは言いません。リテラル 1 つの置換なら `str::replace` のほうが速いです。このライブラリが与えるのは、GNU sed がスクリプトに込める意味（GNU sed 4.9 で確かめたもの）と、スクリプトが許すところでのスレッドです（測定した数字は `docs/GREP.md` と README にあります）。
