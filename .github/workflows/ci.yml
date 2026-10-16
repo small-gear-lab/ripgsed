@@ -47,7 +47,13 @@ jobs:
       # The fixtures hold the results of GNU sed and GNU grep, and their commands use GNU tools.
       - name: Fixtures (what passes here is what is shown)
         continue-on-error: true
-        run: RIPGSED_SHOW_FAILURES=1 cargo test --test differential fixtures_match -- --nocapture 2>&1 | tail -n 400
+        run: |
+          RIPGSED_SHOW_FAILURES=1 cargo test --test differential fixtures_match -- --nocapture > fixtures.log 2>&1 || true
+          sed -n '/^fixtures: /p' fixtures.log
+          echo "--- the names of the fixtures that fail:"
+          sed -n '/^[a-z][a-z0-9]*-[a-z0-9-]*$/p' fixtures.log | sort -u | sed 's/-.*//' | sort | uniq -c
+          echo "--- the first ones:"
+          sed -n '/^[a-z][a-z0-9]*-[a-z0-9-]*$/p' fixtures.log | sort -u | sed -n '1,60p'
 
   fixtures:
     runs-on: ubuntu-latest
