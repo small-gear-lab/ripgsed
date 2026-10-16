@@ -1,0 +1,69 @@
+=== grep 'al\(ph\)a' a.txt
+alpha
+alpha beta
+[0]
+=== grep 'a\+' -o a.txt
+a
+a
+a
+a
+a
+a
+a
+a
+[0]
+=== grep 'alpha\?' -o a.txt
+alpha
+alpha
+[0]
+=== grep 'alpha\|beta' a.txt
+alpha
+beta
+alpha beta
+[0]
+=== grep -o 'be\(t\)a' a.txt
+beta
+beta
+[0]
+=== grep '\(a\)\1' words.txt a.txt
+[1]
+=== grep '\(.\)\1' -o words.txt
+oo
+oo
+oo
+oo
+oo
+oo
+oo
+oo
+oo
+[0]
+=== grep '\(o\)\1' -c words.txt
+4
+[0]
+=== grep -o '\(foo\)\(bar\)' words.txt
+foobar
+foobar
+[0]
+=== grep '\(a\)\2' a.txt
+[2]
+=== grep '\(a' a.txt
+[2]
+=== grep 'a\)' a.txt
+[2]
+=== grep 'a\|' -c a.txt
+4
+[0]
+=== grep -c '\|a' a.txt
+4
+[0]
+=== grep -o 'a\{1,\}' a.txt
+a
+a
+a
+a
+a
+a
+a
+a
+[0]

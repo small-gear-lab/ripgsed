@@ -1,0 +1,23 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+printf '%s\n' '=== grep -oP '\''\w+'\'' utf8.txt | od -c | sed -n '\''1,3p'\'''
+grep -oP '\w+' utf8.txt | od -c | sed -n '1,3p'
+echo "[$?]"
+printf '%s\n' '=== grep -oP '\''.'\'' utf8.txt | od -c | sed -n '\''1,3p'\'''
+grep -oP '.' utf8.txt | od -c | sed -n '1,3p'
+echo "[$?]"
+printf '%s\n' '=== grep -iP '\''CAFÉ'\'' utf8.txt; echo $?'
+grep -iP 'CAFÉ' utf8.txt; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -cP '\''^.{3}$'\'' utf8.txt'
+grep -cP '^.{3}$' utf8.txt
+echo "[$?]"
+printf '%s\n' '=== grep -P '\''caf'\'' utf8.txt'
+grep -P 'caf' utf8.txt
+echo "[$?]"
+printf '%s\n' '=== grep -P alpha bad.txt | od -c'
+grep -P alpha bad.txt | od -c
+echo "[$?]"
+printf '%s\n' '=== grep -oP '\''[^a-z]'\'' utf8.txt | od -c | sed -n '\''1,2p'\'''
+grep -oP '[^a-z]' utf8.txt | od -c | sed -n '1,2p'
+echo "[$?]"

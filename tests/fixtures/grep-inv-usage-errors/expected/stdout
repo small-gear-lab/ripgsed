@@ -1,0 +1,20 @@
+=== grep
+[2]
+=== grep -e
+[2]
+=== grep -N alpha a.txt
+[2]
+=== grep -J alpha a.txt
+[2]
+=== grep --foo alpha a.txt
+[2]
+=== grep --regexp
+[2]
+=== grep -A
+[2]
+=== grep -m
+[2]
+=== grep --max-count
+[2]
+=== grep -f
+[2]

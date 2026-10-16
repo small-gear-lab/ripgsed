@@ -1,0 +1,49 @@
+=== grep -v alpha a.txt
+beta
+gamma
+[0]
+=== grep -vc alpha a.txt
+2
+[0]
+=== grep -nv alpha a.txt
+2:beta
+3:gamma
+[0]
+=== grep -v -e alpha -e beta a.txt
+gamma
+[0]
+=== grep -vx alpha a.txt
+beta
+gamma
+alpha beta
+[0]
+=== grep -vw foo words.txt
+foobar
+[0]
+=== grep -v '' a.txt
+[1]
+=== grep -vc '' a.txt
+[1]
+=== grep -vc zzz a.txt
+4
+[0]
+=== grep -vo alpha a.txt
+[0]
+=== grep -v alpha a.txt b.txt
+a.txt:beta
+a.txt:gamma
+b.txt:one
+b.txt:three
+[0]
+=== grep -v -e '' -e zzz -c a.txt
+0
+[1]
+=== grep -vF alpha a.txt
+beta
+gamma
+[0]
+=== grep -vl zzz a.txt
+a.txt
+[0]
+=== grep -vL alpha a.txt b.txt
+[0]

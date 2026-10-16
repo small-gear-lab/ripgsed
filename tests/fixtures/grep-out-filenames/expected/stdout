@@ -1,0 +1,68 @@
+=== grep -H alpha a.txt
+a.txt:alpha
+a.txt:alpha beta
+[0]
+=== grep -h alpha a.txt b.txt
+alpha
+alpha beta
+two alpha
+[0]
+=== grep alpha a.txt b.txt
+a.txt:alpha
+a.txt:alpha beta
+b.txt:two alpha
+[0]
+=== grep -H -h alpha a.txt b.txt
+alpha
+alpha beta
+two alpha
+[0]
+=== grep -h -H alpha a.txt b.txt
+a.txt:alpha
+a.txt:alpha beta
+b.txt:two alpha
+[0]
+=== grep -c alpha a.txt b.txt
+a.txt:2
+b.txt:1
+[0]
+=== grep -hc alpha a.txt b.txt
+2
+1
+[0]
+=== grep -Hc alpha a.txt
+a.txt:2
+[0]
+=== grep -Hn alpha a.txt b.txt
+a.txt:1:alpha
+a.txt:4:alpha beta
+b.txt:2:two alpha
+[0]
+=== grep -Ho a a.txt
+a.txt:a
+a.txt:a
+a.txt:a
+a.txt:a
+a.txt:a
+a.txt:a
+a.txt:a
+a.txt:a
+[0]
+=== grep -H alpha - < a.txt
+(standard input):alpha
+(standard input):alpha beta
+[0]
+=== grep -H alpha 'sp ace.txt'
+sp ace.txt:alpha with space
+[0]
+=== grep -H alpha nonl.txt
+nonl.txt:alpha
+nonl.txt:last alpha
+[0]
+=== grep -Hl alpha a.txt
+a.txt
+[0]
+=== grep -Hv alpha a.txt
+a.txt:beta
+a.txt:gamma
+[0]

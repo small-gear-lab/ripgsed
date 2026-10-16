@@ -1,0 +1,56 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+printf '%s\n' '=== grep -A1 hit ctx.txt'
+grep -A1 hit ctx.txt
+echo "[$?]"
+printf '%s\n' '=== grep -B1 hit ctx.txt'
+grep -B1 hit ctx.txt
+echo "[$?]"
+printf '%s\n' '=== grep -C1 hit ctx.txt'
+grep -C1 hit ctx.txt
+echo "[$?]"
+printf '%s\n' '=== grep -A0 hit ctx.txt'
+grep -A0 hit ctx.txt
+echo "[$?]"
+printf '%s\n' '=== grep -B0 hit ctx.txt'
+grep -B0 hit ctx.txt
+echo "[$?]"
+printf '%s\n' '=== grep -C0 hit ctx.txt'
+grep -C0 hit ctx.txt
+echo "[$?]"
+printf '%s\n' '=== grep -A2 '\''line 20'\'' ctx.txt'
+grep -A2 'line 20' ctx.txt
+echo "[$?]"
+printf '%s\n' '=== grep -B2 '\''line 1 '\'' ctx.txt'
+grep -B2 'line 1 ' ctx.txt
+echo "[$?]"
+printf '%s\n' '=== grep -B5 '\''line 3'\'' ctx.txt'
+grep -B5 'line 3' ctx.txt
+echo "[$?]"
+printf '%s\n' '=== grep -A1 -B2 hit ctx.txt'
+grep -A1 -B2 hit ctx.txt
+echo "[$?]"
+printf '%s\n' '=== grep -B2 -A1 hit ctx.txt'
+grep -B2 -A1 hit ctx.txt
+echo "[$?]"
+printf '%s\n' '=== grep -C1 -A0 hit ctx.txt'
+grep -C1 -A0 hit ctx.txt
+echo "[$?]"
+printf '%s\n' '=== grep -A0 -C1 hit ctx.txt'
+grep -A0 -C1 hit ctx.txt
+echo "[$?]"
+printf '%s\n' '=== grep --context=1 hit ctx.txt'
+grep --context=1 hit ctx.txt
+echo "[$?]"
+printf '%s\n' '=== grep --after-context=1 hit ctx.txt'
+grep --after-context=1 hit ctx.txt
+echo "[$?]"
+printf '%s\n' '=== grep --before-context=1 hit ctx.txt'
+grep --before-context=1 hit ctx.txt
+echo "[$?]"
+printf '%s\n' '=== grep -A100 '\''line 18'\'' ctx.txt'
+grep -A100 'line 18' ctx.txt
+echo "[$?]"
+printf '%s\n' '=== grep -C 1 '\''line 10'\'' ctx.txt'
+grep -C 1 'line 10' ctx.txt
+echo "[$?]"

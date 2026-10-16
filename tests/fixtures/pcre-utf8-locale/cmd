@@ -1,0 +1,41 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+printf '%s\n' '=== grep -oP '\''\w+'\'' utf8.txt'
+grep -oP '\w+' utf8.txt
+echo "[$?]"
+printf '%s\n' '=== grep -oP '\''.'\'' utf8.txt'
+grep -oP '.' utf8.txt
+echo "[$?]"
+printf '%s\n' '=== grep -iP '\''CAFÉ'\'' utf8.txt'
+grep -iP 'CAFÉ' utf8.txt
+echo "[$?]"
+printf '%s\n' '=== grep -oP '\''\p{L}+'\'' utf8.txt'
+grep -oP '\p{L}+' utf8.txt
+echo "[$?]"
+printf '%s\n' '=== grep -cP '\''^.{3}$'\'' utf8.txt'
+grep -cP '^.{3}$' utf8.txt
+echo "[$?]"
+printf '%s\n' '=== grep -P '\''あ'\'' utf8.txt'
+grep -P 'あ' utf8.txt
+echo "[$?]"
+printf '%s\n' '=== grep -oP '\''[あ-う]+'\'' utf8.txt'
+grep -oP '[あ-う]+' utf8.txt
+echo "[$?]"
+printf '%s\n' '=== grep -oP '\''(?<=na)ï'\'' utf8.txt'
+grep -oP '(?<=na)ï' utf8.txt
+echo "[$?]"
+printf '%s\n' '=== grep -wP '\''naïve'\'' utf8.txt'
+grep -wP 'naïve' utf8.txt
+echo "[$?]"
+printf '%s\n' '=== grep -P alpha bad.txt'
+grep -P alpha bad.txt
+echo "[$?]"
+printf '%s\n' '=== grep -c alpha bad.txt -P'
+grep -c alpha bad.txt -P
+echo "[$?]"
+printf '%s\n' '=== grep -P -a alpha bad.txt | od -c'
+grep -P -a alpha bad.txt | od -c
+echo "[$?]"
+printf '%s\n' '=== grep -P -o '\''caf.'\'' bad.txt | od -c'
+grep -P -o 'caf.' bad.txt | od -c
+echo "[$?]"

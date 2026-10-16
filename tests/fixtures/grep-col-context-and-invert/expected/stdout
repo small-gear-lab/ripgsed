@@ -1,0 +1,51 @@
+=== grep --color=always -A1 beta a.txt
+[01;31m[Kbeta[m[K
+gamma
+alpha [01;31m[Kbeta[m[K
+[0]
+=== grep --color=always -B1 beta a.txt
+alpha
+[01;31m[Kbeta[m[K
+gamma
+alpha [01;31m[Kbeta[m[K
+[0]
+=== grep --color=always -vn alpha a.txt
+[32m[K2[m[K[36m[K:[m[Kbeta
+[32m[K3[m[K[36m[K:[m[Kgamma
+[0]
+=== grep --color=always -vC1 beta a.txt
+alpha
+[01;31m[Kbeta[m[K
+gamma
+alpha [01;31m[Kbeta[m[K
+[0]
+=== grep --color=always -v -n -A1 alpha a.txt
+[32m[K2[m[K[36m[K:[m[Kbeta
+[32m[K3[m[K[36m[K:[m[Kgamma
+[32m[K4[m[K[36m[K-[m[K[01;31m[Kalpha[m[K beta
+[0]
+=== grep --color=always -C1 gamma a.txt
+beta
+[01;31m[Kgamma[m[K
+alpha beta
+[0]
+=== grep --color=always -v -o alpha a.txt; echo $?
+0
+[0]
+=== grep --color=always -o -A1 alpha a.txt
+[01;31m[Kalpha[m[K
+[36m[K--[m[K
+[01;31m[Kalpha[m[K
+[0]
+=== grep --color=always -c -A1 alpha a.txt
+2
+[0]
+=== grep --color=always -vx alpha a.txt
+beta
+gamma
+alpha beta
+[0]
+=== grep --color=always -m1 -A1 alpha a.txt
+[01;31m[Kalpha[m[K
+beta
+[0]

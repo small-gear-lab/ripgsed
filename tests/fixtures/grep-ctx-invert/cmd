@@ -1,0 +1,35 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+printf '%s\n' '=== grep -vC1 '\''line [0-9]*$'\'' ctx.txt'
+grep -vC1 'line [0-9]*$' ctx.txt
+echo "[$?]"
+printf '%s\n' '=== grep -A1 -v hit ctx.txt'
+grep -A1 -v hit ctx.txt
+echo "[$?]"
+printf '%s\n' '=== grep -B1 -v hit ctx.txt | sed -n '\''1,8p'\'''
+grep -B1 -v hit ctx.txt | sed -n '1,8p'
+echo "[$?]"
+printf '%s\n' '=== grep -C1 -v line ctx.txt; echo $?'
+grep -C1 -v line ctx.txt; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -vn -A1 alpha a.txt'
+grep -vn -A1 alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -v -B1 beta a.txt'
+grep -v -B1 beta a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -vC1 gamma a.txt'
+grep -vC1 gamma a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -vA1 -c hit ctx.txt'
+grep -vA1 -c hit ctx.txt
+echo "[$?]"
+printf '%s\n' '=== grep -v -A2 -m2 hit ctx.txt'
+grep -v -A2 -m2 hit ctx.txt
+echo "[$?]"
+printf '%s\n' '=== grep -vx -C1 '\''line 1'\'' ctx.txt | sed -n '\''1,6p'\'''
+grep -vx -C1 'line 1' ctx.txt | sed -n '1,6p'
+echo "[$?]"
+printf '%s\n' '=== grep -v -C1 -e hit -e '\''line 1[0-9]'\'' ctx.txt'
+grep -v -C1 -e hit -e 'line 1[0-9]' ctx.txt
+echo "[$?]"

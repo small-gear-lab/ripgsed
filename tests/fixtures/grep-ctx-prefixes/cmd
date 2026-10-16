@@ -1,0 +1,44 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+printf '%s\n' '=== grep -n -C1 hit ctx.txt'
+grep -n -C1 hit ctx.txt
+echo "[$?]"
+printf '%s\n' '=== grep -nb -C1 hit ctx.txt'
+grep -nb -C1 hit ctx.txt
+echo "[$?]"
+printf '%s\n' '=== grep -H -C1 '\''line 9'\'' ctx.txt'
+grep -H -C1 'line 9' ctx.txt
+echo "[$?]"
+printf '%s\n' '=== grep -Hn -C1 '\''line 9'\'' ctx.txt'
+grep -Hn -C1 'line 9' ctx.txt
+echo "[$?]"
+printf '%s\n' '=== grep -C1 hit ctx.txt ctx.txt'
+grep -C1 hit ctx.txt ctx.txt
+echo "[$?]"
+printf '%s\n' '=== grep -C1 -h hit ctx.txt ctx.txt'
+grep -C1 -h hit ctx.txt ctx.txt
+echo "[$?]"
+printf '%s\n' '=== grep -C1 -n hit ctx.txt a.txt'
+grep -C1 -n hit ctx.txt a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -bn -A1 hit ctx.txt'
+grep -bn -A1 hit ctx.txt
+echo "[$?]"
+printf '%s\n' '=== grep -n -B1 '\''line 15'\'' ctx.txt'
+grep -n -B1 'line 15' ctx.txt
+echo "[$?]"
+printf '%s\n' '=== grep -Hb -A1 '\''line 4'\'' ctx.txt'
+grep -Hb -A1 'line 4' ctx.txt
+echo "[$?]"
+printf '%s\n' '=== grep -C1 alpha a.txt b.txt d/c.txt'
+grep -C1 alpha a.txt b.txt d/c.txt
+echo "[$?]"
+printf '%s\n' '=== grep -n -C1 alpha a.txt b.txt'
+grep -n -C1 alpha a.txt b.txt
+echo "[$?]"
+printf '%s\n' '=== grep -c -A1 hit ctx.txt a.txt'
+grep -c -A1 hit ctx.txt a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -Z -n -C1 hit ctx.txt a.txt | od -c | sed -n '\''1,6p'\'''
+grep -Z -n -C1 hit ctx.txt a.txt | od -c | sed -n '1,6p'
+echo "[$?]"

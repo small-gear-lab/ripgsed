@@ -1,0 +1,29 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+printf '%s\n' '=== grep -Z alpha a.txt b.txt | od -c'
+grep -Z alpha a.txt b.txt | od -c
+echo "[$?]"
+printf '%s\n' '=== grep -ZH alpha a.txt | od -c'
+grep -ZH alpha a.txt | od -c
+echo "[$?]"
+printf '%s\n' '=== grep -Zc alpha a.txt b.txt | od -c'
+grep -Zc alpha a.txt b.txt | od -c
+echo "[$?]"
+printf '%s\n' '=== grep -Zn alpha a.txt b.txt | od -c'
+grep -Zn alpha a.txt b.txt | od -c
+echo "[$?]"
+printf '%s\n' '=== grep -Zl alpha a.txt b.txt | od -c'
+grep -Zl alpha a.txt b.txt | od -c
+echo "[$?]"
+printf '%s\n' '=== grep -ZL zzz a.txt b.txt | od -c'
+grep -ZL zzz a.txt b.txt | od -c
+echo "[$?]"
+printf '%s\n' '=== grep -Zo a a.txt b.txt | od -c'
+grep -Zo a a.txt b.txt | od -c
+echo "[$?]"
+printf '%s\n' '=== grep -Z -C1 beta a.txt b.txt | od -c'
+grep -Z -C1 beta a.txt b.txt | od -c
+echo "[$?]"
+printf '%s\n' '=== grep -Z alpha a.txt | od -c'
+grep -Z alpha a.txt | od -c
+echo "[$?]"

@@ -1,0 +1,46 @@
+=== grep 'a\tb' a.txt
+[1]
+=== grep -c '\n' a.txt
+0
+[1]
+=== grep -o '\a' a.txt
+a
+a
+a
+a
+a
+a
+a
+a
+[0]
+=== grep '\x41' a.txt
+[1]
+=== grep -c '\/' a.txt
+0
+[1]
+=== grep -c '\-' words.txt
+1
+[0]
+=== grep -o '\ ' words.txt
+ 
+ 
+ 
+ 
+ 
+[0]
+=== grep -o '\.' words.txt
+[1]
+=== grep -c '\z' a.txt
+0
+[1]
+=== grep -c '\d' a.txt
+0
+[1]
+=== grep '\' a.txt
+[2]
+=== grep -E '\' a.txt
+[2]
+=== grep -i -o '\a' a.txt
+[0]
+=== grep -E -i -o 'a\l' a.txt
+[0]

@@ -1,0 +1,57 @@
+=== grep -a alpha bin.dat | od -c
+0000000   b   i   n  \0   a   r   y       a   l   p   h   a  \n   s   e
+0000020   c   o   n   d       a   l   p   h   a  \n
+0000033
+[0]
+=== grep -a -c alpha bin.dat
+2
+[0]
+=== grep -a -n . bin.dat | od -c
+0000000   1   :   b   i   n  \0   a   r   y       a   l   p   h   a  \n
+0000020   2   :   s   e   c   o   n   d       a   l   p   h   a  \n
+0000037
+[0]
+=== grep -a -b . bin.dat | od -c
+0000000   0   :   b   i   n  \0   a   r   y       a   l   p   h   a  \n
+0000020   1   4   :   s   e   c   o   n   d       a   l   p   h   a  \n
+0000040
+[0]
+=== grep --binary-files=text alpha bin.dat | od -c
+0000000   b   i   n  \0   a   r   y       a   l   p   h   a  \n   s   e
+0000020   c   o   n   d       a   l   p   h   a  \n
+0000033
+[0]
+=== grep -a -o ary bin.dat
+ary
+[0]
+=== grep -a 'bin.ary' bin.dat | od -c
+0000000   b   i   n  \0   a   r   y       a   l   p   h   a  \n
+0000016
+[0]
+=== grep -a -z . bin.dat | od -c
+0000000   b   i   n  \0   a   r   y       a   l   p   h   a  \n   s   e
+0000020   c   o   n   d       a   l   p   h   a  \n  \0
+0000034
+[0]
+=== grep -a -v alpha bin.dat; echo $?
+1
+[0]
+=== grep -a alpha a.txt bin.dat | od -c
+0000000   a   .   t   x   t   :   a   l   p   h   a  \n   a   .   t   x
+0000020   t   :   a   l   p   h   a       b   e   t   a  \n   b   i   n
+0000040   .   d   a   t   :   b   i   n  \0   a   r   y       a   l   p
+0000060   h   a  \n   b   i   n   .   d   a   t   :   s   e   c   o   n
+0000100   d       a   l   p   h   a  \n
+0000110
+[0]
+=== grep -ao 'alpha' bin.dat
+alpha
+alpha
+[0]
+=== grep -a -x 'second alpha' bin.dat
+second alpha
+[0]
+=== grep -a -w ary bin.dat | od -c
+0000000   b   i   n  \0   a   r   y       a   l   p   h   a  \n
+0000016
+[0]

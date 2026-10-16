@@ -1,0 +1,112 @@
+=== grep -o alpha a.txt
+alpha
+alpha
+[0]
+=== grep -o 'a.' a.txt
+al
+am
+al
+a 
+[0]
+=== grep -o 'x*' a.txt
+[0]
+=== grep -o -e '' -e a a.txt
+a
+a
+a
+a
+a
+a
+a
+a
+[0]
+=== grep -o 'a*' a.txt
+a
+a
+a
+a
+a
+a
+a
+a
+[0]
+=== grep -o '^a' a.txt
+a
+a
+[0]
+=== grep -o 'a$' a.txt
+a
+a
+a
+a
+[0]
+=== grep -o 'l*' a.txt
+l
+l
+[0]
+=== grep -o '[a-z]*' b.txt
+one
+two
+alpha
+three
+[0]
+=== grep -o '.' nonl.txt
+a
+l
+p
+h
+a
+l
+a
+s
+t
+ 
+a
+l
+p
+h
+a
+[0]
+=== grep -oE 'a|b' a.txt
+a
+a
+b
+a
+a
+a
+a
+a
+b
+a
+[0]
+=== grep -o '\<.' a.txt
+a
+b
+g
+a
+b
+[0]
+=== grep -o 'a\b' a.txt
+a
+a
+a
+a
+a
+[0]
+=== grep -o 'alpha' bin.dat; echo $?
+0
+[0]
+=== grep -ao 'alpha' bin.dat | od -c
+0000000   a   l   p   h   a  \n   a   l   p   h   a  \n
+0000014
+[0]
+=== grep -o -x alpha a.txt
+alpha
+[0]
+=== grep -o '' a.txt; echo $?
+0
+[0]
+=== grep -o 'a' crlf.txt | od -c
+0000000   a  \n   a  \n   a  \n
+0000006
+[0]

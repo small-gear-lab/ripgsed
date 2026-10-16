@@ -67,8 +67,8 @@ pub struct Options {
     pub directories: Directories,
     pub devices: Devices,
     pub dereference_recursive: bool,
-    pub include: Vec<Vec<u8>>,
-    pub exclude: Vec<Vec<u8>>,
+    /// `--include` (true) and `--exclude` (false) in the order they were given.
+    pub file_patterns: Vec<(bool, Vec<u8>)>,
     pub exclude_dir: Vec<Vec<u8>>,
     pub initial_tab: bool,
     pub null: bool,
@@ -147,7 +147,6 @@ enum Opt {
     NoGroupSeparator,
     Color,
     Binary,
-    UnixByteOffsets,
     ObsoleteIgnoreCase,
     Digit(u8),
 }
@@ -199,7 +198,6 @@ const LONG_OPTIONS: &[(&str, Arg, Opt)] = &[
     ("silent", Arg::No, Opt::Quiet),
     ("text", Arg::No, Opt::Text),
     ("binary", Arg::No, Opt::Binary),
-    ("unix-byte-offsets", Arg::No, Opt::UnixByteOffsets),
     ("version", Arg::No, Opt::Version),
     ("with-filename", Arg::No, Opt::WithFilename),
     ("word-regexp", Arg::No, Opt::Word),
@@ -237,7 +235,6 @@ const SHORT_OPTIONS: &[(char, Arg, Opt)] = &[
     ('q', Arg::No, Opt::Quiet),
     ('r', Arg::No, Opt::Recursive),
     ('s', Arg::No, Opt::NoMessages),
-    ('u', Arg::No, Opt::UnixByteOffsets),
     ('v', Arg::No, Opt::Invert),
     ('w', Arg::No, Opt::Word),
     ('x', Arg::No, Opt::Line),
@@ -315,8 +312,7 @@ pub fn parse(args: Vec<Vec<u8>>, program: &str, default_kind: Kind) -> Parsed {
         directories: Directories::Read,
         devices: Devices::ReadCommandLine,
         dereference_recursive: false,
-        include: Vec::new(),
-        exclude: Vec::new(),
+        file_patterns: Vec::new(),
         exclude_dir: Vec::new(),
         initial_tab: false,
         null: false,
@@ -329,7 +325,8 @@ pub fn parse(args: Vec<Vec<u8>>, program: &str, default_kind: Kind) -> Parsed {
     let posixly_correct = std::env::var_os("POSIXLY_CORRECT").is_some();
     let mut have_pattern = false;
     let mut operands: Vec<Vec<u8>> = Vec::new();
-    let mut matcher_set: Option<Kind> = None;
+    // `egrep` and `fgrep` are `grep -E` and `grep -F`: another matcher is a conflict.
+    let mut matcher_set: Option<Kind> = (default_kind != Kind::Basic).then_some(default_kind);
     let mut default_context: Option<u64> = None;
     let mut show_help = false;
     let mut show_version = false;
@@ -570,15 +567,15 @@ pub fn parse(args: Vec<Vec<u8>>, program: &str, default_kind: Kind) -> Parsed {
                     o.directories = Directories::Recurse;
                     o.dereference_recursive = true;
                 }
-                Opt::Include => o.include.push(value.unwrap_or_default()),
-                Opt::Exclude => o.exclude.push(value.unwrap_or_default()),
+                Opt::Include => o.file_patterns.push((true, value.unwrap_or_default())),
+                Opt::Exclude => o.file_patterns.push((false, value.unwrap_or_default())),
                 Opt::ExcludeFrom => {
                     let name = value_text.clone();
                     match std::fs::read(crate::io::bytes_path(value.as_deref().unwrap_or_default())) {
                         Ok(b) => {
                             for line in b.split(|&c| c == b'\n') {
                                 if !line.is_empty() {
-                                    o.exclude.push(line.to_vec());
+                                    o.file_patterns.push((false, line.to_vec()));
                                 }
                             }
                         }
@@ -604,9 +601,6 @@ pub fn parse(args: Vec<Vec<u8>>, program: &str, default_kind: Kind) -> Parsed {
                 Opt::NoGroupSeparator => o.group_separator = Some(None),
                 Opt::Color => color_when = Some(value_text),
                 Opt::Binary => {}
-                Opt::UnixByteOffsets => {
-                    eprintln!("{program}: warning: --unix-byte-offsets (-u) is obsolete");
-                }
             }
             if status_error {
                 return Parsed::Error(2);

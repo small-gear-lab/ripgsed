@@ -1,0 +1,56 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+printf '%s\n' '=== grep -o . utf8.txt'
+grep -o . utf8.txt
+echo "[$?]"
+printf '%s\n' '=== grep -c . utf8.txt'
+grep -c . utf8.txt
+echo "[$?]"
+printf '%s\n' '=== grep -i '\''CAFÉ'\'' utf8.txt'
+grep -i 'CAFÉ' utf8.txt
+echo "[$?]"
+printf '%s\n' '=== grep -ob '\''ï'\'' utf8.txt'
+grep -ob 'ï' utf8.txt
+echo "[$?]"
+printf '%s\n' '=== grep -o '\''na.ve'\'' utf8.txt'
+grep -o 'na.ve' utf8.txt
+echo "[$?]"
+printf '%s\n' '=== grep -w '\''na.ve'\'' utf8.txt'
+grep -w 'na.ve' utf8.txt
+echo "[$?]"
+printf '%s\n' '=== grep -o '\''[[:alpha:]]*'\'' utf8.txt'
+grep -o '[[:alpha:]]*' utf8.txt
+echo "[$?]"
+printf '%s\n' '=== grep -o '\''\w\+'\'' utf8.txt'
+grep -o '\w\+' utf8.txt
+echo "[$?]"
+printf '%s\n' '=== grep -o '\''[^a-z]'\'' utf8.txt'
+grep -o '[^a-z]' utf8.txt
+echo "[$?]"
+printf '%s\n' '=== grep -i '\''あ'\'' utf8.txt'
+grep -i 'あ' utf8.txt
+echo "[$?]"
+printf '%s\n' '=== grep -o '\''あ*'\'' utf8.txt'
+grep -o 'あ*' utf8.txt
+echo "[$?]"
+printf '%s\n' '=== grep -c '\''^.\{3\}$'\'' utf8.txt'
+grep -c '^.\{3\}$' utf8.txt
+echo "[$?]"
+printf '%s\n' '=== grep -x '\''.\{4\}'\'' utf8.txt'
+grep -x '.\{4\}' utf8.txt
+echo "[$?]"
+printf '%s\n' '=== grep -F '\''café'\'' utf8.txt'
+grep -F 'café' utf8.txt
+echo "[$?]"
+printf '%s\n' '=== grep -oi '\''NÏVE'\'' utf8.txt'
+grep -oi 'NÏVE' utf8.txt
+echo "[$?]"
+printf '%s\n' '=== grep -o -E '\''[あ-う]+'\'' utf8.txt'
+grep -o -E '[あ-う]+' utf8.txt
+echo "[$?]"
+printf '%s\n' '=== grep -c '\''[[:upper:]]'\'' utf8.txt'
+grep -c '[[:upper:]]' utf8.txt
+echo "[$?]"
+printf '%s\n' '=== grep -io '\''CAF.'\'' utf8.txt'
+grep -io 'CAF.' utf8.txt
+echo "[$?]"

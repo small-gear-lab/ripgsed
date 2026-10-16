@@ -1,0 +1,3 @@
+grep: warning: GREP_COLOR='4' is deprecated; use GREP_COLORS='mt=4'
+grep: warning: GREP_COLOR='4' is deprecated; use GREP_COLORS='mt=4'
+grep: warning: GREP_COLOR='1;32' is deprecated; use GREP_COLORS='mt=1;32'

@@ -1,0 +1,47 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+printf '%s\n' '=== grep alpha nonl.txt | od -c'
+grep alpha nonl.txt | od -c
+echo "[$?]"
+printf '%s\n' '=== grep -c '\'''\'' nonl.txt'
+grep -c '' nonl.txt
+echo "[$?]"
+printf '%s\n' '=== grep -v zzz nonl.txt | od -c'
+grep -v zzz nonl.txt | od -c
+echo "[$?]"
+printf '%s\n' '=== grep last nonl.txt a.txt | od -c'
+grep last nonl.txt a.txt | od -c
+echo "[$?]"
+printf '%s\n' '=== grep -o last nonl.txt | od -c'
+grep -o last nonl.txt | od -c
+echo "[$?]"
+printf '%s\n' '=== grep -n last nonl.txt'
+grep -n last nonl.txt
+echo "[$?]"
+printf '%s\n' '=== grep alpha crlf.txt | od -c'
+grep alpha crlf.txt | od -c
+echo "[$?]"
+printf '%s\n' '=== grep -c '\''alpha$'\'' crlf.txt'
+grep -c 'alpha$' crlf.txt
+echo "[$?]"
+printf '%s\n' '=== grep -o '\''a.$'\'' crlf.txt | od -c'
+grep -o 'a.$' crlf.txt | od -c
+echo "[$?]"
+printf '%s\n' '=== grep -U alpha crlf.txt | od -c'
+grep -U alpha crlf.txt | od -c
+echo "[$?]"
+printf '%s\n' '=== grep --line-buffered alpha a.txt'
+grep --line-buffered alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -h last nonl.txt nonl.txt | od -c'
+grep -h last nonl.txt nonl.txt | od -c
+echo "[$?]"
+printf '%s\n' '=== printf '\''x'\'' | grep x | od -c'
+printf 'x' | grep x | od -c
+echo "[$?]"
+printf '%s\n' '=== printf '\'''\'' | grep -c x'
+printf '' | grep -c x
+echo "[$?]"
+printf '%s\n' '=== printf '\''\n'\'' | grep -c '\'''\'''
+printf '\n' | grep -c ''
+echo "[$?]"

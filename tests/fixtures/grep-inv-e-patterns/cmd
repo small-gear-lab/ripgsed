@@ -1,0 +1,22 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+printf '%s\n' '=== grep -e alpha -e beta a.txt'
+grep -e alpha -e beta a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -e alpha -e beta -c a.txt'
+grep -e alpha -e beta -c a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -e alpha a.txt -e gamma'
+grep -e alpha a.txt -e gamma
+echo "[$?]"
+printf '%s\n' '=== grep -e '\''alpha
+beta'\'' a.txt'
+grep -e 'alpha
+beta' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -e alpha -e '\'''\'' -c a.txt'
+grep -e alpha -e '' -c a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -E '\''a|b'\'' -e c a.txt'
+grep -E 'a|b' -e c a.txt
+echo "[$?]"

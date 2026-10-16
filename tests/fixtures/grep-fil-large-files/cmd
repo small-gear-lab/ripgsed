@@ -1,0 +1,99 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+awk 'BEGIN { for (i = 1; i <= 60000; i++) printf "L%05d %s\n", i, (i % 7 ? "alpha" : "beta") }' > big.txt
+printf '%s\n' '=== grep -c alpha big.txt'
+grep -c alpha big.txt
+echo "[$?]"
+printf '%s\n' '=== grep -n '\''L59999'\'' big.txt'
+grep -n 'L59999' big.txt
+echo "[$?]"
+printf '%s\n' '=== grep -nb '\''L45000'\'' big.txt'
+grep -nb 'L45000' big.txt
+echo "[$?]"
+printf '%s\n' '=== grep -c beta big.txt'
+grep -c beta big.txt
+echo "[$?]"
+printf '%s\n' '=== grep -m3 beta big.txt'
+grep -m3 beta big.txt
+echo "[$?]"
+printf '%s\n' '=== grep -m3 -A2 beta big.txt'
+grep -m3 -A2 beta big.txt
+echo "[$?]"
+printf '%s\n' '=== grep -C2 '\''L04999'\'' big.txt'
+grep -C2 'L04999' big.txt
+echo "[$?]"
+printf '%s\n' '=== grep -C3 '\''L07561'\'' big.txt'
+grep -C3 'L07561' big.txt
+echo "[$?]"
+printf '%s\n' '=== grep -C3 '\''L07562'\'' big.txt'
+grep -C3 'L07562' big.txt
+echo "[$?]"
+printf '%s\n' '=== grep -B3 '\''L15123'\'' big.txt'
+grep -B3 'L15123' big.txt
+echo "[$?]"
+printf '%s\n' '=== grep -A3 '\''L15122'\'' big.txt'
+grep -A3 'L15122' big.txt
+echo "[$?]"
+printf '%s\n' '=== grep -n -B2 -A2 '\''L22685'\'' big.txt'
+grep -n -B2 -A2 'L22685' big.txt
+echo "[$?]"
+printf '%s\n' '=== grep -c . big.txt'
+grep -c . big.txt
+echo "[$?]"
+printf '%s\n' '=== grep -vc alpha big.txt'
+grep -vc alpha big.txt
+echo "[$?]"
+printf '%s\n' '=== grep -c L big.txt big.txt'
+grep -c L big.txt big.txt
+echo "[$?]"
+printf '%s\n' '=== grep -b '\''^L3000'\'' big.txt'
+grep -b '^L3000' big.txt
+echo "[$?]"
+printf '%s\n' '=== grep -o '\''L0000.'\'' big.txt'
+grep -o 'L0000.' big.txt
+echo "[$?]"
+printf '%s\n' '=== grep -l beta big.txt'
+grep -l beta big.txt
+echo "[$?]"
+printf '%s\n' '=== grep -L beta big.txt'
+grep -L beta big.txt
+echo "[$?]"
+printf '%s\n' '=== cat big.txt | grep -c beta'
+cat big.txt | grep -c beta
+echo "[$?]"
+printf '%s\n' '=== cat big.txt | grep -n '\''L59999'\'''
+cat big.txt | grep -n 'L59999'
+echo "[$?]"
+printf '%s\n' '=== head -c 100000 big.txt | grep -c L'
+head -c 100000 big.txt | grep -c L
+echo "[$?]"
+printf '%s\n' '=== head -c 98304 big.txt | grep -c L'
+head -c 98304 big.txt | grep -c L
+echo "[$?]"
+printf '%s\n' '=== head -c 98305 big.txt | grep -c L'
+head -c 98305 big.txt | grep -c L
+echo "[$?]"
+printf '%s\n' '=== grep -c '\'''\'' big.txt'
+grep -c '' big.txt
+echo "[$?]"
+printf '%s\n' '=== grep -x '\''L00001 alpha'\'' big.txt'
+grep -x 'L00001 alpha' big.txt
+echo "[$?]"
+printf '%s\n' '=== grep -w '\''beta'\'' -c big.txt'
+grep -w 'beta' -c big.txt
+echo "[$?]"
+printf '%s\n' '=== grep -F '\''L12345'\'' big.txt'
+grep -F 'L12345' big.txt
+echo "[$?]"
+printf '%s\n' '=== grep -i '\''l12345'\'' big.txt'
+grep -i 'l12345' big.txt
+echo "[$?]"
+printf '%s\n' '=== grep -E '\''L1234[0-9]'\'' -c big.txt'
+grep -E 'L1234[0-9]' -c big.txt
+echo "[$?]"
+printf '%s\n' '=== grep -A1 -m2 '\''L0000[1-9]'\'' big.txt'
+grep -A1 -m2 'L0000[1-9]' big.txt
+echo "[$?]"
+printf '%s\n' '=== sed '\''$d'\'' big.txt | head -c 700000 | grep -c L'
+sed '$d' big.txt | head -c 700000 | grep -c L
+echo "[$?]"

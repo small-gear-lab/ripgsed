@@ -1,0 +1,42 @@
+=== grep -A x alpha a.txt
+[2]
+=== grep -A -1 alpha a.txt
+[2]
+=== grep -B 1x alpha a.txt
+[2]
+=== grep -C '' alpha a.txt
+[2]
+=== grep -m x alpha a.txt
+[2]
+=== grep -m -1 alpha a.txt
+alpha
+alpha beta
+[0]
+=== grep -m 99999999999999999999 alpha a.txt
+alpha
+alpha beta
+[0]
+=== grep -d foo alpha a.txt
+[1]
+=== grep -D foo alpha a.txt
+[2]
+=== grep -X foo alpha a.txt
+[2]
+=== grep -X egrep 'a|b' a.txt
+alpha
+beta
+gamma
+alpha beta
+[0]
+=== grep --binary-files=foo alpha a.txt
+[2]
+=== grep -E -F alpha a.txt
+[2]
+=== grep -G -P alpha a.txt
+[2]
+=== grep -E -E 'a|b' a.txt
+alpha
+beta
+gamma
+alpha beta
+[0]

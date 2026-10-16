@@ -1,0 +1,42 @@
+=== grep -l alpha a.txt b.txt empty
+a.txt
+b.txt
+[0]
+=== grep -l zzz a.txt
+[1]
+=== grep -lv alpha a.txt b.txt
+a.txt
+b.txt
+[0]
+=== grep -l alpha a.txt nosuch b.txt
+a.txt
+b.txt
+[2]
+=== grep -l alpha - < a.txt
+(standard input)
+[0]
+=== grep -lc alpha a.txt
+a.txt
+[0]
+=== grep -ln alpha a.txt
+a.txt
+[0]
+=== grep -l -m1 alpha a.txt
+a.txt
+[0]
+=== grep -lZ alpha a.txt b.txt | od -c
+0000000   a   .   t   x   t  \0   b   .   t   x   t  \0
+0000014
+[0]
+=== grep -ls alpha nosuch a.txt
+a.txt
+[2]
+=== grep -lo alpha a.txt
+a.txt
+[0]
+=== grep -lH alpha a.txt
+a.txt
+[0]
+=== grep -l -A1 alpha a.txt
+a.txt
+[0]

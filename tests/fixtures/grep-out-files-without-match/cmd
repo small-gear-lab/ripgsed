@@ -1,0 +1,41 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+printf '%s\n' '=== grep -L alpha a.txt b.txt empty'
+grep -L alpha a.txt b.txt empty
+echo "[$?]"
+printf '%s\n' '=== grep -L zzz a.txt'
+grep -L zzz a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -Lv alpha a.txt b.txt'
+grep -Lv alpha a.txt b.txt
+echo "[$?]"
+printf '%s\n' '=== grep -L alpha a.txt nosuch b.txt'
+grep -L alpha a.txt nosuch b.txt
+echo "[$?]"
+printf '%s\n' '=== grep -L alpha - < empty'
+grep -L alpha - < empty
+echo "[$?]"
+printf '%s\n' '=== grep -Lc zzz a.txt'
+grep -Lc zzz a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -L -m1 alpha a.txt b.txt'
+grep -L -m1 alpha a.txt b.txt
+echo "[$?]"
+printf '%s\n' '=== grep -LZ zzz a.txt b.txt | od -c'
+grep -LZ zzz a.txt b.txt | od -c
+echo "[$?]"
+printf '%s\n' '=== grep -L zzz a.txt; echo $?'
+grep -L zzz a.txt; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -L alpha a.txt; echo $?'
+grep -L alpha a.txt; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -L alpha a.txt empty; echo $?'
+grep -L alpha a.txt empty; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -L -m0 alpha a.txt; echo $?'
+grep -L -m0 alpha a.txt; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -L -v '\'''\'' a.txt'
+grep -L -v '' a.txt
+echo "[$?]"

@@ -1,0 +1,38 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+printf '%s\n' '=== ( grep -m1 alpha; cat ) < a.txt'
+( grep -m1 alpha; cat ) < a.txt
+echo "[$?]"
+printf '%s\n' '=== ( grep -m2 -A1 alpha; cat ) < a.txt'
+( grep -m2 -A1 alpha; cat ) < a.txt
+echo "[$?]"
+printf '%s\n' '=== ( grep -m1 beta; echo --; grep -m1 gamma; echo --; cat ) < a.txt'
+( grep -m1 beta; echo --; grep -m1 gamma; echo --; cat ) < a.txt
+echo "[$?]"
+printf '%s\n' '=== ( grep -q alpha; cat ) < a.txt'
+( grep -q alpha; cat ) < a.txt
+echo "[$?]"
+printf '%s\n' '=== ( grep -l alpha; cat ) < a.txt'
+( grep -l alpha; cat ) < a.txt
+echo "[$?]"
+printf '%s\n' '=== ( grep -c alpha; cat ) < a.txt'
+( grep -c alpha; cat ) < a.txt
+echo "[$?]"
+printf '%s\n' '=== ( head -n 1; grep alpha ) < a.txt'
+( head -n 1; grep alpha ) < a.txt
+echo "[$?]"
+printf '%s\n' '=== ( grep -m1 -c alpha; cat ) < a.txt'
+( grep -m1 -c alpha; cat ) < a.txt
+echo "[$?]"
+printf '%s\n' '=== ( grep -m1 -v alpha; cat ) < a.txt'
+( grep -m1 -v alpha; cat ) < a.txt
+echo "[$?]"
+printf '%s\n' '=== ( grep -m1 zzz; cat ) < a.txt'
+( grep -m1 zzz; cat ) < a.txt
+echo "[$?]"
+printf '%s\n' '=== ( grep -m1 -n alpha - a.txt; cat ) < b.txt'
+( grep -m1 -n alpha - a.txt; cat ) < b.txt
+echo "[$?]"
+printf '%s\n' '=== cat a.txt | ( grep -m1 alpha; cat )'
+cat a.txt | ( grep -m1 alpha; cat )
+echo "[$?]"

@@ -1,0 +1,70 @@
+=== grep -m1 -A1 alpha a.txt
+alpha
+beta
+[0]
+=== grep -m1 -A2 hit ctx.txt
+line 3 hit
+line 4 hit
+line 5
+[0]
+=== grep -m1 -C2 hit ctx.txt a.txt
+ctx.txt-line 1
+ctx.txt-line 2
+ctx.txt:line 3 hit
+ctx.txt-line 4 hit
+ctx.txt-line 5
+[0]
+=== grep -m2 -A1 hit ctx.txt
+line 3 hit
+line 4 hit
+line 5
+[0]
+=== grep -m2 -B1 -n hit ctx.txt
+2-line 2
+3:line 3 hit
+4:line 4 hit
+[0]
+=== grep -m1 -A3 -n 'line 3' ctx.txt
+3:line 3 hit
+4-line 4 hit
+5-line 5
+6-line 6
+[0]
+=== grep -m1 -A1 '' a.txt
+alpha
+beta
+[0]
+=== grep -m2 -A5 hit ctx.txt
+line 3 hit
+line 4 hit
+line 5
+line 6
+line 7
+line 8
+line 9 hit
+[0]
+=== grep -m1 -B1 hit ctx.txt
+line 2
+line 3 hit
+[0]
+=== grep -m3 -A1 -v line ctx.txt; echo $?
+1
+[0]
+=== grep -m1 -A1 -c hit ctx.txt
+1
+[0]
+=== grep -m1 -A1 hit ctx.txt ctx.txt
+ctx.txt:line 3 hit
+ctx.txt-line 4 hit
+--
+ctx.txt:line 3 hit
+ctx.txt-line 4 hit
+[0]
+=== grep -m1 -A2 alpha a.txt b.txt
+a.txt:alpha
+a.txt-beta
+a.txt-gamma
+--
+b.txt:two alpha
+b.txt-three
+[0]

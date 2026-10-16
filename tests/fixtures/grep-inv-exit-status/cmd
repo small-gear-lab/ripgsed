@@ -1,0 +1,41 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+printf '%s\n' '=== grep alpha a.txt >/dev/null; echo $?'
+grep alpha a.txt >/dev/null; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep zzz a.txt; echo $?'
+grep zzz a.txt; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep alpha nosuch; echo $?'
+grep alpha nosuch; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep alpha nosuch a.txt >/dev/null; echo $?'
+grep alpha nosuch a.txt >/dev/null; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -q alpha a.txt; echo $?'
+grep -q alpha a.txt; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -q alpha nosuch a.txt; echo $?'
+grep -q alpha nosuch a.txt; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -q zzz nosuch a.txt; echo $?'
+grep -q zzz nosuch a.txt; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -s alpha nosuch a.txt >/dev/null; echo $?'
+grep -s alpha nosuch a.txt >/dev/null; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -v alpha a.txt >/dev/null; echo $?'
+grep -v alpha a.txt >/dev/null; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -c zzz a.txt; echo $?'
+grep -c zzz a.txt; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -L alpha a.txt; echo $?'
+grep -L alpha a.txt; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -L zzz a.txt; echo $?'
+grep -L zzz a.txt; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -l zzz a.txt; echo $?'
+grep -l zzz a.txt; echo $?
+echo "[$?]"

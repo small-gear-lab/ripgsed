@@ -1,0 +1,32 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+printf '%s\n' '=== grep'
+grep
+echo "[$?]"
+printf '%s\n' '=== grep -e'
+grep -e
+echo "[$?]"
+printf '%s\n' '=== grep -N alpha a.txt'
+grep -N alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -J alpha a.txt'
+grep -J alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep --foo alpha a.txt'
+grep --foo alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep --regexp'
+grep --regexp
+echo "[$?]"
+printf '%s\n' '=== grep -A'
+grep -A
+echo "[$?]"
+printf '%s\n' '=== grep -m'
+grep -m
+echo "[$?]"
+printf '%s\n' '=== grep --max-count'
+grep --max-count
+echo "[$?]"
+printf '%s\n' '=== grep -f'
+grep -f
+echo "[$?]"

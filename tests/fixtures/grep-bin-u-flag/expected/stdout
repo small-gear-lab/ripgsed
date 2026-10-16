@@ -1,0 +1,27 @@
+=== grep -U alpha a.txt
+alpha
+alpha beta
+[0]
+=== grep -U alpha crlf.txt | od -c
+0000000   a   l   p   h   a  \r  \n
+0000007
+[0]
+=== grep -U alpha bin.dat
+[0]
+=== grep --binary alpha a.txt
+alpha
+alpha beta
+[0]
+=== grep -U -c alpha crlf.txt
+1
+[0]
+=== grep -U -o 'a.' crlf.txt | od -c
+0000000   a   l  \n   a  \r  \n   a  \r  \n
+0000011
+[0]
+=== grep -U 'a$' crlf.txt; echo $?
+1
+[0]
+=== grep -U -c 'a.$' crlf.txt
+2
+[0]

@@ -1,0 +1,96 @@
+=== grep -r alpha . 2>&1 | sort
+./a.txt:alpha
+./a.txt:alpha beta
+./b.txt:two alpha
+./bad.txt:café alpha
+./bad.txt:plain alpha
+./crlf.txt:alpha
+./d/c.txt:alpha in d
+./d/sub/e.log:alpha log
+./nonl.txt:alpha
+./nonl.txt:last alpha
+./pats.txt:alpha
+./sp ace.txt:alpha with space
+./utf8.txt:naÃ¯ve alpha
+grep: ./bin.dat: binary file matches
+grep: ./z.dat: binary file matches
+[0]
+=== grep -R alpha . 2>&1 | sort
+./a.txt:alpha
+./a.txt:alpha beta
+./b.txt:two alpha
+./bad.txt:café alpha
+./bad.txt:plain alpha
+./crlf.txt:alpha
+./d/c.txt:alpha in d
+./d/sub/e.log:alpha log
+./dlink/c.txt:alpha in d
+./dlink/sub/e.log:alpha log
+./link.txt:alpha
+./link.txt:alpha beta
+./nonl.txt:alpha
+./nonl.txt:last alpha
+./pats.txt:alpha
+./sp ace.txt:alpha with space
+./utf8.txt:naÃ¯ve alpha
+grep: ./bin.dat: binary file matches
+grep: ./broken: No such file or directory
+grep: ./z.dat: binary file matches
+[0]
+=== grep -r alpha link.txt dlink 2>&1 | sort
+dlink/c.txt:alpha in d
+dlink/sub/e.log:alpha log
+link.txt:alpha
+link.txt:alpha beta
+[0]
+=== grep -R alpha link.txt dlink 2>&1 | sort
+dlink/c.txt:alpha in d
+dlink/sub/e.log:alpha log
+link.txt:alpha
+link.txt:alpha beta
+[0]
+=== grep alpha link.txt
+alpha
+alpha beta
+[0]
+=== grep -r alpha broken; echo $?
+2
+[0]
+=== grep -R alpha broken; echo $?
+2
+[0]
+=== grep -rs alpha broken; echo $?
+2
+[0]
+=== grep -rl alpha . 2>&1 | sort
+./a.txt
+./b.txt
+./bad.txt
+./bin.dat
+./crlf.txt
+./d/c.txt
+./d/sub/e.log
+./nonl.txt
+./pats.txt
+./sp ace.txt
+./utf8.txt
+./z.dat
+[0]
+=== grep -Rl alpha . 2>&1 | sort
+./a.txt
+./b.txt
+./bad.txt
+./bin.dat
+./crlf.txt
+./d/c.txt
+./d/sub/e.log
+./dlink/c.txt
+./dlink/sub/e.log
+./link.txt
+./nonl.txt
+./pats.txt
+./sp ace.txt
+./utf8.txt
+./z.dat
+grep: ./broken: No such file or directory
+[0]

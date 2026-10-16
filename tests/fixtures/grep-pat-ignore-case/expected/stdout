@@ -1,0 +1,64 @@
+=== grep -i ALPHA a.txt
+alpha
+alpha beta
+[0]
+=== grep -i 'B[A-Z]*A' a.txt
+beta
+alpha beta
+[0]
+=== grep -i -o 'FOO' words.txt
+foo
+foo
+foo
+foo
+foo
+Foo
+foo
+foo
+foo
+[0]
+=== grep -i -c 'foo' words.txt
+4
+[0]
+=== grep -i '[A-C]lpha' a.txt
+alpha
+alpha beta
+[0]
+=== grep -i -E 'ALPHA|BETA' a.txt
+alpha
+beta
+alpha beta
+[0]
+=== grep -i -w FOO words.txt
+foo foobar barfoo foo_bar foo-bar Foo
+foo
+(foo)
+[0]
+=== grep -i -x FOO words.txt
+foo
+[0]
+=== grep -i --no-ignore-case ALPHA a.txt
+[1]
+=== grep --no-ignore-case -i ALPHA a.txt
+alpha
+alpha beta
+[0]
+=== grep -i '\(A\)\1' words.txt
+[1]
+=== grep -i -o '\bFOO' words.txt
+foo
+foo
+foo
+foo
+Foo
+foo
+foo
+foo
+[0]
+=== grep -i '[[:upper:]]' -c a.txt
+4
+[0]
+=== grep -i -F ALPHA a.txt
+alpha
+alpha beta
+[0]

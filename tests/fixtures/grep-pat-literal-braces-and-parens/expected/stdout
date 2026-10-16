@@ -1,0 +1,42 @@
+=== grep -E 'a{1' a.txt words.txt
+[1]
+=== grep -E 'a{1,2' a.txt
+[1]
+=== grep -E 'a{x}' a.txt
+[1]
+=== grep -E 'a{,}' -c a.txt
+4
+[0]
+=== grep -E 'a)' a.txt words.txt
+[1]
+=== grep -E ')' a.txt words.txt
+words.txt:(foo)
+[0]
+=== grep -E '(a))' a.txt
+[1]
+=== grep -E 'o{1' words.txt
+[1]
+=== grep -E -o '(foo)' words.txt
+foo
+foo
+foo
+foo
+foo
+foo
+foo
+foo
+[0]
+=== grep '\{1\}a' a.txt
+[1]
+=== grep -o '\{1\}' a.txt words.txt
+[1]
+=== grep 'a\{1\}\{2\}' a.txt
+[1]
+=== grep -c 'a**' a.txt
+4
+[0]
+=== grep -E '(a{1)' a.txt
+[1]
+=== grep -E 'a{1}{2}' -c a.txt
+0
+[1]

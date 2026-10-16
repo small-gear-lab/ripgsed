@@ -38,15 +38,20 @@ impl Colors {
     /// The colors of the environment: `GREP_COLORS`, and `GREP_COLOR` (obsolete) for the match.
     pub fn from_env(program: &str) -> Colors {
         let mut colors = Colors::default();
-        if let Ok(value) = std::env::var("GREP_COLOR") {
-            if !value.is_empty() {
-                eprintln!("{program}: warning: GREP_COLOR='{value}' is deprecated; use GREP_COLORS='mt={value}'");
-                colors.selected_match = value.clone();
-                colors.context_match = value;
-            }
+        // GREP_COLOR (obsolete) sets both match colors, if it is made of digits and semicolons.
+        let legacy = std::env::var("GREP_COLOR").ok().filter(|v| !v.is_empty() && v.bytes().all(|b| b.is_ascii_digit() || b == b';'));
+        if let Some(value) = &legacy {
+            colors.selected_match = value.clone();
+            colors.context_match = value.clone();
         }
         if let Ok(value) = std::env::var("GREP_COLORS") {
             colors.apply(&value);
+        }
+        // It is warned about when it still has an effect after GREP_COLORS was read.
+        if let Some(value) = legacy {
+            if colors.selected_match == value || colors.context_match == value {
+                eprintln!("{program}: warning: GREP_COLOR='{value}' is deprecated; use GREP_COLORS='mt={value}'");
+            }
         }
         colors
     }

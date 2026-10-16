@@ -133,7 +133,7 @@ fn run_fixture(dir: &Path, scratch: &Path) -> Result<Outcome, String> {
         .env("RIPGSED_GLIBC_COMPAT", "1");
     // Lets the whole suite run through the parallel executor, e.g.
     // `RIPGSED_JOBS=4 RIPGSED_BLOCK=16 cargo test`.
-    for key in ["RIPGSED_JOBS", "RIPGSED_BLOCK", "RIPGSED_PARALLEL_MIN_BYTES", "LLVM_PROFILE_FILE"] {
+    for key in ["RIPGSED_JOBS", "RIPGSED_BLOCK", "RIPGSED_PARALLEL_MIN_BYTES", "LLVM_PROFILE_FILE", "LD_LIBRARY_PATH"] {
         if let Ok(value) = std::env::var(key) {
             cmd.env(key, value);
         }

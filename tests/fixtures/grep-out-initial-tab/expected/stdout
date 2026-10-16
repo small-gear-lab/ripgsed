@@ -1,0 +1,94 @@
+=== grep -T alpha a.txt
+alpha
+alpha beta
+[0]
+=== grep -T -n alpha a.txt
+ 1:	alpha
+ 4:	alpha beta
+[0]
+=== grep -T -nb alpha a.txt
+ 1: 0:	alpha
+ 4:17:	alpha beta
+[0]
+=== grep -T -H -n alpha a.txt
+a.txt: 1:	alpha
+a.txt: 4:	alpha beta
+[0]
+=== grep -T -H alpha a.txt
+a.txt:	alpha
+a.txt:	alpha beta
+[0]
+=== grep -T -b alpha a.txt
+ 0:	alpha
+17:	alpha beta
+[0]
+=== grep -T -n alpha a.txt b.txt
+a.txt: 1:	alpha
+a.txt: 4:	alpha beta
+b.txt: 2:	two alpha
+[0]
+=== grep -T -c alpha a.txt
+2
+[0]
+=== grep -T -n -C1 hit ctx.txt
+  2-	line 2
+  3:	line 3 hit
+  4:	line 4 hit
+  5-	line 5
+--
+  8-	line 8
+  9:	line 9 hit
+ 10-	line 10
+--
+ 14-	line 14
+ 15:	line 15 hit
+ 16-	line 16
+[0]
+=== grep -T -o a a.txt
+a
+a
+a
+a
+a
+a
+a
+a
+[0]
+=== grep -T -n '' empty a.txt
+a.txt: 1:	alpha
+a.txt: 2:	beta
+a.txt: 3:	gamma
+a.txt: 4:	alpha beta
+[0]
+=== grep -T -nb '' b.txt
+ 1: 0:	one
+ 2: 4:	two alpha
+ 3:14:	three
+[0]
+=== grep -T -n alpha - < a.txt
+ 1:	alpha
+ 4:	alpha beta
+[0]
+=== cat a.txt | grep -T -n alpha
+                  1:	alpha
+                  4:	alpha beta
+[0]
+=== grep -T -n 'line 1' ctx.txt
+  1:	line 1
+ 10:	line 10
+ 11:	line 11
+ 12:	line 12
+ 13:	line 13
+ 14:	line 14
+ 15:	line 15 hit
+ 16:	line 16
+ 17:	line 17
+ 18:	line 18
+ 19:	line 19
+[0]
+=== grep -T -nH hit ctx.txt
+ctx.txt:  3:	line 3 hit
+ctx.txt:  4:	line 4 hit
+ctx.txt:  9:	line 9 hit
+ctx.txt: 15:	line 15 hit
+[0]

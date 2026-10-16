@@ -1,0 +1,56 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+printf '%s\n' '=== grep -o alpha a.txt'
+grep -o alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -o '\''a.'\'' a.txt'
+grep -o 'a.' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -o '\''x*'\'' a.txt'
+grep -o 'x*' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -o -e '\'''\'' -e a a.txt'
+grep -o -e '' -e a a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -o '\''a*'\'' a.txt'
+grep -o 'a*' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -o '\''^a'\'' a.txt'
+grep -o '^a' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -o '\''a$'\'' a.txt'
+grep -o 'a$' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -o '\''l*'\'' a.txt'
+grep -o 'l*' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -o '\''[a-z]*'\'' b.txt'
+grep -o '[a-z]*' b.txt
+echo "[$?]"
+printf '%s\n' '=== grep -o '\''.'\'' nonl.txt'
+grep -o '.' nonl.txt
+echo "[$?]"
+printf '%s\n' '=== grep -oE '\''a|b'\'' a.txt'
+grep -oE 'a|b' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -o '\''\<.'\'' a.txt'
+grep -o '\<.' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -o '\''a\b'\'' a.txt'
+grep -o 'a\b' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -o '\''alpha'\'' bin.dat; echo $?'
+grep -o 'alpha' bin.dat; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -ao '\''alpha'\'' bin.dat | od -c'
+grep -ao 'alpha' bin.dat | od -c
+echo "[$?]"
+printf '%s\n' '=== grep -o -x alpha a.txt'
+grep -o -x alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -o '\'''\'' a.txt; echo $?'
+grep -o '' a.txt; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -o '\''a'\'' crlf.txt | od -c'
+grep -o 'a' crlf.txt | od -c
+echo "[$?]"

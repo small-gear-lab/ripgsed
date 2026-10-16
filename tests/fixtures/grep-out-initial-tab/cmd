@@ -1,0 +1,50 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+printf '%s\n' '=== grep -T alpha a.txt'
+grep -T alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -T -n alpha a.txt'
+grep -T -n alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -T -nb alpha a.txt'
+grep -T -nb alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -T -H -n alpha a.txt'
+grep -T -H -n alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -T -H alpha a.txt'
+grep -T -H alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -T -b alpha a.txt'
+grep -T -b alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -T -n alpha a.txt b.txt'
+grep -T -n alpha a.txt b.txt
+echo "[$?]"
+printf '%s\n' '=== grep -T -c alpha a.txt'
+grep -T -c alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -T -n -C1 hit ctx.txt'
+grep -T -n -C1 hit ctx.txt
+echo "[$?]"
+printf '%s\n' '=== grep -T -o a a.txt'
+grep -T -o a a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -T -n '\'''\'' empty a.txt'
+grep -T -n '' empty a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -T -nb '\'''\'' b.txt'
+grep -T -nb '' b.txt
+echo "[$?]"
+printf '%s\n' '=== grep -T -n alpha - < a.txt'
+grep -T -n alpha - < a.txt
+echo "[$?]"
+printf '%s\n' '=== cat a.txt | grep -T -n alpha'
+cat a.txt | grep -T -n alpha
+echo "[$?]"
+printf '%s\n' '=== grep -T -n '\''line 1'\'' ctx.txt'
+grep -T -n 'line 1' ctx.txt
+echo "[$?]"
+printf '%s\n' '=== grep -T -nH hit ctx.txt'
+grep -T -nH hit ctx.txt
+echo "[$?]"

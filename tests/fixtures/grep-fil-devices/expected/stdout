@@ -1,0 +1,38 @@
+=== grep -D skip alpha a.txt
+alpha
+alpha beta
+[0]
+=== grep -D read alpha a.txt
+alpha
+alpha beta
+[0]
+=== grep -D skip alpha - < a.txt
+alpha
+alpha beta
+[0]
+=== grep -D skip -c alpha /dev/null; echo $?
+1
+[0]
+=== grep -D read -c alpha /dev/null; echo $?
+0
+1
+[0]
+=== grep -c alpha /dev/null; echo $?
+0
+1
+[0]
+=== grep -r -D skip alpha d 2>&1 | sort
+d/c.txt:alpha in d
+d/sub/e.log:alpha log
+[0]
+=== grep -D skip alpha a.txt b.txt 2>&1 | sort
+a.txt:alpha
+a.txt:alpha beta
+b.txt:two alpha
+[0]
+=== printf 'alpha\n' | grep -D skip alpha
+alpha
+[0]
+=== printf 'alpha\n' | grep -D skip alpha -
+alpha
+[0]

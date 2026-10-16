@@ -1,0 +1,63 @@
+=== grep -E '*a' words.txt
+foo foobar barfoo foo_bar foo-bar Foo
+foobar
+[0]
+=== grep -E '+a' words.txt
+foo foobar barfoo foo_bar foo-bar Foo
+foobar
+[0]
+=== grep -E '?a' words.txt
+foo foobar barfoo foo_bar foo-bar Foo
+foobar
+[0]
+=== grep -E '{1}a' words.txt
+foo foobar barfoo foo_bar foo-bar Foo
+foobar
+[0]
+=== grep -E '(*a)' words.txt
+foo foobar barfoo foo_bar foo-bar Foo
+foobar
+[0]
+=== grep -E '(+a)' words.txt
+foo foobar barfoo foo_bar foo-bar Foo
+foobar
+[0]
+=== grep -E 'a|*b' b.txt
+two alpha
+[0]
+=== grep -E '^*a' a.txt
+alpha
+beta
+gamma
+alpha beta
+[0]
+=== grep -E '^+' -c a.txt
+4
+[0]
+=== grep -E 'x^*' -c a.txt
+0
+[1]
+=== grep -E 'a$*' -c a.txt
+4
+[0]
+=== grep -E '\<*a' -c a.txt
+4
+[0]
+=== grep -E '*' -c a.txt
+4
+[0]
+=== grep -E '**a' -c a.txt
+4
+[0]
+=== grep -E 'a**' -c a.txt
+4
+[0]
+=== grep -E 'a+*' -c a.txt
+4
+[0]
+=== grep -E '{' -c a.txt
+0
+[1]
+=== grep -E '{,1}a' -c a.txt
+4
+[0]

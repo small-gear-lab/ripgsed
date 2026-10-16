@@ -1,0 +1,4 @@
+=== grep -y ALPHA a.txt
+alpha
+alpha beta
+[0]

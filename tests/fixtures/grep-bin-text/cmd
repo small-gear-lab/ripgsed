@@ -1,0 +1,41 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+printf '%s\n' '=== grep -a alpha bin.dat | od -c'
+grep -a alpha bin.dat | od -c
+echo "[$?]"
+printf '%s\n' '=== grep -a -c alpha bin.dat'
+grep -a -c alpha bin.dat
+echo "[$?]"
+printf '%s\n' '=== grep -a -n . bin.dat | od -c'
+grep -a -n . bin.dat | od -c
+echo "[$?]"
+printf '%s\n' '=== grep -a -b . bin.dat | od -c'
+grep -a -b . bin.dat | od -c
+echo "[$?]"
+printf '%s\n' '=== grep --binary-files=text alpha bin.dat | od -c'
+grep --binary-files=text alpha bin.dat | od -c
+echo "[$?]"
+printf '%s\n' '=== grep -a -o ary bin.dat'
+grep -a -o ary bin.dat
+echo "[$?]"
+printf '%s\n' '=== grep -a '\''bin.ary'\'' bin.dat | od -c'
+grep -a 'bin.ary' bin.dat | od -c
+echo "[$?]"
+printf '%s\n' '=== grep -a -z . bin.dat | od -c'
+grep -a -z . bin.dat | od -c
+echo "[$?]"
+printf '%s\n' '=== grep -a -v alpha bin.dat; echo $?'
+grep -a -v alpha bin.dat; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -a alpha a.txt bin.dat | od -c'
+grep -a alpha a.txt bin.dat | od -c
+echo "[$?]"
+printf '%s\n' '=== grep -ao '\''alpha'\'' bin.dat'
+grep -ao 'alpha' bin.dat
+echo "[$?]"
+printf '%s\n' '=== grep -a -x '\''second alpha'\'' bin.dat'
+grep -a -x 'second alpha' bin.dat
+echo "[$?]"
+printf '%s\n' '=== grep -a -w ary bin.dat | od -c'
+grep -a -w ary bin.dat | od -c
+echo "[$?]"

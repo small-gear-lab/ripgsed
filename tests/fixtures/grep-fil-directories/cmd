@@ -1,0 +1,44 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+printf '%s\n' '=== grep alpha d; echo $?'
+grep alpha d; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -s alpha d; echo $?'
+grep -s alpha d; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -c alpha d'
+grep -c alpha d
+echo "[$?]"
+printf '%s\n' '=== grep -c alpha d a.txt'
+grep -c alpha d a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -L alpha d'
+grep -L alpha d
+echo "[$?]"
+printf '%s\n' '=== grep -l alpha d a.txt'
+grep -l alpha d a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -d read alpha d'
+grep -d read alpha d
+echo "[$?]"
+printf '%s\n' '=== grep -d skip alpha d a.txt; echo $?'
+grep -d skip alpha d a.txt; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -d recurse alpha d 2>&1 | sort'
+grep -d recurse alpha d 2>&1 | sort
+echo "[$?]"
+printf '%s\n' '=== grep -d skip -c alpha d; echo $?'
+grep -d skip -c alpha d; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep --directories=skip alpha d a.txt'
+grep --directories=skip alpha d a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -n alpha d a.txt'
+grep -n alpha d a.txt
+echo "[$?]"
+printf '%s\n' '=== grep alpha d d/c.txt'
+grep alpha d d/c.txt
+echo "[$?]"
+printf '%s\n' '=== grep -d skip -L alpha d; echo $?'
+grep -d skip -L alpha d; echo $?
+echo "[$?]"

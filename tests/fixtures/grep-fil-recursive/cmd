@@ -1,0 +1,68 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+printf '%s\n' '=== grep -r alpha d 2>&1 | sort'
+grep -r alpha d 2>&1 | sort
+echo "[$?]"
+printf '%s\n' '=== grep -r alpha . 2>&1 | sort'
+grep -r alpha . 2>&1 | sort
+echo "[$?]"
+printf '%s\n' '=== grep -r alpha 2>&1 | sort'
+grep -r alpha 2>&1 | sort
+echo "[$?]"
+printf '%s\n' '=== grep -rh alpha d 2>&1 | sort'
+grep -rh alpha d 2>&1 | sort
+echo "[$?]"
+printf '%s\n' '=== grep -rl alpha . 2>&1 | sort'
+grep -rl alpha . 2>&1 | sort
+echo "[$?]"
+printf '%s\n' '=== grep -rL alpha . 2>&1 | sort'
+grep -rL alpha . 2>&1 | sort
+echo "[$?]"
+printf '%s\n' '=== grep -rc alpha d 2>&1 | sort'
+grep -rc alpha d 2>&1 | sort
+echo "[$?]"
+printf '%s\n' '=== grep -rn alpha d 2>&1 | sort'
+grep -rn alpha d 2>&1 | sort
+echo "[$?]"
+printf '%s\n' '=== grep -rH alpha a.txt'
+grep -rH alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -r alpha a.txt'
+grep -r alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -r alpha d/ 2>&1 | sort'
+grep -r alpha d/ 2>&1 | sort
+echo "[$?]"
+printf '%s\n' '=== grep -r alpha d// 2>&1 | sort'
+grep -r alpha d// 2>&1 | sort
+echo "[$?]"
+printf '%s\n' '=== grep -r alpha ./d 2>&1 | sort'
+grep -r alpha ./d 2>&1 | sort
+echo "[$?]"
+printf '%s\n' '=== grep -r alpha a.txt d 2>&1 | sort'
+grep -r alpha a.txt d 2>&1 | sort
+echo "[$?]"
+printf '%s\n' '=== grep -r -A1 alpha d 2>&1 | sort'
+grep -r -A1 alpha d 2>&1 | sort
+echo "[$?]"
+printf '%s\n' '=== grep -r alpha d/sub/e.log'
+grep -r alpha d/sub/e.log
+echo "[$?]"
+printf '%s\n' '=== grep -R alpha d 2>&1 | sort'
+grep -R alpha d 2>&1 | sort
+echo "[$?]"
+printf '%s\n' '=== grep -r --no-filename alpha . 2>&1 | sort'
+grep -r --no-filename alpha . 2>&1 | sort
+echo "[$?]"
+printf '%s\n' '=== grep -r -o alpha d 2>&1 | sort'
+grep -r -o alpha d 2>&1 | sort
+echo "[$?]"
+printf '%s\n' '=== grep -rs alpha nosuch d 2>&1 | sort'
+grep -rs alpha nosuch d 2>&1 | sort
+echo "[$?]"
+printf '%s\n' '=== grep -r alpha - < a.txt'
+grep -r alpha - < a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -ri ALPHA d 2>&1 | sort'
+grep -ri ALPHA d 2>&1 | sort
+echo "[$?]"

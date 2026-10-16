@@ -1,0 +1,71 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+printf '%s\n' '=== grep -o '\''[abc]'\'' a.txt'
+grep -o '[abc]' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -o '\''[a-c]*'\'' a.txt'
+grep -o '[a-c]*' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -o '\''[^a-m ]*'\'' a.txt'
+grep -o '[^a-m ]*' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -o '\''[]a]'\'' words.txt'
+grep -o '[]a]' words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -c '\''[^]a]'\'' a.txt'
+grep -c '[^]a]' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -o '\''[[:alpha:]]*'\'' words.txt'
+grep -o '[[:alpha:]]*' words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -o '\''[[:digit:]]'\'' ctx.txt'
+grep -o '[[:digit:]]' ctx.txt
+echo "[$?]"
+printf '%s\n' '=== grep -c '\''[[:upper:]]'\'' words.txt'
+grep -c '[[:upper:]]' words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -o '\''[[:space:]]'\'' a.txt'
+grep -o '[[:space:]]' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -o '\''[[:punct:]]'\'' words.txt'
+grep -o '[[:punct:]]' words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -o '\''[[.a.]]'\'' a.txt'
+grep -o '[[.a.]]' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -o '\''[[=a=]]'\'' a.txt'
+grep -o '[[=a=]]' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep '\''[[:foo:]]'\'' a.txt'
+grep '[[:foo:]]' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep '\''[:alpha:]'\'' a.txt'
+grep '[:alpha:]' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep '\''[[:alpha:]'\'' a.txt'
+grep '[[:alpha:]' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep '\''[a'\'' a.txt'
+grep '[a' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep '\''[b-a]'\'' a.txt'
+grep '[b-a]' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep '\''['\'' a.txt'
+grep '[' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -o '\''[.]'\'' words.txt'
+grep -o '[.]' words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -o '\''[*]'\'' words.txt'
+grep -o '[*]' words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -c '\''[\]'\'' a.txt'
+grep -c '[\]' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -o '\''[a\]'\'' a.txt'
+grep -o '[a\]' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -o '\''[a-]'\'' words.txt'
+grep -o '[a-]' words.txt
+echo "[$?]"

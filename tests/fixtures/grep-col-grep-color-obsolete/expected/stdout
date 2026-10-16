@@ -1,0 +1,20 @@
+=== GREP_COLOR='4' grep --color=always alpha a.txt
+[4m[Kalpha[m[K
+[4m[Kalpha[m[K beta
+[0]
+=== GREP_COLOR='4' GREP_COLORS='ms=5' grep --color=always alpha a.txt
+[5m[Kalpha[m[K
+[5m[Kalpha[m[K beta
+[0]
+=== GREP_COLOR='4' GREP_COLORS='mt=5' grep --color=always alpha a.txt
+[5m[Kalpha[m[K
+[5m[Kalpha[m[K beta
+[0]
+=== GREP_COLOR= grep --color=always alpha a.txt
+[01;31m[Kalpha[m[K
+[01;31m[Kalpha[m[K beta
+[0]
+=== GREP_COLOR='1;32' grep --color=always -v alpha a.txt
+beta
+gamma
+[0]

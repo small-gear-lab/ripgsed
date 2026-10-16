@@ -1,0 +1,91 @@
+=== grep -o -e a -e al a.txt
+al
+a
+a
+a
+a
+al
+a
+a
+[0]
+=== grep -o -e al -e alpha -e a a.txt
+alpha
+a
+a
+a
+alpha
+a
+[0]
+=== grep -o -e 'b.*' -e 'be' a.txt
+beta
+beta
+[0]
+=== grep -o -E 'a|al|alp' a.txt
+alp
+a
+a
+a
+a
+alp
+a
+a
+[0]
+=== grep -ob -e eta -e et a.txt
+7:eta
+24:eta
+[0]
+=== grep -o -e '' -e a a.txt
+a
+a
+a
+a
+a
+a
+a
+a
+[0]
+=== grep -o -e a* -e b a.txt
+b
+b
+[0]
+=== grep -c -e alpha -e beta -e gamma a.txt
+4
+[0]
+=== grep -n -e gamma -e alpha a.txt
+1:alpha
+3:gamma
+4:alpha beta
+[0]
+=== grep -F -o -e ph -e pha -e alpha a.txt
+alpha
+alpha
+[0]
+=== grep -w -o -e foo -e foobar words.txt
+foo
+foobar
+foo
+foo
+foobar
+foo
+[0]
+=== grep -o -e 'a' -e 'b' -e 'c' b.txt a.txt
+b.txt:a
+b.txt:a
+a.txt:a
+a.txt:a
+a.txt:b
+a.txt:a
+a.txt:a
+a.txt:a
+a.txt:a
+a.txt:a
+a.txt:b
+a.txt:a
+[0]
+=== grep -o -i -e ALPHA -e al a.txt
+alpha
+alpha
+[0]
+=== grep -ox -e alpha -e a.* a.txt
+alpha
+[0]

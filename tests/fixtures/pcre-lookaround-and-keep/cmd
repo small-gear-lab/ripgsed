@@ -1,0 +1,44 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+printf '%s\n' '=== grep -oP '\''a\Kl'\'' a.txt'
+grep -oP 'a\Kl' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -oP '\''(?<=alpha )beta'\'' a.txt'
+grep -oP '(?<=alpha )beta' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -oP '\''(?=f)'\'' words.txt; echo $?'
+grep -oP '(?=f)' words.txt; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -oP '\''o*'\'' words.txt'
+grep -oP 'o*' words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -obP '\''o'\'' words.txt'
+grep -obP 'o' words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -oP '\''(?<=foo)bar'\'' words.txt'
+grep -oP '(?<=foo)bar' words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -oP '\''foo\Kbar'\'' words.txt'
+grep -oP 'foo\Kbar' words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -oP '\''\w+(?= beta)'\'' a.txt'
+grep -oP '\w+(?= beta)' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -oP '\''(?i)ALPHA'\'' a.txt'
+grep -oP '(?i)ALPHA' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -oP '\''a(?=l)'\'' a.txt'
+grep -oP 'a(?=l)' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -oP '\''\bb\w*'\'' a.txt'
+grep -oP '\bb\w*' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -oP '\''[a-c]+'\'' a.txt'
+grep -oP '[a-c]+' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -oP '\''.\K.'\'' b.txt'
+grep -oP '.\K.' b.txt
+echo "[$?]"
+printf '%s\n' '=== grep -oP '\''^\w'\'' a.txt'
+grep -oP '^\w' a.txt
+echo "[$?]"

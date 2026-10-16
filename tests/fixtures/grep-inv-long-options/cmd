@@ -1,0 +1,50 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+printf '%s\n' '=== grep --line-number alpha a.txt'
+grep --line-number alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep --line-n alpha a.txt'
+grep --line-n alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep --count alpha a.txt'
+grep --count alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep --max-count=1 alpha a.txt'
+grep --max-count=1 alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep --max-count 1 alpha a.txt'
+grep --max-count 1 alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep --regexp=alpha a.txt'
+grep --regexp=alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep --ignore-case ALPHA a.txt'
+grep --ignore-case ALPHA a.txt
+echo "[$?]"
+printf '%s\n' '=== grep --no-filename alpha a.txt b.txt'
+grep --no-filename alpha a.txt b.txt
+echo "[$?]"
+printf '%s\n' '=== grep --with-filename alpha a.txt'
+grep --with-filename alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep --no alpha a.txt'
+grep --no alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep --co alpha a.txt'
+grep --co alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep --foo alpha a.txt'
+grep --foo alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep --count=3 alpha a.txt'
+grep --count=3 alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep --colour=never alpha a.txt'
+grep --colour=never alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep --files-with alpha a.txt'
+grep --files-with alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep --null -l alpha a.txt | od -c'
+grep --null -l alpha a.txt | od -c
+echo "[$?]"

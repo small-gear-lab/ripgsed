@@ -1,0 +1,47 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+printf '%s\n' '=== grep -q alpha a.txt; echo $?'
+grep -q alpha a.txt; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -q zzz a.txt; echo $?'
+grep -q zzz a.txt; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -q alpha nosuch a.txt; echo $?'
+grep -q alpha nosuch a.txt; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -q zzz nosuch a.txt; echo $?'
+grep -q zzz nosuch a.txt; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -qc alpha a.txt; echo $?'
+grep -qc alpha a.txt; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -ql alpha a.txt; echo $?'
+grep -ql alpha a.txt; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -qL zzz a.txt; echo $?'
+grep -qL zzz a.txt; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -qn alpha a.txt; echo $?'
+grep -qn alpha a.txt; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -qo alpha a.txt; echo $?'
+grep -qo alpha a.txt; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep --quiet alpha a.txt; echo $?'
+grep --quiet alpha a.txt; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep --silent alpha a.txt; echo $?'
+grep --silent alpha a.txt; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -q alpha d a.txt; echo $?'
+grep -q alpha d a.txt; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -q -m5 alpha d a.txt; echo $?'
+grep -q -m5 alpha d a.txt; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -q alpha bin.dat; echo $?'
+grep -q alpha bin.dat; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -q '\'''\'' empty; echo $?'
+grep -q '' empty; echo $?
+echo "[$?]"

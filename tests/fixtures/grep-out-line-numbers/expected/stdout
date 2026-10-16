@@ -1,0 +1,63 @@
+=== grep -n alpha a.txt
+1:alpha
+4:alpha beta
+[0]
+=== grep -n alpha a.txt b.txt
+a.txt:1:alpha
+a.txt:4:alpha beta
+b.txt:2:two alpha
+[0]
+=== grep -nv alpha a.txt
+2:beta
+3:gamma
+[0]
+=== grep -n '' b.txt
+1:one
+2:two alpha
+3:three
+[0]
+=== grep -nc alpha a.txt
+2
+[0]
+=== grep -n alpha nonl.txt
+1:alpha
+2:last alpha
+[0]
+=== grep -n -m1 alpha a.txt
+1:alpha
+[0]
+=== grep -no a a.txt
+1:a
+1:a
+2:a
+3:a
+3:a
+4:a
+4:a
+4:a
+[0]
+=== grep -n hit ctx.txt
+3:line 3 hit
+4:line 4 hit
+9:line 9 hit
+15:line 15 hit
+[0]
+=== grep -n 'line 1[0-9]' ctx.txt
+10:line 10
+11:line 11
+12:line 12
+13:line 13
+14:line 14
+15:line 15 hit
+16:line 16
+17:line 17
+18:line 18
+19:line 19
+[0]
+=== grep -n . empty
+[1]
+=== cat a.txt b.txt | grep -n alpha
+1:alpha
+4:alpha beta
+6:two alpha
+[0]

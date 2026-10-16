@@ -1,0 +1,40 @@
+=== grep '[' a.txt
+[2]
+=== grep '\(' a.txt
+[2]
+=== grep '\)' a.txt
+[2]
+=== grep '\' a.txt
+[2]
+=== grep 'a\{1' a.txt
+[2]
+=== grep 'a\{1,2' a.txt
+[2]
+=== grep 'a\{x\}' a.txt
+[2]
+=== grep '\(a\)\2' a.txt
+[2]
+=== grep -E '(' a.txt
+[2]
+=== grep -E 'a{1,2}{' a.txt
+[1]
+=== grep '[[:foo:]]' a.txt
+[2]
+=== grep '[[.x.]]' a.txt
+[1]
+=== grep '[[=x=]]' a.txt
+[1]
+=== grep '[b-a]' a.txt
+[2]
+=== grep 'a\{65536\}' a.txt
+[2]
+=== grep -E 'a{65536}' a.txt
+[2]
+=== grep -e '[' -e a a.txt
+[2]
+=== grep -e a -e '\(' a.txt
+[2]
+=== grep '[:space:]' a.txt
+[2]
+=== grep '[[:space:]' a.txt
+[2]

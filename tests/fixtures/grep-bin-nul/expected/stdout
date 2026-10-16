@@ -1,0 +1,61 @@
+=== grep alpha bin.dat
+[0]
+=== grep alpha bin.dat a.txt
+a.txt:alpha
+a.txt:alpha beta
+[0]
+=== grep -n alpha bin.dat a.txt
+a.txt:1:alpha
+a.txt:4:alpha beta
+[0]
+=== grep -H alpha bin.dat
+[0]
+=== grep ary bin.dat
+[0]
+=== grep bin bin.dat
+[0]
+=== grep second bin.dat
+[0]
+=== grep zzz bin.dat; echo $?
+1
+[0]
+=== grep -v alpha bin.dat; echo $?
+0
+[0]
+=== grep -v zzz bin.dat
+[0]
+=== grep . bin.dat
+[0]
+=== grep -c alpha bin.dat
+2
+[0]
+=== grep -r alpha . 2>&1 | sort
+./a.txt:alpha
+./a.txt:alpha beta
+./b.txt:two alpha
+./bad.txt:café alpha
+./bad.txt:plain alpha
+./crlf.txt:alpha
+./d/c.txt:alpha in d
+./d/sub/e.log:alpha log
+./nonl.txt:alpha
+./nonl.txt:last alpha
+./pats.txt:alpha
+./sp ace.txt:alpha with space
+./utf8.txt:naÃ¯ve alpha
+grep: ./bin.dat: binary file matches
+grep: ./z.dat: binary file matches
+[0]
+=== grep alpha bin.dat bin.dat
+[0]
+=== cat bin.dat | grep alpha
+[0]
+=== grep -s alpha bin.dat
+[0]
+=== grep alpha bin.dat 2>/dev/null; echo $?
+0
+[0]
+=== grep -h alpha bin.dat a.txt
+alpha
+alpha beta
+[0]

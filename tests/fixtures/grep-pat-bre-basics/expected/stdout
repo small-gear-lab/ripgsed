@@ -1,0 +1,56 @@
+=== grep 'al.ha' a.txt
+alpha
+alpha beta
+[0]
+=== grep 'a*' -c a.txt
+4
+[0]
+=== grep -o 'a*' a.txt
+a
+a
+a
+a
+a
+a
+a
+a
+[0]
+=== grep '^alpha' a.txt
+alpha
+alpha beta
+[0]
+=== grep 'beta$' a.txt
+beta
+alpha beta
+[0]
+=== grep '^$' words.txt empty
+[1]
+=== grep -c '^$' empty a.txt
+empty:0
+a.txt:0
+[1]
+=== grep 'a.*a' a.txt
+alpha
+gamma
+alpha beta
+[0]
+=== grep -o 'l*' a.txt
+l
+l
+[0]
+=== grep 'a\.b' words.txt
+[1]
+=== grep -c . a.txt
+4
+[0]
+=== grep '^a.*a$' a.txt
+alpha
+alpha beta
+[0]
+=== grep 'x*' -c a.txt
+4
+[0]
+=== grep -o 'ph.' a.txt
+pha
+pha
+[0]

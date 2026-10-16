@@ -1,0 +1,14 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+printf '%s\n' '=== grep alpha bad.txt | od -c'
+grep alpha bad.txt | od -c
+echo "[$?]"
+printf '%s\n' '=== grep -c alpha bad.txt'
+grep -c alpha bad.txt
+echo "[$?]"
+printf '%s\n' '=== grep -o '\''caf.'\'' bad.txt | od -c'
+grep -o 'caf.' bad.txt | od -c
+echo "[$?]"
+printf '%s\n' '=== grep . bad.txt | od -c | sed -n '\''1,3p'\'''
+grep . bad.txt | od -c | sed -n '1,3p'
+echo "[$?]"

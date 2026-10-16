@@ -1,0 +1,59 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+printf '%s\n' '=== grep -z alpha z.dat | od -c'
+grep -z alpha z.dat | od -c
+echo "[$?]"
+printf '%s\n' '=== grep -zc alpha z.dat'
+grep -zc alpha z.dat
+echo "[$?]"
+printf '%s\n' '=== grep -zc '\'''\'' z.dat'
+grep -zc '' z.dat
+echo "[$?]"
+printf '%s\n' '=== grep -z '\''one.two'\'' z.dat | od -c'
+grep -z 'one.two' z.dat | od -c
+echo "[$?]"
+printf '%s\n' '=== grep -z '\''^two'\'' z.dat | od -c'
+grep -z '^two' z.dat | od -c
+echo "[$?]"
+printf '%s\n' '=== grep -z '\''alpha$'\'' z.dat | od -c'
+grep -z 'alpha$' z.dat | od -c
+echo "[$?]"
+printf '%s\n' '=== grep -zx one z.dat | od -c'
+grep -zx one z.dat | od -c
+echo "[$?]"
+printf '%s\n' '=== grep -zv one z.dat | od -c'
+grep -zv one z.dat | od -c
+echo "[$?]"
+printf '%s\n' '=== grep -zn t z.dat | od -c'
+grep -zn t z.dat | od -c
+echo "[$?]"
+printf '%s\n' '=== grep -zb t z.dat | od -c'
+grep -zb t z.dat | od -c
+echo "[$?]"
+printf '%s\n' '=== grep -z . a.txt | od -c'
+grep -z . a.txt | od -c
+echo "[$?]"
+printf '%s\n' '=== grep -zc . a.txt'
+grep -zc . a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -z '\''alpha.beta'\'' a.txt | od -c'
+grep -z 'alpha.beta' a.txt | od -c
+echo "[$?]"
+printf '%s\n' '=== grep -z '\''^beta'\'' a.txt | od -c'
+grep -z '^beta' a.txt | od -c
+echo "[$?]"
+printf '%s\n' '=== grep -zo '\''a$'\'' a.txt | od -c'
+grep -zo 'a$' a.txt | od -c
+echo "[$?]"
+printf '%s\n' '=== grep -zl alpha z.dat | od -c'
+grep -zl alpha z.dat | od -c
+echo "[$?]"
+printf '%s\n' '=== grep -zZ -l alpha z.dat | od -c'
+grep -zZ -l alpha z.dat | od -c
+echo "[$?]"
+printf '%s\n' '=== grep -zo '\''o'\'' z.dat | od -c'
+grep -zo 'o' z.dat | od -c
+echo "[$?]"
+printf '%s\n' '=== grep -z -A1 one z.dat | od -c'
+grep -z -A1 one z.dat | od -c
+echo "[$?]"

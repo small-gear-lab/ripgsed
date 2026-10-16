@@ -1,0 +1,49 @@
+=== grep -c alpha a.txt
+2
+[0]
+=== grep -c alpha a.txt b.txt
+a.txt:2
+b.txt:1
+[0]
+=== grep -c zzz a.txt
+0
+[1]
+=== grep -c alpha a.txt nosuch b.txt
+a.txt:2
+b.txt:1
+[2]
+=== grep -c '' a.txt empty
+a.txt:4
+empty:0
+[0]
+=== grep -cv alpha a.txt
+2
+[0]
+=== grep -co alpha a.txt
+2
+[0]
+=== grep -cH alpha a.txt
+a.txt:2
+[0]
+=== grep -ch alpha a.txt b.txt
+2
+1
+[0]
+=== grep -c -m1 alpha a.txt
+1
+[0]
+=== grep -c -A1 alpha a.txt
+2
+[0]
+=== grep -c alpha nonl.txt
+2
+[0]
+=== grep -c alpha d c.txt
+d:0
+[2]
+=== grep -c alpha - < a.txt
+2
+[0]
+=== grep -c -i ALPHA a.txt
+2
+[0]

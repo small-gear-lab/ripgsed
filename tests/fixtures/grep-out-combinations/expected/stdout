@@ -1,0 +1,61 @@
+=== grep -nH alpha a.txt
+a.txt:1:alpha
+a.txt:4:alpha beta
+[0]
+=== grep -nb alpha a.txt b.txt
+a.txt:1:0:alpha
+a.txt:4:17:alpha beta
+b.txt:2:4:two alpha
+[0]
+=== grep -Hnb alpha a.txt
+a.txt:1:0:alpha
+a.txt:4:17:alpha beta
+[0]
+=== grep -vn -m1 alpha a.txt
+2:beta
+[0]
+=== grep -i -n ALPHA a.txt
+1:alpha
+4:alpha beta
+[0]
+=== grep -w -n foo words.txt
+1:foo foobar barfoo foo_bar foo-bar Foo
+2:foo
+4:(foo)
+[0]
+=== grep -x -n alpha a.txt
+1:alpha
+[0]
+=== grep -E -n 'a|g' a.txt
+1:alpha
+2:beta
+3:gamma
+4:alpha beta
+[0]
+=== grep -F -n 'a b' a.txt
+4:alpha beta
+[0]
+=== grep -ic ALPHA a.txt b.txt
+a.txt:2
+b.txt:1
+[0]
+=== grep -lc alpha a.txt
+a.txt
+[0]
+=== grep -hn alpha a.txt b.txt
+1:alpha
+4:alpha beta
+2:two alpha
+[0]
+=== grep -on 'a.' a.txt b.txt
+a.txt:1:al
+a.txt:3:am
+a.txt:4:al
+a.txt:4:a 
+b.txt:2:al
+[0]
+=== grep -nvx alpha a.txt
+2:beta
+3:gamma
+4:alpha beta
+[0]

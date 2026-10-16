@@ -1,0 +1,141 @@
+=== grep -r alpha d 2>&1 | sort
+d/c.txt:alpha in d
+d/sub/e.log:alpha log
+[0]
+=== grep -r alpha . 2>&1 | sort
+./a.txt:alpha
+./a.txt:alpha beta
+./b.txt:two alpha
+./bad.txt:café alpha
+./bad.txt:plain alpha
+./crlf.txt:alpha
+./d/c.txt:alpha in d
+./d/sub/e.log:alpha log
+./nonl.txt:alpha
+./nonl.txt:last alpha
+./pats.txt:alpha
+./sp ace.txt:alpha with space
+./utf8.txt:naÃ¯ve alpha
+grep: ./bin.dat: binary file matches
+grep: ./z.dat: binary file matches
+[0]
+=== grep -r alpha 2>&1 | sort
+a.txt:alpha
+a.txt:alpha beta
+b.txt:two alpha
+bad.txt:café alpha
+bad.txt:plain alpha
+crlf.txt:alpha
+d/c.txt:alpha in d
+d/sub/e.log:alpha log
+grep: bin.dat: binary file matches
+grep: z.dat: binary file matches
+nonl.txt:alpha
+nonl.txt:last alpha
+pats.txt:alpha
+sp ace.txt:alpha with space
+utf8.txt:naÃ¯ve alpha
+[0]
+=== grep -rh alpha d 2>&1 | sort
+alpha in d
+alpha log
+[0]
+=== grep -rl alpha . 2>&1 | sort
+./a.txt
+./b.txt
+./bad.txt
+./bin.dat
+./crlf.txt
+./d/c.txt
+./d/sub/e.log
+./nonl.txt
+./pats.txt
+./sp ace.txt
+./utf8.txt
+./z.dat
+[0]
+=== grep -rL alpha . 2>&1 | sort
+./ctx.txt
+./empty
+./words.txt
+[0]
+=== grep -rc alpha d 2>&1 | sort
+d/c.txt:1
+d/sub/e.log:1
+[0]
+=== grep -rn alpha d 2>&1 | sort
+d/c.txt:1:alpha in d
+d/sub/e.log:1:alpha log
+[0]
+=== grep -rH alpha a.txt
+a.txt:alpha
+a.txt:alpha beta
+[0]
+=== grep -r alpha a.txt
+alpha
+alpha beta
+[0]
+=== grep -r alpha d/ 2>&1 | sort
+d/c.txt:alpha in d
+d/sub/e.log:alpha log
+[0]
+=== grep -r alpha d// 2>&1 | sort
+d/c.txt:alpha in d
+d/sub/e.log:alpha log
+[0]
+=== grep -r alpha ./d 2>&1 | sort
+./d/c.txt:alpha in d
+./d/sub/e.log:alpha log
+[0]
+=== grep -r alpha a.txt d 2>&1 | sort
+a.txt:alpha
+a.txt:alpha beta
+d/c.txt:alpha in d
+d/sub/e.log:alpha log
+[0]
+=== grep -r -A1 alpha d 2>&1 | sort
+--
+d/c.txt-zeta
+d/c.txt:alpha in d
+d/sub/e.log:alpha log
+[0]
+=== grep -r alpha d/sub/e.log
+alpha log
+[0]
+=== grep -R alpha d 2>&1 | sort
+d/c.txt:alpha in d
+d/sub/e.log:alpha log
+[0]
+=== grep -r --no-filename alpha . 2>&1 | sort
+alpha
+alpha
+alpha
+alpha
+alpha beta
+alpha in d
+alpha log
+alpha with space
+café alpha
+grep: ./bin.dat: binary file matches
+grep: ./z.dat: binary file matches
+last alpha
+naÃ¯ve alpha
+plain alpha
+two alpha
+[0]
+=== grep -r -o alpha d 2>&1 | sort
+d/c.txt:alpha
+d/sub/e.log:alpha
+[0]
+=== grep -rs alpha nosuch d 2>&1 | sort
+d/c.txt:alpha in d
+d/sub/e.log:alpha log
+[0]
+=== grep -r alpha - < a.txt
+alpha
+alpha beta
+[0]
+=== grep -ri ALPHA d 2>&1 | sort
+d/c.txt:alpha in d
+d/sub/e.log:alpha log
+[0]

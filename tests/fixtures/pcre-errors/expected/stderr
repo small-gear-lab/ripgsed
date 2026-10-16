@@ -1,0 +1,11 @@
+grep: missing closing parenthesis
+grep: missing terminating ] for character class
+grep: quantifier does not follow a repeatable item
+grep: numbers out of order in {} quantifier
+grep: \ at end of pattern
+grep: the -P option only supports a single pattern
+grep: the -P option only supports a single pattern
+grep: the -P option only supports a single pattern
+grep: unknown property after \P or \p
+grep: reference to non-existent subpattern
+grep: unmatched closing parenthesis

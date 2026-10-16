@@ -1,0 +1,27 @@
+=== grep -c alpha n100.dat n7000.dat n7560.dat n7561.dat n7562.dat n8000.dat n15000.dat
+n100.dat:20000
+n7000.dat:20000
+n7560.dat:20000
+n7561.dat:20000
+n7562.dat:20000
+n8000.dat:20000
+n15000.dat:20000
+[0]
+=== grep alpha n100.dat | wc -l
+0
+[0]
+=== grep alpha n7000.dat | wc -l
+0
+[0]
+=== grep alpha n7561.dat | wc -l
+0
+[0]
+=== grep alpha n8000.dat | wc -l
+7561
+[0]
+=== grep alpha n15000.dat | wc -l
+20000
+[0]
+=== cat n7000.dat | grep alpha | wc -l
+0
+[0]

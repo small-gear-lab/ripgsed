@@ -1,0 +1,6 @@
+grep: Invalid character class name
+grep: character class syntax is [[:space:]], not [:space:]
+grep: Unmatched [, [^, [:, [., or [=
+grep: Unmatched [, [^, [:, [., or [=
+grep: Invalid range end
+grep: Invalid regular expression

@@ -1,0 +1,47 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+printf '%s\n' '=== grep -A x alpha a.txt'
+grep -A x alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -A -1 alpha a.txt'
+grep -A -1 alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -B 1x alpha a.txt'
+grep -B 1x alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -C '\'''\'' alpha a.txt'
+grep -C '' alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -m x alpha a.txt'
+grep -m x alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -m -1 alpha a.txt'
+grep -m -1 alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -m 99999999999999999999 alpha a.txt'
+grep -m 99999999999999999999 alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -d foo alpha a.txt'
+grep -d foo alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -D foo alpha a.txt'
+grep -D foo alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -X foo alpha a.txt'
+grep -X foo alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -X egrep '\''a|b'\'' a.txt'
+grep -X egrep 'a|b' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep --binary-files=foo alpha a.txt'
+grep --binary-files=foo alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -E -F alpha a.txt'
+grep -E -F alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -G -P alpha a.txt'
+grep -G -P alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -E -E '\''a|b'\'' a.txt'
+grep -E -E 'a|b' a.txt
+echo "[$?]"

@@ -1,0 +1,27 @@
+=== grep -oP '\w+' utf8.txt | od -c | sed -n '1,3p'
+0000000   c   a   f  \n   n   a  \n   v   e  \n   a   l   p   h   a  \n
+0000020
+[0]
+=== grep -oP '.' utf8.txt | od -c | sed -n '1,3p'
+0000000   c  \n   a  \n   f  \n 303  \n 251  \n   n  \n   a  \n 303  \n
+0000020 257  \n   v  \n   e  \n      \n   a  \n   l  \n   p  \n   h  \n
+0000040   a  \n 343  \n 201  \n 202  \n 343  \n 201  \n 204  \n 343  \n
+[0]
+=== grep -iP 'CAFÉ' utf8.txt; echo $?
+1
+[0]
+=== grep -cP '^.{3}$' utf8.txt
+0
+[1]
+=== grep -P 'caf' utf8.txt
+café
+[0]
+=== grep -P alpha bad.txt | od -c
+0000000   c   a   f 351       a   l   p   h   a  \n   p   l   a   i   n
+0000020       a   l   p   h   a  \n
+0000027
+[0]
+=== grep -oP '[^a-z]' utf8.txt | od -c | sed -n '1,2p'
+0000000 303  \n 251  \n 303  \n 257  \n      \n 343  \n 201  \n 202  \n
+0000020 343  \n 201  \n 204  \n 343  \n 201  \n 206  \n
+[0]

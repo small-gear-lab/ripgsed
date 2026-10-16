@@ -1,0 +1,99 @@
+=== grep -r --exclude-dir=sub alpha . 2>&1 | sort
+./a.txt:alpha
+./a.txt:alpha beta
+./b.txt:two alpha
+./bad.txt:café alpha
+./bad.txt:plain alpha
+./crlf.txt:alpha
+./d/c.txt:alpha in d
+./nonl.txt:alpha
+./nonl.txt:last alpha
+./pats.txt:alpha
+./sp ace.txt:alpha with space
+./utf8.txt:naÃ¯ve alpha
+grep: ./bin.dat: binary file matches
+grep: ./z.dat: binary file matches
+[0]
+=== grep -r --exclude-dir=d alpha . 2>&1 | sort
+./a.txt:alpha
+./a.txt:alpha beta
+./b.txt:two alpha
+./bad.txt:café alpha
+./bad.txt:plain alpha
+./crlf.txt:alpha
+./nonl.txt:alpha
+./nonl.txt:last alpha
+./pats.txt:alpha
+./sp ace.txt:alpha with space
+./utf8.txt:naÃ¯ve alpha
+grep: ./bin.dat: binary file matches
+grep: ./z.dat: binary file matches
+[0]
+=== grep -r --exclude-dir='s*' alpha d 2>&1 | sort
+d/c.txt:alpha in d
+[0]
+=== grep -r --exclude-dir=sub alpha d/sub; echo $?
+1
+[0]
+=== grep -r --exclude-dir=d/sub alpha . 2>&1 | sort
+./a.txt:alpha
+./a.txt:alpha beta
+./b.txt:two alpha
+./bad.txt:café alpha
+./bad.txt:plain alpha
+./crlf.txt:alpha
+./d/c.txt:alpha in d
+./d/sub/e.log:alpha log
+./nonl.txt:alpha
+./nonl.txt:last alpha
+./pats.txt:alpha
+./sp ace.txt:alpha with space
+./utf8.txt:naÃ¯ve alpha
+grep: ./bin.dat: binary file matches
+grep: ./z.dat: binary file matches
+[0]
+=== grep -r --exclude-dir=. alpha .; echo $?
+1
+[0]
+=== grep -r --exclude-dir='*' alpha .; echo $?
+1
+[0]
+=== grep -r alpha d --exclude-dir=d; echo $?
+1
+[0]
+=== grep -r alpha d/ --exclude-dir=d 2>&1 | sort
+d/c.txt:alpha in d
+d/sub/e.log:alpha log
+[0]
+=== grep -r --exclude-dir=sub --exclude-dir=d alpha . 2>&1 | sort
+./a.txt:alpha
+./a.txt:alpha beta
+./b.txt:two alpha
+./bad.txt:café alpha
+./bad.txt:plain alpha
+./crlf.txt:alpha
+./nonl.txt:alpha
+./nonl.txt:last alpha
+./pats.txt:alpha
+./sp ace.txt:alpha with space
+./utf8.txt:naÃ¯ve alpha
+grep: ./bin.dat: binary file matches
+grep: ./z.dat: binary file matches
+[0]
+=== grep --exclude-dir=d alpha d; echo $?
+1
+[0]
+=== grep -d skip --exclude-dir=d alpha d a.txt
+a.txt:alpha
+a.txt:alpha beta
+[0]
+=== grep -r --exclude-dir=sub/ alpha d 2>&1 | sort
+d/c.txt:alpha in d
+[0]
+=== grep -r --exclude-dir=SUB alpha d 2>&1 | sort
+d/c.txt:alpha in d
+d/sub/e.log:alpha log
+[0]
+=== grep -r --exclude-dir='su?' alpha d 2>&1 | sort
+d/c.txt:alpha in d
+[0]

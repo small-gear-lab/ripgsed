@@ -1,0 +1,41 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+printf '%s\n' '=== grep -o -C1 hit ctx.txt'
+grep -o -C1 hit ctx.txt
+echo "[$?]"
+printf '%s\n' '=== grep -o -A1 hit ctx.txt'
+grep -o -A1 hit ctx.txt
+echo "[$?]"
+printf '%s\n' '=== grep -o -B1 hit ctx.txt'
+grep -o -B1 hit ctx.txt
+echo "[$?]"
+printf '%s\n' '=== grep -on -A1 hit ctx.txt'
+grep -on -A1 hit ctx.txt
+echo "[$?]"
+printf '%s\n' '=== grep -c -A1 hit ctx.txt'
+grep -c -A1 hit ctx.txt
+echo "[$?]"
+printf '%s\n' '=== grep -l -A1 hit ctx.txt'
+grep -l -A1 hit ctx.txt
+echo "[$?]"
+printf '%s\n' '=== grep -L -A1 hit ctx.txt'
+grep -L -A1 hit ctx.txt
+echo "[$?]"
+printf '%s\n' '=== grep -q -A1 hit ctx.txt; echo $?'
+grep -q -A1 hit ctx.txt; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -ob -A1 hit ctx.txt'
+grep -ob -A1 hit ctx.txt
+echo "[$?]"
+printf '%s\n' '=== grep -ov -A1 hit ctx.txt; echo $?'
+grep -ov -A1 hit ctx.txt; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -ow -C1 '\''line'\'' ctx.txt | sed -n '\''1,8p'\'''
+grep -ow -C1 'line' ctx.txt | sed -n '1,8p'
+echo "[$?]"
+printf '%s\n' '=== grep -oH -A1 '\''line 3'\'' ctx.txt'
+grep -oH -A1 'line 3' ctx.txt
+echo "[$?]"
+printf '%s\n' '=== grep -oc -C1 hit ctx.txt'
+grep -oc -C1 hit ctx.txt
+echo "[$?]"

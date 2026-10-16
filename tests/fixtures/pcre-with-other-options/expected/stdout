@@ -1,0 +1,86 @@
+=== grep -iP ALPHA a.txt
+alpha
+alpha beta
+[0]
+=== grep -wP foo words.txt
+foo foobar barfoo foo_bar foo-bar Foo
+foo
+(foo)
+[0]
+=== grep -xP foo words.txt
+foo
+[0]
+=== grep -xP 'foo|foo bar' words.txt
+foo
+[0]
+=== grep -wP 'fo*' words.txt
+foo foobar barfoo foo_bar foo-bar Foo
+foo
+(foo)
+[0]
+=== grep -P -w 'foo|foobar' -o words.txt
+foo
+foobar
+foo
+foo
+foobar
+foo
+[0]
+=== grep -vP foo words.txt
+[1]
+=== grep -cP alpha a.txt
+2
+[0]
+=== grep -nP -A1 alpha a.txt
+1:alpha
+2-beta
+--
+4:alpha beta
+[0]
+=== grep -P -C1 beta a.txt
+alpha
+beta
+gamma
+alpha beta
+[0]
+=== grep -zP '^beta' a.txt; echo $?
+1
+[0]
+=== grep -zoP 'alpha.*' a.txt | od -c
+0000000   a   l   p   h   a  \0   a   l   p   h   a       b   e   t   a
+0000020  \0
+0000021
+[0]
+=== grep -zP 'a$' a.txt; echo $?
+1
+[0]
+=== grep -P -m1 alpha a.txt
+alpha
+[0]
+=== grep -P -H alpha a.txt
+a.txt:alpha
+a.txt:alpha beta
+[0]
+=== grep -P --color=always alpha a.txt
+[01;31m[Kalpha[m[K
+[01;31m[Kalpha[m[K beta
+[0]
+=== grep -P --color=always -o 'a.' a.txt
+[01;31m[Kal[m[K
+[01;31m[Kam[m[K
+[01;31m[Kal[m[K
+[01;31m[Ka [m[K
+[0]
+=== grep -P -x -o 'alpha' a.txt
+alpha
+[0]
+=== grep -P -b -o alpha a.txt
+0:alpha
+17:alpha
+[0]
+=== grep -P -r alpha d 2>&1 | sort
+d/c.txt:alpha in d
+d/sub/e.log:alpha log
+[0]
+=== grep -P -L alpha a.txt b.txt
+[0]

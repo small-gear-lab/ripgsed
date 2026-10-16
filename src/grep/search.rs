@@ -503,6 +503,29 @@ impl<'a> Printer<'a> {
         Ok(Found { count: st.count, binary_matches, last_selected_end: st.last_selected_end, ended_early: st.done || st.stopped, max_reached: st.stopped })
     }
 
+    /// Prints trailing context, as GNU grep's `prpending` does: the lines from the one after the
+    /// last line printed (or the start of the buffer) up to `upto`, while context is left. A line
+    /// that cannot be printed is tried again for each line of context that is left. `pos` is where
+    /// the line with number `st.line_no` starts.
+    #[allow(clippy::too_many_arguments)]
+    fn flush_pending(&mut self, m: &Matcher, name: &[u8], st: &mut State, buf: &[u8], base: u64, pos: usize, upto: usize) -> io::Result<()> {
+        let eol = self.eol;
+        let mut cur = st.last_out.map_or(0, |l| l.saturating_sub(base) as usize);
+        while st.pending > 0 && cur < upto {
+            let e = crate::search::memchr(eol, &buf[cur..]).map_or(buf.len(), |i| cur + i);
+            let n = st.line_no - crate::search::count(eol, &buf[cur.min(pos)..pos]) as u64;
+            let terminated = e < buf.len();
+            if self.print_line(m, name, &buf[cur..e], n, base + cur as u64, SEP_CONTEXT, terminated)? {
+                cur = (e + 1).min(buf.len());
+                st.last_out = Some(base + cur as u64);
+            } else if st.last_out.is_none() {
+                st.last_out = Some(base);
+            }
+            st.pending -= 1;
+        }
+        Ok(())
+    }
+
     /// Processes the complete lines of `buf` (all of them, at the end of the input) that are not
     /// done yet; `base` is the offset of `buf[0]` in the input.
     fn process(&mut self, m: &Matcher, name: &[u8], st: &mut State, buf: &[u8], base: u64, eof: bool) -> io::Result<()> {
@@ -513,7 +536,8 @@ impl<'a> Printer<'a> {
         let context = before.is_some() || after.is_some();
         // (-m does not stop a search that only lists.)
         let max = if o.list_files != ListFiles::No { None } else { o.max_count };
-        let finders: &Option<Vec<Needle>> = &st.needles;
+        let finders_owned: Option<Vec<Needle>> = st.needles.take();
+        let finders = &finders_owned;
         let mut hits: Vec<Option<usize>> = vec![None; finders.as_ref().map_or(0, Vec::len)];
         // `pos` is the start of the next line to look at, relative to `buf`.
         let mut pos = (st.next_offset - base) as usize;
@@ -615,21 +639,8 @@ impl<'a> Printer<'a> {
                 st.last_selected_end = Some(base + next as u64);
                 if !st.quiet {
                     // Trailing context that was not printed yet (a line that could not be printed
-                    // leaves some): from the last line printed, or from the start of the buffer.
-                    if st.pending > 0 {
-                        let mut cur = st.last_out.map_or(0, |l| l.saturating_sub(base) as usize);
-                        while st.pending > 0 && cur < pos {
-                            let e = crate::search::memchr(eol, &buf[cur..]).map_or(buf.len(), |i| cur + i);
-                            let n = st.line_no - crate::search::count(eol, &buf[cur..pos]) as u64;
-                            if self.print_line(m, name, &buf[cur..e], n, base + cur as u64, SEP_CONTEXT, true)? {
-                                cur = e + 1;
-                                st.last_out = Some(base + cur as u64);
-                            } else if st.last_out.is_none() {
-                                st.last_out = Some(base);
-                            }
-                            st.pending -= 1;
-                        }
-                    }
+                    // leaves some).
+                    self.flush_pending(m, name, st, buf, base, pos, pos)?;
                     // Leading context, back from this line to the last line printed.
                     let lower = st.last_out.map_or(0, |l| (l.saturating_sub(base)) as usize);
                     let mut first = pos;
@@ -694,17 +705,12 @@ impl<'a> Printer<'a> {
                     }
                 }
             } else if st.pending > 0 && !st.quiet {
-                if self.print_line(m, name, text, st.line_no, line_offset, SEP_CONTEXT, terminated)? {
-                    st.pending -= 1;
-                    st.last_out = Some(base + next as u64);
-                } else {
-                    // (GNU grep tries the same line again for each line of context left.)
-                    st.pending = 0;
-                }
+                self.flush_pending(m, name, st, buf, base, pos, next)?;
             }
             pos = next;
         }
         st.next_offset = base + pos as u64;
+        st.needles = finders_owned;
         Ok(())
     }
 

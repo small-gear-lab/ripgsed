@@ -1,0 +1,23 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+printf '%s\n' '=== grep -1 beta a.txt'
+grep -1 beta a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -12 beta a.txt'
+grep -12 beta a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -1 -2 beta a.txt'
+grep -1 -2 beta a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -2 -1 beta a.txt'
+grep -2 -1 beta a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -C1 -2 beta a.txt'
+grep -C1 -2 beta a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -2 -C1 beta a.txt'
+grep -2 -C1 beta a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -A1 -3 beta a.txt'
+grep -A1 -3 beta a.txt
+echo "[$?]"

@@ -1,0 +1,24 @@
+=== grep -s alpha nosuch
+[2]
+=== grep -s alpha nosuch a.txt
+a.txt:alpha
+a.txt:alpha beta
+[2]
+=== grep -s alpha d
+[2]
+=== grep -sq alpha nosuch a.txt
+[0]
+=== grep -sq zzz nosuch a.txt
+[2]
+=== grep -s -c alpha nosuch a.txt
+a.txt:2
+[2]
+=== grep -s -L alpha d
+d
+[2]
+=== grep -s '[' a.txt
+[2]
+=== grep -s
+[2]
+=== grep -s -N a a.txt
+[2]

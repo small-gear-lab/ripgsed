@@ -1,0 +1,32 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+printf '%s\n' '=== grep -D skip alpha a.txt'
+grep -D skip alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -D read alpha a.txt'
+grep -D read alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -D skip alpha - < a.txt'
+grep -D skip alpha - < a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -D skip -c alpha /dev/null; echo $?'
+grep -D skip -c alpha /dev/null; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -D read -c alpha /dev/null; echo $?'
+grep -D read -c alpha /dev/null; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -c alpha /dev/null; echo $?'
+grep -c alpha /dev/null; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -r -D skip alpha d 2>&1 | sort'
+grep -r -D skip alpha d 2>&1 | sort
+echo "[$?]"
+printf '%s\n' '=== grep -D skip alpha a.txt b.txt 2>&1 | sort'
+grep -D skip alpha a.txt b.txt 2>&1 | sort
+echo "[$?]"
+printf '%s\n' '=== printf '\''alpha\n'\'' | grep -D skip alpha'
+printf 'alpha\n' | grep -D skip alpha
+echo "[$?]"
+printf '%s\n' '=== printf '\''alpha\n'\'' | grep -D skip alpha -'
+printf 'alpha\n' | grep -D skip alpha -
+echo "[$?]"

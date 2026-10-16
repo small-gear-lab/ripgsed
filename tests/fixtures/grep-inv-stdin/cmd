@@ -1,0 +1,38 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+printf '%s\n' '=== grep alpha < a.txt'
+grep alpha < a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -c alpha < a.txt'
+grep -c alpha < a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -n alpha - - < a.txt'
+grep -n alpha - - < a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -H alpha - a.txt < b.txt'
+grep -H alpha - a.txt < b.txt
+echo "[$?]"
+printf '%s\n' '=== grep --label=X -H alpha - < a.txt'
+grep --label=X -H alpha - < a.txt
+echo "[$?]"
+printf '%s\n' '=== grep --label=X -c alpha - a.txt < b.txt'
+grep --label=X -c alpha - a.txt < b.txt
+echo "[$?]"
+printf '%s\n' '=== grep --label=X -l alpha - < a.txt'
+grep --label=X -l alpha - < a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -L alpha - < empty'
+grep -L alpha - < empty
+echo "[$?]"
+printf '%s\n' '=== grep -r alpha - < a.txt'
+grep -r alpha - < a.txt
+echo "[$?]"
+printf '%s\n' '=== cat a.txt | grep -n alpha'
+cat a.txt | grep -n alpha
+echo "[$?]"
+printf '%s\n' '=== cat a.txt | grep -c alpha - a.txt'
+cat a.txt | grep -c alpha - a.txt
+echo "[$?]"
+printf '%s\n' '=== grep alpha < nosuch'
+grep alpha < nosuch
+echo "[$?]"

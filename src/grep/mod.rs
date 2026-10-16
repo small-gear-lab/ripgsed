@@ -57,6 +57,14 @@ pub fn main(program: &str, args: Vec<Vec<u8>>, kind: Kind) -> i32 {
         Parsed::Error(status) => return status,
     };
     let locale = crate::locale::from_env();
+    // No pattern at all (`-f /dev/null`) matches nothing: it is the empty pattern, inverted.
+    let mut options = options;
+    if options.patterns.is_empty() {
+        options.invert = !options.invert;
+        options.line = false;
+        options.word = false;
+        options.patterns = vec![Vec::new()];
+    }
     let matcher = match Matcher::new(&options, locale) {
         Ok(m) => m,
         Err(e) => {
@@ -104,11 +112,8 @@ pub fn main(program: &str, args: Vec<Vec<u8>>, kind: Kind) -> i32 {
     let mut files = Skip::default();
     let mut dirs = Skip::default();
     let _ = &mut files;
-    for p in &options.include {
-        files.push(true, p.clone());
-    }
-    for p in &options.exclude {
-        files.push(false, p.clone());
+    for (include, p) in &options.file_patterns {
+        files.push(*include, p.clone());
     }
     for p in &options.exclude_dir {
         dirs.push(false, p.clone());
@@ -193,7 +198,11 @@ impl Run<'_> {
                     if !self.dirs.is_empty() && self.dirs.skips(operand, false) {
                         return Ok(());
                     }
-                    let display = operand.to_vec();
+                    // (Trailing slashes are not repeated in the names found below.)
+                    let mut display = operand.to_vec();
+                    while display.len() > 1 && display.last() == Some(&b'/') {
+                        display.pop();
+                    }
                     return self.walk(&path, display);
                 }
             }

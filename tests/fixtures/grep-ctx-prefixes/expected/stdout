@@ -1,0 +1,160 @@
+=== grep -n -C1 hit ctx.txt
+2-line 2
+3:line 3 hit
+4:line 4 hit
+5-line 5
+--
+8-line 8
+9:line 9 hit
+10-line 10
+--
+14-line 14
+15:line 15 hit
+16-line 16
+[0]
+=== grep -nb -C1 hit ctx.txt
+2-7-line 2
+3:14:line 3 hit
+4:25:line 4 hit
+5-36-line 5
+--
+8-57-line 8
+9:64:line 9 hit
+10-75-line 10
+--
+14-107-line 14
+15:115:line 15 hit
+16-127-line 16
+[0]
+=== grep -H -C1 'line 9' ctx.txt
+ctx.txt-line 8
+ctx.txt:line 9 hit
+ctx.txt-line 10
+[0]
+=== grep -Hn -C1 'line 9' ctx.txt
+ctx.txt-8-line 8
+ctx.txt:9:line 9 hit
+ctx.txt-10-line 10
+[0]
+=== grep -C1 hit ctx.txt ctx.txt
+ctx.txt-line 2
+ctx.txt:line 3 hit
+ctx.txt:line 4 hit
+ctx.txt-line 5
+--
+ctx.txt-line 8
+ctx.txt:line 9 hit
+ctx.txt-line 10
+--
+ctx.txt-line 14
+ctx.txt:line 15 hit
+ctx.txt-line 16
+--
+ctx.txt-line 2
+ctx.txt:line 3 hit
+ctx.txt:line 4 hit
+ctx.txt-line 5
+--
+ctx.txt-line 8
+ctx.txt:line 9 hit
+ctx.txt-line 10
+--
+ctx.txt-line 14
+ctx.txt:line 15 hit
+ctx.txt-line 16
+[0]
+=== grep -C1 -h hit ctx.txt ctx.txt
+line 2
+line 3 hit
+line 4 hit
+line 5
+--
+line 8
+line 9 hit
+line 10
+--
+line 14
+line 15 hit
+line 16
+--
+line 2
+line 3 hit
+line 4 hit
+line 5
+--
+line 8
+line 9 hit
+line 10
+--
+line 14
+line 15 hit
+line 16
+[0]
+=== grep -C1 -n hit ctx.txt a.txt
+ctx.txt-2-line 2
+ctx.txt:3:line 3 hit
+ctx.txt:4:line 4 hit
+ctx.txt-5-line 5
+--
+ctx.txt-8-line 8
+ctx.txt:9:line 9 hit
+ctx.txt-10-line 10
+--
+ctx.txt-14-line 14
+ctx.txt:15:line 15 hit
+ctx.txt-16-line 16
+[0]
+=== grep -bn -A1 hit ctx.txt
+3:14:line 3 hit
+4:25:line 4 hit
+5-36-line 5
+--
+9:64:line 9 hit
+10-75-line 10
+--
+15:115:line 15 hit
+16-127-line 16
+[0]
+=== grep -n -B1 'line 15' ctx.txt
+14-line 14
+15:line 15 hit
+[0]
+=== grep -Hb -A1 'line 4' ctx.txt
+ctx.txt:25:line 4 hit
+ctx.txt-36-line 5
+[0]
+=== grep -C1 alpha a.txt b.txt d/c.txt
+a.txt:alpha
+a.txt-beta
+a.txt-gamma
+a.txt:alpha beta
+--
+b.txt-one
+b.txt:two alpha
+b.txt-three
+--
+d/c.txt:alpha in d
+d/c.txt-zeta
+[0]
+=== grep -n -C1 alpha a.txt b.txt
+a.txt:1:alpha
+a.txt-2-beta
+a.txt-3-gamma
+a.txt:4:alpha beta
+--
+b.txt-1-one
+b.txt:2:two alpha
+b.txt-3-three
+[0]
+=== grep -c -A1 hit ctx.txt a.txt
+ctx.txt:4
+a.txt:0
+[0]
+=== grep -Z -n -C1 hit ctx.txt a.txt | od -c | sed -n '1,6p'
+0000000   c   t   x   .   t   x   t  \0   2   -   l   i   n   e       2
+0000020  \n   c   t   x   .   t   x   t  \0   3   :   l   i   n   e    
+0000040   3       h   i   t  \n   c   t   x   .   t   x   t  \0   4   :
+0000060   l   i   n   e       4       h   i   t  \n   c   t   x   .   t
+0000100   x   t  \0   5   -   l   i   n   e       5  \n   -   -  \n   c
+0000120   t   x   .   t   x   t  \0   8   -   l   i   n   e       8  \n
+[0]

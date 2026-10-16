@@ -1,0 +1,17 @@
+grep: Invalid regular expression
+grep: Unmatched ( or \(
+grep: Unmatched ) or \)
+grep: Trailing backslash
+grep: Unmatched \{
+grep: Unmatched \{
+grep: Invalid content of \{\}
+grep: Invalid back reference
+grep: Unmatched ( or \(
+grep: Invalid character class name
+grep: Invalid range end
+grep: Regular expression too big
+grep: Regular expression too big
+grep: Invalid regular expression
+grep: Unmatched ( or \(
+grep: character class syntax is [[:space:]], not [:space:]
+grep: Unmatched [, [^, [:, [., or [=

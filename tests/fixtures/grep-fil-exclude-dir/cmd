@@ -1,0 +1,47 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+printf '%s\n' '=== grep -r --exclude-dir=sub alpha . 2>&1 | sort'
+grep -r --exclude-dir=sub alpha . 2>&1 | sort
+echo "[$?]"
+printf '%s\n' '=== grep -r --exclude-dir=d alpha . 2>&1 | sort'
+grep -r --exclude-dir=d alpha . 2>&1 | sort
+echo "[$?]"
+printf '%s\n' '=== grep -r --exclude-dir='\''s*'\'' alpha d 2>&1 | sort'
+grep -r --exclude-dir='s*' alpha d 2>&1 | sort
+echo "[$?]"
+printf '%s\n' '=== grep -r --exclude-dir=sub alpha d/sub; echo $?'
+grep -r --exclude-dir=sub alpha d/sub; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -r --exclude-dir=d/sub alpha . 2>&1 | sort'
+grep -r --exclude-dir=d/sub alpha . 2>&1 | sort
+echo "[$?]"
+printf '%s\n' '=== grep -r --exclude-dir=. alpha .; echo $?'
+grep -r --exclude-dir=. alpha .; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -r --exclude-dir='\''*'\'' alpha .; echo $?'
+grep -r --exclude-dir='*' alpha .; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -r alpha d --exclude-dir=d; echo $?'
+grep -r alpha d --exclude-dir=d; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -r alpha d/ --exclude-dir=d 2>&1 | sort'
+grep -r alpha d/ --exclude-dir=d 2>&1 | sort
+echo "[$?]"
+printf '%s\n' '=== grep -r --exclude-dir=sub --exclude-dir=d alpha . 2>&1 | sort'
+grep -r --exclude-dir=sub --exclude-dir=d alpha . 2>&1 | sort
+echo "[$?]"
+printf '%s\n' '=== grep --exclude-dir=d alpha d; echo $?'
+grep --exclude-dir=d alpha d; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -d skip --exclude-dir=d alpha d a.txt'
+grep -d skip --exclude-dir=d alpha d a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -r --exclude-dir=sub/ alpha d 2>&1 | sort'
+grep -r --exclude-dir=sub/ alpha d 2>&1 | sort
+echo "[$?]"
+printf '%s\n' '=== grep -r --exclude-dir=SUB alpha d 2>&1 | sort'
+grep -r --exclude-dir=SUB alpha d 2>&1 | sort
+echo "[$?]"
+printf '%s\n' '=== grep -r --exclude-dir='\''su?'\'' alpha d 2>&1 | sort'
+grep -r --exclude-dir='su?' alpha d 2>&1 | sort
+echo "[$?]"

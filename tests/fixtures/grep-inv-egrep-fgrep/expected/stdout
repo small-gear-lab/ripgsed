@@ -1,0 +1,29 @@
+=== egrep 'al(ph)a' a.txt
+alpha
+alpha beta
+[0]
+=== egrep -c 'a|b' a.txt
+4
+[0]
+=== egrep 'a{1' a.txt
+[1]
+=== fgrep 'a.' words.txt
+[1]
+=== fgrep -x alpha a.txt
+alpha
+[0]
+=== fgrep -c a a.txt
+4
+[0]
+=== egrep
+[2]
+=== fgrep
+[2]
+=== egrep -N a a.txt
+[2]
+=== egrep '(' a.txt
+[2]
+=== fgrep -E alpha a.txt
+[2]
+=== egrep -F alpha a.txt
+[2]

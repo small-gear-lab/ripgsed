@@ -1,0 +1,54 @@
+=== grep -o '\(a\)\1' words.txt a.txt
+[1]
+=== grep -x '\(.\)\1*' words.txt
+[1]
+=== grep -w '\(f\)\(o\)\2' words.txt
+foo foobar barfoo foo_bar foo-bar Foo
+foo
+(foo)
+[0]
+=== grep -c -E '(.)\1' a.txt words.txt
+a.txt:1
+words.txt:4
+[0]
+=== grep -o -E '(o)\1' words.txt
+oo
+oo
+oo
+oo
+oo
+oo
+oo
+oo
+oo
+[0]
+=== grep -n -E '([a-z])\1' words.txt
+1:foo foobar barfoo foo_bar foo-bar Foo
+2:foo
+3:foobar
+4:(foo)
+[0]
+=== grep -i -E '(f)\1' words.txt
+[1]
+=== grep -E '(a)|\1' a.txt
+[2]
+=== grep -E '(a)(b)?\2' -c a.txt
+0
+[1]
+=== grep -v -E '(.)\1' words.txt
+[1]
+=== grep -wo '\(.\)\1' words.txt
+[1]
+=== grep -xo '\(foo\).*\1' words.txt
+[1]
+=== grep '\(a*\)b\1' -o words.txt a.txt
+words.txt:b
+words.txt:b
+words.txt:b
+words.txt:b
+words.txt:b
+a.txt:b
+a.txt:b
+[0]
+=== grep -E '^(.*)\1$' b.txt words.txt
+[1]

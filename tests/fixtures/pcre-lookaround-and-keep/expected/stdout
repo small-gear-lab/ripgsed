@@ -1,0 +1,91 @@
+=== grep -oP 'a\Kl' a.txt
+l
+l
+[0]
+=== grep -oP '(?<=alpha )beta' a.txt
+beta
+[0]
+=== grep -oP '(?=f)' words.txt; echo $?
+0
+[0]
+=== grep -oP 'o*' words.txt
+oo
+oo
+oo
+oo
+oo
+oo
+oo
+oo
+oo
+[0]
+=== grep -obP 'o' words.txt
+1:o
+2:o
+5:o
+6:o
+15:o
+16:o
+19:o
+20:o
+27:o
+28:o
+35:o
+36:o
+39:o
+40:o
+43:o
+44:o
+51:o
+52:o
+[0]
+=== grep -oP '(?<=foo)bar' words.txt
+bar
+bar
+[0]
+=== grep -oP 'foo\Kbar' words.txt
+bar
+bar
+[0]
+=== grep -oP '\w+(?= beta)' a.txt
+alpha
+[0]
+=== grep -oP '(?i)ALPHA' a.txt
+alpha
+alpha
+[0]
+=== grep -oP 'a(?=l)' a.txt
+a
+a
+[0]
+=== grep -oP '\bb\w*' a.txt
+beta
+beta
+[0]
+=== grep -oP '[a-c]+' a.txt
+a
+a
+b
+a
+a
+a
+a
+a
+b
+a
+[0]
+=== grep -oP '.\K.' b.txt
+n
+w
+ 
+l
+h
+h
+e
+[0]
+=== grep -oP '^\w' a.txt
+a
+b
+g
+a
+[0]

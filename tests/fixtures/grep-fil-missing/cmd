@@ -1,0 +1,44 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+printf '%s\n' '=== grep alpha nosuch; echo $?'
+grep alpha nosuch; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep alpha nosuch a.txt; echo $?'
+grep alpha nosuch a.txt; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep alpha a.txt nosuch b.txt; echo $?'
+grep alpha a.txt nosuch b.txt; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -c alpha nosuch a.txt'
+grep -c alpha nosuch a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -l alpha nosuch a.txt'
+grep -l alpha nosuch a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -L alpha nosuch a.txt'
+grep -L alpha nosuch a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -q alpha nosuch a.txt; echo $?'
+grep -q alpha nosuch a.txt; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -s alpha nosuch a.txt; echo $?'
+grep -s alpha nosuch a.txt; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep alpha '\'''\''; echo $?'
+grep alpha ''; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep alpha '\''sp ace.txt'\'' nosuch'
+grep alpha 'sp ace.txt' nosuch
+echo "[$?]"
+printf '%s\n' '=== grep alpha ./nosuch/x; echo $?'
+grep alpha ./nosuch/x; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -r alpha nosuch; echo $?'
+grep -r alpha nosuch; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -rs alpha nosuch d | sort; echo $?'
+grep -rs alpha nosuch d | sort; echo $?
+echo "[$?]"
+printf '%s\n' '=== chmod 000 a.txt; grep alpha a.txt b.txt; echo $?; chmod 644 a.txt'
+chmod 000 a.txt; grep alpha a.txt b.txt; echo $?; chmod 644 a.txt
+echo "[$?]"

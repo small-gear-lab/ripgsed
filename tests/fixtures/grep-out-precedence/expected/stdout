@@ -1,0 +1,45 @@
+=== grep -c -l alpha a.txt b.txt
+a.txt
+b.txt
+[0]
+=== grep -c -L alpha a.txt b.txt empty
+empty
+[0]
+=== grep -c -q alpha a.txt; echo $?
+0
+[0]
+=== grep -l -L alpha a.txt b.txt
+[0]
+=== grep -L -l alpha a.txt b.txt
+a.txt
+b.txt
+[0]
+=== grep -q -l alpha a.txt; echo $?
+0
+[0]
+=== grep -vc alpha a.txt
+2
+[0]
+=== grep -cv '' a.txt; echo $?
+1
+[0]
+=== grep -c -m0 alpha a.txt; echo $?
+1
+[0]
+=== grep -l -m0 alpha a.txt; echo $?
+1
+[0]
+=== grep -L -m0 alpha a.txt b.txt; echo $?
+a.txt
+b.txt
+1
+[0]
+=== grep -c -o alpha a.txt
+2
+[0]
+=== grep -n -c alpha a.txt
+2
+[0]
+=== grep -H -l alpha a.txt
+a.txt
+[0]

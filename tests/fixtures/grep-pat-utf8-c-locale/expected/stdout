@@ -1,0 +1,14 @@
+=== grep -o . utf8.txt | od -c | sed -n '1,3p'
+0000000   c  \n   a  \n   f  \n 303  \n 251  \n   n  \n   a  \n 303  \n
+0000020 257  \n   v  \n   e  \n      \n   a  \n   l  \n   p  \n   h  \n
+0000040   a  \n 343  \n 201  \n 202  \n 343  \n 201  \n 204  \n 343  \n
+[0]
+=== grep -c . utf8.txt
+3
+[0]
+=== grep -i 'CAFÉ' utf8.txt
+[1]
+=== grep -o 'caf.' utf8.txt | od -c
+0000000   c   a   f 303  \n
+0000005
+[0]

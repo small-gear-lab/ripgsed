@@ -1,0 +1,88 @@
+=== grep -P 'al.ha' a.txt
+alpha
+alpha beta
+[0]
+=== grep -P '\d' words.txt ctx.txt | sed -n '1,3p'
+ctx.txt:line 1
+ctx.txt:line 2
+ctx.txt:line 3 hit
+[0]
+=== grep -oP '\w+' words.txt
+foo
+foobar
+barfoo
+foo_bar
+foo
+bar
+Foo
+foo
+foobar
+foo
+[0]
+=== grep -cP '^$' a.txt
+0
+[1]
+=== grep -P '(a)\1' words.txt
+[1]
+=== grep -P '(\w)\1' words.txt
+foo foobar barfoo foo_bar foo-bar Foo
+foo
+foobar
+(foo)
+[0]
+=== grep -P 'foo(?!bar)' -o words.txt
+foo
+foo
+foo
+foo
+foo
+foo
+[0]
+=== grep -P '\bfoo\b' words.txt
+foo foobar barfoo foo_bar foo-bar Foo
+foo
+(foo)
+[0]
+=== grep -P 'a|b' -c a.txt
+4
+[0]
+=== grep -P '[[:alpha:]]+' -o a.txt
+alpha
+beta
+gamma
+alpha
+beta
+[0]
+=== grep -P 'a{2}' -c words.txt
+0
+[1]
+=== grep -P '^\s*$' -c words.txt empty
+words.txt:0
+empty:0
+[1]
+=== grep -P '\t' -c a.txt
+0
+[1]
+=== grep -P 'beta' a.txt b.txt
+a.txt:beta
+a.txt:alpha beta
+[0]
+=== grep -Pn alpha a.txt
+1:alpha
+4:alpha beta
+[0]
+=== grep -Pv alpha a.txt
+beta
+gamma
+[0]
+=== grep -Pc alpha a.txt b.txt
+a.txt:2
+b.txt:1
+[0]
+=== grep -Pl alpha a.txt b.txt
+a.txt
+b.txt
+[0]
+=== grep -Pq alpha a.txt; echo $?
+0
+[0]

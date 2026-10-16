@@ -1,0 +1,52 @@
+=== grep --line-number alpha a.txt
+1:alpha
+4:alpha beta
+[0]
+=== grep --line-n alpha a.txt
+1:alpha
+4:alpha beta
+[0]
+=== grep --count alpha a.txt
+2
+[0]
+=== grep --max-count=1 alpha a.txt
+alpha
+[0]
+=== grep --max-count 1 alpha a.txt
+alpha
+[0]
+=== grep --regexp=alpha a.txt
+alpha
+alpha beta
+[0]
+=== grep --ignore-case ALPHA a.txt
+alpha
+alpha beta
+[0]
+=== grep --no-filename alpha a.txt b.txt
+alpha
+alpha beta
+two alpha
+[0]
+=== grep --with-filename alpha a.txt
+a.txt:alpha
+a.txt:alpha beta
+[0]
+=== grep --no alpha a.txt
+[2]
+=== grep --co alpha a.txt
+[2]
+=== grep --foo alpha a.txt
+[2]
+=== grep --count=3 alpha a.txt
+[2]
+=== grep --colour=never alpha a.txt
+alpha
+alpha beta
+[0]
+=== grep --files-with alpha a.txt
+[2]
+=== grep --null -l alpha a.txt | od -c
+0000000   a   .   t   x   t  \0
+0000006
+[0]

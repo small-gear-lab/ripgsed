@@ -1,0 +1,33 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+ln -s a.txt link.txt; ln -s d dlink; ln -s nosuch broken
+printf '%s\n' '=== grep -r alpha . 2>&1 | sort'
+grep -r alpha . 2>&1 | sort
+echo "[$?]"
+printf '%s\n' '=== grep -R alpha . 2>&1 | sort'
+grep -R alpha . 2>&1 | sort
+echo "[$?]"
+printf '%s\n' '=== grep -r alpha link.txt dlink 2>&1 | sort'
+grep -r alpha link.txt dlink 2>&1 | sort
+echo "[$?]"
+printf '%s\n' '=== grep -R alpha link.txt dlink 2>&1 | sort'
+grep -R alpha link.txt dlink 2>&1 | sort
+echo "[$?]"
+printf '%s\n' '=== grep alpha link.txt'
+grep alpha link.txt
+echo "[$?]"
+printf '%s\n' '=== grep -r alpha broken; echo $?'
+grep -r alpha broken; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -R alpha broken; echo $?'
+grep -R alpha broken; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -rs alpha broken; echo $?'
+grep -rs alpha broken; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -rl alpha . 2>&1 | sort'
+grep -rl alpha . 2>&1 | sort
+echo "[$?]"
+printf '%s\n' '=== grep -Rl alpha . 2>&1 | sort'
+grep -Rl alpha . 2>&1 | sort
+echo "[$?]"

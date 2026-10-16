@@ -1,1 +1,84 @@
 id	area	item	status	source	notes
+GINV-001	invocation	grep PATTERN FILE...: the first operand is the pattern, the rest are files	verified	Invoking grep	
+GINV-002	invocation	-e PATTERNS: repeated, and newline separated patterns in one argument	verified	Invoking grep	
+GINV-003	invocation	-f FILE: patterns from a file (an empty file has no pattern: nothing matches)	verified	Invoking grep	
+GINV-004	invocation	options may follow the operands; `--` ends them	verified	Invoking grep	
+GINV-005	invocation	long options, their unambiguous abbreviations, --option=value and --option value	verified	Invoking grep	
+GINV-006	invocation	-NUM is -C NUM; the digits of one argument make one number	verified	Context Line Control	
+GINV-007	invocation	an invalid option, a missing argument or a missing pattern: usage message, status 2	verified	Exit Status	
+GINV-008	invocation	invalid values: context length, max count, -d, -D, -X, --binary-files, conflicting matchers	verified	Invoking grep	
+GINV-009	invocation	standard input: no file operand, `-`, and --label	verified	Invoking grep	
+GINV-010	invocation	egrep and fgrep are grep -E and grep -F	verified	Invoking grep	messages say grep
+GINV-011	invocation	exit status: 0 for a selected line, 1 for none, 2 for an error	verified	Exit Status	
+GINV-012	invocation	-s hides the messages about files, the status is still 2	verified	Invoking grep	
+GINV-013	invocation	obsolete option -y (as -i)	verified	Invoking grep	-u is gone in grep 3.12 and warns in 3.11
+GPAT-001	patterns	basic regular expressions: literals, `.`, `*`, `^` and `$`	verified	Regular Expressions	
+GPAT-002	patterns	basic regular expressions, GNU operators: \+ \? \| \( \) and back-references	verified	Regular Expressions	
+GPAT-003	patterns	intervals: \{m\} \{m,\} \{,n\} \{m,n\} (ERE: {m,n})	verified	Regular Expressions	
+GPAT-004	patterns	bracket expressions: sets, ranges, negation, a first ], classes, equivalence classes	verified	Regular Expressions	
+GPAT-005	patterns	\w \W \s \S \b \B \< \> \` \'	verified	Regular Expressions	
+GPAT-006	patterns	extended regular expressions: + ? | ( ) { } and back-references	verified	Regular Expressions	
+GPAT-007	patterns	ERE: an operator at the start of an expression is skipped with a warning	verified	Regular Expressions	grep 3.8 and later
+GPAT-008	patterns	ERE: an invalid interval and an unmatched ) are characters; BRE: a leading \{ is a character	verified	Regular Expressions	
+GPAT-009	patterns	BRE: a leading * is a character; an operator after an anchor	verified	Regular Expressions	
+GPAT-010	patterns	a backslash before an ordinary character: no sed escapes (\n \t), the character itself	verified	Regular Expressions	
+GPAT-011	patterns	-F: fixed strings, several, with characters that are special in regular expressions	verified	Invoking grep	
+GPAT-012	patterns	-i and --no-ignore-case	verified	Invoking grep	
+GPAT-013	patterns	-w: the match is a whole word; a shorter match at the same place is tried	verified	Invoking grep	
+GPAT-014	patterns	-x: the match is the whole line; -x with -w	verified	Invoking grep	
+GPAT-015	patterns	-v selects the lines that do not match	verified	Invoking grep	
+GPAT-016	patterns	several patterns: the leftmost, then the longest match for -o and --color	verified	Invoking grep	
+GPAT-017	patterns	the empty pattern matches every line; -v with it selects none	verified	Invoking grep	
+GPAT-018	patterns	patterns that do not compile: the message and status 2	verified	Invoking grep	
+GPAT-019	patterns	-z: ^ and $ and . with records that end in NUL	verified	Invoking grep	
+GPAT-020	patterns	UTF-8: characters, classes, -i, -w, -o	verified	Environment Variables	
+GPAT-021	patterns	patterns with a back-reference: the lines and the matches	verified	Regular Expressions	
+GOUT-001	output	-n: line numbers	verified	General Output Control	
+GOUT-002	output	-b: byte offsets (of the line, of the match with -o)	verified	General Output Control	
+GOUT-003	output	-H and -h: file names in front of lines (several files, -r)	verified	General Output Control	
+GOUT-004	output	-c: counts, with names for several files	verified	General Output Control	
+GOUT-005	output	-l: names of the files with a selected line	verified	General Output Control	
+GOUT-006	output	-L: names of the files with none	verified	General Output Control	
+GOUT-007	output	-q: no output, exit at the first selected line	verified	General Output Control	
+GOUT-008	output	-m NUM: stop after NUM selected lines	verified	General Output Control	
+GOUT-009	output	-o: only the matches, one per line; empty matches are not printed	verified	General Output Control	
+GOUT-010	output	-o with -b, -n, -v, -i, -c	verified	General Output Control	
+GOUT-011	output	-T: the numbers have a width and a tab follows the prefix	verified	General Output Control	
+GOUT-012	output	-Z: a NUL after the file name	verified	General Output Control	
+GOUT-013	output	a last line without a newline gets one; CRLF is kept; --line-buffered	verified	General Output Control	
+GOUT-014	output	-q over -l and -L over -c; -c with -v; -m 0	verified	General Output Control	
+GOUT-015	output	option combinations of the output	verified	General Output Control	
+GCTX-001	context	-A, -B, -C: lines of context, `-` after the file name and numbers	verified	Context Line Control	
+GCTX-002	context	the group separator `--`, --group-separator and --no-group-separator	verified	Context Line Control	
+GCTX-003	context	context with -n, -b, -H and with several files	verified	Context Line Control	
+GCTX-004	context	-m with context: the trailing context after the last selected line	verified	Context Line Control	
+GCTX-005	context	-v with context	verified	Context Line Control	
+GCTX-006	context	-o, -c and -l with context	verified	Context Line Control	
+GCTX-007	context	context near the start and the end, overlapping groups	verified	Context Line Control	
+GFIL-001	files	a directory operand: `Is a directory`, -d read, skip and recurse	verified	File and Directory Selection	
+GFIL-002	files	-r and -R: names, no operand means `.` without a leading ./, symlinks	verified	File and Directory Selection	
+GFIL-003	files	--include, --exclude and --exclude-from: the last matching pattern decides	verified	File and Directory Selection	
+GFIL-004	files	--exclude-dir	verified	File and Directory Selection	
+GFIL-005	files	-D read and skip	verified	File and Directory Selection	
+GFIL-006	files	a missing file: the message, the other files are searched, status 2	verified	Exit Status	
+GFIL-007	files	a regular file on standard input is left after the last selected line with -m	verified	Invoking grep	
+GFIL-008	files	large files and long lines: line numbers, offsets and context across the pieces read	verified	Invoking grep	
+GBIN-001	binary	a file with a NUL byte: `binary file matches` on standard error	verified	File and Directory Selection	
+GBIN-002	binary	-a and --binary-files=text	verified	File and Directory Selection	
+GBIN-003	binary	-I and --binary-files=without-match	verified	File and Directory Selection	
+GBIN-004	binary	binary files with -c, -l, -L, -q, -o, -v, -m, context	verified	File and Directory Selection	
+GBIN-005	binary	UTF-8 text with an encoding error: the line is not printed, the message follows	verified	File and Directory Selection	
+GBIN-006	binary	-U is accepted and changes nothing	verified	File and Directory Selection	
+GBIN-007	binary	-z: NUL ends the lines, and the files are not binary because of it	verified	Invoking grep	
+GBIN-008	binary	a NUL after the first 96 KiB: the lines before are printed	verified	File and Directory Selection	
+GCOL-001	color	--color=always: the matches	verified	General Output Control	
+GCOL-002	color	colors of file names, line numbers, byte offsets and separators	verified	General Output Control	
+GCOL-003	color	colors with context, -v, -o and -c	verified	General Output Control	
+GCOL-004	color	GREP_COLORS: mt ms mc sl cx fn ln bn se rv ne, unknown names, bad values	verified	Environment Variables	
+GCOL-005	color	GREP_COLOR (obsolete)	verified	Environment Variables	
+GCOL-006	color	--color=never, auto, tty, yes, force, no, none and a value that is not known	verified	General Output Control	
+GPCRE-001	perl	-P: Perl-compatible regular expressions	verified	Invoking grep	
+GPCRE-002	perl	-P: lookaround, \K, -o and -b	verified	Invoking grep	
+GPCRE-003	perl	-P: errors of the library, one pattern only, the empty pattern	verified	Invoking grep	
+GPCRE-004	perl	-P with -i, -w, -x, -v, -c, context and -z	verified	Invoking grep	
+GPCRE-005	perl	-P in UTF-8 and in the C locale	verified	Invoking grep	

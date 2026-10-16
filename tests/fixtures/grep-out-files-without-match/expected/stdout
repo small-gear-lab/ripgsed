@@ -1,0 +1,40 @@
+=== grep -L alpha a.txt b.txt empty
+empty
+[0]
+=== grep -L zzz a.txt
+a.txt
+[1]
+=== grep -Lv alpha a.txt b.txt
+[0]
+=== grep -L alpha a.txt nosuch b.txt
+[2]
+=== grep -L alpha - < empty
+(standard input)
+[1]
+=== grep -Lc zzz a.txt
+a.txt
+[1]
+=== grep -L -m1 alpha a.txt b.txt
+[0]
+=== grep -LZ zzz a.txt b.txt | od -c
+0000000   a   .   t   x   t  \0   b   .   t   x   t  \0
+0000014
+[0]
+=== grep -L zzz a.txt; echo $?
+a.txt
+1
+[0]
+=== grep -L alpha a.txt; echo $?
+0
+[0]
+=== grep -L alpha a.txt empty; echo $?
+empty
+0
+[0]
+=== grep -L -m0 alpha a.txt; echo $?
+a.txt
+1
+[0]
+=== grep -L -v '' a.txt
+a.txt
+[1]

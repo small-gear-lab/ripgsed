@@ -1,0 +1,101 @@
+=== GREP_COLORS='mt=01;32' grep --color=always alpha a.txt
+[01;32m[Kalpha[m[K
+[01;32m[Kalpha[m[K beta
+[0]
+=== GREP_COLORS='mt=01;32' grep --color=always -v alpha a.txt
+beta
+gamma
+[0]
+=== GREP_COLORS='ms=4:mc=5' grep --color=always -C1 gamma a.txt
+beta
+[4m[Kgamma[m[K
+alpha beta
+[0]
+=== GREP_COLORS='ms=4:mc=5' grep --color=always -vC1 gamma a.txt
+alpha
+beta
+[5m[Kgamma[m[K
+alpha beta
+[0]
+=== GREP_COLORS='sl=1' grep --color=always alpha a.txt
+[1m[K[01;31m[Kalpha[m[K
+[1m[K[01;31m[Kalpha[m[K[1m[K beta[m[K
+[0]
+=== GREP_COLORS='cx=2' grep --color=always -A1 beta a.txt
+[01;31m[Kbeta[m[K
+[2m[Kgamma[m[K
+alpha [01;31m[Kbeta[m[K
+[0]
+=== GREP_COLORS='sl=1:cx=2' grep --color=always -nA1 beta a.txt
+[32m[K2[m[K[36m[K:[m[K[1m[K[01;31m[Kbeta[m[K
+[32m[K3[m[K[36m[K-[m[K[2m[Kgamma[m[K
+[32m[K4[m[K[36m[K:[m[K[1m[Kalpha [01;31m[Kbeta[m[K
+[0]
+=== GREP_COLORS='sl=1:cx=2:rv' grep --color=always -nvA1 beta a.txt
+[32m[K1[m[K[36m[K:[m[K[2m[Kalpha[m[K
+[32m[K2[m[K[36m[K-[m[K[1m[K[01;31m[Kbeta[m[K
+[32m[K3[m[K[36m[K:[m[K[2m[Kgamma[m[K
+[32m[K4[m[K[36m[K-[m[K[1m[Kalpha [01;31m[Kbeta[m[K
+[0]
+=== GREP_COLORS='fn=1:ln=2:bn=3:se=4' grep --color=always -Hnb alpha a.txt
+[1m[Ka.txt[m[K[4m[K:[m[K[2m[K1[m[K[4m[K:[m[K[3m[K0[m[K[4m[K:[m[K[01;31m[Kalpha[m[K
+[1m[Ka.txt[m[K[4m[K:[m[K[2m[K4[m[K[4m[K:[m[K[3m[K17[m[K[4m[K:[m[K[01;31m[Kalpha[m[K beta
+[0]
+=== GREP_COLORS='ne' grep --color=always -Hn alpha a.txt
+[35ma.txt[m[36m:[m[32m1[m[36m:[m[01;31malpha[m
+[35ma.txt[m[36m:[m[32m4[m[36m:[m[01;31malpha[m beta
+[0]
+=== GREP_COLORS='mt=' grep --color=always alpha a.txt
+alpha
+alpha beta
+[0]
+=== GREP_COLORS='ms=' grep --color=always alpha a.txt
+alpha
+alpha beta
+[0]
+=== GREP_COLORS='ms=1;;2' grep --color=always alpha a.txt
+[1;;2m[Kalpha[m[K
+[1;;2m[Kalpha[m[K beta
+[0]
+=== GREP_COLORS='ms=x' grep --color=always alpha a.txt
+[01;31m[Kalpha[m[K
+[01;31m[Kalpha[m[K beta
+[0]
+=== GREP_COLORS='foo=1:ms=4' grep --color=always alpha a.txt
+[4m[Kalpha[m[K
+[4m[Kalpha[m[K beta
+[0]
+=== GREP_COLORS='ms=4:foo=1' grep --color=always alpha a.txt
+[4m[Kalpha[m[K
+[4m[Kalpha[m[K beta
+[0]
+=== GREP_COLORS='ms=4:ln=' grep --color=always -n alpha a.txt
+1[36m[K:[m[K[4m[Kalpha[m[K
+4[36m[K:[m[K[4m[Kalpha[m[K beta
+[0]
+=== GREP_COLORS=':ms=4' grep --color=always alpha a.txt
+[4m[Kalpha[m[K
+[4m[Kalpha[m[K beta
+[0]
+=== GREP_COLORS='ms=4:' grep --color=always alpha a.txt
+[4m[Kalpha[m[K
+[4m[Kalpha[m[K beta
+[0]
+=== GREP_COLORS='sl=1' grep --color=always alpha crlf.txt | od -c
+0000000 033   [   1   m 033   [   K 033   [   0   1   ;   3   1   m 033
+0000020   [   K   a   l   p   h   a 033   [   m 033   [   K  \r  \n
+0000037
+[0]
+=== GREP_COLORS='sl=7:ms=1' grep --color=always -o alpha a.txt
+[1m[Kalpha[m[K
+[1m[Kalpha[m[K
+[0]
+=== GREP_COLORS='ne:ms=4' grep --color=always -c alpha a.txt b.txt
+[35ma.txt[m[36m:[m2
+[35mb.txt[m[36m:[m1
+[0]
+=== GREP_COLORS='sl=1:cx=2' grep --color=always -v -A1 alpha a.txt
+[1m[Kbeta[m[K
+[1m[Kgamma[m[K
+[2m[K[01;31m[Kalpha[m[K[2m[K beta[m[K
+[0]

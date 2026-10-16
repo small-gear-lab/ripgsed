@@ -1,0 +1,47 @@
+=== grep alpha d; echo $?
+2
+[0]
+=== grep -s alpha d; echo $?
+2
+[0]
+=== grep -c alpha d
+0
+[2]
+=== grep -c alpha d a.txt
+d:0
+a.txt:2
+[2]
+=== grep -L alpha d
+d
+[2]
+=== grep -l alpha d a.txt
+a.txt
+[2]
+=== grep -d read alpha d
+[2]
+=== grep -d skip alpha d a.txt; echo $?
+a.txt:alpha
+a.txt:alpha beta
+0
+[0]
+=== grep -d recurse alpha d 2>&1 | sort
+d/c.txt:alpha in d
+d/sub/e.log:alpha log
+[0]
+=== grep -d skip -c alpha d; echo $?
+1
+[0]
+=== grep --directories=skip alpha d a.txt
+a.txt:alpha
+a.txt:alpha beta
+[0]
+=== grep -n alpha d a.txt
+a.txt:1:alpha
+a.txt:4:alpha beta
+[2]
+=== grep alpha d d/c.txt
+d/c.txt:alpha in d
+[2]
+=== grep -d skip -L alpha d; echo $?
+1
+[0]

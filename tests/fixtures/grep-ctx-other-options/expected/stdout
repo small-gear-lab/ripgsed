@@ -1,0 +1,74 @@
+=== grep -o -C1 hit ctx.txt
+hit
+hit
+--
+hit
+--
+hit
+[0]
+=== grep -o -A1 hit ctx.txt
+hit
+hit
+--
+hit
+--
+hit
+[0]
+=== grep -o -B1 hit ctx.txt
+hit
+hit
+--
+hit
+--
+hit
+[0]
+=== grep -on -A1 hit ctx.txt
+3:hit
+4:hit
+--
+9:hit
+--
+15:hit
+[0]
+=== grep -c -A1 hit ctx.txt
+4
+[0]
+=== grep -l -A1 hit ctx.txt
+ctx.txt
+[0]
+=== grep -L -A1 hit ctx.txt
+[0]
+=== grep -q -A1 hit ctx.txt; echo $?
+0
+[0]
+=== grep -ob -A1 hit ctx.txt
+21:hit
+32:hit
+--
+71:hit
+--
+123:hit
+[0]
+=== grep -ov -A1 hit ctx.txt; echo $?
+hit
+--
+hit
+hit
+0
+[0]
+=== grep -ow -C1 'line' ctx.txt | sed -n '1,8p'
+line
+line
+line
+line
+line
+line
+line
+line
+[0]
+=== grep -oH -A1 'line 3' ctx.txt
+ctx.txt:line 3
+[0]
+=== grep -oc -C1 hit ctx.txt
+4
+[0]

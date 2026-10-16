@@ -1,0 +1,32 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+printf '%s\n' '=== grep -s alpha nosuch'
+grep -s alpha nosuch
+echo "[$?]"
+printf '%s\n' '=== grep -s alpha nosuch a.txt'
+grep -s alpha nosuch a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -s alpha d'
+grep -s alpha d
+echo "[$?]"
+printf '%s\n' '=== grep -sq alpha nosuch a.txt'
+grep -sq alpha nosuch a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -sq zzz nosuch a.txt'
+grep -sq zzz nosuch a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -s -c alpha nosuch a.txt'
+grep -s -c alpha nosuch a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -s -L alpha d'
+grep -s -L alpha d
+echo "[$?]"
+printf '%s\n' '=== grep -s '\''['\'' a.txt'
+grep -s '[' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -s'
+grep -s
+echo "[$?]"
+printf '%s\n' '=== grep -s -N a a.txt'
+grep -s -N a a.txt
+echo "[$?]"

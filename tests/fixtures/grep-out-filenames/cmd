@@ -1,0 +1,47 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+printf '%s\n' '=== grep -H alpha a.txt'
+grep -H alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -h alpha a.txt b.txt'
+grep -h alpha a.txt b.txt
+echo "[$?]"
+printf '%s\n' '=== grep alpha a.txt b.txt'
+grep alpha a.txt b.txt
+echo "[$?]"
+printf '%s\n' '=== grep -H -h alpha a.txt b.txt'
+grep -H -h alpha a.txt b.txt
+echo "[$?]"
+printf '%s\n' '=== grep -h -H alpha a.txt b.txt'
+grep -h -H alpha a.txt b.txt
+echo "[$?]"
+printf '%s\n' '=== grep -c alpha a.txt b.txt'
+grep -c alpha a.txt b.txt
+echo "[$?]"
+printf '%s\n' '=== grep -hc alpha a.txt b.txt'
+grep -hc alpha a.txt b.txt
+echo "[$?]"
+printf '%s\n' '=== grep -Hc alpha a.txt'
+grep -Hc alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -Hn alpha a.txt b.txt'
+grep -Hn alpha a.txt b.txt
+echo "[$?]"
+printf '%s\n' '=== grep -Ho a a.txt'
+grep -Ho a a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -H alpha - < a.txt'
+grep -H alpha - < a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -H alpha '\''sp ace.txt'\'''
+grep -H alpha 'sp ace.txt'
+echo "[$?]"
+printf '%s\n' '=== grep -H alpha nonl.txt'
+grep -H alpha nonl.txt
+echo "[$?]"
+printf '%s\n' '=== grep -Hl alpha a.txt'
+grep -Hl alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -Hv alpha a.txt'
+grep -Hv alpha a.txt
+echo "[$?]"

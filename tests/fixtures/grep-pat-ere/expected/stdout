@@ -1,0 +1,100 @@
+=== grep -E 'al(ph)a' a.txt
+alpha
+alpha beta
+[0]
+=== grep -E 'a+' -o a.txt
+a
+a
+a
+a
+a
+a
+a
+a
+[0]
+=== grep -E 'alpha?' -o a.txt
+alpha
+alpha
+[0]
+=== grep -E 'alpha|beta' a.txt
+alpha
+beta
+alpha beta
+[0]
+=== grep -E -o '(a|b)+' a.txt
+a
+a
+b
+a
+a
+a
+a
+a
+b
+a
+[0]
+=== grep -E '(a)\1' words.txt a.txt
+[1]
+=== grep -E '(.)\1' -o words.txt
+oo
+oo
+oo
+oo
+oo
+oo
+oo
+oo
+oo
+[0]
+=== grep -E '^(alpha|beta)$' a.txt
+alpha
+beta
+[0]
+=== grep -E '(' a.txt
+[2]
+=== grep -E '(a' a.txt
+[2]
+=== grep -E 'a|' -c a.txt
+4
+[0]
+=== grep -E '|a' -c a.txt
+4
+[0]
+=== grep -E '()' -c a.txt
+4
+[0]
+=== grep -E -o 'a{1,2}' a.txt
+a
+a
+a
+a
+a
+a
+a
+a
+[0]
+=== grep -E 'a\|b' a.txt words.txt
+[1]
+=== grep -E '\(foo\)' words.txt
+(foo)
+[0]
+=== grep -E 'o{2}|b' -o words.txt
+oo
+oo
+b
+b
+oo
+oo
+b
+oo
+b
+oo
+oo
+oo
+b
+oo
+[0]
+=== grep -E -x 'alpha|beta' a.txt
+alpha
+beta
+[0]

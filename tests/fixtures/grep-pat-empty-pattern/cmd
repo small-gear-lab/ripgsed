@@ -1,0 +1,59 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+printf '%s\n' '=== grep '\'''\'' a.txt'
+grep '' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -c '\'''\'' a.txt'
+grep -c '' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -c '\'''\'' empty'
+grep -c '' empty
+echo "[$?]"
+printf '%s\n' '=== grep -vc '\'''\'' a.txt'
+grep -vc '' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -L -v '\'''\'' a.txt'
+grep -L -v '' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -n '\'''\'' b.txt'
+grep -n '' b.txt
+echo "[$?]"
+printf '%s\n' '=== grep -o '\'''\'' a.txt'
+grep -o '' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -e '\'''\'' -e zzz -c a.txt'
+grep -e '' -e zzz -c a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -x '\'''\'' words.txt'
+grep -x '' words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -xc '\'''\'' a.txt'
+grep -xc '' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -w '\'''\'' words.txt'
+grep -w '' words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -wc '\'''\'' a.txt'
+grep -wc '' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -c '\'''\'' nonl.txt'
+grep -c '' nonl.txt
+echo "[$?]"
+printf '%s\n' '=== grep -E '\'''\'' -c a.txt'
+grep -E '' -c a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -F '\'''\'' -c a.txt'
+grep -F '' -c a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -F -v '\'''\'' -c a.txt'
+grep -F -v '' -c a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -f /dev/null -c a.txt'
+grep -f /dev/null -c a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -vc -x '\'''\'' a.txt'
+grep -vc -x '' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -vc -w '\'''\'' a.txt'
+grep -vc -w '' a.txt
+echo "[$?]"

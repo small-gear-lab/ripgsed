@@ -1,0 +1,24 @@
+=== grep -e alpha -e beta a.txt
+alpha
+beta
+alpha beta
+[0]
+=== grep -e alpha -e beta -c a.txt
+3
+[0]
+=== grep -e alpha a.txt -e gamma
+alpha
+gamma
+alpha beta
+[0]
+=== grep -e 'alpha
+beta' a.txt
+alpha
+beta
+alpha beta
+[0]
+=== grep -e alpha -e '' -c a.txt
+4
+[0]
+=== grep -E 'a|b' -e c a.txt
+[2]

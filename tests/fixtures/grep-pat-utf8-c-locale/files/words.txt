@@ -1,0 +1,4 @@
+foo foobar barfoo foo_bar foo-bar Foo
+foo
+foobar
+(foo)

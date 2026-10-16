@@ -1,0 +1,41 @@
+=== grep alpha a.txt >/dev/null; echo $?
+0
+[0]
+=== grep zzz a.txt; echo $?
+1
+[0]
+=== grep alpha nosuch; echo $?
+2
+[0]
+=== grep alpha nosuch a.txt >/dev/null; echo $?
+2
+[0]
+=== grep -q alpha a.txt; echo $?
+0
+[0]
+=== grep -q alpha nosuch a.txt; echo $?
+0
+[0]
+=== grep -q zzz nosuch a.txt; echo $?
+2
+[0]
+=== grep -s alpha nosuch a.txt >/dev/null; echo $?
+2
+[0]
+=== grep -v alpha a.txt >/dev/null; echo $?
+0
+[0]
+=== grep -c zzz a.txt; echo $?
+0
+1
+[0]
+=== grep -L alpha a.txt; echo $?
+0
+[0]
+=== grep -L zzz a.txt; echo $?
+a.txt
+1
+[0]
+=== grep -l zzz a.txt; echo $?
+1
+[0]

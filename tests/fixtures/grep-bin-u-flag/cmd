@@ -1,0 +1,26 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+printf '%s\n' '=== grep -U alpha a.txt'
+grep -U alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -U alpha crlf.txt | od -c'
+grep -U alpha crlf.txt | od -c
+echo "[$?]"
+printf '%s\n' '=== grep -U alpha bin.dat'
+grep -U alpha bin.dat
+echo "[$?]"
+printf '%s\n' '=== grep --binary alpha a.txt'
+grep --binary alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -U -c alpha crlf.txt'
+grep -U -c alpha crlf.txt
+echo "[$?]"
+printf '%s\n' '=== grep -U -o '\''a.'\'' crlf.txt | od -c'
+grep -U -o 'a.' crlf.txt | od -c
+echo "[$?]"
+printf '%s\n' '=== grep -U '\''a$'\'' crlf.txt; echo $?'
+grep -U 'a$' crlf.txt; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -U -c '\''a.$'\'' crlf.txt'
+grep -U -c 'a.$' crlf.txt
+echo "[$?]"

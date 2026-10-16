@@ -1,0 +1,64 @@
+=== grep -oP '\w+' utf8.txt
+café
+naïve
+alpha
+あいう
+[0]
+=== grep -oP '.' utf8.txt
+c
+a
+f
+é
+n
+a
+ï
+v
+e
+ 
+a
+l
+p
+h
+a
+あ
+い
+う
+[0]
+=== grep -iP 'CAFÉ' utf8.txt
+café
+[0]
+=== grep -oP '\p{L}+' utf8.txt
+café
+naïve
+alpha
+あいう
+[0]
+=== grep -cP '^.{3}$' utf8.txt
+1
+[0]
+=== grep -P 'あ' utf8.txt
+あいう
+[0]
+=== grep -oP '[あ-う]+' utf8.txt
+あいう
+[0]
+=== grep -oP '(?<=na)ï' utf8.txt
+ï
+[0]
+=== grep -wP 'naïve' utf8.txt
+naïve alpha
+[0]
+=== grep -P alpha bad.txt
+plain alpha
+[0]
+=== grep -c alpha bad.txt -P
+2
+[0]
+=== grep -P -a alpha bad.txt | od -c
+0000000   c   a   f 351       a   l   p   h   a  \n   p   l   a   i   n
+0000020       a   l   p   h   a  \n
+0000027
+[0]
+=== grep -P -o 'caf.' bad.txt | od -c
+0000000
+[0]

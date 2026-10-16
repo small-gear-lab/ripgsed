@@ -1,0 +1,38 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+printf '%s\n' '=== grep -f pats.txt a.txt b.txt'
+grep -f pats.txt a.txt b.txt
+echo "[$?]"
+printf '%s\n' '=== grep -f pats.txt -e gamma a.txt'
+grep -f pats.txt -e gamma a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -e gamma -f pats.txt a.txt'
+grep -e gamma -f pats.txt a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -f pats.txt -v a.txt'
+grep -f pats.txt -v a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -f /dev/null a.txt'
+grep -f /dev/null a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -c -f /dev/null a.txt'
+grep -c -f /dev/null a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -v -f /dev/null a.txt'
+grep -v -f /dev/null a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -f nosuch a.txt'
+grep -f nosuch a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -F -f pats.txt a.txt'
+grep -F -f pats.txt a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -w -f pats.txt a.txt'
+grep -w -f pats.txt a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -x -f pats.txt a.txt'
+grep -x -f pats.txt a.txt
+echo "[$?]"
+printf '%s\n' '=== printf '\''alpha\n'\'' | grep -f - a.txt'
+printf 'alpha\n' | grep -f - a.txt
+echo "[$?]"

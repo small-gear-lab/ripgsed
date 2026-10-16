@@ -1,0 +1,87 @@
+=== grep -C3 'line 1 ' ctx.txt
+[1]
+=== grep -C3 'line 20' ctx.txt
+line 17
+line 18
+line 19
+line 20
+[0]
+=== grep -C2 'line 5' ctx.txt
+line 3 hit
+line 4 hit
+line 5
+line 6
+line 7
+[0]
+=== grep -C2 'line 3 ' ctx.txt
+line 1
+line 2
+line 3 hit
+line 4 hit
+line 5
+[0]
+=== grep -C1 -e 'line 3 ' -e 'line 5' ctx.txt
+line 2
+line 3 hit
+line 4 hit
+line 5
+line 6
+[0]
+=== grep -C1 -e 'line 3 ' -e 'line 6' ctx.txt
+line 2
+line 3 hit
+line 4 hit
+line 5
+line 6
+line 7
+[0]
+=== grep -C1 -e 'line 3 ' -e 'line 7' ctx.txt
+line 2
+line 3 hit
+line 4 hit
+--
+line 6
+line 7
+line 8
+[0]
+=== grep -A1 -B1 -e 'line 3 ' -e 'line 6' ctx.txt
+line 2
+line 3 hit
+line 4 hit
+line 5
+line 6
+line 7
+[0]
+=== grep -A1 -e 'line 3 ' -e 'line 5' ctx.txt
+line 3 hit
+line 4 hit
+line 5
+line 6
+[0]
+=== grep -B1 -e 'line 3 ' -e 'line 5' ctx.txt
+line 2
+line 3 hit
+line 4 hit
+line 5
+[0]
+=== grep -C1 'line' ctx.txt | sed -n '1,5p'
+line 1
+line 2
+line 3 hit
+line 4 hit
+line 5
+[0]
+=== grep -C30 hit ctx.txt | sed -n '1,3p'
+line 1
+line 2
+line 3 hit
+[0]
+=== grep -C1 alpha nonl.txt
+alpha
+last alpha
+[0]
+=== grep -A1 alpha nonl.txt | od -c
+0000000   a   l   p   h   a  \n   l   a   s   t       a   l   p   h   a
+0000020  \n
+0000021
+[0]

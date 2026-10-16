@@ -1,0 +1,65 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+printf '%s\n' '=== grep -iP ALPHA a.txt'
+grep -iP ALPHA a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -wP foo words.txt'
+grep -wP foo words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -xP foo words.txt'
+grep -xP foo words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -xP '\''foo|foo bar'\'' words.txt'
+grep -xP 'foo|foo bar' words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -wP '\''fo*'\'' words.txt'
+grep -wP 'fo*' words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -P -w '\''foo|foobar'\'' -o words.txt'
+grep -P -w 'foo|foobar' -o words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -vP foo words.txt'
+grep -vP foo words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -cP alpha a.txt'
+grep -cP alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -nP -A1 alpha a.txt'
+grep -nP -A1 alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -P -C1 beta a.txt'
+grep -P -C1 beta a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -zP '\''^beta'\'' a.txt; echo $?'
+grep -zP '^beta' a.txt; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -zoP '\''alpha.*'\'' a.txt | od -c'
+grep -zoP 'alpha.*' a.txt | od -c
+echo "[$?]"
+printf '%s\n' '=== grep -zP '\''a$'\'' a.txt; echo $?'
+grep -zP 'a$' a.txt; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -P -m1 alpha a.txt'
+grep -P -m1 alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -P -H alpha a.txt'
+grep -P -H alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -P --color=always alpha a.txt'
+grep -P --color=always alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -P --color=always -o '\''a.'\'' a.txt'
+grep -P --color=always -o 'a.' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -P -x -o '\''alpha'\'' a.txt'
+grep -P -x -o 'alpha' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -P -b -o alpha a.txt'
+grep -P -b -o alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -P -r alpha d 2>&1 | sort'
+grep -P -r alpha d 2>&1 | sort
+echo "[$?]"
+printf '%s\n' '=== grep -P -L alpha a.txt b.txt'
+grep -P -L alpha a.txt b.txt
+echo "[$?]"

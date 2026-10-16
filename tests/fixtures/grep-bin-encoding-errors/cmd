@@ -1,0 +1,71 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+printf '%s\n' '=== grep alpha bad.txt'
+grep alpha bad.txt
+echo "[$?]"
+printf '%s\n' '=== grep -c alpha bad.txt'
+grep -c alpha bad.txt
+echo "[$?]"
+printf '%s\n' '=== grep -n plain bad.txt'
+grep -n plain bad.txt
+echo "[$?]"
+printf '%s\n' '=== grep -a alpha bad.txt | od -c'
+grep -a alpha bad.txt | od -c
+echo "[$?]"
+printf '%s\n' '=== grep -o alpha bad.txt'
+grep -o alpha bad.txt
+echo "[$?]"
+printf '%s\n' '=== grep -v zzz bad.txt'
+grep -v zzz bad.txt
+echo "[$?]"
+printf '%s\n' '=== grep -L alpha bad.txt'
+grep -L alpha bad.txt
+echo "[$?]"
+printf '%s\n' '=== grep -l alpha bad.txt'
+grep -l alpha bad.txt
+echo "[$?]"
+printf '%s\n' '=== grep -r alpha . 2>&1 | sort'
+grep -r alpha . 2>&1 | sort
+echo "[$?]"
+printf '%s\n' '=== grep . utf8.txt'
+grep . utf8.txt
+echo "[$?]"
+printf '%s\n' '=== grep -B1 plain bad.txt'
+grep -B1 plain bad.txt
+echo "[$?]"
+printf '%s\n' '=== grep -A1 caf bad.txt'
+grep -A1 caf bad.txt
+echo "[$?]"
+printf '%s\n' '=== grep -C1 plain bad.txt'
+grep -C1 plain bad.txt
+echo "[$?]"
+printf '%s\n' '=== grep -A2 alpha bad.txt bad.txt'
+grep -A2 alpha bad.txt bad.txt
+echo "[$?]"
+printf '%s\n' '=== grep -I alpha bad.txt'
+grep -I alpha bad.txt
+echo "[$?]"
+printf '%s\n' '=== grep -I -c alpha bad.txt'
+grep -I -c alpha bad.txt
+echo "[$?]"
+printf '%s\n' '=== grep -h caf bad.txt; echo $?'
+grep -h caf bad.txt; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -x '\''plain alpha'\'' bad.txt'
+grep -x 'plain alpha' bad.txt
+echo "[$?]"
+printf '%s\n' '=== grep -m1 alpha bad.txt'
+grep -m1 alpha bad.txt
+echo "[$?]"
+printf '%s\n' '=== grep -b alpha bad.txt'
+grep -b alpha bad.txt
+echo "[$?]"
+printf '%s\n' '=== grep -w alpha bad.txt'
+grep -w alpha bad.txt
+echo "[$?]"
+printf '%s\n' '=== grep --color=always alpha bad.txt | od -c | sed -n '\''1,4p'\'''
+grep --color=always alpha bad.txt | od -c | sed -n '1,4p'
+echo "[$?]"
+printf '%s\n' '=== grep -c . bad.txt utf8.txt'
+grep -c . bad.txt utf8.txt
+echo "[$?]"

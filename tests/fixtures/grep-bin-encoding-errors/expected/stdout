@@ -1,0 +1,92 @@
+=== grep alpha bad.txt
+plain alpha
+[0]
+=== grep -c alpha bad.txt
+2
+[0]
+=== grep -n plain bad.txt
+2:plain alpha
+[0]
+=== grep -a alpha bad.txt | od -c
+0000000   c   a   f 351       a   l   p   h   a  \n   p   l   a   i   n
+0000020       a   l   p   h   a  \n
+0000027
+[0]
+=== grep -o alpha bad.txt
+alpha
+alpha
+[0]
+=== grep -v zzz bad.txt
+plain alpha
+[0]
+=== grep -L alpha bad.txt
+[0]
+=== grep -l alpha bad.txt
+bad.txt
+[0]
+=== grep -r alpha . 2>&1 | sort
+./a.txt:alpha
+./a.txt:alpha beta
+./b.txt:two alpha
+./bad.txt:plain alpha
+./crlf.txt:alpha
+./d/c.txt:alpha in d
+./d/sub/e.log:alpha log
+./nonl.txt:alpha
+./nonl.txt:last alpha
+./pats.txt:alpha
+./sp ace.txt:alpha with space
+./utf8.txt:naïve alpha
+grep: ./bad.txt: binary file matches
+grep: ./bin.dat: binary file matches
+grep: ./z.dat: binary file matches
+[0]
+=== grep . utf8.txt
+café
+naïve alpha
+あいう
+[0]
+=== grep -B1 plain bad.txt
+plain alpha
+[0]
+=== grep -A1 caf bad.txt
+[0]
+=== grep -C1 plain bad.txt
+plain alpha
+[0]
+=== grep -A2 alpha bad.txt bad.txt
+--
+bad.txt:plain alpha
+--
+--
+bad.txt:plain alpha
+[0]
+=== grep -I alpha bad.txt
+plain alpha
+[0]
+=== grep -I -c alpha bad.txt
+2
+[0]
+=== grep -h caf bad.txt; echo $?
+0
+[0]
+=== grep -x 'plain alpha' bad.txt
+plain alpha
+[0]
+=== grep -m1 alpha bad.txt
+[0]
+=== grep -b alpha bad.txt
+11:plain alpha
+[0]
+=== grep -w alpha bad.txt
+plain alpha
+[0]
+=== grep --color=always alpha bad.txt | od -c | sed -n '1,4p'
+0000000   p   l   a   i   n     033   [   0   1   ;   3   1   m 033   [
+0000020   K   a   l   p   h   a 033   [   m 033   [   K  \n
+0000035
+[0]
+=== grep -c . bad.txt utf8.txt
+bad.txt:2
+utf8.txt:3
+[0]

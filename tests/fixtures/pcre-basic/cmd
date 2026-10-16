@@ -1,0 +1,59 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+printf '%s\n' '=== grep -P '\''al.ha'\'' a.txt'
+grep -P 'al.ha' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -P '\''\d'\'' words.txt ctx.txt | sed -n '\''1,3p'\'''
+grep -P '\d' words.txt ctx.txt | sed -n '1,3p'
+echo "[$?]"
+printf '%s\n' '=== grep -oP '\''\w+'\'' words.txt'
+grep -oP '\w+' words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -cP '\''^$'\'' a.txt'
+grep -cP '^$' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -P '\''(a)\1'\'' words.txt'
+grep -P '(a)\1' words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -P '\''(\w)\1'\'' words.txt'
+grep -P '(\w)\1' words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -P '\''foo(?!bar)'\'' -o words.txt'
+grep -P 'foo(?!bar)' -o words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -P '\''\bfoo\b'\'' words.txt'
+grep -P '\bfoo\b' words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -P '\''a|b'\'' -c a.txt'
+grep -P 'a|b' -c a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -P '\''[[:alpha:]]+'\'' -o a.txt'
+grep -P '[[:alpha:]]+' -o a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -P '\''a{2}'\'' -c words.txt'
+grep -P 'a{2}' -c words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -P '\''^\s*$'\'' -c words.txt empty'
+grep -P '^\s*$' -c words.txt empty
+echo "[$?]"
+printf '%s\n' '=== grep -P '\''\t'\'' -c a.txt'
+grep -P '\t' -c a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -P '\''beta'\'' a.txt b.txt'
+grep -P 'beta' a.txt b.txt
+echo "[$?]"
+printf '%s\n' '=== grep -Pn alpha a.txt'
+grep -Pn alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -Pv alpha a.txt'
+grep -Pv alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -Pc alpha a.txt b.txt'
+grep -Pc alpha a.txt b.txt
+echo "[$?]"
+printf '%s\n' '=== grep -Pl alpha a.txt b.txt'
+grep -Pl alpha a.txt b.txt
+echo "[$?]"
+printf '%s\n' '=== grep -Pq alpha a.txt; echo $?'
+grep -Pq alpha a.txt; echo $?
+echo "[$?]"

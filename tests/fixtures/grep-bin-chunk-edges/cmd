@@ -1,0 +1,24 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+awk 'BEGIN { for (i = 1; i <= 20000; i++) printf "L%05d alpha\n", i }' > t.txt; for n in 100 7000 7560 7561 7562 8000 15000; do awk -v n=$n 'NR == n { sub(/^L0/, "L\001") } { print }' t.txt | tr '\001' '\000' > n$n.dat; done
+printf '%s\n' '=== grep -c alpha n100.dat n7000.dat n7560.dat n7561.dat n7562.dat n8000.dat n15000.dat'
+grep -c alpha n100.dat n7000.dat n7560.dat n7561.dat n7562.dat n8000.dat n15000.dat
+echo "[$?]"
+printf '%s\n' '=== grep alpha n100.dat | wc -l'
+grep alpha n100.dat | wc -l
+echo "[$?]"
+printf '%s\n' '=== grep alpha n7000.dat | wc -l'
+grep alpha n7000.dat | wc -l
+echo "[$?]"
+printf '%s\n' '=== grep alpha n7561.dat | wc -l'
+grep alpha n7561.dat | wc -l
+echo "[$?]"
+printf '%s\n' '=== grep alpha n8000.dat | wc -l'
+grep alpha n8000.dat | wc -l
+echo "[$?]"
+printf '%s\n' '=== grep alpha n15000.dat | wc -l'
+grep alpha n15000.dat | wc -l
+echo "[$?]"
+printf '%s\n' '=== cat n7000.dat | grep alpha | wc -l'
+cat n7000.dat | grep alpha | wc -l
+echo "[$?]"

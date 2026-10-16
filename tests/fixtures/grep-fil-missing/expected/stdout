@@ -1,0 +1,51 @@
+=== grep alpha nosuch; echo $?
+2
+[0]
+=== grep alpha nosuch a.txt; echo $?
+a.txt:alpha
+a.txt:alpha beta
+2
+[0]
+=== grep alpha a.txt nosuch b.txt; echo $?
+a.txt:alpha
+a.txt:alpha beta
+b.txt:two alpha
+2
+[0]
+=== grep -c alpha nosuch a.txt
+a.txt:2
+[2]
+=== grep -l alpha nosuch a.txt
+a.txt
+[2]
+=== grep -L alpha nosuch a.txt
+[2]
+=== grep -q alpha nosuch a.txt; echo $?
+0
+[0]
+=== grep -s alpha nosuch a.txt; echo $?
+a.txt:alpha
+a.txt:alpha beta
+2
+[0]
+=== grep alpha ''; echo $?
+2
+[0]
+=== grep alpha 'sp ace.txt' nosuch
+sp ace.txt:alpha with space
+[2]
+=== grep alpha ./nosuch/x; echo $?
+2
+[0]
+=== grep -r alpha nosuch; echo $?
+2
+[0]
+=== grep -rs alpha nosuch d | sort; echo $?
+d/c.txt:alpha in d
+d/sub/e.log:alpha log
+0
+[0]
+=== chmod 000 a.txt; grep alpha a.txt b.txt; echo $?; chmod 644 a.txt
+b.txt:two alpha
+2
+[0]

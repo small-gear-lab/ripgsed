@@ -1,0 +1,56 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+printf '%s\n' '=== grep -E '\''al(ph)a'\'' a.txt'
+grep -E 'al(ph)a' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -E '\''a+'\'' -o a.txt'
+grep -E 'a+' -o a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -E '\''alpha?'\'' -o a.txt'
+grep -E 'alpha?' -o a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -E '\''alpha|beta'\'' a.txt'
+grep -E 'alpha|beta' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -E -o '\''(a|b)+'\'' a.txt'
+grep -E -o '(a|b)+' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -E '\''(a)\1'\'' words.txt a.txt'
+grep -E '(a)\1' words.txt a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -E '\''(.)\1'\'' -o words.txt'
+grep -E '(.)\1' -o words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -E '\''^(alpha|beta)$'\'' a.txt'
+grep -E '^(alpha|beta)$' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -E '\''('\'' a.txt'
+grep -E '(' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -E '\''(a'\'' a.txt'
+grep -E '(a' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -E '\''a|'\'' -c a.txt'
+grep -E 'a|' -c a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -E '\''|a'\'' -c a.txt'
+grep -E '|a' -c a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -E '\''()'\'' -c a.txt'
+grep -E '()' -c a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -E -o '\''a{1,2}'\'' a.txt'
+grep -E -o 'a{1,2}' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -E '\''a\|b'\'' a.txt words.txt'
+grep -E 'a\|b' a.txt words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -E '\''\(foo\)'\'' words.txt'
+grep -E '\(foo\)' words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -E '\''o{2}|b'\'' -o words.txt'
+grep -E 'o{2}|b' -o words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -E -x '\''alpha|beta'\'' a.txt'
+grep -E -x 'alpha|beta' a.txt
+echo "[$?]"

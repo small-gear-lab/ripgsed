@@ -1,0 +1,86 @@
+=== grep -o 'o\{2\}' words.txt
+oo
+oo
+oo
+oo
+oo
+oo
+oo
+oo
+oo
+[0]
+=== grep -o 'o\{2,\}' words.txt
+oo
+oo
+oo
+oo
+oo
+oo
+oo
+oo
+oo
+[0]
+=== grep -o 'o\{,1\}b' words.txt
+ob
+b
+b
+b
+ob
+[0]
+=== grep -o 'o\{1,2\}' words.txt
+oo
+oo
+oo
+oo
+oo
+oo
+oo
+oo
+oo
+[0]
+=== grep -E -o 'o{2}' words.txt
+oo
+oo
+oo
+oo
+oo
+oo
+oo
+oo
+oo
+[0]
+=== grep -E -o 'o{1,2}b' words.txt
+oob
+oob
+[0]
+=== grep -E -o 'o{,2}b' words.txt
+oob
+b
+b
+b
+oob
+[0]
+=== grep -E -c 'x{0}' a.txt
+4
+[0]
+=== grep 'a\{1' a.txt
+[2]
+=== grep 'a\{1,2' a.txt
+[2]
+=== grep 'a\{x\}' a.txt
+[2]
+=== grep 'a\{2,1\}' a.txt
+[2]
+=== grep 'a\{\}' a.txt
+[2]
+=== grep -E 'a{2,1}' a.txt
+[2]
+=== grep -E 'a{}' a.txt
+[2]
+=== grep 'a\{99999\}' a.txt
+[2]
+=== grep -E 'a{32768}' a.txt
+[2]
+=== grep -c -E 'a{32767}' a.txt
+0
+[1]

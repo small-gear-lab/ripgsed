@@ -1,0 +1,48 @@
+=== grep -Z alpha a.txt b.txt | od -c
+0000000   a   .   t   x   t  \0   a   l   p   h   a  \n   a   .   t   x
+0000020   t  \0   a   l   p   h   a       b   e   t   a  \n   b   .   t
+0000040   x   t  \0   t   w   o       a   l   p   h   a  \n
+0000055
+[0]
+=== grep -ZH alpha a.txt | od -c
+0000000   a   .   t   x   t  \0   a   l   p   h   a  \n   a   .   t   x
+0000020   t  \0   a   l   p   h   a       b   e   t   a  \n
+0000035
+[0]
+=== grep -Zc alpha a.txt b.txt | od -c
+0000000   a   .   t   x   t  \0   2  \n   b   .   t   x   t  \0   1  \n
+0000020
+[0]
+=== grep -Zn alpha a.txt b.txt | od -c
+0000000   a   .   t   x   t  \0   1   :   a   l   p   h   a  \n   a   .
+0000020   t   x   t  \0   4   :   a   l   p   h   a       b   e   t   a
+0000040  \n   b   .   t   x   t  \0   2   :   t   w   o       a   l   p
+0000060   h   a  \n
+0000063
+[0]
+=== grep -Zl alpha a.txt b.txt | od -c
+0000000   a   .   t   x   t  \0   b   .   t   x   t  \0
+0000014
+[0]
+=== grep -ZL zzz a.txt b.txt | od -c
+0000000   a   .   t   x   t  \0   b   .   t   x   t  \0
+0000014
+[0]
+=== grep -Zo a a.txt b.txt | od -c
+0000000   a   .   t   x   t  \0   a  \n   a   .   t   x   t  \0   a  \n
+*
+0000100   b   .   t   x   t  \0   a  \n   b   .   t   x   t  \0   a  \n
+0000120
+[0]
+=== grep -Z -C1 beta a.txt b.txt | od -c
+0000000   a   .   t   x   t  \0   a   l   p   h   a  \n   a   .   t   x
+0000020   t  \0   b   e   t   a  \n   a   .   t   x   t  \0   g   a   m
+0000040   m   a  \n   a   .   t   x   t  \0   a   l   p   h   a       b
+0000060   e   t   a  \n
+0000064
+[0]
+=== grep -Z alpha a.txt | od -c
+0000000   a   l   p   h   a  \n   a   l   p   h   a       b   e   t   a
+0000020  \n
+0000021
+[0]

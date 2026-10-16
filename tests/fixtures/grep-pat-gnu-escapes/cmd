@@ -1,0 +1,53 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+printf '%s\n' '=== grep -o '\''\w\+'\'' words.txt'
+grep -o '\w\+' words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -o '\''\W'\'' words.txt'
+grep -o '\W' words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -c '\''\s'\'' a.txt'
+grep -c '\s' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -o '\''\S\+'\'' a.txt'
+grep -o '\S\+' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -o '\''\bfoo'\'' words.txt'
+grep -o '\bfoo' words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -o '\''foo\b'\'' words.txt'
+grep -o 'foo\b' words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -o '\''\<foo'\'' words.txt'
+grep -o '\<foo' words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -o '\''foo\>'\'' words.txt'
+grep -o 'foo\>' words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -c '\''\Boo'\'' words.txt'
+grep -c '\Boo' words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -o '\''o\B'\'' words.txt'
+grep -o 'o\B' words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -c '\''\`alpha'\'' a.txt'
+grep -c '\`alpha' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -c "beta\\'\''" a.txt'
+grep -c "beta\\'" a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -o '\''\<\w'\'' words.txt'
+grep -o '\<\w' words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -E -o '\''\w+'\'' words.txt'
+grep -E -o '\w+' words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -E -o '\''foo\b'\'' words.txt'
+grep -E -o 'foo\b' words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -o '\''\<'\'' a.txt'
+grep -o '\<' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -c '\''\<'\'' a.txt'
+grep -c '\<' a.txt
+echo "[$?]"

@@ -1,0 +1,46 @@
+=== grep -f pats.txt a.txt b.txt
+a.txt:alpha
+a.txt:alpha beta
+b.txt:two alpha
+[0]
+=== grep -f pats.txt -e gamma a.txt
+alpha
+gamma
+alpha beta
+[0]
+=== grep -e gamma -f pats.txt a.txt
+alpha
+gamma
+alpha beta
+[0]
+=== grep -f pats.txt -v a.txt
+beta
+gamma
+[0]
+=== grep -f /dev/null a.txt
+[1]
+=== grep -c -f /dev/null a.txt
+[1]
+=== grep -v -f /dev/null a.txt
+alpha
+beta
+gamma
+alpha beta
+[0]
+=== grep -f nosuch a.txt
+[2]
+=== grep -F -f pats.txt a.txt
+alpha
+alpha beta
+[0]
+=== grep -w -f pats.txt a.txt
+alpha
+alpha beta
+[0]
+=== grep -x -f pats.txt a.txt
+alpha
+[0]
+=== printf 'alpha\n' | grep -f - a.txt
+alpha
+alpha beta
+[0]

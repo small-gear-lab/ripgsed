@@ -1,0 +1,197 @@
+=== grep -r --include='*.txt' alpha . 2>&1 | sort
+./a.txt:alpha
+./a.txt:alpha beta
+./b.txt:two alpha
+./bad.txt:café alpha
+./bad.txt:plain alpha
+./crlf.txt:alpha
+./d/c.txt:alpha in d
+./nonl.txt:alpha
+./nonl.txt:last alpha
+./pats.txt:alpha
+./sp ace.txt:alpha with space
+./utf8.txt:naÃ¯ve alpha
+[0]
+=== grep -r --include='*.log' alpha . 2>&1 | sort
+./d/sub/e.log:alpha log
+[0]
+=== grep -r --exclude='*.log' alpha . 2>&1 | sort
+./a.txt:alpha
+./a.txt:alpha beta
+./b.txt:two alpha
+./bad.txt:café alpha
+./bad.txt:plain alpha
+./crlf.txt:alpha
+./d/c.txt:alpha in d
+./nonl.txt:alpha
+./nonl.txt:last alpha
+./pats.txt:alpha
+./sp ace.txt:alpha with space
+./utf8.txt:naÃ¯ve alpha
+grep: ./bin.dat: binary file matches
+grep: ./z.dat: binary file matches
+[0]
+=== grep -r --exclude='a*' alpha . 2>&1 | sort
+./b.txt:two alpha
+./bad.txt:café alpha
+./bad.txt:plain alpha
+./crlf.txt:alpha
+./d/c.txt:alpha in d
+./d/sub/e.log:alpha log
+./nonl.txt:alpha
+./nonl.txt:last alpha
+./pats.txt:alpha
+./sp ace.txt:alpha with space
+./utf8.txt:naÃ¯ve alpha
+grep: ./bin.dat: binary file matches
+grep: ./z.dat: binary file matches
+[0]
+=== grep -r --include='*.txt' --exclude='b*' alpha . 2>&1 | sort
+./a.txt:alpha
+./a.txt:alpha beta
+./crlf.txt:alpha
+./d/c.txt:alpha in d
+./nonl.txt:alpha
+./nonl.txt:last alpha
+./pats.txt:alpha
+./sp ace.txt:alpha with space
+./utf8.txt:naÃ¯ve alpha
+[0]
+=== grep -r --exclude='b*' --include='*.txt' alpha . 2>&1 | sort
+./a.txt:alpha
+./a.txt:alpha beta
+./b.txt:two alpha
+./bad.txt:café alpha
+./bad.txt:plain alpha
+./crlf.txt:alpha
+./d/c.txt:alpha in d
+./d/sub/e.log:alpha log
+./nonl.txt:alpha
+./nonl.txt:last alpha
+./pats.txt:alpha
+./sp ace.txt:alpha with space
+./utf8.txt:naÃ¯ve alpha
+grep: ./z.dat: binary file matches
+[0]
+=== grep -r --include='sub' alpha . 2>&1 | sort
+[0]
+=== grep -r --include='d/*' alpha . 2>&1 | sort
+[0]
+=== grep -r --exclude='d/*' alpha . 2>&1 | sort
+./a.txt:alpha
+./a.txt:alpha beta
+./b.txt:two alpha
+./bad.txt:café alpha
+./bad.txt:plain alpha
+./crlf.txt:alpha
+./d/c.txt:alpha in d
+./d/sub/e.log:alpha log
+./nonl.txt:alpha
+./nonl.txt:last alpha
+./pats.txt:alpha
+./sp ace.txt:alpha with space
+./utf8.txt:naÃ¯ve alpha
+grep: ./bin.dat: binary file matches
+grep: ./z.dat: binary file matches
+[0]
+=== grep -r --exclude='*/c.txt' alpha . 2>&1 | sort
+./a.txt:alpha
+./a.txt:alpha beta
+./b.txt:two alpha
+./bad.txt:café alpha
+./bad.txt:plain alpha
+./crlf.txt:alpha
+./d/c.txt:alpha in d
+./d/sub/e.log:alpha log
+./nonl.txt:alpha
+./nonl.txt:last alpha
+./pats.txt:alpha
+./sp ace.txt:alpha with space
+./utf8.txt:naÃ¯ve alpha
+grep: ./bin.dat: binary file matches
+grep: ./z.dat: binary file matches
+[0]
+=== grep alpha a.txt --exclude='a.txt'; echo $?
+1
+[0]
+=== grep alpha d/c.txt --exclude='c.txt'; echo $?
+1
+[0]
+=== grep alpha d/c.txt --exclude='d/c.txt'; echo $?
+1
+[0]
+=== grep alpha d/c.txt --exclude='*c.txt'; echo $?
+1
+[0]
+=== grep alpha a.txt --include='b*'; echo $?
+1
+[0]
+=== grep alpha a.txt --include='a.txt'
+alpha
+alpha beta
+[0]
+=== grep -r alpha a.txt d --include='c.txt' 2>&1 | sort
+d/c.txt:alpha in d
+[0]
+=== printf '*.log\n' > ex.lst; grep -r --exclude-from=ex.lst alpha . 2>&1 | sort
+./a.txt:alpha
+./a.txt:alpha beta
+./b.txt:two alpha
+./bad.txt:café alpha
+./bad.txt:plain alpha
+./crlf.txt:alpha
+./d/c.txt:alpha in d
+./nonl.txt:alpha
+./nonl.txt:last alpha
+./pats.txt:alpha
+./sp ace.txt:alpha with space
+./utf8.txt:naÃ¯ve alpha
+grep: ./bin.dat: binary file matches
+grep: ./z.dat: binary file matches
+[0]
+=== grep -r --exclude-from=/dev/null alpha d 2>&1 | sort
+d/c.txt:alpha in d
+d/sub/e.log:alpha log
+[0]
+=== grep -r --exclude-from=nosuch alpha d; echo $?
+2
+[0]
+=== grep -r --include='*.[tl]*' alpha . 2>&1 | sort
+./a.txt:alpha
+./a.txt:alpha beta
+./b.txt:two alpha
+./bad.txt:café alpha
+./bad.txt:plain alpha
+./crlf.txt:alpha
+./d/c.txt:alpha in d
+./d/sub/e.log:alpha log
+./nonl.txt:alpha
+./nonl.txt:last alpha
+./pats.txt:alpha
+./sp ace.txt:alpha with space
+./utf8.txt:naÃ¯ve alpha
+[0]
+=== grep -r --exclude='[ab].txt' alpha . 2>&1 | sort
+./bad.txt:café alpha
+./bad.txt:plain alpha
+./crlf.txt:alpha
+./d/c.txt:alpha in d
+./d/sub/e.log:alpha log
+./nonl.txt:alpha
+./nonl.txt:last alpha
+./pats.txt:alpha
+./sp ace.txt:alpha with space
+./utf8.txt:naÃ¯ve alpha
+grep: ./bin.dat: binary file matches
+grep: ./z.dat: binary file matches
+[0]
+=== grep -r --include='?.txt' alpha . 2>&1 | sort
+./a.txt:alpha
+./a.txt:alpha beta
+./b.txt:two alpha
+./d/c.txt:alpha in d
+[0]
+=== grep alpha - --exclude='*' < a.txt
+alpha
+alpha beta
+[0]

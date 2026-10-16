@@ -1,0 +1,96 @@
+=== grep -vC1 'line [0-9]*$' ctx.txt
+line 2
+line 3 hit
+line 4 hit
+line 5
+--
+line 8
+line 9 hit
+line 10
+--
+line 14
+line 15 hit
+line 16
+[0]
+=== grep -A1 -v hit ctx.txt
+line 1
+line 2
+line 3 hit
+--
+line 5
+line 6
+line 7
+line 8
+line 9 hit
+line 10
+line 11
+line 12
+line 13
+line 14
+line 15 hit
+line 16
+line 17
+line 18
+line 19
+line 20
+[0]
+=== grep -B1 -v hit ctx.txt | sed -n '1,8p'
+line 1
+line 2
+--
+line 4 hit
+line 5
+line 6
+line 7
+line 8
+[0]
+=== grep -C1 -v line ctx.txt; echo $?
+1
+[0]
+=== grep -vn -A1 alpha a.txt
+2:beta
+3:gamma
+4-alpha beta
+[0]
+=== grep -v -B1 beta a.txt
+alpha
+beta
+gamma
+[0]
+=== grep -vC1 gamma a.txt
+alpha
+beta
+gamma
+alpha beta
+[0]
+=== grep -vA1 -c hit ctx.txt
+16
+[0]
+=== grep -v -A2 -m2 hit ctx.txt
+line 1
+line 2
+line 3 hit
+line 4 hit
+[0]
+=== grep -vx -C1 'line 1' ctx.txt | sed -n '1,6p'
+line 1
+line 2
+line 3 hit
+line 4 hit
+line 5
+line 6
+[0]
+=== grep -v -C1 -e hit -e 'line 1[0-9]' ctx.txt
+line 1
+line 2
+line 3 hit
+line 4 hit
+line 5
+line 6
+line 7
+line 8
+line 9 hit
+--
+line 19
+line 20
+[0]

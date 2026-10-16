@@ -1,0 +1,45 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+awk 'BEGIN { printf "start\n"; for (i = 0; i < 300000; i++) printf "x"; printf " needle "; for (i = 0; i < 200000; i++) printf "y"; printf "\nend needle\n" }' > longline.txt
+printf '%s\n' '=== grep -n needle longline.txt | cut -c1-20'
+grep -n needle longline.txt | cut -c1-20
+echo "[$?]"
+printf '%s\n' '=== grep -c needle longline.txt'
+grep -c needle longline.txt
+echo "[$?]"
+printf '%s\n' '=== grep -o needle longline.txt'
+grep -o needle longline.txt
+echo "[$?]"
+printf '%s\n' '=== grep -ob needle longline.txt'
+grep -ob needle longline.txt
+echo "[$?]"
+printf '%s\n' '=== grep -C1 start longline.txt | cut -c1-12'
+grep -C1 start longline.txt | cut -c1-12
+echo "[$?]"
+printf '%s\n' '=== grep -C1 end longline.txt | cut -c1-12'
+grep -C1 end longline.txt | cut -c1-12
+echo "[$?]"
+printf '%s\n' '=== grep -c '\''x*'\'' longline.txt'
+grep -c 'x*' longline.txt
+echo "[$?]"
+printf '%s\n' '=== grep -c '\''needle$'\'' longline.txt'
+grep -c 'needle$' longline.txt
+echo "[$?]"
+printf '%s\n' '=== grep -c '\''^end'\'' longline.txt'
+grep -c '^end' longline.txt
+echo "[$?]"
+printf '%s\n' '=== grep -o '\''x*needle'\'' longline.txt | wc -c'
+grep -o 'x*needle' longline.txt | wc -c
+echo "[$?]"
+printf '%s\n' '=== grep -c -w needle longline.txt'
+grep -c -w needle longline.txt
+echo "[$?]"
+printf '%s\n' '=== grep -ow '\''needle'\'' longline.txt'
+grep -ow 'needle' longline.txt
+echo "[$?]"
+printf '%s\n' '=== grep -v start longline.txt | cut -c1-12'
+grep -v start longline.txt | cut -c1-12
+echo "[$?]"
+printf '%s\n' '=== grep -m1 needle longline.txt | wc -c'
+grep -m1 needle longline.txt | wc -c
+echo "[$?]"

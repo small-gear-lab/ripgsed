@@ -1,0 +1,52 @@
+=== grep -x alpha a.txt
+alpha
+[0]
+=== grep -x 'alpha.*' a.txt
+alpha
+alpha beta
+[0]
+=== grep -x -E 'alpha|beta' a.txt
+alpha
+beta
+[0]
+=== grep -xc '' a.txt empty
+a.txt:0
+empty:0
+[1]
+=== grep -xv alpha a.txt
+beta
+gamma
+alpha beta
+[0]
+=== grep -xo alpha a.txt
+alpha
+[0]
+=== grep -xo 'a.*' a.txt
+alpha
+alpha beta
+[0]
+=== grep -wx alpha a.txt
+alpha
+[0]
+=== grep -wxo alpha a.txt
+alpha
+
+[0]
+=== grep -wx 'foo bar' words.txt
+[1]
+=== grep -wxc '' a.txt empty
+a.txt:0
+empty:0
+[1]
+=== grep -x '(foo)' words.txt
+(foo)
+[0]
+=== grep -x -F foo words.txt
+foo
+[0]
+=== grep -x -i FOO words.txt
+foo
+[0]
+=== grep -xn foo words.txt
+2:foo
+[0]

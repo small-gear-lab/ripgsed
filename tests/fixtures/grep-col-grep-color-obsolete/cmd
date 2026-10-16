@@ -1,0 +1,17 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+printf '%s\n' '=== GREP_COLOR='\''4'\'' grep --color=always alpha a.txt'
+GREP_COLOR='4' grep --color=always alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== GREP_COLOR='\''4'\'' GREP_COLORS='\''ms=5'\'' grep --color=always alpha a.txt'
+GREP_COLOR='4' GREP_COLORS='ms=5' grep --color=always alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== GREP_COLOR='\''4'\'' GREP_COLORS='\''mt=5'\'' grep --color=always alpha a.txt'
+GREP_COLOR='4' GREP_COLORS='mt=5' grep --color=always alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== GREP_COLOR= grep --color=always alpha a.txt'
+GREP_COLOR= grep --color=always alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== GREP_COLOR='\''1;32'\'' grep --color=always -v alpha a.txt'
+GREP_COLOR='1;32' grep --color=always -v alpha a.txt
+echo "[$?]"

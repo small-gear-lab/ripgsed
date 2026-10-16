@@ -1,0 +1,62 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+printf '%s\n' '=== grep '\''['\'' a.txt'
+grep '[' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep '\''\('\'' a.txt'
+grep '\(' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep '\''\)'\'' a.txt'
+grep '\)' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep '\''\'\'' a.txt'
+grep '\' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep '\''a\{1'\'' a.txt'
+grep 'a\{1' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep '\''a\{1,2'\'' a.txt'
+grep 'a\{1,2' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep '\''a\{x\}'\'' a.txt'
+grep 'a\{x\}' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep '\''\(a\)\2'\'' a.txt'
+grep '\(a\)\2' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -E '\''('\'' a.txt'
+grep -E '(' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -E '\''a{1,2}{'\'' a.txt'
+grep -E 'a{1,2}{' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep '\''[[:foo:]]'\'' a.txt'
+grep '[[:foo:]]' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep '\''[[.x.]]'\'' a.txt'
+grep '[[.x.]]' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep '\''[[=x=]]'\'' a.txt'
+grep '[[=x=]]' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep '\''[b-a]'\'' a.txt'
+grep '[b-a]' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep '\''a\{65536\}'\'' a.txt'
+grep 'a\{65536\}' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -E '\''a{65536}'\'' a.txt'
+grep -E 'a{65536}' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -e '\''['\'' -e a a.txt'
+grep -e '[' -e a a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -e a -e '\''\('\'' a.txt'
+grep -e a -e '\(' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep '\''[:space:]'\'' a.txt'
+grep '[:space:]' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep '\''[[:space:]'\'' a.txt'
+grep '[[:space:]' a.txt
+echo "[$?]"

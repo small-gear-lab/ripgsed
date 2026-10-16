@@ -1,0 +1,44 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+printf '%s\n' '=== grep --color=auto alpha a.txt'
+grep --color=auto alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep --colour=never alpha a.txt'
+grep --colour=never alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep --color=tty alpha a.txt'
+grep --color=tty alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep --color=if-tty alpha a.txt'
+grep --color=if-tty alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep --color=yes alpha a.txt'
+grep --color=yes alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep --color=force alpha a.txt'
+grep --color=force alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep --color=no alpha a.txt'
+grep --color=no alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep --color=none alpha a.txt'
+grep --color=none alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep --color alpha a.txt'
+grep --color alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep --colour alpha a.txt'
+grep --colour alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep --color=always --color=never alpha a.txt'
+grep --color=always --color=never alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep --color=never --color=always alpha a.txt'
+grep --color=never --color=always alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep --color=foo alpha a.txt | sed -n '\''1,2p'\''; echo $?'
+grep --color=foo alpha a.txt | sed -n '1,2p'; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep --colo=always alpha a.txt'
+grep --colo=always alpha a.txt
+echo "[$?]"

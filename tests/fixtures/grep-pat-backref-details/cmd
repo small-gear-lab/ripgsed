@@ -1,0 +1,44 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+printf '%s\n' '=== grep -o '\''\(a\)\1'\'' words.txt a.txt'
+grep -o '\(a\)\1' words.txt a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -x '\''\(.\)\1*'\'' words.txt'
+grep -x '\(.\)\1*' words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -w '\''\(f\)\(o\)\2'\'' words.txt'
+grep -w '\(f\)\(o\)\2' words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -c -E '\''(.)\1'\'' a.txt words.txt'
+grep -c -E '(.)\1' a.txt words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -o -E '\''(o)\1'\'' words.txt'
+grep -o -E '(o)\1' words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -n -E '\''([a-z])\1'\'' words.txt'
+grep -n -E '([a-z])\1' words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -i -E '\''(f)\1'\'' words.txt'
+grep -i -E '(f)\1' words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -E '\''(a)|\1'\'' a.txt'
+grep -E '(a)|\1' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -E '\''(a)(b)?\2'\'' -c a.txt'
+grep -E '(a)(b)?\2' -c a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -v -E '\''(.)\1'\'' words.txt'
+grep -v -E '(.)\1' words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -wo '\''\(.\)\1'\'' words.txt'
+grep -wo '\(.\)\1' words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -xo '\''\(foo\).*\1'\'' words.txt'
+grep -xo '\(foo\).*\1' words.txt
+echo "[$?]"
+printf '%s\n' '=== grep '\''\(a*\)b\1'\'' -o words.txt a.txt'
+grep '\(a*\)b\1' -o words.txt a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -E '\''^(.*)\1$'\'' b.txt words.txt'
+grep -E '^(.*)\1$' b.txt words.txt
+echo "[$?]"

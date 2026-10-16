@@ -1,0 +1,42 @@
+=== grep -1 beta a.txt
+alpha
+beta
+gamma
+alpha beta
+[0]
+=== grep -12 beta a.txt
+alpha
+beta
+gamma
+alpha beta
+[0]
+=== grep -1 -2 beta a.txt
+alpha
+beta
+gamma
+alpha beta
+[0]
+=== grep -2 -1 beta a.txt
+alpha
+beta
+gamma
+alpha beta
+[0]
+=== grep -C1 -2 beta a.txt
+alpha
+beta
+gamma
+alpha beta
+[0]
+=== grep -2 -C1 beta a.txt
+alpha
+beta
+gamma
+alpha beta
+[0]
+=== grep -A1 -3 beta a.txt
+alpha
+beta
+gamma
+alpha beta
+[0]

@@ -1,0 +1,10 @@
+Usage: grep [OPTION]... PATTERNS [FILE]...
+Try 'grep --help' for more information.
+Usage: grep [OPTION]... PATTERNS [FILE]...
+Try 'grep --help' for more information.
+grep: invalid option -- 'N'
+Usage: grep [OPTION]... PATTERNS [FILE]...
+Try 'grep --help' for more information.
+grep: Unmatched ( or \(
+grep: conflicting matchers specified
+grep: conflicting matchers specified

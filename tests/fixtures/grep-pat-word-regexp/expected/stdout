@@ -1,0 +1,91 @@
+=== grep -w foo words.txt
+foo foobar barfoo foo_bar foo-bar Foo
+foo
+(foo)
+[0]
+=== grep -ow foo words.txt
+foo
+foo
+foo
+foo
+[0]
+=== grep -w alpha a.txt
+alpha
+alpha beta
+[0]
+=== grep -w 'foo.*' words.txt
+foo foobar barfoo foo_bar foo-bar Foo
+foo
+foobar
+(foo)
+[0]
+=== grep -ow 'foo.*' words.txt
+foo foobar barfoo foo_bar foo-bar Foo
+foo
+foobar
+foo)
+[0]
+=== grep -ow 'fo*' words.txt
+foo
+foo
+foo
+foo
+[0]
+=== grep -w 'foo\|foobar' -o words.txt
+foo
+foobar
+foo
+foo
+foobar
+foo
+[0]
+=== grep -w 'x*' -c words.txt
+1
+[0]
+=== grep -w '' -c words.txt
+1
+[0]
+=== grep -wc 'o*' words.txt
+1
+[0]
+=== grep -w '(foo)' words.txt
+(foo)
+[0]
+=== grep -w -E 'foo|bar' -o words.txt
+foo
+foo
+bar
+foo
+foo
+[0]
+=== grep -wb foo words.txt
+0:foo foobar barfoo foo_bar foo-bar Foo
+38:foo
+49:(foo)
+[0]
+=== grep -w 'foo_bar' words.txt
+foo foobar barfoo foo_bar foo-bar Foo
+[0]
+=== grep -ow '[a-z]*' words.txt
+foo
+foobar
+barfoo
+foo
+bar
+foo
+foobar
+foo
+[0]
+=== grep -w -v foo words.txt
+foobar
+[0]
+=== grep -w '\(f\)oo' words.txt
+foo foobar barfoo foo_bar foo-bar Foo
+foo
+(foo)
+[0]
+=== grep -w '\(o\)\1' -o words.txt
+[1]
+=== grep -n -w bar words.txt
+1:foo foobar barfoo foo_bar foo-bar Foo
+[0]

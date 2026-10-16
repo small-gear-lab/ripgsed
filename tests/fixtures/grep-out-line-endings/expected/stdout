@@ -1,0 +1,59 @@
+=== grep alpha nonl.txt | od -c
+0000000   a   l   p   h   a  \n   l   a   s   t       a   l   p   h   a
+0000020  \n
+0000021
+[0]
+=== grep -c '' nonl.txt
+2
+[0]
+=== grep -v zzz nonl.txt | od -c
+0000000   a   l   p   h   a  \n   l   a   s   t       a   l   p   h   a
+0000020  \n
+0000021
+[0]
+=== grep last nonl.txt a.txt | od -c
+0000000   n   o   n   l   .   t   x   t   :   l   a   s   t       a   l
+0000020   p   h   a  \n
+0000024
+[0]
+=== grep -o last nonl.txt | od -c
+0000000   l   a   s   t  \n
+0000005
+[0]
+=== grep -n last nonl.txt
+2:last alpha
+[0]
+=== grep alpha crlf.txt | od -c
+0000000   a   l   p   h   a  \r  \n
+0000007
+[0]
+=== grep -c 'alpha$' crlf.txt
+0
+[1]
+=== grep -o 'a.$' crlf.txt | od -c
+0000000   a  \r  \n   a  \r  \n
+0000006
+[0]
+=== grep -U alpha crlf.txt | od -c
+0000000   a   l   p   h   a  \r  \n
+0000007
+[0]
+=== grep --line-buffered alpha a.txt
+alpha
+alpha beta
+[0]
+=== grep -h last nonl.txt nonl.txt | od -c
+0000000   l   a   s   t       a   l   p   h   a  \n   l   a   s   t    
+0000020   a   l   p   h   a  \n
+0000026
+[0]
+=== printf 'x' | grep x | od -c
+0000000   x  \n
+0000002
+[0]
+=== printf '' | grep -c x
+0
+[1]
+=== printf '\n' | grep -c ''
+1
+[0]

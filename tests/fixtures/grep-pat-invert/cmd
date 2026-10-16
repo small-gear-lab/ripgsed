@@ -1,0 +1,47 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+printf '%s\n' '=== grep -v alpha a.txt'
+grep -v alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -vc alpha a.txt'
+grep -vc alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -nv alpha a.txt'
+grep -nv alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -v -e alpha -e beta a.txt'
+grep -v -e alpha -e beta a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -vx alpha a.txt'
+grep -vx alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -vw foo words.txt'
+grep -vw foo words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -v '\'''\'' a.txt'
+grep -v '' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -vc '\'''\'' a.txt'
+grep -vc '' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -vc zzz a.txt'
+grep -vc zzz a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -vo alpha a.txt'
+grep -vo alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -v alpha a.txt b.txt'
+grep -v alpha a.txt b.txt
+echo "[$?]"
+printf '%s\n' '=== grep -v -e '\'''\'' -e zzz -c a.txt'
+grep -v -e '' -e zzz -c a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -vF alpha a.txt'
+grep -vF alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -vl zzz a.txt'
+grep -vl zzz a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -vL alpha a.txt b.txt'
+grep -vL alpha a.txt b.txt
+echo "[$?]"

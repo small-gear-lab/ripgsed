@@ -1,0 +1,57 @@
+=== grep --color=auto alpha a.txt
+alpha
+alpha beta
+[0]
+=== grep --colour=never alpha a.txt
+alpha
+alpha beta
+[0]
+=== grep --color=tty alpha a.txt
+alpha
+alpha beta
+[0]
+=== grep --color=if-tty alpha a.txt
+alpha
+alpha beta
+[0]
+=== grep --color=yes alpha a.txt
+[01;31m[Kalpha[m[K
+[01;31m[Kalpha[m[K beta
+[0]
+=== grep --color=force alpha a.txt
+[01;31m[Kalpha[m[K
+[01;31m[Kalpha[m[K beta
+[0]
+=== grep --color=no alpha a.txt
+alpha
+alpha beta
+[0]
+=== grep --color=none alpha a.txt
+alpha
+alpha beta
+[0]
+=== grep --color alpha a.txt
+alpha
+alpha beta
+[0]
+=== grep --colour alpha a.txt
+alpha
+alpha beta
+[0]
+=== grep --color=always --color=never alpha a.txt
+alpha
+alpha beta
+[0]
+=== grep --color=never --color=always alpha a.txt
+[01;31m[Kalpha[m[K
+[01;31m[Kalpha[m[K beta
+[0]
+=== grep --color=foo alpha a.txt | sed -n '1,2p'; echo $?
+Usage: grep [OPTION]... PATTERNS [FILE]...
+Search for PATTERNS in each FILE.
+0
+[0]
+=== grep --colo=always alpha a.txt
+[01;31m[Kalpha[m[K
+[01;31m[Kalpha[m[K beta
+[0]

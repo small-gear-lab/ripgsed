@@ -1,0 +1,47 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+printf '%s\n' '=== grep -E '\''a{1'\'' a.txt words.txt'
+grep -E 'a{1' a.txt words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -E '\''a{1,2'\'' a.txt'
+grep -E 'a{1,2' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -E '\''a{x}'\'' a.txt'
+grep -E 'a{x}' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -E '\''a{,}'\'' -c a.txt'
+grep -E 'a{,}' -c a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -E '\''a)'\'' a.txt words.txt'
+grep -E 'a)' a.txt words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -E '\'')'\'' a.txt words.txt'
+grep -E ')' a.txt words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -E '\''(a))'\'' a.txt'
+grep -E '(a))' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -E '\''o{1'\'' words.txt'
+grep -E 'o{1' words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -E -o '\''(foo)'\'' words.txt'
+grep -E -o '(foo)' words.txt
+echo "[$?]"
+printf '%s\n' '=== grep '\''\{1\}a'\'' a.txt'
+grep '\{1\}a' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -o '\''\{1\}'\'' a.txt words.txt'
+grep -o '\{1\}' a.txt words.txt
+echo "[$?]"
+printf '%s\n' '=== grep '\''a\{1\}\{2\}'\'' a.txt'
+grep 'a\{1\}\{2\}' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -c '\''a**'\'' a.txt'
+grep -c 'a**' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -E '\''(a{1)'\'' a.txt'
+grep -E '(a{1)' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -E '\''a{1}{2}'\'' -c a.txt'
+grep -E 'a{1}{2}' -c a.txt
+echo "[$?]"

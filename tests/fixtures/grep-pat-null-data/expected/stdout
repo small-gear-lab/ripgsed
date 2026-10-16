@@ -1,0 +1,74 @@
+=== grep -z alpha z.dat | od -c
+0000000   t   w   o       a   l   p   h   a  \0
+0000012
+[0]
+=== grep -zc alpha z.dat
+1
+[0]
+=== grep -zc '' z.dat
+3
+[0]
+=== grep -z 'one.two' z.dat | od -c
+0000000
+[0]
+=== grep -z '^two' z.dat | od -c
+0000000   t   w   o       a   l   p   h   a  \0
+0000012
+[0]
+=== grep -z 'alpha$' z.dat | od -c
+0000000   t   w   o       a   l   p   h   a  \0
+0000012
+[0]
+=== grep -zx one z.dat | od -c
+0000000   o   n   e  \0
+0000004
+[0]
+=== grep -zv one z.dat | od -c
+0000000   t   w   o       a   l   p   h   a  \0   t   h   r   e   e  \0
+0000020
+[0]
+=== grep -zn t z.dat | od -c
+0000000   2   :   t   w   o       a   l   p   h   a  \0   3   :   t   h
+0000020   r   e   e  \0
+0000024
+[0]
+=== grep -zb t z.dat | od -c
+0000000   4   :   t   w   o       a   l   p   h   a  \0   1   4   :   t
+0000020   h   r   e   e  \0
+0000025
+[0]
+=== grep -z . a.txt | od -c
+0000000   a   l   p   h   a  \n   b   e   t   a  \n   g   a   m   m   a
+0000020  \n   a   l   p   h   a       b   e   t   a  \n  \0
+0000035
+[0]
+=== grep -zc . a.txt
+1
+[0]
+=== grep -z 'alpha.beta' a.txt | od -c
+0000000   a   l   p   h   a  \n   b   e   t   a  \n   g   a   m   m   a
+0000020  \n   a   l   p   h   a       b   e   t   a  \n  \0
+0000035
+[0]
+=== grep -z '^beta' a.txt | od -c
+0000000
+[0]
+=== grep -zo 'a$' a.txt | od -c
+0000000
+[0]
+=== grep -zl alpha z.dat | od -c
+0000000   z   .   d   a   t  \n
+0000006
+[0]
+=== grep -zZ -l alpha z.dat | od -c
+0000000   z   .   d   a   t  \0
+0000006
+[0]
+=== grep -zo 'o' z.dat | od -c
+0000000   o  \0   o  \0
+0000004
+[0]
+=== grep -z -A1 one z.dat | od -c
+0000000   o   n   e  \0   t   w   o       a   l   p   h   a  \0
+0000016
+[0]

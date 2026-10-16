@@ -1,0 +1,56 @@
+=== grep -I alpha bin.dat; echo $?
+1
+[0]
+=== grep -I -c alpha bin.dat
+0
+[1]
+=== grep -I -l alpha bin.dat; echo $?
+1
+[0]
+=== grep -I -L alpha bin.dat
+bin.dat
+[1]
+=== grep -I alpha bin.dat a.txt
+a.txt:alpha
+a.txt:alpha beta
+[0]
+=== grep -I -v alpha a.txt bin.dat
+a.txt:beta
+a.txt:gamma
+[0]
+=== grep --binary-files=without-match alpha bin.dat; echo $?
+1
+[0]
+=== grep -I -r alpha . 2>&1 | sort
+./a.txt:alpha
+./a.txt:alpha beta
+./b.txt:two alpha
+./bad.txt:café alpha
+./bad.txt:plain alpha
+./crlf.txt:alpha
+./d/c.txt:alpha in d
+./d/sub/e.log:alpha log
+./nonl.txt:alpha
+./nonl.txt:last alpha
+./pats.txt:alpha
+./sp ace.txt:alpha with space
+./utf8.txt:naÃ¯ve alpha
+[0]
+=== grep -I -c alpha bin.dat a.txt
+bin.dat:0
+a.txt:2
+[0]
+=== grep -I -q alpha bin.dat; echo $?
+1
+[0]
+=== grep -I -s alpha bin.dat; echo $?
+1
+[0]
+=== grep -Ia alpha bin.dat | od -c
+0000000   b   i   n  \0   a   r   y       a   l   p   h   a  \n   s   e
+0000020   c   o   n   d       a   l   p   h   a  \n
+0000033
+[0]
+=== grep -aI alpha bin.dat; echo $?
+1
+[0]

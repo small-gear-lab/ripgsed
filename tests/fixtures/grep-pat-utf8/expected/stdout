@@ -1,0 +1,80 @@
+=== grep -o . utf8.txt
+c
+a
+f
+é
+n
+a
+ï
+v
+e
+ 
+a
+l
+p
+h
+a
+あ
+い
+う
+[0]
+=== grep -c . utf8.txt
+3
+[0]
+=== grep -i 'CAFÉ' utf8.txt
+café
+[0]
+=== grep -ob 'ï' utf8.txt
+8:ï
+[0]
+=== grep -o 'na.ve' utf8.txt
+naïve
+[0]
+=== grep -w 'na.ve' utf8.txt
+naïve alpha
+[0]
+=== grep -o '[[:alpha:]]*' utf8.txt
+café
+naïve
+alpha
+あいう
+[0]
+=== grep -o '\w\+' utf8.txt
+café
+naïve
+alpha
+あいう
+[0]
+=== grep -o '[^a-z]' utf8.txt
+é
+ï
+ 
+あ
+い
+う
+[0]
+=== grep -i 'あ' utf8.txt
+あいう
+[0]
+=== grep -o 'あ*' utf8.txt
+あ
+[0]
+=== grep -c '^.\{3\}$' utf8.txt
+1
+[0]
+=== grep -x '.\{4\}' utf8.txt
+café
+[0]
+=== grep -F 'café' utf8.txt
+café
+[0]
+=== grep -oi 'NÏVE' utf8.txt
+[1]
+=== grep -o -E '[あ-う]+' utf8.txt
+[2]
+=== grep -c '[[:upper:]]' utf8.txt
+0
+[1]
+=== grep -io 'CAF.' utf8.txt
+café
+[0]

@@ -1,0 +1,22 @@
+=== grep alpha a.txt -n
+1:alpha
+4:alpha beta
+[0]
+=== grep -n alpha -H a.txt
+a.txt:1:alpha
+a.txt:4:alpha beta
+[0]
+=== grep -nH -c alpha a.txt
+a.txt:2
+[0]
+=== grep -- -v a.txt
+[1]
+=== grep -e -v a.txt
+[1]
+=== grep alpha -- a.txt
+alpha
+alpha beta
+[0]
+=== grep -c -- alpha a.txt
+2
+[0]

@@ -1,0 +1,55 @@
+=== grep -c alpha bigbin.dat
+51429
+[0]
+=== grep -n alpha bigbin.dat | tail -n 3
+22935:L22935 alpha
+22936:L22936 alpha
+22937:L22937 alpha
+[0]
+=== grep alpha bigbin.dat | wc -l
+19661
+[0]
+=== grep -a -c alpha bigbin.dat
+51429
+[0]
+=== grep -c L bigbin.dat
+60000
+[0]
+=== grep 'L00001' bigbin.dat
+L00001 alpha
+[0]
+=== grep 'L99999' bigbin.dat; echo $?
+1
+[0]
+=== grep -m2 beta bigbin.dat
+L00007 beta
+L00014 beta
+[0]
+=== grep -l alpha bigbin.dat
+bigbin.dat
+[0]
+=== grep -I alpha bigbin.dat | wc -l
+19661
+[0]
+=== grep -I -c alpha bigbin.dat
+0
+[1]
+=== grep -L zzz bigbin.dat
+bigbin.dat
+[1]
+=== cat bigbin.dat | grep -c alpha
+51429
+[0]
+=== grep 'L2[0-9]*' bigbin.dat | wc -l
+2938
+[0]
+=== grep -A1 'L07561' bigbin.dat
+L07561 alpha
+L07562 alpha
+[0]
+=== grep -v zzz bigbin.dat | wc -l
+22937
+[0]
+=== grep -c beta bigbin.dat
+8571
+[0]

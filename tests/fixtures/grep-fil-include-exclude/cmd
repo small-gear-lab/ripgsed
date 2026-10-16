@@ -1,0 +1,74 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+printf '%s\n' '=== grep -r --include='\''*.txt'\'' alpha . 2>&1 | sort'
+grep -r --include='*.txt' alpha . 2>&1 | sort
+echo "[$?]"
+printf '%s\n' '=== grep -r --include='\''*.log'\'' alpha . 2>&1 | sort'
+grep -r --include='*.log' alpha . 2>&1 | sort
+echo "[$?]"
+printf '%s\n' '=== grep -r --exclude='\''*.log'\'' alpha . 2>&1 | sort'
+grep -r --exclude='*.log' alpha . 2>&1 | sort
+echo "[$?]"
+printf '%s\n' '=== grep -r --exclude='\''a*'\'' alpha . 2>&1 | sort'
+grep -r --exclude='a*' alpha . 2>&1 | sort
+echo "[$?]"
+printf '%s\n' '=== grep -r --include='\''*.txt'\'' --exclude='\''b*'\'' alpha . 2>&1 | sort'
+grep -r --include='*.txt' --exclude='b*' alpha . 2>&1 | sort
+echo "[$?]"
+printf '%s\n' '=== grep -r --exclude='\''b*'\'' --include='\''*.txt'\'' alpha . 2>&1 | sort'
+grep -r --exclude='b*' --include='*.txt' alpha . 2>&1 | sort
+echo "[$?]"
+printf '%s\n' '=== grep -r --include='\''sub'\'' alpha . 2>&1 | sort'
+grep -r --include='sub' alpha . 2>&1 | sort
+echo "[$?]"
+printf '%s\n' '=== grep -r --include='\''d/*'\'' alpha . 2>&1 | sort'
+grep -r --include='d/*' alpha . 2>&1 | sort
+echo "[$?]"
+printf '%s\n' '=== grep -r --exclude='\''d/*'\'' alpha . 2>&1 | sort'
+grep -r --exclude='d/*' alpha . 2>&1 | sort
+echo "[$?]"
+printf '%s\n' '=== grep -r --exclude='\''*/c.txt'\'' alpha . 2>&1 | sort'
+grep -r --exclude='*/c.txt' alpha . 2>&1 | sort
+echo "[$?]"
+printf '%s\n' '=== grep alpha a.txt --exclude='\''a.txt'\''; echo $?'
+grep alpha a.txt --exclude='a.txt'; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep alpha d/c.txt --exclude='\''c.txt'\''; echo $?'
+grep alpha d/c.txt --exclude='c.txt'; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep alpha d/c.txt --exclude='\''d/c.txt'\''; echo $?'
+grep alpha d/c.txt --exclude='d/c.txt'; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep alpha d/c.txt --exclude='\''*c.txt'\''; echo $?'
+grep alpha d/c.txt --exclude='*c.txt'; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep alpha a.txt --include='\''b*'\''; echo $?'
+grep alpha a.txt --include='b*'; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep alpha a.txt --include='\''a.txt'\'''
+grep alpha a.txt --include='a.txt'
+echo "[$?]"
+printf '%s\n' '=== grep -r alpha a.txt d --include='\''c.txt'\'' 2>&1 | sort'
+grep -r alpha a.txt d --include='c.txt' 2>&1 | sort
+echo "[$?]"
+printf '%s\n' '=== printf '\''*.log\n'\'' > ex.lst; grep -r --exclude-from=ex.lst alpha . 2>&1 | sort'
+printf '*.log\n' > ex.lst; grep -r --exclude-from=ex.lst alpha . 2>&1 | sort
+echo "[$?]"
+printf '%s\n' '=== grep -r --exclude-from=/dev/null alpha d 2>&1 | sort'
+grep -r --exclude-from=/dev/null alpha d 2>&1 | sort
+echo "[$?]"
+printf '%s\n' '=== grep -r --exclude-from=nosuch alpha d; echo $?'
+grep -r --exclude-from=nosuch alpha d; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -r --include='\''*.[tl]*'\'' alpha . 2>&1 | sort'
+grep -r --include='*.[tl]*' alpha . 2>&1 | sort
+echo "[$?]"
+printf '%s\n' '=== grep -r --exclude='\''[ab].txt'\'' alpha . 2>&1 | sort'
+grep -r --exclude='[ab].txt' alpha . 2>&1 | sort
+echo "[$?]"
+printf '%s\n' '=== grep -r --include='\''?.txt'\'' alpha . 2>&1 | sort'
+grep -r --include='?.txt' alpha . 2>&1 | sort
+echo "[$?]"
+printf '%s\n' '=== grep alpha - --exclude='\''*'\'' < a.txt'
+grep alpha - --exclude='*' < a.txt
+echo "[$?]"

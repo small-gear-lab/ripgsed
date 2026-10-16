@@ -1,0 +1,172 @@
+=== grep -A1 hit ctx.txt
+line 3 hit
+line 4 hit
+line 5
+--
+line 9 hit
+line 10
+--
+line 15 hit
+line 16
+[0]
+=== grep -B1 hit ctx.txt
+line 2
+line 3 hit
+line 4 hit
+--
+line 8
+line 9 hit
+--
+line 14
+line 15 hit
+[0]
+=== grep -C1 hit ctx.txt
+line 2
+line 3 hit
+line 4 hit
+line 5
+--
+line 8
+line 9 hit
+line 10
+--
+line 14
+line 15 hit
+line 16
+[0]
+=== grep -A0 hit ctx.txt
+line 3 hit
+line 4 hit
+--
+line 9 hit
+--
+line 15 hit
+[0]
+=== grep -B0 hit ctx.txt
+line 3 hit
+line 4 hit
+--
+line 9 hit
+--
+line 15 hit
+[0]
+=== grep -C0 hit ctx.txt
+line 3 hit
+line 4 hit
+--
+line 9 hit
+--
+line 15 hit
+[0]
+=== grep -A2 'line 20' ctx.txt
+line 20
+[0]
+=== grep -B2 'line 1 ' ctx.txt
+[1]
+=== grep -B5 'line 3' ctx.txt
+line 1
+line 2
+line 3 hit
+[0]
+=== grep -A1 -B2 hit ctx.txt
+line 1
+line 2
+line 3 hit
+line 4 hit
+line 5
+--
+line 7
+line 8
+line 9 hit
+line 10
+--
+line 13
+line 14
+line 15 hit
+line 16
+[0]
+=== grep -B2 -A1 hit ctx.txt
+line 1
+line 2
+line 3 hit
+line 4 hit
+line 5
+--
+line 7
+line 8
+line 9 hit
+line 10
+--
+line 13
+line 14
+line 15 hit
+line 16
+[0]
+=== grep -C1 -A0 hit ctx.txt
+line 2
+line 3 hit
+line 4 hit
+--
+line 8
+line 9 hit
+--
+line 14
+line 15 hit
+[0]
+=== grep -A0 -C1 hit ctx.txt
+line 2
+line 3 hit
+line 4 hit
+--
+line 8
+line 9 hit
+--
+line 14
+line 15 hit
+[0]
+=== grep --context=1 hit ctx.txt
+line 2
+line 3 hit
+line 4 hit
+line 5
+--
+line 8
+line 9 hit
+line 10
+--
+line 14
+line 15 hit
+line 16
+[0]
+=== grep --after-context=1 hit ctx.txt
+line 3 hit
+line 4 hit
+line 5
+--
+line 9 hit
+line 10
+--
+line 15 hit
+line 16
+[0]
+=== grep --before-context=1 hit ctx.txt
+line 2
+line 3 hit
+line 4 hit
+--
+line 8
+line 9 hit
+--
+line 14
+line 15 hit
+[0]
+=== grep -A100 'line 18' ctx.txt
+line 18
+line 19
+line 20
+[0]
+=== grep -C 1 'line 10' ctx.txt
+line 9 hit
+line 10
+line 11
+[0]

@@ -1,0 +1,38 @@
+=== grep -P '(' a.txt
+[2]
+=== grep -P '[a' a.txt
+[2]
+=== grep -P '*a' a.txt
+[2]
+=== grep -P 'a{2,1}' a.txt
+[2]
+=== grep -P '\' a.txt
+[2]
+=== grep -P -e a -e b a.txt
+[2]
+=== grep -P 'a
+b' a.txt
+[2]
+=== grep -P -f pats.txt a.txt
+[2]
+=== grep -P '' a.txt
+alpha
+beta
+gamma
+alpha beta
+[0]
+=== grep -P -c '' a.txt
+4
+[0]
+=== grep -P -f /dev/null a.txt; echo $?
+1
+[0]
+=== grep -P '\p{Foo}' a.txt
+[2]
+=== grep -P '(?P<n>a)(?P=n)' a.txt; echo $?
+1
+[0]
+=== grep -P '\1' a.txt
+[2]
+=== grep -P 'a)' a.txt
+[2]

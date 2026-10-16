@@ -1,0 +1,123 @@
+=== grep -o '\w\+' words.txt
+foo
+foobar
+barfoo
+foo_bar
+foo
+bar
+Foo
+foo
+foobar
+foo
+[0]
+=== grep -o '\W' words.txt
+ 
+ 
+ 
+ 
+-
+ 
+(
+)
+[0]
+=== grep -c '\s' a.txt
+1
+[0]
+=== grep -o '\S\+' a.txt
+alpha
+beta
+gamma
+alpha
+beta
+[0]
+=== grep -o '\bfoo' words.txt
+foo
+foo
+foo
+foo
+foo
+foo
+foo
+[0]
+=== grep -o 'foo\b' words.txt
+foo
+foo
+foo
+foo
+foo
+[0]
+=== grep -o '\<foo' words.txt
+foo
+foo
+foo
+foo
+foo
+foo
+foo
+[0]
+=== grep -o 'foo\>' words.txt
+foo
+foo
+foo
+foo
+foo
+[0]
+=== grep -c '\Boo' words.txt
+4
+[0]
+=== grep -o 'o\B' words.txt
+o
+o
+o
+o
+o
+o
+o
+o
+o
+o
+o
+o
+[0]
+=== grep -c '\`alpha' a.txt
+2
+[0]
+=== grep -c "beta\\'" a.txt
+2
+[0]
+=== grep -o '\<\w' words.txt
+f
+f
+b
+f
+f
+b
+F
+f
+f
+f
+[0]
+=== grep -E -o '\w+' words.txt
+foo
+foobar
+barfoo
+foo_bar
+foo
+bar
+Foo
+foo
+foobar
+foo
+[0]
+=== grep -E -o 'foo\b' words.txt
+foo
+foo
+foo
+foo
+foo
+[0]
+=== grep -o '\<' a.txt
+[0]
+=== grep -c '\<' a.txt
+4
+[0]

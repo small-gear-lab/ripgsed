@@ -1,0 +1,56 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+printf '%s\n' '=== grep alpha bin.dat'
+grep alpha bin.dat
+echo "[$?]"
+printf '%s\n' '=== grep alpha bin.dat a.txt'
+grep alpha bin.dat a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -n alpha bin.dat a.txt'
+grep -n alpha bin.dat a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -H alpha bin.dat'
+grep -H alpha bin.dat
+echo "[$?]"
+printf '%s\n' '=== grep ary bin.dat'
+grep ary bin.dat
+echo "[$?]"
+printf '%s\n' '=== grep bin bin.dat'
+grep bin bin.dat
+echo "[$?]"
+printf '%s\n' '=== grep second bin.dat'
+grep second bin.dat
+echo "[$?]"
+printf '%s\n' '=== grep zzz bin.dat; echo $?'
+grep zzz bin.dat; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -v alpha bin.dat; echo $?'
+grep -v alpha bin.dat; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -v zzz bin.dat'
+grep -v zzz bin.dat
+echo "[$?]"
+printf '%s\n' '=== grep . bin.dat'
+grep . bin.dat
+echo "[$?]"
+printf '%s\n' '=== grep -c alpha bin.dat'
+grep -c alpha bin.dat
+echo "[$?]"
+printf '%s\n' '=== grep -r alpha . 2>&1 | sort'
+grep -r alpha . 2>&1 | sort
+echo "[$?]"
+printf '%s\n' '=== grep alpha bin.dat bin.dat'
+grep alpha bin.dat bin.dat
+echo "[$?]"
+printf '%s\n' '=== cat bin.dat | grep alpha'
+cat bin.dat | grep alpha
+echo "[$?]"
+printf '%s\n' '=== grep -s alpha bin.dat'
+grep -s alpha bin.dat
+echo "[$?]"
+printf '%s\n' '=== grep alpha bin.dat 2>/dev/null; echo $?'
+grep alpha bin.dat 2>/dev/null; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -h alpha bin.dat a.txt'
+grep -h alpha bin.dat a.txt
+echo "[$?]"

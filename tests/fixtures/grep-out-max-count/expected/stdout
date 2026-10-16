@@ -1,0 +1,61 @@
+=== grep -m1 alpha a.txt
+alpha
+[0]
+=== grep -m2 alpha a.txt b.txt
+a.txt:alpha
+a.txt:alpha beta
+b.txt:two alpha
+[0]
+=== grep -m0 alpha a.txt; echo $?
+1
+[0]
+=== grep -m1 -c alpha a.txt b.txt
+a.txt:1
+b.txt:1
+[0]
+=== grep -m1 -n alpha a.txt b.txt
+a.txt:1:alpha
+b.txt:2:two alpha
+[0]
+=== grep -m1 -v alpha a.txt
+beta
+[0]
+=== grep -m1 -o a a.txt
+a
+a
+[0]
+=== grep -m1 -l alpha a.txt
+a.txt
+[0]
+=== grep -m5 alpha a.txt
+alpha
+alpha beta
+[0]
+=== grep --max-count=2 a a.txt
+alpha
+beta
+[0]
+=== grep -m 1 alpha -m 2 a.txt
+alpha
+alpha beta
+[0]
+=== grep -m -1 alpha a.txt
+alpha
+alpha beta
+[0]
+=== grep -m1 alpha nonl.txt
+alpha
+[0]
+=== grep -m0 -c alpha a.txt; echo $?
+1
+[0]
+=== grep -m0 -q alpha a.txt; echo $?
+1
+[0]
+=== grep -m1 -x 'alpha' a.txt
+alpha
+[0]
+=== grep -m2 '' a.txt
+alpha
+beta
+[0]

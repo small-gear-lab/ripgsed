@@ -1,0 +1,71 @@
+=== grep -c alpha bin.dat
+2
+[0]
+=== grep -c '' bin.dat
+3
+[0]
+=== grep -l alpha bin.dat
+bin.dat
+[0]
+=== grep -L alpha bin.dat
+[0]
+=== grep -L zzz bin.dat
+bin.dat
+[1]
+=== grep -q alpha bin.dat; echo $?
+0
+[0]
+=== grep -o alpha bin.dat
+[0]
+=== grep -o -a alpha bin.dat
+alpha
+alpha
+[0]
+=== grep -v alpha bin.dat; echo $?
+0
+[0]
+=== grep -m1 alpha bin.dat
+[0]
+=== grep -m1 -c alpha bin.dat
+1
+[0]
+=== grep -A1 alpha bin.dat
+[0]
+=== grep -n alpha bin.dat
+[0]
+=== grep -b alpha bin.dat
+[0]
+=== grep -l -m1 alpha bin.dat
+bin.dat
+[0]
+=== grep -L -m1 alpha bin.dat
+[0]
+=== grep -c -m1 alpha bin.dat
+1
+[0]
+=== grep -l -m1 zzz bin.dat; echo $?
+1
+[0]
+=== grep -m1 -A1 alpha bin.dat
+[0]
+=== grep -x 'second alpha' bin.dat
+[0]
+=== grep -w ary bin.dat
+[0]
+=== grep -F second bin.dat
+[0]
+=== grep -E 'a|b' bin.dat
+[0]
+=== grep -i ALPHA bin.dat
+[0]
+=== grep -lc alpha bin.dat
+bin.dat
+[0]
+=== grep -Z -l alpha bin.dat | od -c
+0000000   b   i   n   .   d   a   t  \0
+0000010
+[0]
+=== grep -C1 alpha bin.dat
+[0]
+=== grep --color=always alpha bin.dat
+[0]

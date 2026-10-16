@@ -1,0 +1,41 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+printf '%s\n' '=== grep -I alpha bin.dat; echo $?'
+grep -I alpha bin.dat; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -I -c alpha bin.dat'
+grep -I -c alpha bin.dat
+echo "[$?]"
+printf '%s\n' '=== grep -I -l alpha bin.dat; echo $?'
+grep -I -l alpha bin.dat; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -I -L alpha bin.dat'
+grep -I -L alpha bin.dat
+echo "[$?]"
+printf '%s\n' '=== grep -I alpha bin.dat a.txt'
+grep -I alpha bin.dat a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -I -v alpha a.txt bin.dat'
+grep -I -v alpha a.txt bin.dat
+echo "[$?]"
+printf '%s\n' '=== grep --binary-files=without-match alpha bin.dat; echo $?'
+grep --binary-files=without-match alpha bin.dat; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -I -r alpha . 2>&1 | sort'
+grep -I -r alpha . 2>&1 | sort
+echo "[$?]"
+printf '%s\n' '=== grep -I -c alpha bin.dat a.txt'
+grep -I -c alpha bin.dat a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -I -q alpha bin.dat; echo $?'
+grep -I -q alpha bin.dat; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -I -s alpha bin.dat; echo $?'
+grep -I -s alpha bin.dat; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -Ia alpha bin.dat | od -c'
+grep -Ia alpha bin.dat | od -c
+echo "[$?]"
+printf '%s\n' '=== grep -aI alpha bin.dat; echo $?'
+grep -aI alpha bin.dat; echo $?
+echo "[$?]"

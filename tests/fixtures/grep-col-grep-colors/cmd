@@ -1,0 +1,71 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+printf '%s\n' '=== GREP_COLORS='\''mt=01;32'\'' grep --color=always alpha a.txt'
+GREP_COLORS='mt=01;32' grep --color=always alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== GREP_COLORS='\''mt=01;32'\'' grep --color=always -v alpha a.txt'
+GREP_COLORS='mt=01;32' grep --color=always -v alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== GREP_COLORS='\''ms=4:mc=5'\'' grep --color=always -C1 gamma a.txt'
+GREP_COLORS='ms=4:mc=5' grep --color=always -C1 gamma a.txt
+echo "[$?]"
+printf '%s\n' '=== GREP_COLORS='\''ms=4:mc=5'\'' grep --color=always -vC1 gamma a.txt'
+GREP_COLORS='ms=4:mc=5' grep --color=always -vC1 gamma a.txt
+echo "[$?]"
+printf '%s\n' '=== GREP_COLORS='\''sl=1'\'' grep --color=always alpha a.txt'
+GREP_COLORS='sl=1' grep --color=always alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== GREP_COLORS='\''cx=2'\'' grep --color=always -A1 beta a.txt'
+GREP_COLORS='cx=2' grep --color=always -A1 beta a.txt
+echo "[$?]"
+printf '%s\n' '=== GREP_COLORS='\''sl=1:cx=2'\'' grep --color=always -nA1 beta a.txt'
+GREP_COLORS='sl=1:cx=2' grep --color=always -nA1 beta a.txt
+echo "[$?]"
+printf '%s\n' '=== GREP_COLORS='\''sl=1:cx=2:rv'\'' grep --color=always -nvA1 beta a.txt'
+GREP_COLORS='sl=1:cx=2:rv' grep --color=always -nvA1 beta a.txt
+echo "[$?]"
+printf '%s\n' '=== GREP_COLORS='\''fn=1:ln=2:bn=3:se=4'\'' grep --color=always -Hnb alpha a.txt'
+GREP_COLORS='fn=1:ln=2:bn=3:se=4' grep --color=always -Hnb alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== GREP_COLORS='\''ne'\'' grep --color=always -Hn alpha a.txt'
+GREP_COLORS='ne' grep --color=always -Hn alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== GREP_COLORS='\''mt='\'' grep --color=always alpha a.txt'
+GREP_COLORS='mt=' grep --color=always alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== GREP_COLORS='\''ms='\'' grep --color=always alpha a.txt'
+GREP_COLORS='ms=' grep --color=always alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== GREP_COLORS='\''ms=1;;2'\'' grep --color=always alpha a.txt'
+GREP_COLORS='ms=1;;2' grep --color=always alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== GREP_COLORS='\''ms=x'\'' grep --color=always alpha a.txt'
+GREP_COLORS='ms=x' grep --color=always alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== GREP_COLORS='\''foo=1:ms=4'\'' grep --color=always alpha a.txt'
+GREP_COLORS='foo=1:ms=4' grep --color=always alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== GREP_COLORS='\''ms=4:foo=1'\'' grep --color=always alpha a.txt'
+GREP_COLORS='ms=4:foo=1' grep --color=always alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== GREP_COLORS='\''ms=4:ln='\'' grep --color=always -n alpha a.txt'
+GREP_COLORS='ms=4:ln=' grep --color=always -n alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== GREP_COLORS='\'':ms=4'\'' grep --color=always alpha a.txt'
+GREP_COLORS=':ms=4' grep --color=always alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== GREP_COLORS='\''ms=4:'\'' grep --color=always alpha a.txt'
+GREP_COLORS='ms=4:' grep --color=always alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== GREP_COLORS='\''sl=1'\'' grep --color=always alpha crlf.txt | od -c'
+GREP_COLORS='sl=1' grep --color=always alpha crlf.txt | od -c
+echo "[$?]"
+printf '%s\n' '=== GREP_COLORS='\''sl=7:ms=1'\'' grep --color=always -o alpha a.txt'
+GREP_COLORS='sl=7:ms=1' grep --color=always -o alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== GREP_COLORS='\''ne:ms=4'\'' grep --color=always -c alpha a.txt b.txt'
+GREP_COLORS='ne:ms=4' grep --color=always -c alpha a.txt b.txt
+echo "[$?]"
+printf '%s\n' '=== GREP_COLORS='\''sl=1:cx=2'\'' grep --color=always -v -A1 alpha a.txt'
+GREP_COLORS='sl=1:cx=2' grep --color=always -v -A1 alpha a.txt
+echo "[$?]"

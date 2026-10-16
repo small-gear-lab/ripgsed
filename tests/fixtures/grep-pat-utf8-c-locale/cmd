@@ -1,0 +1,14 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+printf '%s\n' '=== grep -o . utf8.txt | od -c | sed -n '\''1,3p'\'''
+grep -o . utf8.txt | od -c | sed -n '1,3p'
+echo "[$?]"
+printf '%s\n' '=== grep -c . utf8.txt'
+grep -c . utf8.txt
+echo "[$?]"
+printf '%s\n' '=== grep -i '\''CAFÉ'\'' utf8.txt'
+grep -i 'CAFÉ' utf8.txt
+echo "[$?]"
+printf '%s\n' '=== grep -o '\''caf.'\'' utf8.txt | od -c'
+grep -o 'caf.' utf8.txt | od -c
+echo "[$?]"

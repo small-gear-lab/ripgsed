@@ -1,0 +1,86 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+printf '%s\n' '=== grep -c alpha bin.dat'
+grep -c alpha bin.dat
+echo "[$?]"
+printf '%s\n' '=== grep -c '\'''\'' bin.dat'
+grep -c '' bin.dat
+echo "[$?]"
+printf '%s\n' '=== grep -l alpha bin.dat'
+grep -l alpha bin.dat
+echo "[$?]"
+printf '%s\n' '=== grep -L alpha bin.dat'
+grep -L alpha bin.dat
+echo "[$?]"
+printf '%s\n' '=== grep -L zzz bin.dat'
+grep -L zzz bin.dat
+echo "[$?]"
+printf '%s\n' '=== grep -q alpha bin.dat; echo $?'
+grep -q alpha bin.dat; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -o alpha bin.dat'
+grep -o alpha bin.dat
+echo "[$?]"
+printf '%s\n' '=== grep -o -a alpha bin.dat'
+grep -o -a alpha bin.dat
+echo "[$?]"
+printf '%s\n' '=== grep -v alpha bin.dat; echo $?'
+grep -v alpha bin.dat; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -m1 alpha bin.dat'
+grep -m1 alpha bin.dat
+echo "[$?]"
+printf '%s\n' '=== grep -m1 -c alpha bin.dat'
+grep -m1 -c alpha bin.dat
+echo "[$?]"
+printf '%s\n' '=== grep -A1 alpha bin.dat'
+grep -A1 alpha bin.dat
+echo "[$?]"
+printf '%s\n' '=== grep -n alpha bin.dat'
+grep -n alpha bin.dat
+echo "[$?]"
+printf '%s\n' '=== grep -b alpha bin.dat'
+grep -b alpha bin.dat
+echo "[$?]"
+printf '%s\n' '=== grep -l -m1 alpha bin.dat'
+grep -l -m1 alpha bin.dat
+echo "[$?]"
+printf '%s\n' '=== grep -L -m1 alpha bin.dat'
+grep -L -m1 alpha bin.dat
+echo "[$?]"
+printf '%s\n' '=== grep -c -m1 alpha bin.dat'
+grep -c -m1 alpha bin.dat
+echo "[$?]"
+printf '%s\n' '=== grep -l -m1 zzz bin.dat; echo $?'
+grep -l -m1 zzz bin.dat; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -m1 -A1 alpha bin.dat'
+grep -m1 -A1 alpha bin.dat
+echo "[$?]"
+printf '%s\n' '=== grep -x '\''second alpha'\'' bin.dat'
+grep -x 'second alpha' bin.dat
+echo "[$?]"
+printf '%s\n' '=== grep -w ary bin.dat'
+grep -w ary bin.dat
+echo "[$?]"
+printf '%s\n' '=== grep -F second bin.dat'
+grep -F second bin.dat
+echo "[$?]"
+printf '%s\n' '=== grep -E '\''a|b'\'' bin.dat'
+grep -E 'a|b' bin.dat
+echo "[$?]"
+printf '%s\n' '=== grep -i ALPHA bin.dat'
+grep -i ALPHA bin.dat
+echo "[$?]"
+printf '%s\n' '=== grep -lc alpha bin.dat'
+grep -lc alpha bin.dat
+echo "[$?]"
+printf '%s\n' '=== grep -Z -l alpha bin.dat | od -c'
+grep -Z -l alpha bin.dat | od -c
+echo "[$?]"
+printf '%s\n' '=== grep -C1 alpha bin.dat'
+grep -C1 alpha bin.dat
+echo "[$?]"
+printf '%s\n' '=== grep --color=always alpha bin.dat'
+grep --color=always alpha bin.dat
+echo "[$?]"

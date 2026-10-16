@@ -1,0 +1,38 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+printf '%s\n' '=== egrep '\''al(ph)a'\'' a.txt'
+egrep 'al(ph)a' a.txt
+echo "[$?]"
+printf '%s\n' '=== egrep -c '\''a|b'\'' a.txt'
+egrep -c 'a|b' a.txt
+echo "[$?]"
+printf '%s\n' '=== egrep '\''a{1'\'' a.txt'
+egrep 'a{1' a.txt
+echo "[$?]"
+printf '%s\n' '=== fgrep '\''a.'\'' words.txt'
+fgrep 'a.' words.txt
+echo "[$?]"
+printf '%s\n' '=== fgrep -x alpha a.txt'
+fgrep -x alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== fgrep -c a a.txt'
+fgrep -c a a.txt
+echo "[$?]"
+printf '%s\n' '=== egrep'
+egrep
+echo "[$?]"
+printf '%s\n' '=== fgrep'
+fgrep
+echo "[$?]"
+printf '%s\n' '=== egrep -N a a.txt'
+egrep -N a a.txt
+echo "[$?]"
+printf '%s\n' '=== egrep '\''('\'' a.txt'
+egrep '(' a.txt
+echo "[$?]"
+printf '%s\n' '=== fgrep -E alpha a.txt'
+fgrep -E alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== egrep -F alpha a.txt'
+egrep -F alpha a.txt
+echo "[$?]"

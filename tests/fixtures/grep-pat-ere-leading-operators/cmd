@@ -1,0 +1,56 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+printf '%s\n' '=== grep -E '\''*a'\'' words.txt'
+grep -E '*a' words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -E '\''+a'\'' words.txt'
+grep -E '+a' words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -E '\''?a'\'' words.txt'
+grep -E '?a' words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -E '\''{1}a'\'' words.txt'
+grep -E '{1}a' words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -E '\''(*a)'\'' words.txt'
+grep -E '(*a)' words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -E '\''(+a)'\'' words.txt'
+grep -E '(+a)' words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -E '\''a|*b'\'' b.txt'
+grep -E 'a|*b' b.txt
+echo "[$?]"
+printf '%s\n' '=== grep -E '\''^*a'\'' a.txt'
+grep -E '^*a' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -E '\''^+'\'' -c a.txt'
+grep -E '^+' -c a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -E '\''x^*'\'' -c a.txt'
+grep -E 'x^*' -c a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -E '\''a$*'\'' -c a.txt'
+grep -E 'a$*' -c a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -E '\''\<*a'\'' -c a.txt'
+grep -E '\<*a' -c a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -E '\''*'\'' -c a.txt'
+grep -E '*' -c a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -E '\''**a'\'' -c a.txt'
+grep -E '**a' -c a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -E '\''a**'\'' -c a.txt'
+grep -E 'a**' -c a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -E '\''a+*'\'' -c a.txt'
+grep -E 'a+*' -c a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -E '\''{'\'' -c a.txt'
+grep -E '{' -c a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -E '\''{,1}a'\'' -c a.txt'
+grep -E '{,1}a' -c a.txt
+echo "[$?]"

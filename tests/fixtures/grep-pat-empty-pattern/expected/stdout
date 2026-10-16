@@ -1,0 +1,57 @@
+=== grep '' a.txt
+alpha
+beta
+gamma
+alpha beta
+[0]
+=== grep -c '' a.txt
+4
+[0]
+=== grep -c '' empty
+0
+[1]
+=== grep -vc '' a.txt
+[1]
+=== grep -L -v '' a.txt
+a.txt
+[1]
+=== grep -n '' b.txt
+1:one
+2:two alpha
+3:three
+[0]
+=== grep -o '' a.txt
+[0]
+=== grep -e '' -e zzz -c a.txt
+4
+[0]
+=== grep -x '' words.txt
+[1]
+=== grep -xc '' a.txt
+0
+[1]
+=== grep -w '' words.txt
+(foo)
+[0]
+=== grep -wc '' a.txt
+0
+[1]
+=== grep -c '' nonl.txt
+2
+[0]
+=== grep -E '' -c a.txt
+4
+[0]
+=== grep -F '' -c a.txt
+4
+[0]
+=== grep -F -v '' -c a.txt
+[1]
+=== grep -f /dev/null -c a.txt
+[1]
+=== grep -vc -x '' a.txt
+4
+[0]
+=== grep -vc -w '' a.txt
+4
+[0]

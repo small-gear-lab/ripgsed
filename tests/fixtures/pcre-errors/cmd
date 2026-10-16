@@ -1,0 +1,49 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+printf '%s\n' '=== grep -P '\''('\'' a.txt'
+grep -P '(' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -P '\''[a'\'' a.txt'
+grep -P '[a' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -P '\''*a'\'' a.txt'
+grep -P '*a' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -P '\''a{2,1}'\'' a.txt'
+grep -P 'a{2,1}' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -P '\''\'\'' a.txt'
+grep -P '\' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -P -e a -e b a.txt'
+grep -P -e a -e b a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -P '\''a
+b'\'' a.txt'
+grep -P 'a
+b' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -P -f pats.txt a.txt'
+grep -P -f pats.txt a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -P '\'''\'' a.txt'
+grep -P '' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -P -c '\'''\'' a.txt'
+grep -P -c '' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -P -f /dev/null a.txt; echo $?'
+grep -P -f /dev/null a.txt; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -P '\''\p{Foo}'\'' a.txt'
+grep -P '\p{Foo}' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -P '\''(?P<n>a)(?P=n)'\'' a.txt; echo $?'
+grep -P '(?P<n>a)(?P=n)' a.txt; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -P '\''\1'\'' a.txt'
+grep -P '\1' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -P '\''a)'\'' a.txt'
+grep -P 'a)' a.txt
+echo "[$?]"

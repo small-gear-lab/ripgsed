@@ -1,0 +1,44 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+printf '%s\n' '=== grep -i ALPHA a.txt'
+grep -i ALPHA a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -i '\''B[A-Z]*A'\'' a.txt'
+grep -i 'B[A-Z]*A' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -i -o '\''FOO'\'' words.txt'
+grep -i -o 'FOO' words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -i -c '\''foo'\'' words.txt'
+grep -i -c 'foo' words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -i '\''[A-C]lpha'\'' a.txt'
+grep -i '[A-C]lpha' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -i -E '\''ALPHA|BETA'\'' a.txt'
+grep -i -E 'ALPHA|BETA' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -i -w FOO words.txt'
+grep -i -w FOO words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -i -x FOO words.txt'
+grep -i -x FOO words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -i --no-ignore-case ALPHA a.txt'
+grep -i --no-ignore-case ALPHA a.txt
+echo "[$?]"
+printf '%s\n' '=== grep --no-ignore-case -i ALPHA a.txt'
+grep --no-ignore-case -i ALPHA a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -i '\''\(A\)\1'\'' words.txt'
+grep -i '\(A\)\1' words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -i -o '\''\bFOO'\'' words.txt'
+grep -i -o '\bFOO' words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -i '\''[[:upper:]]'\'' -c a.txt'
+grep -i '[[:upper:]]' -c a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -i -F ALPHA a.txt'
+grep -i -F ALPHA a.txt
+echo "[$?]"

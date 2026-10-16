@@ -1,0 +1,29 @@
+=== grep '*a' a.txt words.txt
+[1]
+=== grep -o '*' words.txt
+[1]
+=== grep '^*' words.txt a.txt
+[1]
+=== grep '\(*a\)' a.txt words.txt
+[1]
+=== grep 'a\|*b' a.txt
+alpha
+beta
+gamma
+alpha beta
+[0]
+=== grep -c 'a**' a.txt
+4
+[0]
+=== grep -c '^*a' a.txt
+0
+[1]
+=== grep -c 'x\?*' a.txt
+4
+[0]
+=== grep -c 'a\{1\}*' a.txt
+4
+[0]
+=== grep -c '\<*' a.txt
+0
+[1]

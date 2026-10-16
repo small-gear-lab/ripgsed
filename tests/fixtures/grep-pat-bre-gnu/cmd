@@ -1,0 +1,47 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+printf '%s\n' '=== grep '\''al\(ph\)a'\'' a.txt'
+grep 'al\(ph\)a' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep '\''a\+'\'' -o a.txt'
+grep 'a\+' -o a.txt
+echo "[$?]"
+printf '%s\n' '=== grep '\''alpha\?'\'' -o a.txt'
+grep 'alpha\?' -o a.txt
+echo "[$?]"
+printf '%s\n' '=== grep '\''alpha\|beta'\'' a.txt'
+grep 'alpha\|beta' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -o '\''be\(t\)a'\'' a.txt'
+grep -o 'be\(t\)a' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep '\''\(a\)\1'\'' words.txt a.txt'
+grep '\(a\)\1' words.txt a.txt
+echo "[$?]"
+printf '%s\n' '=== grep '\''\(.\)\1'\'' -o words.txt'
+grep '\(.\)\1' -o words.txt
+echo "[$?]"
+printf '%s\n' '=== grep '\''\(o\)\1'\'' -c words.txt'
+grep '\(o\)\1' -c words.txt
+echo "[$?]"
+printf '%s\n' '=== grep -o '\''\(foo\)\(bar\)'\'' words.txt'
+grep -o '\(foo\)\(bar\)' words.txt
+echo "[$?]"
+printf '%s\n' '=== grep '\''\(a\)\2'\'' a.txt'
+grep '\(a\)\2' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep '\''\(a'\'' a.txt'
+grep '\(a' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep '\''a\)'\'' a.txt'
+grep 'a\)' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep '\''a\|'\'' -c a.txt'
+grep 'a\|' -c a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -c '\''\|a'\'' a.txt'
+grep -c '\|a' a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -o '\''a\{1,\}'\'' a.txt'
+grep -o 'a\{1,\}' a.txt
+echo "[$?]"

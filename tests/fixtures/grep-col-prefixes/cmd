@@ -1,0 +1,50 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+printf '%s\n' '=== grep --color=always -n alpha a.txt'
+grep --color=always -n alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep --color=always -H alpha a.txt'
+grep --color=always -H alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep --color=always -b alpha a.txt'
+grep --color=always -b alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep --color=always -Hnb alpha a.txt'
+grep --color=always -Hnb alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep --color=always -T -n alpha a.txt'
+grep --color=always -T -n alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep --color=always -c alpha a.txt b.txt'
+grep --color=always -c alpha a.txt b.txt
+echo "[$?]"
+printf '%s\n' '=== grep --color=always -l alpha a.txt b.txt'
+grep --color=always -l alpha a.txt b.txt
+echo "[$?]"
+printf '%s\n' '=== grep --color=always -L alpha a.txt b.txt'
+grep --color=always -L alpha a.txt b.txt
+echo "[$?]"
+printf '%s\n' '=== grep --color=always -Z -l alpha a.txt'
+grep --color=always -Z -l alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep --color=always -Z -H alpha a.txt'
+grep --color=always -Z -H alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep --color=always -C1 --group-separator=XX hit ctx.txt'
+grep --color=always -C1 --group-separator=XX hit ctx.txt
+echo "[$?]"
+printf '%s\n' '=== grep --color=always -A1 hit ctx.txt'
+grep --color=always -A1 hit ctx.txt
+echo "[$?]"
+printf '%s\n' '=== grep --color=always -n -A1 hit ctx.txt a.txt'
+grep --color=always -n -A1 hit ctx.txt a.txt
+echo "[$?]"
+printf '%s\n' '=== grep --color=always -ob alpha a.txt'
+grep --color=always -ob alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep --color=always -on alpha a.txt'
+grep --color=always -on alpha a.txt
+echo "[$?]"
+printf '%s\n' '=== grep --color=always --no-group-separator -A1 hit ctx.txt'
+grep --color=always --no-group-separator -A1 hit ctx.txt
+echo "[$?]"

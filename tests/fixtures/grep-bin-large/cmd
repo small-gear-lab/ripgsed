@@ -1,0 +1,55 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+awk 'BEGIN { for (i = 1; i <= 60000; i++) printf "L%05d %s\n", i, (i % 7 ? "alpha" : "beta") }' > big.txt
+awk 'BEGIN { RS = "\n"; ORS = "\n" } NR == 30000 { sub(/^L30/, "L3\001") } { print }' big.txt | tr '\001' '\000' > bigbin.dat
+printf '%s\n' '=== grep -c alpha bigbin.dat'
+grep -c alpha bigbin.dat
+echo "[$?]"
+printf '%s\n' '=== grep -n alpha bigbin.dat | tail -n 3'
+grep -n alpha bigbin.dat | tail -n 3
+echo "[$?]"
+printf '%s\n' '=== grep alpha bigbin.dat | wc -l'
+grep alpha bigbin.dat | wc -l
+echo "[$?]"
+printf '%s\n' '=== grep -a -c alpha bigbin.dat'
+grep -a -c alpha bigbin.dat
+echo "[$?]"
+printf '%s\n' '=== grep -c L bigbin.dat'
+grep -c L bigbin.dat
+echo "[$?]"
+printf '%s\n' '=== grep '\''L00001'\'' bigbin.dat'
+grep 'L00001' bigbin.dat
+echo "[$?]"
+printf '%s\n' '=== grep '\''L99999'\'' bigbin.dat; echo $?'
+grep 'L99999' bigbin.dat; echo $?
+echo "[$?]"
+printf '%s\n' '=== grep -m2 beta bigbin.dat'
+grep -m2 beta bigbin.dat
+echo "[$?]"
+printf '%s\n' '=== grep -l alpha bigbin.dat'
+grep -l alpha bigbin.dat
+echo "[$?]"
+printf '%s\n' '=== grep -I alpha bigbin.dat | wc -l'
+grep -I alpha bigbin.dat | wc -l
+echo "[$?]"
+printf '%s\n' '=== grep -I -c alpha bigbin.dat'
+grep -I -c alpha bigbin.dat
+echo "[$?]"
+printf '%s\n' '=== grep -L zzz bigbin.dat'
+grep -L zzz bigbin.dat
+echo "[$?]"
+printf '%s\n' '=== cat bigbin.dat | grep -c alpha'
+cat bigbin.dat | grep -c alpha
+echo "[$?]"
+printf '%s\n' '=== grep '\''L2[0-9]*'\'' bigbin.dat | wc -l'
+grep 'L2[0-9]*' bigbin.dat | wc -l
+echo "[$?]"
+printf '%s\n' '=== grep -A1 '\''L07561'\'' bigbin.dat'
+grep -A1 'L07561' bigbin.dat
+echo "[$?]"
+printf '%s\n' '=== grep -v zzz bigbin.dat | wc -l'
+grep -v zzz bigbin.dat | wc -l
+echo "[$?]"
+printf '%s\n' '=== grep -c beta bigbin.dat'
+grep -c beta bigbin.dat
+echo "[$?]"

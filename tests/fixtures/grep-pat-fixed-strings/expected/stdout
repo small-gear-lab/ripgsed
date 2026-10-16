@@ -1,0 +1,58 @@
+=== grep -F 'a.' words.txt a.txt
+[1]
+=== grep -F -e foo -e beta words.txt a.txt
+words.txt:foo foobar barfoo foo_bar foo-bar Foo
+words.txt:foo
+words.txt:foobar
+words.txt:(foo)
+a.txt:beta
+a.txt:alpha beta
+[0]
+=== grep -F '[' words.txt
+[1]
+=== grep -F '*' words.txt
+[1]
+=== grep -F '\' a.txt
+[1]
+=== grep -F 'foo|' words.txt
+[1]
+=== grep -F -c '' a.txt
+4
+[0]
+=== grep -F -x alpha a.txt
+alpha
+[0]
+=== grep -F -w foo words.txt
+foo foobar barfoo foo_bar foo-bar Foo
+foo
+(foo)
+[0]
+=== grep -F -i ALPHA a.txt
+alpha
+alpha beta
+[0]
+=== grep -F -o a a.txt
+a
+a
+a
+a
+a
+a
+a
+a
+[0]
+=== grep -F -e alpha -e alp -o a.txt
+alpha
+alpha
+[0]
+=== grep -F -v alpha a.txt
+beta
+gamma
+[0]
+=== grep -F -e 'a
+b' -c a.txt
+4
+[0]
+=== grep -F '(foo)' words.txt
+(foo)
+[0]

@@ -1,0 +1,21 @@
+=== grep alpha a.txt
+alpha
+alpha beta
+[0]
+=== grep alpha a.txt b.txt
+a.txt:alpha
+a.txt:alpha beta
+b.txt:two alpha
+[0]
+=== grep alpha nosuch.txt a.txt
+a.txt:alpha
+a.txt:alpha beta
+[2]
+=== grep alpha 'sp ace.txt'
+alpha with space
+[0]
+=== grep -c alpha a.txt b.txt d/c.txt
+a.txt:2
+b.txt:1
+d/c.txt:1
+[0]

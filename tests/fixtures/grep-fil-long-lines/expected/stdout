@@ -1,0 +1,49 @@
+=== grep -n needle longline.txt | cut -c1-20
+2:xxxxxxxxxxxxxxxxxx
+3:end needle
+[0]
+=== grep -c needle longline.txt
+2
+[0]
+=== grep -o needle longline.txt
+needle
+needle
+[0]
+=== grep -ob needle longline.txt
+300007:needle
+500019:needle
+[0]
+=== grep -C1 start longline.txt | cut -c1-12
+start
+xxxxxxxxxxxx
+[0]
+=== grep -C1 end longline.txt | cut -c1-12
+xxxxxxxxxxxx
+end needle
+[0]
+=== grep -c 'x*' longline.txt
+3
+[0]
+=== grep -c 'needle$' longline.txt
+1
+[0]
+=== grep -c '^end' longline.txt
+1
+[0]
+=== grep -o 'x*needle' longline.txt | wc -c
+14
+[0]
+=== grep -c -w needle longline.txt
+2
+[0]
+=== grep -ow 'needle' longline.txt
+needle
+needle
+[0]
+=== grep -v start longline.txt | cut -c1-12
+xxxxxxxxxxxx
+end needle
+[0]
+=== grep -m1 needle longline.txt | wc -c
+500009
+[0]

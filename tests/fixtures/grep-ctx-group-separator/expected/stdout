@@ -1,0 +1,115 @@
+=== grep -A1 hit ctx.txt
+line 3 hit
+line 4 hit
+line 5
+--
+line 9 hit
+line 10
+--
+line 15 hit
+line 16
+[0]
+=== grep -A1 --group-separator='##' hit ctx.txt
+line 3 hit
+line 4 hit
+line 5
+##
+line 9 hit
+line 10
+##
+line 15 hit
+line 16
+[0]
+=== grep -A1 --group-separator= hit ctx.txt
+line 3 hit
+line 4 hit
+line 5
+
+line 9 hit
+line 10
+
+line 15 hit
+line 16
+[0]
+=== grep -A1 --group-separator hit ctx.txt
+[1]
+=== grep -A1 --no-group-separator hit ctx.txt
+line 3 hit
+line 4 hit
+line 5
+line 9 hit
+line 10
+line 15 hit
+line 16
+[0]
+=== grep -A1 --group-separator=X --no-group-separator hit ctx.txt
+line 3 hit
+line 4 hit
+line 5
+line 9 hit
+line 10
+line 15 hit
+line 16
+[0]
+=== grep -A1 --no-group-separator --group-separator=X hit ctx.txt
+line 3 hit
+line 4 hit
+line 5
+X
+line 9 hit
+line 10
+X
+line 15 hit
+line 16
+[0]
+=== grep -C1 --group-separator='a b' hit ctx.txt
+line 2
+line 3 hit
+line 4 hit
+line 5
+a b
+line 8
+line 9 hit
+line 10
+a b
+line 14
+line 15 hit
+line 16
+[0]
+=== grep -A0 'hit' ctx.txt
+line 3 hit
+line 4 hit
+--
+line 9 hit
+--
+line 15 hit
+[0]
+=== grep -B0 'line 3 ' ctx.txt
+line 3 hit
+[0]
+=== grep -A1 'line 3' ctx.txt a.txt
+ctx.txt:line 3 hit
+ctx.txt-line 4 hit
+[0]
+=== grep -C1 alpha a.txt b.txt
+a.txt:alpha
+a.txt-beta
+a.txt-gamma
+a.txt:alpha beta
+--
+b.txt-one
+b.txt:two alpha
+b.txt-three
+[0]
+=== grep -A1 --group-separator=--- alpha a.txt b.txt
+a.txt:alpha
+a.txt-beta
+---
+a.txt:alpha beta
+---
+b.txt:two alpha
+b.txt-three
+[0]
+=== grep -C1 -c hit ctx.txt
+4
+[0]

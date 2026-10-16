@@ -1,0 +1,153 @@
+=== grep -c alpha big.txt
+51429
+[0]
+=== grep -n 'L59999' big.txt
+59999:L59999 alpha
+[0]
+=== grep -nb 'L45000' big.txt
+45000:578559:L45000 alpha
+[0]
+=== grep -c beta big.txt
+8571
+[0]
+=== grep -m3 beta big.txt
+L00007 beta
+L00014 beta
+L00021 beta
+[0]
+=== grep -m3 -A2 beta big.txt
+L00007 beta
+L00008 alpha
+L00009 alpha
+--
+L00014 beta
+L00015 alpha
+L00016 alpha
+--
+L00021 beta
+L00022 alpha
+L00023 alpha
+[0]
+=== grep -C2 'L04999' big.txt
+L04997 alpha
+L04998 beta
+L04999 alpha
+L05000 alpha
+L05001 alpha
+[0]
+=== grep -C3 'L07561' big.txt
+L07558 alpha
+L07559 alpha
+L07560 beta
+L07561 alpha
+L07562 alpha
+L07563 alpha
+L07564 alpha
+[0]
+=== grep -C3 'L07562' big.txt
+L07559 alpha
+L07560 beta
+L07561 alpha
+L07562 alpha
+L07563 alpha
+L07564 alpha
+L07565 alpha
+[0]
+=== grep -B3 'L15123' big.txt
+L15120 beta
+L15121 alpha
+L15122 alpha
+L15123 alpha
+[0]
+=== grep -A3 'L15122' big.txt
+L15122 alpha
+L15123 alpha
+L15124 alpha
+L15125 alpha
+[0]
+=== grep -n -B2 -A2 'L22685' big.txt
+22683-L22683 alpha
+22684-L22684 alpha
+22685:L22685 alpha
+22686-L22686 alpha
+22687-L22687 beta
+[0]
+=== grep -c . big.txt
+60000
+[0]
+=== grep -vc alpha big.txt
+8571
+[0]
+=== grep -c L big.txt big.txt
+big.txt:60000
+big.txt:60000
+[0]
+=== grep -b '^L3000' big.txt
+385702:L30000 alpha
+385715:L30001 alpha
+385728:L30002 beta
+385740:L30003 alpha
+385753:L30004 alpha
+385766:L30005 alpha
+385779:L30006 alpha
+385792:L30007 alpha
+385805:L30008 alpha
+385818:L30009 beta
+[0]
+=== grep -o 'L0000.' big.txt
+L00001
+L00002
+L00003
+L00004
+L00005
+L00006
+L00007
+L00008
+L00009
+[0]
+=== grep -l beta big.txt
+big.txt
+[0]
+=== grep -L beta big.txt
+[0]
+=== cat big.txt | grep -c beta
+8571
+[0]
+=== cat big.txt | grep -n 'L59999'
+59999:L59999 alpha
+[0]
+=== head -c 100000 big.txt | grep -c L
+7778
+[0]
+=== head -c 98304 big.txt | grep -c L
+7646
+[0]
+=== head -c 98305 big.txt | grep -c L
+7646
+[0]
+=== grep -c '' big.txt
+60000
+[0]
+=== grep -x 'L00001 alpha' big.txt
+L00001 alpha
+[0]
+=== grep -w 'beta' -c big.txt
+8571
+[0]
+=== grep -F 'L12345' big.txt
+L12345 alpha
+[0]
+=== grep -i 'l12345' big.txt
+L12345 alpha
+[0]
+=== grep -E 'L1234[0-9]' -c big.txt
+10
+[0]
+=== grep -A1 -m2 'L0000[1-9]' big.txt
+L00001 alpha
+L00002 alpha
+L00003 alpha
+[0]
+=== sed '$d' big.txt | head -c 700000 | grep -c L
+54445
+[0]

@@ -1,0 +1,44 @@
+# Written by tools/gen-grep-fixtures.py: each command is shown, run, and followed by its status.
+
+printf '%s\n' '=== grep -A1 hit ctx.txt'
+grep -A1 hit ctx.txt
+echo "[$?]"
+printf '%s\n' '=== grep -A1 --group-separator='\''##'\'' hit ctx.txt'
+grep -A1 --group-separator='##' hit ctx.txt
+echo "[$?]"
+printf '%s\n' '=== grep -A1 --group-separator= hit ctx.txt'
+grep -A1 --group-separator= hit ctx.txt
+echo "[$?]"
+printf '%s\n' '=== grep -A1 --group-separator hit ctx.txt'
+grep -A1 --group-separator hit ctx.txt
+echo "[$?]"
+printf '%s\n' '=== grep -A1 --no-group-separator hit ctx.txt'
+grep -A1 --no-group-separator hit ctx.txt
+echo "[$?]"
+printf '%s\n' '=== grep -A1 --group-separator=X --no-group-separator hit ctx.txt'
+grep -A1 --group-separator=X --no-group-separator hit ctx.txt
+echo "[$?]"
+printf '%s\n' '=== grep -A1 --no-group-separator --group-separator=X hit ctx.txt'
+grep -A1 --no-group-separator --group-separator=X hit ctx.txt
+echo "[$?]"
+printf '%s\n' '=== grep -C1 --group-separator='\''a b'\'' hit ctx.txt'
+grep -C1 --group-separator='a b' hit ctx.txt
+echo "[$?]"
+printf '%s\n' '=== grep -A0 '\''hit'\'' ctx.txt'
+grep -A0 'hit' ctx.txt
+echo "[$?]"
+printf '%s\n' '=== grep -B0 '\''line 3 '\'' ctx.txt'
+grep -B0 'line 3 ' ctx.txt
+echo "[$?]"
+printf '%s\n' '=== grep -A1 '\''line 3'\'' ctx.txt a.txt'
+grep -A1 'line 3' ctx.txt a.txt
+echo "[$?]"
+printf '%s\n' '=== grep -C1 alpha a.txt b.txt'
+grep -C1 alpha a.txt b.txt
+echo "[$?]"
+printf '%s\n' '=== grep -A1 --group-separator=--- alpha a.txt b.txt'
+grep -A1 --group-separator=--- alpha a.txt b.txt
+echo "[$?]"
+printf '%s\n' '=== grep -C1 -c hit ctx.txt'
+grep -C1 -c hit ctx.txt
+echo "[$?]"

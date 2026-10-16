@@ -1,0 +1,45 @@
+=== grep -q alpha a.txt; echo $?
+0
+[0]
+=== grep -q zzz a.txt; echo $?
+1
+[0]
+=== grep -q alpha nosuch a.txt; echo $?
+0
+[0]
+=== grep -q zzz nosuch a.txt; echo $?
+2
+[0]
+=== grep -qc alpha a.txt; echo $?
+0
+[0]
+=== grep -ql alpha a.txt; echo $?
+0
+[0]
+=== grep -qL zzz a.txt; echo $?
+1
+[0]
+=== grep -qn alpha a.txt; echo $?
+0
+[0]
+=== grep -qo alpha a.txt; echo $?
+0
+[0]
+=== grep --quiet alpha a.txt; echo $?
+0
+[0]
+=== grep --silent alpha a.txt; echo $?
+0
+[0]
+=== grep -q alpha d a.txt; echo $?
+0
+[0]
+=== grep -q -m5 alpha d a.txt; echo $?
+2
+[0]
+=== grep -q alpha bin.dat; echo $?
+0
+[0]
+=== grep -q '' empty; echo $?
+1
+[0]

@@ -1,0 +1,44 @@
+=== grep alpha < a.txt
+alpha
+alpha beta
+[0]
+=== grep -c alpha < a.txt
+2
+[0]
+=== grep -n alpha - - < a.txt
+(standard input):1:alpha
+(standard input):4:alpha beta
+[0]
+=== grep -H alpha - a.txt < b.txt
+(standard input):two alpha
+a.txt:alpha
+a.txt:alpha beta
+[0]
+=== grep --label=X -H alpha - < a.txt
+X:alpha
+X:alpha beta
+[0]
+=== grep --label=X -c alpha - a.txt < b.txt
+X:1
+a.txt:2
+[0]
+=== grep --label=X -l alpha - < a.txt
+X
+[0]
+=== grep -L alpha - < empty
+(standard input)
+[1]
+=== grep -r alpha - < a.txt
+alpha
+alpha beta
+[0]
+=== cat a.txt | grep -n alpha
+1:alpha
+4:alpha beta
+[0]
+=== cat a.txt | grep -c alpha - a.txt
+(standard input):2
+a.txt:2
+[0]
+=== grep alpha < nosuch
+[2]
