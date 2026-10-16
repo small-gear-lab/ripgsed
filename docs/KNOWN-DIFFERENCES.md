@@ -9,6 +9,17 @@ ripgsed behaves like GNU sed 4.9: same output, same error messages in the C loca
 - A single record of 2 GiB or more: GNU sed stops with `regex input buffer length larger than INT_MAX` (exit status 4) when a regular expression is matched against it, because the C library measures the buffer with an `int`. ripgsed has no such limit and goes on. (Measured on GNU sed 4.9 with a sparse file of 2,147,483,647 bytes and no newline; GNU sed needed about 4 GiB of memory for it.) There is no fixture, as it would need that much memory.
 - Memory use is higher: input is read in blocks of 256 KiB, and parallel runs keep several blocks in flight.
 
+## The grep mode
+
+The grep mode is compared with GNU grep 3.12 (D12); GNU grep 3.11 gives the same results on every case tried, but for the options below that are gone in 3.12.
+
+- `--version` and `--help` print ripgsed's own text (the usage message and the option list are the same, the closing lines are not). `-u` and `--unix-byte-offsets` are options GNU grep 3.12 does not have: they are errors here too.
+- The translated messages of GNU grep (`LANGUAGE=ja`) are not available: their catalogs are under the GPL, as the ones of GNU sed (the English messages are the same). The messages of the PCRE2 library are the library's.
+- `-P` uses the PCRE2 library of the system, so its results and its messages follow the version installed; without the library `-P` fails with a message.
+- A pattern in which GNU grep's DFA and the C library's matcher differ is read both ways, for the lines and for the matches. Not reproduced: `-w` and `-x` are applied to the DFA as syntax (the text `)` that closes the added group), so a pattern with an unmatched `)` can select other lines under `-w` or `-x`; `grep: stack overflow` for a huge nested repetition such as `((a{256}){256})`; the quirks of the C library's matcher that the sed mode lists (`a?(a+)+\1`, the groups of `(c+){0,2}`), which GNU grep has too.
+- The binary and encoding rules follow the pieces GNU grep reads. For a pipe the size of each read decides, which is not fixed, so a NUL that comes late in a pipe may turn the lines before it into binary data at another place than in GNU grep.
+- A file name in the messages of an unreadable file or directory is the one the operand gave; the order of the files of a directory is the file system's, the same as GNU grep's.
+
 ## glibc behavior reproduced with `--glibc-compat`
 
 GNU sed uses the regular expression matcher of the C library. Where that matcher does something no specification asks for, `--glibc-compat` (or `RIPGSED_GLIBC_COMPAT=1` in the environment) makes ripgsed do the same, so that scripts give the same output. Without it, the match is the one the definition gives (leftmost-longest, back-references as defined). The differential tests and fixtures run with the option, because they hold GNU sed's results:

@@ -1,6 +1,6 @@
 # Compatibility matrix
 
-Full GNU sed compatibility is the minimum requirement of the project (D4 in [DECISIONS.md](DECISIONS.md)). The matrix in `compat/sed.tsv` lists what that means item by item and records how far each item has got.
+Full GNU sed compatibility is the minimum requirement of the project (D4 in [DECISIONS.md](DECISIONS.md)). The matrix in `compat/sed.tsv` lists what that means item by item and records how far each item has got. The grep mode has its own matrix, `compat/grep.tsv` (see [GREP.md](GREP.md)), made the same way from the manual of GNU grep and kept in the same columns.
 
 ## Where the items come from
 

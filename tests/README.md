@@ -41,6 +41,10 @@ rm -rf loc
 
 This needs `localedef` and the definitions in `/usr/share/i18n` (Debian and Ubuntu: the package `locales`; CI installs it). The default environment of a fixture is `LC_ALL=C`, so a fixture that selects the locale with other variables starts with `unset LC_ALL`. `tools/locale-diff.py` compares every Unicode scalar value with GNU sed in such locales (`tests/locale_differential.rs` runs a part of it).
 
+## Fixtures of the grep mode
+
+The fixtures whose names start with `grep-` or `pcre-` call `grep`, `egrep` and `fgrep`, which are ripgsed under those names when testing and the GNU grep of the machine when generating. Their items are in `compat/grep.tsv`. They are written by `tools/gen-grep-fixtures.py` (the commands are in that file; it also writes `compat/grep.tsv`), and the expected results are recorded by `tools/gen-fixtures.sh` as for the others. The version of GNU grep and of PCRE2 that made them is in `tests/reference-grep.json`. Commands that list a directory tree are piped through `sort` (the order is the file system's), and a fixture that needs a large file makes it with `awk` in its `cmd`.
+
 ## Generating the expected results
 
 ```sh

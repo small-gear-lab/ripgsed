@@ -4,7 +4,7 @@ A stream editor in Rust that keeps the sed language but separates syntax, semant
 
 The name says what it is: a fast gsed (GNU sed).
 
-**Status: compatible with GNU sed 4.9, and faster.** ripgsed implements the sed language and its own regular expression engine (BRE/ERE, `--posix`, the C locale and every locale of the C library: UTF-8, EUC-JP, Shift_JIS, GBK, GB18030, Big5, EUC-KR, EUC-TW, and the single-byte sets such as ISO-8859-x, KOI8-R and Windows-125x (collation order of ranges, classes, case rules), `-i`, `--debug`, `-z`, `-s`, `w`/`r`/`R`/`W`, ...). Every behavior listed in the compatibility matrix (261 items, from the GNU sed manual and from differences the tests found) is verified against the real GNU sed 4.9 by 1,880+ differential fixtures, and random differential tests of regular expressions and of whole scripts agree with it on about 99.9% of the cases. The fixtures exercise 95.7% of the lines of GNU sed 4.9's own code; ripgsed's tests execute 99% of its lines. Compatibility is only claimed where fixtures verify it (see [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) and `tools/compat-summary.sh`). The known differences are listed in [docs/KNOWN-DIFFERENCES.md](docs/KNOWN-DIFFERENCES.md): they are bugs of the C library's regular expression matcher, and by default ripgsed gives the result the definition gives; `--glibc-compat` (or `RIPGSED_GLIBC_COMPAT=1`) reproduces GNU sed's result for the rare script that needs exactly that (D10). The project is not released yet: there is no published crate, and the grep mode, PCRE2, and editor integration are not implemented.
+**Status: compatible with GNU sed 4.9, and faster.** ripgsed implements the sed language and its own regular expression engine (BRE/ERE, `--posix`, the C locale and every locale of the C library: UTF-8, EUC-JP, Shift_JIS, GBK, GB18030, Big5, EUC-KR, EUC-TW, and the single-byte sets such as ISO-8859-x, KOI8-R and Windows-125x (collation order of ranges, classes, case rules), `-i`, `--debug`, `-z`, `-s`, `w`/`r`/`R`/`W`, ...). Every behavior listed in the compatibility matrix (261 items, from the GNU sed manual and from differences the tests found) is verified against the real GNU sed 4.9 by 1,880+ differential fixtures, and random differential tests of regular expressions and of whole scripts agree with it on about 99.9% of the cases. The fixtures exercise 95.7% of the lines of GNU sed 4.9's own code; ripgsed's tests execute 99% of its lines. Compatibility is only claimed where fixtures verify it (see [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) and `tools/compat-summary.sh`). The known differences are listed in [docs/KNOWN-DIFFERENCES.md](docs/KNOWN-DIFFERENCES.md): they are bugs of the C library's regular expression matcher, and by default ripgsed gives the result the definition gives; `--glibc-compat` (or `RIPGSED_GLIBC_COMPAT=1`) reproduces GNU sed's result for the rare script that needs exactly that (D10). The same program is a grep: run as `grep` (or `egrep`, `fgrep`), or with `--grep` as the first argument, it behaves like GNU grep 3.x, including `-P` through the PCRE2 library of the system (see below). The project is not released yet: there is no published crate, and editor integration is not implemented.
 
 ## Performance
 
@@ -27,6 +27,10 @@ The name says what it is: a fast gsed (GNU sed).
 | Japanese text, `s/\w\+/<&>/g` | 2.65 | 0.79 | 0.30 | 0.25 | 0.09 |
 
 Memory use is higher than GNU sed's (4 to 70 MiB against 2 MiB, and 172 MiB for the Japanese `\w` workload; one 20 MB line takes about 60 MiB in both), because input is read in blocks. A script that reads other records, uses the hold space, or touches files runs sequentially; the sequential path is faster than GNU sed on every workload above.
+
+## As a grep
+
+`ln -s ripgsed grep` (also `egrep`, `fgrep`), or `ripgsed --grep ...`: the same options, output, messages and exit status as GNU grep, in the C locale and in the locales of the C library. 83 items of [compat/grep.tsv](compat/grep.tsv) are verified by 89 fixtures against the grep of the machine (3.12 here), and random patterns and random option combinations agree with it in all but about one case in five hundred. `-P` uses the PCRE2 library of the system when it is needed, so the crate has no dependency. Input is searched as it is read (a pipe as it arrives, a file larger than memory is fine). On 57 MB of log lines, one thread, GNU grep 3.12 against ripgsed: a literal 1.0 to 1.2 times GNU grep's time (`-c` and `-F` the same; `-i` faster, a rare literal 0.7), `-o` 0.7, `-w` 0.4, `\w` in Japanese text 0.2; an alternation with a repetition about 1.9, a back-reference 2.4 (see [docs/GREP.md](docs/GREP.md) for the table and the differences).
 
 ## As a library
 
@@ -54,7 +58,7 @@ Do not expect it to beat plain Rust on a trivial job. Measured on 55.6 MB of log
 
 ## Plan
 
-The first milestone is full GNU sed 4.9 compatibility, verified by differential tests (D4 in [docs/DECISIONS.md](docs/DECISIONS.md)). Automatic parallelism and the DFA-based regex search are in; PCRE2, the grep mode, and editor integration come after compatibility is complete.
+The first milestone is full GNU sed 4.9 compatibility, verified by differential tests (D4 in [docs/DECISIONS.md](docs/DECISIONS.md)); the grep mode (D12) and the library interface (D13) follow the same method. Automatic parallelism and the DFA-based regex search are in the sed mode; parallelism for the grep mode and editor integration come next.
 
 - [docs/DESIGN.md](docs/DESIGN.md): goals, semantics, open decisions
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): current module layout and policies

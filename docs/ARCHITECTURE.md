@@ -17,7 +17,9 @@ One crate (lib + bin). No workspace split until dependency boundaries settle.
 | `cli` | option parsing, mode selection, exit status | a second implementation of the transformation logic |
 | `analysis` | deciding statically whether a script is record-local (can run on chunks independently) | running the script |
 | `parallel`, `stream` | the ordered chunk stream, workers, and the ordered merge of their output | script semantics |
-| `search` | byte and substring search (SSE2/AVX2 with scalar fallbacks) | regular expressions |
+| `search` | byte and substring search (SSE2/AVX2 with scalar fallbacks), also without regard to the case of ASCII letters | regular expressions |
+| `api`, `edit` | the public Rust interface: `Script`, `Run`, `Error` and the builder `Edit` with `Address` and `Pattern` | the meaning of a command (the parser and the VM have it) |
+| `grep` | the grep mode: the options of GNU grep (`options`), the patterns and what a match is (`matcher`), searching an input and printing lines with their context (`search`), names, `-r` and `--include` (`glob`), colors (`color`), and `-P` through the PCRE2 library of the system (`pcre`) | the regular expression syntax (the `regex` engine reads the syntax of GNU grep when asked to) |
 
 ## The regex engine
 
