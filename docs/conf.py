@@ -14,6 +14,9 @@ myst_heading_anchors = 3
 
 exclude_patterns = ["_build", "ja", "locale", "requirements.txt"]
 
+# readme.md includes the README of the repository, whose links are relative to the repository.
+suppress_warnings = ["myst.xref_missing"]
+
 language = "en"
 locale_dirs = ["locale/"]
 gettext_compact = False

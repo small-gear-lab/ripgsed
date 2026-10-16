@@ -26,7 +26,7 @@ jobs:
           cache-dependency-glob: docs/requirements.txt
       - run: tools/build-docs.sh
       - name: Verify the checked-in Japanese Markdown is current
-        run: git diff --exit-code -- docs/ja
+        run: git diff --exit-code -- docs/ja README.ja.md
       - uses: actions/upload-pages-artifact@v5
         with:
           path: docs/_build/html

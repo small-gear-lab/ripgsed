@@ -123,7 +123,7 @@ Full GNU sed 4.9 compatibility, verified by differential tests (D4 in [docs/DECI
 
 ## Documentation
 
-Docs are written in English and built with Sphinx in English and Japanese. The HTML is built by CI and published to GitHub Pages; it is not checked in. The Japanese translation lives in `docs/locale/ja/LC_MESSAGES/*.po`, and the Japanese Markdown generated from it is checked in under [`docs/ja/`](docs/ja/index.md) so it can be read directly on GitHub.
+Docs are written in English and built with Sphinx in English and Japanese. The HTML is built by CI and published to GitHub Pages; it is not checked in. The Japanese translation lives in `docs/locale/ja/LC_MESSAGES/*.po`, and the Japanese Markdown generated from it is checked in under [`docs/ja/`](docs/ja/index.md) so it can be read directly on GitHub. `README.ja.md` is built the same way, from `docs/locale/ja/LC_MESSAGES/readme.po` (its code blocks from `docs/locale/ja/readme-code.json`).
 
 ```sh
 tools/build-docs.sh          # build HTML for both languages and regenerate docs/ja
