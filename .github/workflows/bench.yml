@@ -1,0 +1,38 @@
+name: bench
+
+# Run by hand (Actions, "bench", Run workflow): tools/bench.sh against GNU sed 4.9 on the same machine, for the
+# commit of the run and for the one before it. The times of a shared runner are noisy: compare the rows of one run.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bench:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+      - name: Machine
+        run: |
+          uname -m
+          nproc
+          sed --version | sed -n '1p'
+      - name: Locale
+        run: sudo apt-get update && sudo apt-get install -y locales
+      - name: Toolchain
+        run: rustup toolchain install 1.85 --profile minimal && rustup default 1.85
+      - name: This commit
+        run: RUNS=5 tools/bench.sh
+      - name: The commit before it
+        run: |
+          git worktree add ../before HEAD^
+          cargo build --release --manifest-path ../before/Cargo.toml
+          OURS=$PWD/../before/target/release/ripgsed RUNS=5 tools/bench.sh
