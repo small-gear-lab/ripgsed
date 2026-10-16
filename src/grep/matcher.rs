@@ -1,6 +1,7 @@
 //! The patterns of a grep run: what is a match, and where it is.
 
 use super::options::{Kind, Options};
+use super::pcre::{self, Pcre};
 use crate::regex::{Captures, Locale, Regex, Syntax, Wrap};
 
 /// A pattern that does not compile: the message of GNU grep.
@@ -17,6 +18,9 @@ pub struct Matcher {
     /// Both `-w` and `-x`: GNU grep then takes a match that reaches the end of the line for the
     /// rest of the line, its newline included (see `find_line_end`).
     both: bool,
+    /// `-P`: the one pattern, in the PCRE2 library.
+    perl: Option<Pcre>,
+    perl_enabled: bool,
     /// The text is read as characters: the class of non-word characters that `-w` adds to a
     /// pattern is one GNU grep's DFA cannot decide, so the C library's matcher selects the lines.
     multibyte: bool,
@@ -41,6 +45,9 @@ fn escape_fixed(text: &[u8]) -> Vec<u8> {
 
 impl Matcher {
     pub fn new(options: &Options, locale: Locale) -> Result<Matcher, PatternError> {
+        if options.kind == Kind::Perl {
+            return Matcher::new_perl(options, locale);
+        }
         let wrap = if options.line {
             Wrap::Line
         } else if options.word {
@@ -79,11 +86,58 @@ impl Matcher {
                 Err(e) => return Err(PatternError(e.message)),
             }
         }
-        Ok(Matcher { select, plain, word: wrap == Wrap::Word, both: options.word && options.line, multibyte: locale.is_chars(), utf8: locale.is_utf8(), libc: matches!(locale, Locale::Libc | Locale::Mb), warnings })
+        Ok(Matcher { select, plain, word: wrap == Wrap::Word, both: options.word && options.line, perl: None, perl_enabled: false, multibyte: locale.is_chars(), utf8: locale.is_utf8(), libc: matches!(locale, Locale::Libc | Locale::Mb), warnings })
+    }
+
+    /// `-P`: a single pattern, wrapped for `-x` and `-w` as GNU grep does.
+    fn new_perl(options: &Options, locale: Locale) -> Result<Matcher, PatternError> {
+        if options.patterns.len() > 1 {
+            return Err(PatternError("the -P option only supports a single pattern".to_string()));
+        }
+        if locale.is_chars() && !locale.is_utf8() {
+            return Err(PatternError("-P supports only unibyte and UTF-8 locales".to_string()));
+        }
+        let mut flags = pcre::DOLLAR_ENDONLY;
+        if options.ignore_case {
+            flags |= pcre::CASELESS;
+        }
+        if locale.is_utf8() {
+            flags |= pcre::UTF | pcre::UCP | pcre::MATCH_INVALID_UTF;
+        }
+        let mut text = Vec::new();
+        if options.line {
+            text.extend_from_slice(b"^(?:");
+        } else if options.word {
+            text.extend_from_slice(b"(?<!\\w)(?:");
+        }
+        if let Some(p) = options.patterns.first() {
+            text.extend_from_slice(p);
+        }
+        if options.line {
+            text.extend_from_slice(b")$");
+        } else if options.word {
+            text.extend_from_slice(b")(?!\\w)");
+        }
+        let perl = if options.patterns.is_empty() { None } else { Some(Pcre::new(&text, flags).map_err(PatternError)?) };
+        Ok(Matcher {
+            select: Vec::new(),
+            plain: Vec::new(),
+            word: false,
+            both: false,
+            perl,
+            perl_enabled: true,
+            multibyte: false,
+            utf8: false,
+            libc: false,
+            warnings: Vec::new(),
+        })
     }
 
     /// Whether the line (without its terminator) has a match.
     pub fn is_match(&self, line: &[u8]) -> bool {
+        if self.perl_enabled {
+            return self.perl.as_ref().is_some_and(|p| p.find(line, 0).is_some());
+        }
         if self.word && (self.multibyte || self.plain.iter().any(Regex::has_backrefs)) {
             // With a back-reference GNU grep leaves the decision to its words test.
             return self.find(line, 0).is_some();
@@ -93,6 +147,9 @@ impl Matcher {
 
     /// The leftmost match that starts at or after `start`, the longest of those that start there.
     pub fn find(&self, line: &[u8], start: usize) -> Option<(usize, usize)> {
+        if self.perl_enabled {
+            return self.perl.as_ref().and_then(|p| p.find(line, start));
+        }
         if self.word {
             return self.find_word(line, start);
         }

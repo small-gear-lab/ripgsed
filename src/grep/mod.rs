@@ -6,6 +6,7 @@ mod color;
 mod glob;
 mod matcher;
 mod options;
+mod pcre;
 mod search;
 
 use std::io::{self, Read, Write};
@@ -55,10 +56,6 @@ pub fn main(program: &str, args: Vec<Vec<u8>>, kind: Kind) -> i32 {
         }
         Parsed::Error(status) => return status,
     };
-    if options.kind == Kind::Perl {
-        eprintln!("{program}: Perl matching is not supported yet");
-        return 2;
-    }
     let locale = crate::locale::from_env();
     let matcher = match Matcher::new(&options, locale) {
         Ok(m) => m,
