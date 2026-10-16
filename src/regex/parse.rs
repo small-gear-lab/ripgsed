@@ -86,6 +86,7 @@ fn parse_with(pattern: &[u8], syntax: &Syntax, delim: u8, digit_exact: bool) -> 
         divergent: false,
         warnings: Vec::new(),
         literal_paren: None,
+        literal_brace: None,
     };
     let node = p.parse_alt(0)?;
     if p.pos < p.pat.len() {
@@ -113,7 +114,8 @@ fn parse_with(pattern: &[u8], syntax: &Syntax, delim: u8, digit_exact: bool) -> 
 /// How an interval is read (see `classify_interval`).
 enum Interval {
     Valid,
-    Literal,
+    /// Not an interval; `ended` is whether the pattern ended before its closing brace.
+    Literal { ended: bool },
     Error(&'static str),
 }
 
@@ -170,6 +172,8 @@ struct Parser<'a> {
     /// GNU grep's ERE: the `)` at this position is a character, because it follows an operator
     /// that the C library skipped (RE_UNMATCHED_RIGHT_PAREN_ORD), and so does not close a group.
     literal_paren: Option<usize>,
+    /// GNU grep's ERE: the `{` at this position is a character (an invalid interval was read as such).
+    literal_brace: Option<usize>,
 }
 
 impl<'a> Parser<'a> {
@@ -238,16 +242,26 @@ impl<'a> Parser<'a> {
             let only_assertions = items.iter().all(|i| matches!(i, Node::Assert(_) | Node::Empty));
             first = false;
             let mut node = node;
-            if quantifiable {
+            // GNU grep's DFA lets a BRE operator repeat an assertion unless the expression starts
+            // there (the C library reads the operator as a character).
+            let assertion_repeatable = self.grep && !self.regex_semantic && !self.ere && matches!(node, Node::Assert(_)) && !only_assertions;
+            if quantifiable || assertion_repeatable {
+                if assertion_repeatable && self.peek_quant().is_some() {
+                    self.divergent = true;
+                }
                 let mut count = 0;
                 while let Some((q, len)) = self.peek_quant() {
-                    if self.grep && self.ere && q == Quant::Brace {
+                    if self.grep && q == Quant::Brace && !assertion_repeatable {
                         match self.classify_interval(len) {
                             Interval::Valid => {}
                             // An invalid interval of an ERE is read as characters.
-                            Interval::Literal => break,
+                            Interval::Literal { .. } if self.ere => {
+                                self.literal_brace = Some(self.pos);
+                                break;
+                            }
+                            Interval::Literal { ended } => return Err(err(if ended { E_EBRACE } else { E_BADBR })),
                             // (After an assertion the interval is not read by the C library.)
-                            Interval::Error(_) if matches!(node, Node::Assert(_)) => break,
+                            Interval::Error(_) if self.ere && matches!(node, Node::Assert(_)) => break,
                             Interval::Error(e) => return Err(err(e)),
                         }
                     }
@@ -276,6 +290,7 @@ impl<'a> Parser<'a> {
                         Quant::Star => (0, None),
                         Quant::Plus => (1, None),
                         Quant::Question => (0, Some(1)),
+                        Quant::Brace if assertion_repeatable => self.dfa_interval()?,
                         Quant::Brace => self.parse_interval()?,
                     };
                     node = Node::Repeat(Box::new(node), min, max);
@@ -322,11 +337,52 @@ impl<'a> Parser<'a> {
         }
     }
 
+    /// An interval of a BRE the way GNU grep's DFA reads it (after an assertion, where the C
+    /// library sees characters): `m`, `m,`, `,n`, `m,n`, then `\}`; anything else is the one
+    /// mistake the DFA knows. The `\{` is consumed.
+    fn dfa_interval(&mut self) -> Result<(u32, Option<u32>), CompileError> {
+        let bad = || CompileError { message: "invalid content of \\{\\}".to_string() };
+        let rest = &self.pat[self.pos..];
+        let mut i = 0;
+        let digits = |i: &mut usize| -> Option<u64> {
+            let start = *i;
+            let mut v: u64 = 0;
+            while *i < rest.len() && rest[*i].is_ascii_digit() {
+                v = (v * 10 + u64::from(rest[*i] - b'0')).min(u64::from(u32::MAX));
+                *i += 1;
+            }
+            (*i > start).then_some(v)
+        };
+        let min = digits(&mut i);
+        let (min, max) = if rest.get(i) == Some(&b',') {
+            i += 1;
+            let max = digits(&mut i);
+            (min.unwrap_or(0), max)
+        } else {
+            match min {
+                Some(m) => (m, Some(m)),
+                None => return Err(bad()),
+            }
+        };
+        if rest.get(i) != Some(&b'\\') || rest.get(i + 1) != Some(&b'}') {
+            return Err(bad());
+        }
+        if max.is_some_and(|m| m < min) {
+            return Err(bad());
+        }
+        self.pos += i + 2;
+        if max.unwrap_or(min) > u64::from(DUP_MAX) {
+            return Err(err(E_ESIZE));
+        }
+        Ok((min as u32, max.map(|m| m as u32)))
+    }
+
     /// How the C library reads the text after the opening brace of an interval of an ERE (`len`
     /// bytes of the operator are before it): as an interval, as the characters that are written (an
     /// ERE of GNU grep reads an interval it cannot make sense of that way), or as a mistake.
     fn classify_interval(&self, len: usize) -> Interval {
         let rest = &self.pat[(self.pos + len).min(self.pat.len())..];
+        let ere = self.ere;
         #[derive(PartialEq)]
         enum End {
             Close,
@@ -342,7 +398,11 @@ impl<'a> Parser<'a> {
                 }
                 let c = rest[*i];
                 *i += 1;
-                if c == b'}' {
+                if !ere && c == b'\\' && rest.get(*i) == Some(&b'}') {
+                    *i += 1;
+                    return (num, End::Close);
+                }
+                if ere && c == b'}' {
                     return (num, End::Close);
                 }
                 if c == b',' {
@@ -385,7 +445,7 @@ impl<'a> Parser<'a> {
             };
         }
         if start == -2 || end == -2 {
-            return Interval::Literal;
+            return Interval::Literal { ended: last == End::End };
         }
         if (end != -1 && start > end) || last != End::Close {
             return Interval::Error(E_BADBR);
@@ -461,6 +521,11 @@ impl<'a> Parser<'a> {
                 }
                 b'*' | b'+' | b'?' | b'{' if self.grep => {
                     // GNU grep warns and goes on as if the operator were not there.
+                    if c == b'{' && self.literal_brace == Some(self.pos) {
+                        // The interval before it was not one: the C library goes on with the characters.
+                        self.pos += 1;
+                        return Ok((self.literal_byte(b'{'), true));
+                    }
                     if c == b'{' && self.regex_semantic {
                         self.pos += 1;
                         if self.at(0) == Some(b')') {
@@ -470,7 +535,7 @@ impl<'a> Parser<'a> {
                     }
                     if c == b'{' {
                         match self.classify_interval(1) {
-                            Interval::Literal => {
+                            Interval::Literal { .. } => {
                                 self.pos += 1;
                                 return Ok((self.literal_byte(b'{'), true));
                             }
@@ -638,6 +703,16 @@ impl<'a> Parser<'a> {
             if let Some(x) = self.at(2) {
                 self.pos += 3;
                 return Ok((self.literal_byte(x.to_ascii_uppercase() ^ 0x40), true));
+            }
+        }
+        // Under `-i` the C library compares the character that was written after the backslash with
+        // the upper-cased text, so an escaped letter that means nothing special never matches (GNU
+        // grep's DFA, which selects the lines, does not have the mistake).
+        if self.grep && self.icase && e.is_ascii_alphabetic() {
+            self.divergent = true;
+            if self.regex_semantic {
+                self.pos += 2;
+                return Ok((Node::Unit(Unit::Byte(ByteSet::default())), true));
             }
         }
         // Anything else stands for itself: \. \* \[ \] \^ \$ \\ \/, and in

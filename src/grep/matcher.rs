@@ -7,8 +7,22 @@ use crate::regex::{Captures, Locale, Regex, Syntax, Wrap};
 pub struct PatternError(pub String);
 
 pub struct Matcher {
-    /// One regular expression for each pattern. Empty: nothing matches (`-f /dev/null`).
-    regexes: Vec<Regex>,
+    /// What selects the lines: one regular expression for each pattern, with `-x` and `-w` built
+    /// in. Empty: nothing matches (`-f /dev/null`).
+    select: Vec<Regex>,
+    /// With `-w` or `-x`: the patterns as they are. GNU grep finds the matches of `-o` and
+    /// `--color` with these (and tests the words itself).
+    plain: Vec<Regex>,
+    word: bool,
+    /// Both `-w` and `-x`: GNU grep then takes a match that reaches the end of the line for the
+    /// rest of the line, its newline included (see `find_line_end`).
+    both: bool,
+    /// The text is read as characters: the class of non-word characters that `-w` adds to a
+    /// pattern is one GNU grep's DFA cannot decide, so the C library's matcher selects the lines.
+    multibyte: bool,
+    /// UTF-8 (the characters are read here); `libc` when the C library knows them.
+    utf8: bool,
+    libc: bool,
     /// What GNU grep warns about in the patterns.
     pub warnings: Vec<String>,
 }
@@ -34,7 +48,7 @@ impl Matcher {
         } else {
             Wrap::None
         };
-        let syntax = Syntax {
+        let syntax = |wrap| Syntax {
             extended: options.kind == Kind::Extended,
             icase: options.ignore_case,
             multiline: false,
@@ -45,39 +59,179 @@ impl Matcher {
             regex_semantic: false,
             ..Syntax::default()
         };
-        let mut regexes = Vec::new();
+        let mut select = Vec::new();
+        let mut plain = Vec::new();
         let mut warnings: Vec<String> = Vec::new();
         for pattern in &options.patterns {
             let text = if options.kind == Kind::Fixed { escape_fixed(pattern) } else { pattern.clone() };
-            match Regex::compile(&text, &syntax) {
+            // The C library reads the patterns first: its mistakes come first.
+            if wrap != Wrap::None {
+                match Regex::compile(&text, &syntax(Wrap::None)) {
+                    Ok(re) => plain.push(re),
+                    Err(e) => return Err(PatternError(e.message)),
+                }
+            }
+            match Regex::compile(&text, &syntax(wrap)) {
                 Ok(re) => {
                     warnings.extend(re.warnings().iter().cloned());
-                    regexes.push(re);
+                    select.push(re);
                 }
                 Err(e) => return Err(PatternError(e.message)),
             }
         }
-        Ok(Matcher { regexes, warnings })
+        Ok(Matcher { select, plain, word: wrap == Wrap::Word, both: options.word && options.line, multibyte: locale.is_chars(), utf8: locale.is_utf8(), libc: matches!(locale, Locale::Libc | Locale::Mb), warnings })
     }
 
     /// Whether the line (without its terminator) has a match.
     pub fn is_match(&self, line: &[u8]) -> bool {
-        self.regexes.iter().any(|re| re.is_match(line))
+        if self.word && (self.multibyte || self.plain.iter().any(Regex::has_backrefs)) {
+            // With a back-reference GNU grep leaves the decision to its words test.
+            return self.find(line, 0).is_some();
+        }
+        self.select.iter().any(|re| re.is_match(line))
     }
 
     /// The leftmost match that starts at or after `start`, the longest of those that start there.
     pub fn find(&self, line: &[u8], start: usize) -> Option<(usize, usize)> {
+        if self.word {
+            return self.find_word(line, start);
+        }
+        if self.both {
+            return self.find_line_end(line, start);
+        }
         let mut best: Option<(usize, usize)> = None;
         let mut caps = Captures::default();
-        for re in &self.regexes {
+        let regexes = if self.plain.is_empty() { &self.select } else { &self.plain };
+        for re in regexes {
             if re.captures_at(line, start, &mut caps) {
                 let (s, e) = caps.whole();
-                best = match best {
-                    Some((bs, be)) if bs < s || (bs == s && be >= e) => Some((bs, be)),
-                    _ => Some((s, e)),
-                };
+                best = better(best, s, e);
             }
         }
         best
+    }
+
+    /// Whether the character that starts at `pos` is part of a word. (In UTF-8 a byte that does not
+    /// start a valid character is not.)
+    fn wordchar_next(&self, re: &Regex, line: &[u8], pos: usize) -> bool {
+        if pos >= line.len() {
+            return false;
+        }
+        let b = line[pos];
+        if !self.utf8 || b < 0x80 {
+            return re.word_context(line, pos).1;
+        }
+        std::str::from_utf8(&line[pos..(pos + 4).min(line.len())])
+            .or_else(|e| std::str::from_utf8(&line[pos..pos + e.valid_up_to()]))
+            .ok()
+            .and_then(|s| s.chars().next())
+            .is_some_and(|c| self.word_char(c))
+    }
+
+    /// Whether the character that holds the byte before `pos` is part of a word (a position inside
+    /// a character sees the whole character).
+    fn wordchar_prev(&self, re: &Regex, line: &[u8], pos: usize) -> bool {
+        if pos == 0 {
+            return false;
+        }
+        let b = line[pos - 1];
+        if !self.utf8 || b < 0x80 {
+            return re.word_context(line, pos).0;
+        }
+        // Back to the start of the character: at most three continuation bytes.
+        let mut start = pos - 1;
+        while start > 0 && pos - start < 4 && line[start] & 0xc0 == 0x80 {
+            start -= 1;
+        }
+        std::str::from_utf8(&line[start..(start + 4).min(line.len())])
+            .or_else(|e| std::str::from_utf8(&line[start..start + e.valid_up_to()]))
+            .ok()
+            .and_then(|s| s.chars().next())
+            .is_some_and(|c| self.word_char(c))
+    }
+
+    fn word_char(&self, c: char) -> bool {
+        if self.libc { crate::regex::is_word_char_libc(c) } else { crate::regex::is_word_char(c) }
+    }
+
+    /// `-w` with `-x`: only a match that goes to the end of the line counts, and it is reported as
+    /// the whole rest of the line with its terminator (the match ends one byte after the line).
+    fn find_line_end(&self, line: &[u8], ptr: usize) -> Option<(usize, usize)> {
+        let mut caps = Captures::default();
+        for re in &self.plain {
+            if re.captures_at(line, ptr, &mut caps) {
+                let (m, e) = caps.whole();
+                if e - m == line.len() - ptr {
+                    return Some((ptr, line.len() + 1));
+                }
+            }
+        }
+        None
+    }
+
+    /// `-w`, as GNU grep does it: the leftmost match is tested for being a word; if it is not, a
+    /// shorter match at the same place is tried (on the text cut off at the end of the shorter
+    /// match, measured from where the search began), and then a match further on.
+    fn find_word(&self, line: &[u8], ptr: usize) -> Option<(usize, usize)> {
+        let end = line.len();
+        let mut best: Option<(usize, usize)> = None;
+        let mut best_match = end + 1;
+        let mut caps = Captures::default();
+        for re in &self.plain {
+            if !re.captures_at(line, ptr, &mut caps) {
+                continue;
+            }
+            let (mut m, e) = caps.whole();
+            let mut len = e - m;
+            if m > best_match {
+                continue;
+            }
+            while m <= best_match {
+                let after = self.wordchar_next(re, line, m + len);
+                let before = self.wordchar_prev(re, line, m);
+                if !after && !before {
+                    // A good match: the leftmost, then the longest, of all the patterns.
+                    if m < best_match || best.is_none_or(|(_, bl)| m == best_match && len > bl - best_match) {
+                        best_match = m;
+                        best = Some((m, m + len));
+                    }
+                    break;
+                }
+                let mut shorter = 0usize;
+                if len > 0 {
+                    len -= 1;
+                    // The text is cut at `m + len - ptr` (GNU grep measures from where the search
+                    // began, not from the start of the line).
+                    let cut = (m + len).checked_sub(ptr);
+                    if let Some(cut) = cut.filter(|&c| c >= m) {
+                        if re.captures_at(&line[..cut], m, &mut caps) && caps.whole().0 == m {
+                            shorter = caps.whole().1 - m;
+                        }
+                    }
+                }
+                if shorter > 0 {
+                    len = shorter;
+                } else {
+                    if m == best_match {
+                        break;
+                    }
+                    m += 1;
+                    if m > end || !re.captures_at(line, m, &mut caps) {
+                        break;
+                    }
+                    let (s, e) = caps.whole();
+                    m = s;
+                    len = e - s;
+                }
+            }
+        }
+        best
+    }
+}
+
+fn better(best: Option<(usize, usize)>, s: usize, e: usize) -> Option<(usize, usize)> {
+    match best {
+        Some((bs, be)) if bs < s || (bs == s && be >= e) => Some((bs, be)),
+        _ => Some((s, e)),
     }
 }

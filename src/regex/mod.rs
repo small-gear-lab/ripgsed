@@ -94,7 +94,7 @@
 
 mod ast;
 mod charset;
-pub use charset::{beyond_len, simple_lower, simple_upper};
+pub use charset::{beyond_len, is_word_byte, is_word_char, is_word_char_libc, simple_lower, simple_upper};
 mod classes_table;
 mod compile;
 mod dfa;
@@ -284,6 +284,9 @@ pub struct Regex {
     warnings: Vec<String>,
     /// `Syntax::regex_semantic`: the pattern read by the C library's matcher, for the matches.
     regex_alt: Option<Box<Regex>>,
+    /// GNU grep's DFA cannot decide this pattern in a multibyte locale (a class, a negated set,
+    /// `\w`, a word assertion): the C library's reading selects the lines too.
+    regex_selects: bool,
     /// In a locale of the C library, for a pattern with a bracket expression of digit ranges: GNU
     /// sed runs a first matcher that reads those ranges by code point (`[0-9]` holds no `٣`), and
     /// a line it does not match is not matched at all. When it does match, the second matcher
@@ -302,6 +305,9 @@ impl Regex {
     /// `b'\0'` as under `sed -z`; see `Syntax::null_data`). `compile` derives
     /// the delimiter from `syntax.null_data`.
     pub fn compile_with_delimiter(pattern: &[u8], syntax: &Syntax, delim: u8) -> Result<Regex, CompileError> {
+        // GNU grep compiles a pattern with the C library first, so its mistakes are reported first.
+        let alt_syntax = Syntax { regex_semantic: true, ..*syntax };
+        let alt_parsed = if syntax.grep && !syntax.regex_semantic { Some(parse::parse(pattern, &alt_syntax, delim)?) } else { None };
         let parsed = parse::parse(pattern, syntax, delim)?;
         let warnings = parsed.warnings.clone();
         let divergent = parsed.divergent;
@@ -313,9 +319,9 @@ impl Regex {
         };
         let mut re = Regex::from_parsed(parsed, syntax, delim, filter)?;
         re.warnings = warnings;
-        if syntax.grep && divergent && !syntax.regex_semantic {
-            let alt = Syntax { regex_semantic: true, ..*syntax };
-            re.regex_alt = Some(Box::new(Regex::compile_with_delimiter(pattern, &alt, delim)?));
+        re.regex_selects = syntax.grep && syntax.locale.is_chars() && has_multibyte_set(&re.node);
+        if let Some(alt_parsed) = alt_parsed.filter(|_| divergent) {
+            re.regex_alt = Some(Box::new(Regex::from_parsed(alt_parsed, &alt_syntax, delim, None)?));
         }
         if syntax.glibc_compat && syntax.locale.is_utf8() {
             let mut again = parse::parse(pattern, syntax, delim)?;
@@ -331,7 +337,7 @@ impl Regex {
         let prog_has_no_backrefs = !prog.has_backrefs;
         let literals = literal::analyze(&parsed.node, syntax.locale.is_chars(), syntax.locale == Locale::Mb);
         let prog_has_lone_high_byte = prog.units.iter().any(|u| matches!(u, ast::Unit::Byte(set) if (0x80..=0xffu8).any(|b| set.contains(b))));
-        Ok(Regex { prog, syntax: *syntax, delim, literals, scratch: Default::default(), quirk_stars: if syntax.glibc_compat { star_before_not_word_boundary(&parsed.node) } else { 0 }, fixed: if prog_has_no_backrefs { dfa::fixed_groups(&parsed.node, parsed.ngroups) } else { None }, node: parsed.node, dfa: Default::default(), boundaries: Default::default(), tails: syntax.locale == Locale::Mb && (syntax.glibc_compat || prog_has_lone_high_byte), relaxed: None, warnings: Vec::new(), regex_alt: None, use_dfa: syntax.locale != Locale::Mb || (crate::locale::ascii_bytes_are_characters() && !syntax.glibc_compat), filter })
+        Ok(Regex { prog, syntax: *syntax, delim, literals, scratch: Default::default(), quirk_stars: if syntax.glibc_compat { star_before_not_word_boundary(&parsed.node) } else { 0 }, fixed: if prog_has_no_backrefs { dfa::fixed_groups(&parsed.node, parsed.ngroups) } else { None }, node: parsed.node, dfa: Default::default(), boundaries: Default::default(), tails: syntax.locale == Locale::Mb && (syntax.glibc_compat || prog_has_lone_high_byte), relaxed: None, warnings: Vec::new(), regex_alt: None, regex_selects: false, use_dfa: syntax.locale != Locale::Mb || (crate::locale::ascii_bytes_are_characters() && !syntax.glibc_compat), filter })
     }
 
     /// What GNU grep warns about in the pattern, in the order it meets it.
@@ -449,6 +455,39 @@ impl Regex {
         }
     }
 
+    /// Whether the pattern has a back-reference.
+    pub fn has_backrefs(&self) -> bool {
+        self.prog.has_backrefs
+    }
+
+    /// Whether the character before and the character after `pos` are part of a word, as `\b` and
+    /// `\w` see them (GNU grep's `-w` asks this of the ends of a match).
+    pub fn word_context(&self, haystack: &[u8], pos: usize) -> (bool, bool) {
+        let searcher = exec::Searcher {
+            scratch: &self.scratch,
+            dfa: &self.dfa,
+            node: &self.node,
+            fixed: self.fixed.as_ref(),
+            quirk_stars: self.quirk_stars,
+            glibc: self.syntax.glibc_compat,
+            use_dfa: self.use_dfa,
+            prog: &self.prog,
+            hay: haystack,
+            multiline: self.syntax.multiline,
+            delim: self.delim,
+            address: false,
+            utf8: self.syntax.locale.is_chars(),
+            libc: matches!(self.syntax.locale, Locale::Libc | Locale::Mb),
+            mb: self.syntax.locale == Locale::Mb,
+            sb: self.syntax.locale == Locale::Sb,
+            icase: self.syntax.icase,
+            boundary: 0,
+            seen: &exec::BoundaryCache::default().into(),
+            tails: false,
+        };
+        (searcher.word_before(pos), searcher.word_after(pos))
+    }
+
     /// Whether `haystack` contains a match, with the semantics GNU sed has
     /// for addresses (`/re/`), which it decides without asking for match
     /// positions and which differ slightly from `s`: in `M` mode `` \` ``
@@ -456,6 +495,9 @@ impl Regex {
     /// the match may meet a newline the match consumes even when the pattern
     /// has groups. Use this for addresses and `captures_at` for `s`.
     pub fn is_match(&self, haystack: &[u8]) -> bool {
+        if let (Some(alt), true) = (&self.regex_alt, self.regex_selects) {
+            return alt.is_match(haystack);
+        }
         if self.reads_beyond_unicode(haystack) {
             let first = self.relaxed.as_deref().unwrap_or(self);
             return first.is_match_once(haystack) && charset::with_ext(self.surrogate_level(), || self.is_match_once(haystack));

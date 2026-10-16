@@ -248,13 +248,11 @@ impl<'a> Printer<'a> {
         let o = self.options;
         let mut cur = 0usize;
         let mut mid: Option<usize> = None;
-        while cur < text.len() {
+        // (GNU grep's line includes its terminator: the search goes on while `cur` is before it.)
+        while cur <= text.len() {
             let Some((s, e)) = m.find(text, cur) else { break };
             let b = s;
             let mut size = e - s;
-            if b == text.len() {
-                break;
-            }
             if size == 0 {
                 // Make minimal progress; there may be further non-empty matches.
                 size = 1;
@@ -277,7 +275,11 @@ impl<'a> Printer<'a> {
                 if !match_color.is_empty() {
                     self.sgr_start(match_color);
                 }
-                self.out.extend_from_slice(&text[b..e]);
+                // (A match can end one byte after the text: its terminator, see `Matcher::find`.)
+                self.out.extend_from_slice(&text[b..e.min(text.len())]);
+                if e > text.len() {
+                    self.out.push(self.eol);
+                }
                 if !match_color.is_empty() {
                     self.sgr_end(match_color);
                 }

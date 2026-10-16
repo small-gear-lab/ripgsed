@@ -294,7 +294,7 @@ impl<'a> Searcher<'a> {
         }
     }
 
-    fn word_after(&self, pos: usize) -> bool {
+    pub fn word_after(&self, pos: usize) -> bool {
         if pos >= self.hay.len() {
             return false;
         }
@@ -310,7 +310,7 @@ impl<'a> Searcher<'a> {
         }
     }
 
-    fn word_before(&self, pos: usize) -> bool {
+    pub fn word_before(&self, pos: usize) -> bool {
         if pos == 0 {
             return false;
         }
