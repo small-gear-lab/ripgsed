@@ -43,7 +43,7 @@
 mod api;
 mod edit;
 
-pub use api::{Encoding, Error, ErrorKind, Outcome, Run, Script};
+pub use api::{Dialect, Encoding, Error, ErrorKind, Outcome, Run, Script};
 pub use edit::{Address, Edit, Pattern};
 
 // The parts the command `ripgsed` and the tests of the project use. They are not part of the

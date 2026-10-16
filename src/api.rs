@@ -84,29 +84,48 @@ impl From<Fatal> for Error {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Script {
     text: String,
-    extended: bool,
+    dialect: Dialect,
+}
+
+/// The syntax of the regular expressions of a script.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub enum Dialect {
+    /// Basic regular expressions, as in sed.
+    #[default]
+    Basic,
+    /// Extended regular expressions (`sed -E`).
+    Extended,
+    /// Perl-style regular expressions from the PCRE2 library of the system (`sed -P`).
+    Perl,
 }
 
 impl Script {
     /// A script in sed's own syntax, with basic regular expressions.
     pub fn parse(text: &str) -> Result<Script, Error> {
-        Script::from_text(text.to_string(), false)
+        Script::from_text(text.to_string(), Dialect::Basic)
     }
 
     /// A script whose regular expressions are extended (as with `sed -E`).
     pub fn parse_extended(text: &str) -> Result<Script, Error> {
-        Script::from_text(text.to_string(), true)
+        Script::from_text(text.to_string(), Dialect::Extended)
     }
 
-    pub(crate) fn from_text(text: String, extended: bool) -> Result<Script, Error> {
-        let script = Script { text, extended };
+    /// A script whose regular expressions are Perl-style (as with `sed -P`). They are read by the
+    /// PCRE2 library of the system when the script runs, and the script is rejected if it is not
+    /// installed.
+    pub fn parse_perl(text: &str) -> Result<Script, Error> {
+        Script::from_text(text.to_string(), Dialect::Perl)
+    }
+
+    pub(crate) fn from_text(text: String, dialect: Dialect) -> Result<Script, Error> {
+        let script = Script { text, dialect };
         script.parsed(&Run::new().parse_options())?;
         Ok(script)
     }
 
-    /// Whether the regular expressions are extended.
-    pub fn is_extended(&self) -> bool {
-        self.extended
+    /// The syntax of the regular expressions.
+    pub fn dialect(&self) -> Dialect {
+        self.dialect
     }
 
     pub(crate) fn parsed(&self, options: &ParseOptions) -> Result<syntax::Script, Error> {
@@ -114,7 +133,7 @@ impl Script {
     }
 
     pub(crate) fn chunks(&self, options: &ParseOptions) -> Vec<(Chunk, ParseOptions)> {
-        let options = ParseOptions { extended: self.extended, ..*options };
+        let options = ParseOptions { extended: self.dialect == Dialect::Extended, pcre: self.dialect == Dialect::Perl, ..*options };
         vec![(Chunk { source: ChunkSource::Expression(1), text: self.text.clone().into_bytes() }, options)]
     }
 }

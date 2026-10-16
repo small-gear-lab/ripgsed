@@ -34,7 +34,7 @@ Memory use is higher than GNU sed's (4 to 70 MiB against 2 MiB, and 172 MiB for 
 
 ## Perl-style patterns: `-P`
 
-`ripgsed -P 's/(\d+)(?=px)/<$1>/g'`, or `--perl-regexp` (the spelling of grep's `-P`; GNU sed has no such option): the regular expressions of the script, in addresses and in `s`, are PCRE2 ones from the PCRE2 library of the system (opened with `dlopen`; without it `-P` says so and nothing else changes). The commands, the flags `I` and `M`, the replacement (`\1`, `&`, `\U`) and the empty regexp are sed's; only what the pattern means is PCRE2's. It is an extension without a GNU sed to compare with, so its results are those of the library, tested in `tests/cli.rs` (D14).
+`ripgsed -P 's/(\d+)(?=px)/<$1>/g'`, or `--perl-regexp` (the spelling of grep's `-P`; GNU sed has no such option): the regular expressions of the script, in addresses and in `s`, are PCRE2 ones from the PCRE2 library of the system (opened with `dlopen`; without it `-P` says so and nothing else changes). The commands, the flags `I` and `M`, the replacement (`\1`, `&`, `\U`) and the empty regexp are sed's; only what the pattern means is PCRE2's. The library has it too (`Pattern::perl`, `Script::parse_perl`). It is an extension without a GNU sed to compare with, so its results are those of the library, tested in `tests/cli.rs` (D14).
 
 ## As a library
 

@@ -169,7 +169,7 @@ fn builder_mistakes_are_caught_when_the_script_is_built() {
 #[test]
 fn an_extended_script_is_marked_and_parses_back_extended() {
     let script = Edit::new().substitute(Pattern::extended("(a|b)+"), "<&>").build().unwrap();
-    assert!(script.is_extended());
+    assert_eq!(script.dialect(), ripgsed::Dialect::Extended);
     assert_eq!(run(&script, "abab c\n"), "<abab> c\n");
     let again = Script::parse_extended(&script.to_string()).unwrap();
     assert_eq!(script, again);
@@ -249,4 +249,25 @@ fn a_script_that_cannot_be_spread_runs_on_one_thread() {
     let script = Script::parse("5q3").unwrap();
     let outcome = Run::new().jobs(4).run_parallel(&script, &big_input()[..], Vec::new()).unwrap();
     assert_eq!(outcome.exit_status, 3);
+}
+
+#[test]
+fn a_perl_script_uses_pcre2_and_parses_back_perl() {
+    let script = match Edit::new()
+        .when(Address::matching(Pattern::perl("^(?i)a/b")))
+        .substitute(Pattern::perl(r"(\d+)(?=px)"), r"<\1>")
+        .build()
+    {
+        Ok(script) => script,
+        // The PCRE2 library is not installed here.
+        Err(error) => {
+            assert!(error.to_string().contains("PCRE2"), "{error}");
+            return;
+        }
+    };
+    assert_eq!(script.dialect(), ripgsed::Dialect::Perl);
+    assert_eq!(run(&script, "A/b 12px\nA/b 3em\nx 4px\n"), "A/b <12>px\nA/b 3em\nx 4px\n");
+    assert_eq!(script, Script::parse_perl(&script.to_string()).unwrap());
+    let mixed = Edit::new().substitute(Pattern::perl("a"), "b").substitute(Pattern::extended("a"), "b").build().unwrap_err();
+    assert_eq!(mixed.kind(), ErrorKind::Build);
 }

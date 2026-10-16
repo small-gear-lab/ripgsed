@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ripgsed\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-16 15:37+0900\n"
+"POT-Creation-Date: 2026-10-16 15:54+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: ja <LL@li.org>\n"
@@ -712,6 +712,19 @@ msgstr ""
 "のときも同じです。"
 
 #: ../../DECISIONS.md:104
+#, python-brace-format
+msgid ""
+"The library has the same: `Pattern::perl` and `Script::parse_perl`, with "
+"`Script::dialect` (`Dialect::{Basic, Extended, Perl}`) in place of the flag "
+"for extended patterns. A script uses one dialect, and mixing them is an "
+"error when it is built; building fails if the PCRE2 library is not "
+"installed."
+msgstr ""
+"ライブラリにも同じものがあります。`Pattern::perl` と `Script::parse_perl`、そして拡張パターンの旗の代わりに "
+"`Script::dialect`（`Dialect::{Basic, Extended, Perl}`）です。スクリプトの方言は 1 "
+"つで、混ぜると組み立て時にエラーになります。PCRE2 ライブラリがインストールされていなければ、組み立てが失敗します。"
+
+#: ../../DECISIONS.md:105
 msgid ""
 "There is no GNU sed to compare with, so the tests state the library's "
 "answers (`tests/cli.rs`) and `--debug` prints the pattern as it was written."

@@ -6,16 +6,19 @@
 
 use std::ops::RangeInclusive;
 
-use crate::api::{Error, Script};
+use crate::api::{Dialect, Error, Script};
 
-/// A regular expression, basic (as in `sed`) or extended (as with `sed -E`).
+const MIXED: &str = "a script cannot mix basic, extended and Perl-style patterns";
+
+/// A regular expression, basic (as in `sed`), extended (as with `sed -E`) or Perl-style (as with
+/// `sed -P`, from the PCRE2 library of the system).
 ///
-/// A script uses one syntax: mixing basic and extended patterns in one [`Edit`] is an error
+/// A script uses one syntax: mixing syntaxes in one [`Edit`] is an error
 /// when the script is built.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Pattern {
     text: String,
-    extended: bool,
+    dialect: Dialect,
     ignore_case: bool,
     multiline: bool,
 }
@@ -23,12 +26,18 @@ pub struct Pattern {
 impl Pattern {
     /// A basic regular expression (`\(`, `\{`, `\+` and `\|` are the operators).
     pub fn basic(text: impl Into<String>) -> Pattern {
-        Pattern { text: text.into(), extended: false, ignore_case: false, multiline: false }
+        Pattern { text: text.into(), dialect: Dialect::Basic, ignore_case: false, multiline: false }
     }
 
     /// An extended regular expression (`(`, `{`, `+` and `|` are the operators).
     pub fn extended(text: impl Into<String>) -> Pattern {
-        Pattern { text: text.into(), extended: true, ignore_case: false, multiline: false }
+        Pattern { text: text.into(), dialect: Dialect::Extended, ignore_case: false, multiline: false }
+    }
+
+    /// A Perl-style regular expression, read by the PCRE2 library of the system (`sed -P`).
+    /// Building the script fails when the library is not installed.
+    pub fn perl(text: impl Into<String>) -> Pattern {
+        Pattern { text: text.into(), dialect: Dialect::Perl, ignore_case: false, multiline: false }
     }
 
     /// Matches without regard to case (the `I` flag).
@@ -93,22 +102,22 @@ pub struct Address {
     text: String,
     shape: Shape,
     negated: bool,
-    extended: Option<bool>,
+    dialect: Option<Dialect>,
     error: Option<String>,
 }
 
 impl Address {
     fn single(text: String) -> Address {
-        Address { text, shape: Shape::Single, negated: false, extended: None, error: None }
+        Address { text, shape: Shape::Single, negated: false, dialect: None, error: None }
     }
 
     fn failed(message: &str) -> Address {
-        Address { text: String::new(), shape: Shape::All, negated: false, extended: None, error: Some(message.into()) }
+        Address { text: String::new(), shape: Shape::All, negated: false, dialect: None, error: Some(message.into()) }
     }
 
     /// Every line.
     pub fn all() -> Address {
-        Address { text: String::new(), shape: Shape::All, negated: false, extended: None, error: None }
+        Address { text: String::new(), shape: Shape::All, negated: false, dialect: None, error: None }
     }
 
     /// Line number `n` (the first line is 1).
@@ -124,7 +133,7 @@ impl Address {
     /// The lines that match the pattern.
     pub fn matching(pattern: Pattern) -> Address {
         let mut address = Address::single(format!("/{}/{}", pattern.delimited(), pattern.flags()));
-        address.extended = Some(pattern.extended);
+        address.dialect = Some(pattern.dialect);
         address
     }
 
@@ -147,15 +156,15 @@ impl Address {
         if first.shape != Shape::Single || last.shape != Shape::Single || first.negated || last.negated {
             return Address::failed("a range needs two single addresses that are not negated");
         }
-        let extended = match (first.extended, last.extended) {
-            (Some(a), Some(b)) if a != b => return Address::failed("a script cannot mix basic and extended patterns"),
+        let dialect = match (first.dialect, last.dialect) {
+            (Some(a), Some(b)) if a != b => return Address::failed(MIXED),
             (a, b) => a.or(b),
         };
         Address {
             text: format!("{},{}", first.text, last.text),
             shape: Shape::Range,
             negated: false,
-            extended,
+            dialect,
             error: None,
         }
     }
@@ -178,7 +187,7 @@ impl Address {
         if first.shape != Shape::Single || first.negated {
             return Address::failed("a range needs a single address that is not negated");
         }
-        Address { text: format!("{},{end}", first.text), shape: Shape::Range, negated: false, extended: first.extended, error: None }
+        Address { text: format!("{},{end}", first.text), shape: Shape::Range, negated: false, dialect: first.dialect, error: None }
     }
 
     /// The lines this address does not select (`!`). Applying it twice gives the address back.
@@ -250,7 +259,7 @@ impl Command {
 pub struct Edit {
     commands: Vec<Command>,
     next: Option<Address>,
-    extended: Option<bool>,
+    dialect: Option<Dialect>,
     error: Option<String>,
 }
 
@@ -269,10 +278,10 @@ impl Edit {
         self.error.get_or_insert_with(|| message.to_string());
     }
 
-    fn note_extended(&mut self, extended: Option<bool>) {
-        match (self.extended, extended) {
-            (Some(a), Some(b)) if a != b => self.fail("a script cannot mix basic and extended patterns"),
-            (None, Some(b)) => self.extended = Some(b),
+    fn note_dialect(&mut self, dialect: Option<Dialect>) {
+        match (self.dialect, dialect) {
+            (Some(a), Some(b)) if a != b => self.fail(MIXED),
+            (None, Some(b)) => self.dialect = Some(b),
             _ => {}
         }
     }
@@ -284,7 +293,7 @@ impl Edit {
             let error = error.clone();
             self.fail(&error);
         }
-        self.note_extended(address.extended);
+        self.note_dialect(address.dialect);
         address.prefix()
     }
 
@@ -392,7 +401,7 @@ impl Edit {
     }
 
     fn substitution(mut self, pattern: Pattern, replacement: String) -> Edit {
-        self.note_extended(Some(pattern.extended));
+        self.note_dialect(Some(pattern.dialect));
         let text = format!("{}s/{}/{replacement}/", self.address_text(), pattern.delimited());
         self.commands.push(Command { text, substitute: Some(Flags { pattern: pattern.flags(), ..Flags::default() }) });
         self
@@ -426,7 +435,7 @@ impl Edit {
     pub fn block(mut self, body: impl FnOnce(Edit) -> Edit) -> Edit {
         let address = self.address_text();
         let inner = body(Edit::new());
-        self.note_extended(inner.extended);
+        self.note_dialect(inner.dialect);
         if let Some(error) = inner.error.clone() {
             self.fail(&error);
         }
@@ -444,7 +453,7 @@ impl Edit {
     /// `.when(Address::last()).raw("G")` works; do not write an address in the text as well.
     ///
     /// Patterns written here follow the syntax of the other patterns of the script, so in a
-    /// script with extended patterns the text is read as extended.
+    /// script with extended patterns the text is read as extended (and likewise for Perl-style ones).
     pub fn raw(self, text: &str) -> Edit {
         self.push(text.to_string())
     }
@@ -459,7 +468,7 @@ impl Edit {
             return Err(Error::build("`when` has no command after it"));
         }
         let text: Vec<String> = self.commands.iter().map(Command::render).collect();
-        Script::from_text(text.join("\n"), self.extended.unwrap_or(false))
+        Script::from_text(text.join("\n"), self.dialect.unwrap_or(Dialect::Basic))
     }
 }
 
