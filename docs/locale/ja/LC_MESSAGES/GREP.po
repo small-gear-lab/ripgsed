@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ripgsed\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-16 15:10+0900\n"
+"POT-Creation-Date: 2026-10-16 15:25+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: ja <LL@li.org>\n"
@@ -563,11 +563,149 @@ msgid ""
 "without regard to case), and only the lines that have it are tested. The "
 "slow cases are a pattern with several alternatives and a repetition (the "
 "engine tests each line, GNU grep's DFA runs over the whole buffer) and a "
-"back-reference. The sed mode's parallel execution is not used by the grep "
-"mode yet."
+"back-reference."
 msgstr ""
 "すべての一致が含むリテラルを入力全体から探し（大文字小文字を区別しない場合も）、それを含む行だけを調べます。遅いのは、いくつもの選択肢と繰り返しを持つパターン（エンジンは行ごとに調べますが、GNU"
-" grep の DFA はバッファ全体を走査します）と、後方参照です。sed モードの並列実行は、grep モードではまだ使っていません。"
+" grep の DFA はバッファ全体を走査します）と、後方参照です。"
+
+#: ../../GREP.md:67
+msgid "Threads"
+msgstr "スレッド"
+
+#: ../../GREP.md:69
+msgid ""
+"The files of a directory tree (`-r`, `-R`) and several file operands are "
+"searched on several threads, each file on one of them; what the threads "
+"print, and the messages they write on standard error, are put back in the "
+"order of the files, so the output is the bytes of a single thread. It is not"
+" done with context (`-A`, `-B`, `-C`: the separator between groups depends "
+"on the files before), with `--line-buffered`, or when standard input is an "
+"operand; `RIPGSED_JOBS=1` asks for one thread and `RIPGSED_JOBS=N` for N. "
+"With `-q` the first result that has a selected line ends the process, in the"
+" order of the files. One large file is searched on one thread."
+msgstr ""
+"ディレクトリツリー（`-r`、`-R`）のファイルと、複数のファイルオペランドは複数のスレッドで検索します。1 つのファイルは 1 "
+"つのスレッドが受け持ち、各スレッドの出力と標準エラー出力へのメッセージは、ファイルの順に並べ直して書き出します。そのため出力は単一スレッドで検索したときと同じバイト列になります。コンテキスト（`-A`、`-B`、`-C`。グループの区切りがそれ以前のファイルに左右されるため）、`--line-"
+"buffered`、標準入力がオペランドのときは並列にしません。`RIPGSED_JOBS=1` で 1 スレッド、`RIPGSED_JOBS=N` で"
+" N スレッドを指定できます。`-q` では、ファイルの順で最初に選択行を持つ結果が出た時点でプロセスを終了します。大きな 1 つのファイルは 1 "
+"つのスレッドで検索します。"
+
+#: ../../GREP.md:71
+msgid ""
+"A tree of 1,000 files (71 MB), the same machine and data as above, GNU grep "
+"3.12 against ripgsed with one thread and with all threads (16):"
+msgstr ""
+"1,000 ファイル（71 MB）のツリーを、上と同じマシンとデータで、GNU grep 3.12 と、ripgsed の 1 "
+"スレッド・全スレッド（16）で比べた結果です。"
+
+#: ../../GREP.md
+msgid "ripgsed, 1 thread (s)"
+msgstr "ripgsed、1 スレッド（秒）"
+
+#: ../../GREP.md
+msgid "ripgsed, threads (s)"
+msgstr "ripgsed、全スレッド（秒）"
+
+#: ../../GREP.md
+msgid "ratio, threads"
+msgstr "比（全スレッド）"
+
+#: ../../GREP.md
+msgid "`-rc ERROR`"
+msgstr "`-rc ERROR`"
+
+#: ../../GREP.md
+msgid "0.103"
+msgstr "0.103"
+
+#: ../../GREP.md
+msgid "0.113"
+msgstr "0.113"
+
+#: ../../GREP.md
+msgid "0.023"
+msgstr "0.023"
+
+#: ../../GREP.md
+msgid "0.23"
+msgstr "0.23"
+
+#: ../../GREP.md
+msgid "`-r 'id=99999 '`"
+msgstr "`-r 'id=99999 '`"
+
+#: ../../GREP.md
+msgid "0.121"
+msgstr "0.121"
+
+#: ../../GREP.md
+msgid "0.098"
+msgstr "0.098"
+
+#: ../../GREP.md
+msgid "0.016"
+msgstr "0.016"
+
+#: ../../GREP.md
+msgid "0.14"
+msgstr "0.14"
+
+#: ../../GREP.md
+#, python-brace-format
+msgid "`-rn 'user=[a-z]*a id=1[0-9]*$'`"
+msgstr "`-rn 'user=[a-z]*a id=1[0-9]*$'`"
+
+#: ../../GREP.md
+msgid "0.184"
+msgstr "0.184"
+
+#: ../../GREP.md
+msgid "0.111"
+msgstr "0.111"
+
+#: ../../GREP.md
+msgid "0.020"
+msgstr "0.020"
+
+#: ../../GREP.md
+msgid "0.11"
+msgstr "0.11"
+
+#: ../../GREP.md
+msgid "`-rl alpha`"
+msgstr "`-rl alpha`"
+
+#: ../../GREP.md
+msgid "0.021"
+msgstr "0.021"
+
+#: ../../GREP.md
+msgid "0.029"
+msgstr "0.029"
+
+#: ../../GREP.md
+msgid "0.013"
+msgstr "0.013"
+
+#: ../../GREP.md
+msgid "0.63"
+msgstr "0.63"
+
+#: ../../GREP.md
+msgid "`-ric error`"
+msgstr "`-ric error`"
+
+#: ../../GREP.md
+msgid "0.222"
+msgstr "0.222"
+
+#: ../../GREP.md
+msgid "0.036"
+msgstr "0.036"
+
+#: ../../GREP.md
+msgid "0.16"
+msgstr "0.16"
 
 #~ msgid ""
 #~ "The reference is the GNU grep of the machine that makes the expected results"

@@ -63,4 +63,17 @@ Measured with `gbench`-style runs on 1,000,000 log-like lines (57 MB), in `C.UTF
 | `-c '\(a\)\1'` (back-reference) | 0.638 | 1.529 | 2.40 |
 | Japanese text, `-c '\w\+'` | 0.367 | 0.070 | 0.19 |
 
-A literal that every match contains is looked for in the whole input (also without regard to case), and only the lines that have it are tested. The slow cases are a pattern with several alternatives and a repetition (the engine tests each line, GNU grep's DFA runs over the whole buffer) and a back-reference. The sed mode's parallel execution is not used by the grep mode yet.
+A literal that every match contains is looked for in the whole input (also without regard to case), and only the lines that have it are tested. The slow cases are a pattern with several alternatives and a repetition (the engine tests each line, GNU grep's DFA runs over the whole buffer) and a back-reference. 
+### Threads
+
+The files of a directory tree (`-r`, `-R`) and several file operands are searched on several threads, each file on one of them; what the threads print, and the messages they write on standard error, are put back in the order of the files, so the output is the bytes of a single thread. It is not done with context (`-A`, `-B`, `-C`: the separator between groups depends on the files before), with `--line-buffered`, or when standard input is an operand; `RIPGSED_JOBS=1` asks for one thread and `RIPGSED_JOBS=N` for N. With `-q` the first result that has a selected line ends the process, in the order of the files. One large file is searched on one thread.
+
+A tree of 1,000 files (71 MB), the same machine and data as above, GNU grep 3.12 against ripgsed with one thread and with all threads (16):
+
+| workload | GNU grep (s) | ripgsed, 1 thread (s) | ripgsed, threads (s) | ratio, threads |
+|---|---:|---:|---:|---:|
+| `-rc ERROR` | 0.103 | 0.113 | 0.023 | 0.23 |
+| `-r 'id=99999 '` | 0.121 | 0.098 | 0.016 | 0.14 |
+| `-rn 'user=[a-z]*a id=1[0-9]*$'` | 0.184 | 0.111 | 0.020 | 0.11 |
+| `-rl alpha` | 0.021 | 0.029 | 0.013 | 0.63 |
+| `-ric error` | 0.222 | 0.222 | 0.036 | 0.16 |

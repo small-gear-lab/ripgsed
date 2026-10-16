@@ -10,6 +10,13 @@ use crate::regex::Locale;
 const SEP_SELECTED: u8 = b':';
 const SEP_CONTEXT: u8 = b'-';
 
+/// What a search wrote, in order: standard output and standard error (so that they can be put
+/// back in the order the files have).
+pub enum Event {
+    Out(Vec<u8>),
+    Err(Vec<u8>),
+}
+
 /// Marks an error that came from writing the output.
 #[derive(Debug)]
 pub struct Writing(pub io::Error);
@@ -148,6 +155,8 @@ pub struct Printer<'a> {
     pub exit_on_match: bool,
     /// A line was not printed because its text is not valid in the encoding.
     encoding_errors: bool,
+    /// When set, what is written is kept, in order, instead of being written (see `Event`).
+    capture: Option<Vec<Event>>,
 }
 
 /// How the lines of one input are shown.
@@ -175,7 +184,35 @@ impl<'a> Printer<'a> {
             // (-m holds back the early exit of -q as well.)
             exit_on_match: options.quiet && (options.max_count.is_none() || !super::GNU_GREP_3_12),
             encoding_errors: false,
+            capture: None,
         }
+    }
+
+    /// A printer that keeps what it writes (output and messages) as events, for a search that runs
+    /// beside others and whose results are put in order afterwards.
+    pub fn capturing(options: &'a Options, colors: Colors, locale: Locale) -> Printer<'a> {
+        let mut p = Printer::new(options, colors, locale, Box::new(io::sink()));
+        p.capture = Some(Vec::new());
+        p
+    }
+
+    /// Writes a message on standard error, after what is printed so far (GNU grep's messages
+    /// come out where they belong among its output).
+    pub fn stderr_message(&mut self, message: Vec<u8>) {
+        let _ = self.flush();
+        match &mut self.capture {
+            Some(events) => events.push(Event::Err(message)),
+            None => {
+                let mut err = io::stderr().lock();
+                let _ = err.write_all(&message);
+            }
+        }
+    }
+
+    /// What was kept since the last call.
+    pub fn take_events(&mut self) -> Vec<Event> {
+        let _ = self.flush();
+        self.capture.as_mut().map(std::mem::take).unwrap_or_default()
     }
 
     /// Whether an error came from reading the input (and not from writing the output, which
@@ -185,6 +222,12 @@ impl<'a> Printer<'a> {
     }
 
     pub fn flush(&mut self) -> io::Result<()> {
+        if let Some(events) = &mut self.capture {
+            if !self.out.is_empty() {
+                events.push(Event::Out(std::mem::take(&mut self.out)));
+            }
+            return Ok(());
+        }
         if !self.out.is_empty() {
             self.sink.write_all(&self.out).map_err(Writing::wrap)?;
             self.out.clear();
@@ -193,6 +236,9 @@ impl<'a> Printer<'a> {
     }
 
     fn maybe_flush(&mut self) -> io::Result<()> {
+        if self.capture.is_some() {
+            return if self.out.len() >= (1 << 16) { self.flush() } else { Ok(()) };
+        }
         if self.out.len() >= (1 << 16) {
             self.sink.write_all(&self.out).map_err(Writing::wrap)?;
             self.out.clear();

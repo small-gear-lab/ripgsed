@@ -18,7 +18,9 @@ use glob::Skip;
 use matcher::Matcher;
 pub use options::Kind;
 use options::{Devices, Directories, ListFiles, Options, Parsed};
-use search::Printer;
+use search::{Event, Printer};
+use std::sync::mpsc::{channel, sync_channel, Receiver, Sender, SyncSender};
+use std::sync::{Arc, Mutex};
 
 /// The release of GNU grep that the grep mode follows where releases differ: `false` for 3.11 (the
 /// grep of Ubuntu 24.04, what CI has), `true` for 3.12 (Ubuntu 26.04). Four things depend on it:
@@ -65,6 +67,34 @@ struct Run<'a> {
     stdout_id: Option<(u64, u64)>,
     /// The directories being read, for the loops that `-R` can make.
     dir_stack: Vec<(u64, u64)>,
+    /// Searches are handed to other threads, and what they print is put in order afterwards.
+    pool: Option<Pool>,
+    /// This is one of those other threads: it does not end the process at the first selected line
+    /// (the thread that puts the results in order does that, in the order of the files).
+    worker: bool,
+}
+
+/// A file to search, in the order the walk met it.
+struct Job {
+    seq: u64,
+    path: PathBuf,
+    name: Vec<u8>,
+    in_directory: bool,
+}
+
+/// What searching one file (or one message of the walk) printed, with the numbers of its place.
+struct Done {
+    seq: u64,
+    events: Vec<Event>,
+    matched: bool,
+    error: bool,
+}
+
+/// The walking thread's side of the search by several threads.
+struct Pool {
+    jobs: SyncSender<Job>,
+    done: Sender<Done>,
+    next_seq: u64,
 }
 
 pub fn main(program: &str, args: Vec<Vec<u8>>, kind: Kind) -> i32 {
@@ -103,10 +133,7 @@ pub fn main(program: &str, args: Vec<Vec<u8>>, kind: Kind) -> i32 {
         return 1;
     }
 
-    let stdout = io::stdout();
-    let sink: Box<dyn Write> = Box::new(stdout);
     let colors = if options.color { Colors::from_env(program) } else { Colors::default() };
-    let mut printer = Printer::new(&options, colors, locale, sink);
 
     let mut operands: Vec<Vec<u8>> = options.files.clone();
     let mut omit_dot_slash = false;
@@ -118,25 +145,24 @@ pub fn main(program: &str, args: Vec<Vec<u8>>, kind: Kind) -> i32 {
             operands.push(b"-".to_vec());
         }
     }
-    // Names are printed in front of the lines when there are several files, or with -H; with -r
-    // and one operand, for the files found inside directories.
-    printer.with_filename = match options.with_filename {
-        Some(w) => w,
-        None => operands.len() > 1,
+    let jobs = search_threads(&options, &operands);
+    // The printer of the walk: it writes (one thread), or keeps what it would write, in order,
+    // for the thread that puts the results of the others in order.
+    let mut printer = if jobs >= 2 {
+        Printer::capturing(&options, colors.clone(), locale)
+    } else {
+        Printer::new(&options, colors.clone(), locale, Box::new(io::stdout()))
     };
-    printer.filenames_in_directories = options.with_filename.is_none() && operands.len() <= 1 && options.directories == Directories::Recurse;
-    printer.default_with_filename = printer.with_filename;
+    configure(&mut printer, &options, operands.len());
 
     let mut files = Skip::default();
     let mut dirs = Skip::default();
-    let _ = &mut files;
     for (include, p) in &options.file_patterns {
         files.push(*include, p.clone());
     }
     for p in &options.exclude_dir {
         dirs.push(false, p.clone());
     }
-    let _ = &mut dirs;
     let mut run = Run {
         options: &options,
         program,
@@ -150,7 +176,12 @@ pub fn main(program: &str, args: Vec<Vec<u8>>, kind: Kind) -> i32 {
         omit_dot_slash,
         stdout_id: stdout_identity(),
         dir_stack: Vec::new(),
+        pool: None,
+        worker: false,
     };
+    if jobs >= 2 {
+        return run_in_threads(run, &operands, jobs, program, locale, &colors);
+    }
     for operand in &operands {
         if run.operand(operand).is_err() {
             // A write error: nothing more can be said on standard output.
@@ -168,6 +199,146 @@ pub fn main(program: &str, args: Vec<Vec<u8>>, kind: Kind) -> i32 {
     } else {
         1
     }
+}
+
+/// Names are printed in front of the lines when there are several files, or with -H; with -r and
+/// one operand, for the files found inside directories.
+fn configure(printer: &mut Printer<'_>, options: &Options, operands: usize) {
+    printer.with_filename = match options.with_filename {
+        Some(w) => w,
+        None => operands > 1,
+    };
+    printer.filenames_in_directories = options.with_filename.is_none() && operands <= 1 && options.directories == Directories::Recurse;
+    printer.default_with_filename = printer.with_filename;
+}
+
+/// How many threads search the files: the files of a directory, or several files, are searched
+/// side by side and what they print is put in order, so that the output is the one of a single
+/// thread. Not with context (the separator between groups depends on the files before),
+/// `--line-buffered`, or standard input among the operands. `RIPGSED_JOBS=1` is one thread.
+fn search_threads(options: &Options, operands: &[Vec<u8>]) -> usize {
+    let forced: Option<usize> = std::env::var("RIPGSED_JOBS").ok().and_then(|v| v.parse().ok());
+    if forced.is_some_and(|n| n < 2) {
+        return 1;
+    }
+    let several = operands.len() > 1 || options.directories == Directories::Recurse;
+    if !several || options.before.is_some() || options.after.is_some() || options.line_buffered || operands.iter().any(|o| o == b"-") {
+        return 1;
+    }
+    let cores = std::thread::available_parallelism().map_or(1, |n| n.get());
+    forced.unwrap_or(if cores >= 2 { cores.min(16) } else { 1 })
+}
+
+/// The walk on this thread, the searches on `jobs` others, and what they print put in order on
+/// one more.
+fn run_in_threads(mut run: Run<'_>, operands: &[Vec<u8>], jobs: usize, program: &str, locale: crate::regex::Locale, colors: &Colors) -> i32 {
+    let options = run.options;
+    let exit_on_match = run.printer.exit_on_match;
+    let with_filename = (run.printer.with_filename, run.printer.filenames_in_directories, run.printer.default_with_filename);
+    let stdout_id = run.stdout_id;
+    let (job_tx, job_rx) = sync_channel::<Job>(jobs * 4);
+    let job_rx = Arc::new(Mutex::new(job_rx));
+    let (done_tx, done_rx) = channel::<Done>();
+    let mut merged = (false, false);
+    std::thread::scope(|scope| {
+        for _ in 0..jobs {
+            let job_rx = Arc::clone(&job_rx);
+            let done_tx = done_tx.clone();
+            let colors = colors.clone();
+            scope.spawn(move || {
+                // Each thread has its own compiled patterns (they are not shared).
+                let Ok(matcher) = Matcher::new(options, locale) else { return };
+                let mut printer = Printer::capturing(options, colors, locale);
+                printer.with_filename = with_filename.0;
+                printer.filenames_in_directories = with_filename.1;
+                printer.default_with_filename = with_filename.2;
+                let mut worker = Run {
+                    options,
+                    program,
+                    matcher,
+                    printer,
+                    files: Skip::default(),
+                    dirs: Skip::default(),
+                    error_seen: false,
+                    matched: false,
+                    stdin_name: Vec::new(),
+                    omit_dot_slash: false,
+                    stdout_id,
+                    dir_stack: Vec::new(),
+                    pool: None,
+                    worker: true,
+                };
+                loop {
+                    let job = job_rx.lock().expect("job queue").recv();
+                    let Ok(job) = job else { return };
+                    worker.error_seen = false;
+                    worker.matched = false;
+                    let _ = worker.file(&job.path, &job.name, job.in_directory);
+                    let done = Done { seq: job.seq, events: worker.printer.take_events(), matched: worker.matched, error: worker.error_seen };
+                    if done_tx.send(done).is_err() {
+                        return;
+                    }
+                }
+            });
+        }
+        let merger = scope.spawn(move || merge_results(done_rx, exit_on_match));
+        run.pool = Some(Pool { jobs: job_tx, done: done_tx, next_seq: 0 });
+        for operand in operands {
+            if run.operand(operand).is_err() {
+                break;
+            }
+        }
+        run.flush_walk();
+        // The walk is over: closing the queues lets the threads end.
+        run.pool = None;
+        merged = merger.join().unwrap_or((false, true));
+    });
+    if run.error_seen || merged.1 {
+        2
+    } else if merged.0 {
+        0
+    } else {
+        1
+    }
+}
+
+/// Writes the results of the searches in the order of the files, standard output and standard error
+/// as they were interleaved. With `-q` the first result that selected a line ends the process.
+/// Returns whether a line was selected and whether an error was reported.
+fn merge_results(done: Receiver<Done>, exit_on_match: bool) -> (bool, bool) {
+    let mut merger = crate::stream::OrderedMerger::default();
+    let mut out = io::BufWriter::with_capacity(1 << 16, io::stdout());
+    let (mut matched, mut error) = (false, false);
+    for item in done.iter() {
+        merger.push(item.seq, item);
+        while let Some(item) = merger.next_ready() {
+            for event in item.events {
+                match event {
+                    Event::Out(bytes) => {
+                        if out.write_all(&bytes).is_err() {
+                            eprintln!("grep: write error: Broken pipe");
+                            std::process::exit(2);
+                        }
+                    }
+                    Event::Err(bytes) => {
+                        let _ = out.flush();
+                        let _ = io::stderr().lock().write_all(&bytes);
+                    }
+                }
+            }
+            matched |= item.matched;
+            error |= item.error;
+            if item.matched && exit_on_match {
+                let _ = out.flush();
+                std::process::exit(0);
+            }
+        }
+    }
+    if out.flush().is_err() {
+        eprintln!("grep: write error: Broken pipe");
+        std::process::exit(2);
+    }
+    (matched, error)
 }
 
 /// The device and i-node of standard output when it is a regular file.
@@ -197,15 +368,46 @@ impl Run<'_> {
     fn report(&mut self, name: &[u8], message: &str) {
         self.error_seen = true;
         if !self.options.no_messages {
-            let _ = self.printer.flush();
-            let mut err = io::stderr().lock();
-            let _ = err.write_all(self.program.as_bytes());
-            let _ = err.write_all(b": ");
-            let _ = err.write_all(name);
-            let _ = err.write_all(b": ");
-            let _ = err.write_all(message.as_bytes());
-            let _ = err.write_all(b"\n");
+            self.say(name, message.as_bytes());
         }
+    }
+
+    /// Writes `program: name: message` on standard error, where it belongs among the output.
+    fn say(&mut self, name: &[u8], message: &[u8]) {
+        let mut text = Vec::with_capacity(self.program.len() + name.len() + message.len() + 6);
+        text.extend_from_slice(self.program.as_bytes());
+        text.extend_from_slice(b": ");
+        text.extend_from_slice(name);
+        text.extend_from_slice(b": ");
+        text.extend_from_slice(message);
+        text.push(b'\n');
+        self.printer.stderr_message(text);
+    }
+
+    /// Hands what the walk printed itself (a message, a directory that is read) to the thread that
+    /// puts the results in order, as an item of its own.
+    fn flush_walk(&mut self) {
+        let Some(pool) = &mut self.pool else { return };
+        let events = self.printer.take_events();
+        if events.is_empty() {
+            return;
+        }
+        let seq = pool.next_seq;
+        pool.next_seq += 1;
+        let _ = pool.done.send(Done { seq, events, matched: false, error: false });
+    }
+
+    /// Searches a file found by the walk: here, or on another thread.
+    fn dispatch_file(&mut self, path: &Path, name: &[u8], in_directory: bool) -> io::Result<()> {
+        if self.pool.is_none() {
+            return self.file(path, name, in_directory);
+        }
+        self.flush_walk();
+        let pool = self.pool.as_mut().expect("checked above");
+        let seq = pool.next_seq;
+        pool.next_seq += 1;
+        let _ = pool.jobs.send(Job { seq, path: path.to_path_buf(), name: name.to_vec(), in_directory });
+        Ok(())
     }
 
     fn operand(&mut self, operand: &[u8]) -> io::Result<()> {
@@ -255,7 +457,7 @@ impl Run<'_> {
         if !meta.is_file() && self.options.devices == Devices::Skip {
             return Ok(());
         }
-        self.file(&path, operand, false)
+        self.dispatch_file(&path, operand, false)
     }
 
     /// Standard input, read from descriptor 0 as it is (nothing is read ahead of what is searched).
@@ -311,13 +513,9 @@ impl Run<'_> {
         if let Some(id) = id {
             if self.dir_stack.contains(&id) {
                 if !self.options.no_messages {
-                    let _ = self.printer.flush();
-                    let mut err = io::stderr().lock();
-                    let _ = err.write_all(self.program.as_bytes());
-                    let _ = err.write_all(b": ");
-                    let _ = err.write_all(&display);
-                    let _ = err.write_all(b": warning: recursive directory loop\n");
+                    self.say(&display, b"warning: recursive directory loop");
                 }
+                self.flush_walk();
                 return Ok(());
             }
             self.dir_stack.push(id);
@@ -377,7 +575,7 @@ impl Run<'_> {
                 if !meta.is_file() && self.options.devices != Devices::Read {
                     continue;
                 }
-                self.file(&path, &shown, true)?;
+                self.dispatch_file(&path, &shown, true)?;
             }
         }
         Ok(())
@@ -400,7 +598,7 @@ impl Run<'_> {
         }
         let size = meta.filter(|m| m.is_file()).map(|m| m.len());
         let found = self.search_reader(name, &mut file, regular, size, in_directory)?;
-        if found.is_some_and(|f| f.count > 0) && self.printer.exit_on_match {
+        if found.is_some_and(|f| f.count > 0) && self.printer.exit_on_match && !self.worker {
             self.printer.flush()?;
             std::process::exit(0);
         }
@@ -432,12 +630,7 @@ impl Run<'_> {
         };
         self.printer.summary(name, &found)?;
         if found.binary_matches {
-            let _ = self.printer.flush();
-            let mut err = io::stderr().lock();
-            let _ = err.write_all(self.program.as_bytes());
-            let _ = err.write_all(b": ");
-            let _ = err.write_all(name);
-            let _ = err.write_all(b": binary file matches\n");
+            self.say(name, b"binary file matches");
         }
         if found.count > 0 {
             self.matched = true;
