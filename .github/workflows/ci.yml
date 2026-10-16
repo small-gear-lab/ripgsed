@@ -58,6 +58,11 @@ jobs:
           sed -n '/^[a-z][a-z0-9]*-[a-z0-9-]*$/p' fixtures.log | sort -u | sed 's/-.*//' | sort | uniq -c
           echo "--- the first ones:"
           sed -n '/^[a-z][a-z0-9]*-[a-z0-9-]*$/p' fixtures.log | sort -u | sed -n '1,60p'
+      - name: The failures that are not about locales or /dev/full
+        continue-on-error: true
+        run: |
+          export RIPGSED_EXTRA_PATH="$(brew --prefix)/opt/coreutils/libexec/gnubin:$(brew --prefix)/opt/findutils/libexec/gnubin:$(brew --prefix)/opt/diffutils/libexec/gnubin:$(brew --prefix)/opt/grep/libexec/gnubin"
+          RIPGSED_FIXTURES=cmd-020-r-dev-stdin-every,cmd-062-probe-utils-fp-name,cmd-063-probe-resize-buffer,grep-bin-encoding-errors,iof-006-e-command-status-and-stdin,iof-012-r-read-error,opt-014-follow-symlinks-loop-after-line-skip,opt-014-follow-symlinks-loops-and-limit,pcre-utf8-locale RIPGSED_SHOW_FAILURES=1 cargo test --test differential fixtures_match -- --nocapture 2>&1 | cut -c1-400 | sed -n '/^fixture failures/,$p' | sed -n '1,120p'
 
   fixtures:
     runs-on: ubuntu-latest
