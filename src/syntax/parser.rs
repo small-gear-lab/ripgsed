@@ -830,9 +830,15 @@ impl Parser {
             }
         }
         let mut text = Vec::with_capacity(raw.len() + 1);
-        let resolved = normalize_escapes(&raw, false);
+        let resolved = normalize_escapes_text(&raw);
         let mut i = 0;
         while i < resolved.len() {
+            let len = crate::locale::script_char_len(&resolved[i..]);
+            if len > 1 {
+                text.extend_from_slice(&resolved[i..i + len]);
+                i += len;
+                continue;
+            }
             if resolved[i] == b'\\' && i + 1 < resolved.len() {
                 text.push(match resolved[i + 1] {
                     b'n' => b'\n',
@@ -1128,6 +1134,16 @@ fn normalize_escapes_for_debug(text: &[u8], posixly_correct: bool) -> Vec<u8> {
 /// bracket expression they are left alone under POSIXLY_CORRECT. In a replacement
 /// a produced `&` or backslash stays literal.
 fn normalize_escapes_for(text: &[u8], posixly_correct: bool, replacement: bool, debug: bool) -> Vec<u8> {
+    normalize_escapes_mode(text, posixly_correct, replacement, debug, false)
+}
+
+/// The text of `a`, `i` and `c`: a backslash made by `\x5c` is a literal backslash, written twice for
+/// the stage that removes the backslashes of the text.
+fn normalize_escapes_text(text: &[u8]) -> Vec<u8> {
+    normalize_escapes_mode(text, false, false, false, true)
+}
+
+fn normalize_escapes_mode(text: &[u8], posixly_correct: bool, replacement: bool, debug: bool, text_mode: bool) -> Vec<u8> {
     let mut out = Vec::with_capacity(text.len());
     let mut i = 0;
     let mut in_bracket = false;
@@ -1135,7 +1151,16 @@ fn normalize_escapes_for(text: &[u8], posixly_correct: bool, replacement: bool, 
         let b = text[i];
         let len = crate::locale::script_char_len(&text[i..]);
         if len > 1 {
-            out.extend_from_slice(&text[i..i + len]);
+            // GNU sed loses the last byte of a character that ends in a backslash when what
+            // follows is a run of backslashes (maybe none) and an `n` in a replacement (`\n` after it is a
+            // newline, `\\n` after it a backslash and an `n`): the run is read as if the character
+            // had not ended in one.
+            let mut run = i + len;
+            while text.get(run) == Some(&b'\\') {
+                run += 1;
+            }
+            let drops = replacement && text[i + len - 1] == b'\\' && text.get(run) == Some(&b'n');
+            out.extend_from_slice(&text[i..i + len - usize::from(drops)]);
             i += len;
             continue;
         }
@@ -1230,16 +1255,21 @@ fn normalize_escapes_for(text: &[u8], posixly_correct: bool, replacement: bool, 
                     i += 2;
                 } else {
                     let produced = (value & 0xff) as u8;
-                    if replacement && (produced == b'&' || produced == b'\\') {
+                    let opens_escape = out.iter().rev().take_while(|&&c| c == b'\\').count() % 2 == 0;
+                    // (After a backslash that is already there, the last byte of a multibyte
+                    // character, a produced backslash pairs with it and is literal as it is.)
+                    if replacement && (produced == b'&' || (produced == b'\\' && opens_escape)) {
                         out.push(b'\\');
                     }
-                    let opens_escape = out.iter().rev().take_while(|&&c| c == b'\\').count() % 2 == 0;
+                    if text_mode && produced == b'\\' {
+                        out.push(b'\\');
+                    }
                     out.push(produced);
                     i = j;
                     // A backslash made by `\x5c` is an ordinary regexp escape: the escape
                     // letters sed itself converts are not converted again, so `\x5cn` and
                     // `\x5ct` match a plain `n` and `t`.
-                    if !replacement && !debug && produced == b'\\' && opens_escape {
+                    if !replacement && !debug && !text_mode && produced == b'\\' && opens_escape {
                         if let Some(&next @ (b'n' | b't' | b'a' | b'f' | b'v' | b'r')) = text.get(i) {
                             out.pop();
                             out.push(next);

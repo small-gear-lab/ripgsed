@@ -1,0 +1,23 @@
+mk() { mkdir -p "$PWD/loc"; localedef -f "$1" -i "$2" "$PWD/loc/$3" > /dev/null 2>&1; }
+export LOCPATH=$PWD/loc LANGUAGE=C
+mk SHIFT_JIS ja_JP ja_JP.SJIS
+mk GBK zh_CN zh_CN.GBK
+# A character whose last byte is a backslash (Shift_JIS 0x95 0x5c, GBK 0x81 0x5c) in a replacement and in the text of a, i and c
+export LC_ALL=ja_JP.SJIS
+C=$(printf '\225\134')
+for tail in 'n' '\n' '\\n' '\\\n' 't' '\t' 'q' '\q' '&' '\1' '\x5cn'; do
+  printf 'x\n' | sed "s/\(x\)/${C}${tail}/" | LC_ALL=C od -An -c
+done
+for cmd in a i c; do
+  for tail in 'q' 'n' '\n' '\\n' '\t' '\x5cn' '\x5c' 'a\x5cb'; do
+    printf 'x\n' | sed "${cmd} ${C}${tail}" | LC_ALL=C od -An -c
+  done
+done
+printf 'x\n' | sed "a ${C}" | LC_ALL=C od -An -c
+export LC_ALL=zh_CN.GBK
+C=$(printf '\201\134')
+for tail in '\n' '\\n' 'q'; do
+  printf 'x\n' | sed "s/\(x\)/${C}${tail}/" | LC_ALL=C od -An -c
+  printf 'x\n' | sed "a ${C}${tail}" | LC_ALL=C od -An -c
+done
+rm -rf loc

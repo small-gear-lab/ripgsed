@@ -1200,6 +1200,7 @@ loc-009-tr-tr-turkish-case-rules
 loc-010-locale-not-installed-is-c
 loc-011-ctype-and-collate-are-separate
 loc-012-big5-bracket-in-second-byte
+loc-012-characters-ending-in-a-backslash
 loc-012-eucjp-bytes-inside-characters
 loc-012-eucjp-characters-and-classes
 loc-012-euckr-characters-and-case

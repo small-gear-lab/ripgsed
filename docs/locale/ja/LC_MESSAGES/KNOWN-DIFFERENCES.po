@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ripgsed\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-16 08:53+0900\n"
+"POT-Creation-Date: 2026-10-16 09:02+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: ja <LL@li.org>\n"
@@ -473,13 +473,26 @@ msgstr ""
 
 #: ../../KNOWN-DIFFERENCES.md:47
 msgid ""
+"A text of `a`, `i` or `c` that ends the script with three or more "
+"backslashes (`a \\\\\\\\\\\\` with six of them) keeps fewer backslashes in "
+"GNU sed than ripgsed does (GNU sed: 3 give 1, 4 give 1, 5 give 3, 6 give 2, "
+"7 give 5, 8 give 3; ripgsed: 1, 2, 2, 4, 3, 6). With any character after the"
+" backslashes both agree."
+msgstr ""
+"`a`、`i`、`c` のテキストがスクリプトの末尾でバックスラッシュ 3 個以上で終わる場合（6 個の `a \\\\\\\\\\\\` "
+"など）、GNU sed が残すバックスラッシュの数は ripgsed より少なくなります（GNU sed は 3 個で 1 個、4 個で 1 個、5 "
+"個で 3 個、6 個で 2 個、7 個で 5 個、8 個で 3 個。ripgsed は 1、2、2、4、3、6 "
+"個）。バックスラッシュのあとに文字が続く場合は、どちらも同じです。"
+
+#: ../../KNOWN-DIFFERENCES.md:48
+msgid ""
 "A text of `a`, `i`, or `c` that ends in `\\c` takes the newline GNU sed "
 "appends as its control character (`a x\\c` writes `xJ`)."
 msgstr ""
 "`a`、`i`、`c` のテキストが `\\c` で終わるとき、GNU sed は付け足す改行をその制御文字として取り込みます（`a x\\c` は "
 "`xJ` を書きます）。"
 
-#: ../../KNOWN-DIFFERENCES.md:48
+#: ../../KNOWN-DIFFERENCES.md:49
 msgid ""
 "A range that starts with an invalid collating symbol and ends with a class "
 "(`[[.space.]-[:alpha:]]`) reports `Invalid collation character`, GNU sed "
@@ -488,7 +501,7 @@ msgstr ""
 "無効な照合記号で始まり、クラスで終わる範囲（`[[.space.]-[:alpha:]]`）は、ripgsed では `Invalid "
 "collation character`、GNU sed では `Invalid range end` です。"
 
-#: ../../KNOWN-DIFFERENCES.md:49
+#: ../../KNOWN-DIFFERENCES.md:50
 msgid ""
 "Reading a directory that a symbolic link points to with `--follow-symlinks` "
 "names the target in the read error; GNU sed 4.9 built from the release "
@@ -498,11 +511,11 @@ msgstr ""
 "`--follow-symlinks` でシンボリックリンクの指すディレクトリを読むとき、読み取りエラーには ripgsed "
 "は指す先の名前を出します。GNU sed 4.9 はリリース tarball からビルドしたものがリンクの名前、パッケージ版が指す先の名前を出します。"
 
-#: ../../KNOWN-DIFFERENCES.md:51
+#: ../../KNOWN-DIFFERENCES.md:52
 msgid "Cases of other character sets that are not reproduced"
 msgstr "再現していない、ほかの文字集合の挙動"
 
-#: ../../KNOWN-DIFFERENCES.md:53
+#: ../../KNOWN-DIFFERENCES.md:54
 msgid ""
 "These were found by comparing every byte and every two-byte (and, for EUC-"
 "JP, three-byte) sequence of the sets (`tools/locale-diff.py`) and random "
@@ -513,7 +526,7 @@ msgstr ""
 "diff.py`）、およびランダムなパターン（`tools/locale-"
 "fuzz.py`）を比べて見つけたものです。集合の文字でない列か、特殊なパターンに限ります。"
 
-#: ../../KNOWN-DIFFERENCES.md:55
+#: ../../KNOWN-DIFFERENCES.md:56
 msgid ""
 "In GB18030, under `I`, GNU sed's answers for the letters 0xa8a1..0xa8bf (for"
 " example `[a-z]`, `[^0-9]`) depend on the text around the letter and vary "
@@ -528,20 +541,6 @@ msgstr ""
 "回は別の出力）。そのため合わせる対象がありません。valgrind で原因が分かりました。C ライブラリのマッチャ（glibc 2.39 の "
 "`regexec.c`、`check_node_accept_bytes` と "
 "`transit_state`）が、初期化していない値を読んでいます。ripgsed は、その文字だけを尋ねたときのライブラリの答えを返します。"
-
-#: ../../KNOWN-DIFFERENCES.md:56
-msgid ""
-"In a replacement, a character of Shift_JIS, GBK or Big5 that ends in a "
-"backslash, followed by another backslash escape (the bytes `95 5c 5c 6e`, a "
-"character, then `\\n`), loses its backslash in GNU sed and gives the "
-"character's first byte and a newline; ripgsed gives the backslash too. A "
-"text of `a`, `i` or `c` that has a backslash made by `\\x5c` after such a "
-"character is read differently in the same way."
-msgstr ""
-"置換文で、バックスラッシュで終わる Shift_JIS、GBK、Big5 の文字のあとに別のバックスラッシュのエスケープが続く場合（バイト `95 5c"
-" 5c 6e`。文字のあとに `\\n`）、GNU sed はその文字のバックスラッシュを落とし、文字の先頭バイトと改行を出しますが、ripgsed "
-"はバックスラッシュも出します。`a`、`i`、`c` のテキストで、そのような文字のあとに `\\x5c` "
-"が作るバックスラッシュがある場合も、同様に読み方が異なります。"
 
 #: ../../KNOWN-DIFFERENCES.md:57
 msgid ""
@@ -701,3 +700,16 @@ msgstr ""
 #~ "matches the empty string at the start of the word. The way glibc duplicates "
 #~ "the states of an assertion is not followed."
 #~ msgstr ""
+
+#~ msgid ""
+#~ "In a replacement, a character of Shift_JIS, GBK or Big5 that ends in a "
+#~ "backslash, followed by another backslash escape (the bytes `95 5c 5c 6e`, a "
+#~ "character, then `\\n`), loses its backslash in GNU sed and gives the "
+#~ "character's first byte and a newline; ripgsed gives the backslash too. A "
+#~ "text of `a`, `i` or `c` that has a backslash made by `\\x5c` after such a "
+#~ "character is read differently in the same way."
+#~ msgstr ""
+#~ "置換文で、バックスラッシュで終わる Shift_JIS、GBK、Big5 の文字のあとに別のバックスラッシュのエスケープが続く場合（バイト `95 5c"
+#~ " 5c 6e`。文字のあとに `\\n`）、GNU sed はその文字のバックスラッシュを落とし、文字の先頭バイトと改行を出しますが、ripgsed "
+#~ "はバックスラッシュも出します。`a`、`i`、`c` のテキストで、そのような文字のあとに `\\x5c` "
+#~ "が作るバックスラッシュがある場合も、同様に読み方が異なります。"
