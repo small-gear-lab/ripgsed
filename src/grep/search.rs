@@ -10,6 +10,21 @@ use crate::regex::Locale;
 const SEP_SELECTED: u8 = b':';
 const SEP_CONTEXT: u8 = b'-';
 
+/// A literal looked for in a whole input.
+enum Needle {
+    Exact(crate::search::Finder),
+    Fold(crate::search::FoldFinder),
+}
+
+impl Needle {
+    fn find(&self, hay: &[u8]) -> Option<usize> {
+        match self {
+            Needle::Exact(f) => f.find(hay),
+            Needle::Fold(f) => f.find(hay),
+        }
+    }
+}
+
 /// What searching one input found.
 pub struct Found {
     /// Selected lines (stopping at `-m`, and at the first one with `-l`, `-L`, `-q`).
@@ -347,6 +362,17 @@ impl<'a> Printer<'a> {
         if o.max_count == Some(0) {
             return Ok(Found { count: 0, binary_matches: false });
         }
+        let finders: Option<Vec<Needle>> = if o.invert || has_nul {
+            None
+        } else {
+            m.needles().map(|n| {
+                n.into_iter()
+                    .map(|(bytes, fold)| if fold { Needle::Fold(crate::search::FoldFinder::new(&bytes)) } else { Needle::Exact(crate::search::Finder::new(&bytes)) })
+                    .collect()
+            })
+        };
+        // The next place each literal is found (`usize::MAX`: not in the rest of the input).
+        let mut hits: Vec<Option<usize>> = vec![None; finders.as_ref().map_or(0, Vec::len)];
         let before = o.before;
         let after = o.after;
         let context = before.is_some() || after.is_some();
@@ -361,6 +387,29 @@ impl<'a> Printer<'a> {
         self.encoding_errors = false;
 
         while pos < data.len() {
+            // Nothing to print before the next line that has one of the literals: go there.
+            if let (Some(finders), 0, false) = (&finders, pending, stopped) {
+                let mut next = usize::MAX;
+                for (i, f) in finders.iter().enumerate() {
+                    let hit = match hits[i] {
+                        Some(h) if h >= pos => h,
+                        _ => {
+                            let h = f.find(&data[pos..]).map_or(usize::MAX, |r| pos + r);
+                            hits[i] = Some(h);
+                            h
+                        }
+                    };
+                    next = next.min(hit);
+                }
+                if next == usize::MAX {
+                    break;
+                }
+                let line_start = crate::search::memrchr(eol, &data[pos..next]).map_or(pos, |i| pos + i + 1);
+                if o.line_number {
+                    line_no += crate::search::count(eol, &data[pos..line_start]) as u64;
+                }
+                pos = line_start;
+            }
             // The next line: up to `eol` (or to a NUL in a binary input, which splits lines).
             let rest = &data[pos..];
             let end_rel = if has_nul && eol != 0 {

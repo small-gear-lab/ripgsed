@@ -133,6 +133,24 @@ impl Matcher {
         })
     }
 
+    /// Literals of which every selected line has one: a text without any of them has no selected
+    /// line, so a search over a whole file can look for them first. `None` if some pattern has
+    /// no such literal (or the matcher is not made of the patterns, as with `-P`).
+    pub fn needles(&self) -> Option<Vec<(Vec<u8>, bool)>> {
+        if self.perl_enabled || self.select.is_empty() {
+            return None;
+        }
+        let mut out: Vec<(Vec<u8>, bool)> = Vec::new();
+        for re in &self.select {
+            let (needle, fold) = re.required_literal()?;
+            let entry = (needle.to_vec(), fold);
+            if !out.contains(&entry) {
+                out.push(entry);
+            }
+        }
+        Some(out)
+    }
+
     /// Whether the line (without its terminator) has a match.
     pub fn is_match(&self, line: &[u8]) -> bool {
         if self.perl_enabled {

@@ -319,7 +319,7 @@ impl Regex {
         };
         let mut re = Regex::from_parsed(parsed, syntax, delim, filter)?;
         re.warnings = warnings;
-        re.regex_selects = syntax.grep && syntax.locale.is_chars() && has_multibyte_set(&re.node);
+        re.regex_selects = syntax.grep && (re.prog.has_backrefs || (syntax.locale.is_chars() && has_multibyte_set(&re.node)));
         if let Some(alt_parsed) = alt_parsed.filter(|_| divergent) {
             re.regex_alt = Some(Box::new(Regex::from_parsed(alt_parsed, &alt_syntax, delim, None)?));
         }
@@ -422,6 +422,10 @@ impl Regex {
             if lit.find(&haystack[start..]).is_none() {
                 return false;
             }
+        } else if let Some(lit) = &self.literals.required_fold {
+            if lit.find(&haystack[start..]).is_none() {
+                return false;
+            }
         }
         let searcher = exec::Searcher {
             scratch: &self.scratch,
@@ -452,6 +456,17 @@ impl Regex {
                 true
             }
             None => false,
+        }
+    }
+
+    /// A literal that every match contains, if the pattern has one: a text without it has no
+    /// match, so a search over a large text can look for it first. The flag says that the case of
+    /// the ASCII letters does not matter (the literal is in lower case).
+    pub fn required_literal(&self) -> Option<(&[u8], bool)> {
+        match (&self.literals.required, &self.literals.required_fold) {
+            (Some(f), _) => Some((f.needle(), false)),
+            (None, Some(f)) => Some((f.needle(), true)),
+            _ => None,
         }
     }
 
@@ -513,6 +528,10 @@ impl Regex {
             return lit.find(haystack).is_some();
         }
         if let Some(lit) = &self.literals.required {
+            if lit.find(haystack).is_none() {
+                return false;
+            }
+        } else if let Some(lit) = &self.literals.required_fold {
             if lit.find(haystack).is_none() {
                 return false;
             }

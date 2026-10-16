@@ -59,6 +59,47 @@ pub fn memmem(hay: &[u8], needle: &[u8]) -> Option<usize> {
     memmem_with(hay, needle, i1, i2)
 }
 
+/// A needle searched for without regard to the case of ASCII letters: the haystack is
+/// lower-cased a window at a time (a window twice as long as the last, so a search costs about
+/// the distance to its hit) and the lower-case needle is looked for in it.
+#[derive(Debug, Clone)]
+pub struct FoldFinder {
+    needle: Finder,
+    scratch: std::cell::RefCell<Vec<u8>>,
+}
+
+impl FoldFinder {
+    /// `needle` must be lower case.
+    pub fn new(needle: &[u8]) -> FoldFinder {
+        FoldFinder { needle: Finder::new(needle), scratch: Default::default() }
+    }
+
+    pub fn needle(&self) -> &[u8] {
+        self.needle.needle()
+    }
+
+    pub fn find(&self, hay: &[u8]) -> Option<usize> {
+        let n = self.needle.needle().len();
+        let mut scratch = self.scratch.borrow_mut();
+        let mut start = 0usize;
+        let mut window = 512usize;
+        while start < hay.len() {
+            let end = (start + window + n.saturating_sub(1)).min(hay.len());
+            scratch.clear();
+            scratch.extend(hay[start..end].iter().map(u8::to_ascii_lowercase));
+            if let Some(i) = self.needle.find(&scratch) {
+                return Some(start + i);
+            }
+            if end == hay.len() {
+                return None;
+            }
+            start += window;
+            window = (window * 2).min(1 << 16);
+        }
+        None
+    }
+}
+
 /// A needle prepared for repeated searches (the rare byte pair is chosen once).
 #[derive(Clone, Debug)]
 pub struct Finder {
