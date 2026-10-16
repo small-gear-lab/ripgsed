@@ -36,7 +36,8 @@ mod grep_mode {
             .stderr(Stdio::piped())
             .spawn()
             .expect("run ripgsed");
-        child.stdin.take().unwrap().write_all(input.as_bytes()).unwrap();
+        // (A command that fails at once has closed the pipe before the write: not an error.)
+        let _ = child.stdin.take().unwrap().write_all(input.as_bytes());
         let out = child.wait_with_output().unwrap();
         let _ = std::fs::remove_dir_all(&dir);
         (String::from_utf8_lossy(&out.stdout).into_owned(), String::from_utf8_lossy(&out.stderr).into_owned(), out.status.code().unwrap_or(-1))
@@ -95,7 +96,8 @@ mod sed_pcre {
             .stderr(Stdio::piped())
             .spawn()
             .expect("run ripgsed");
-        child.stdin.take().unwrap().write_all(input.as_bytes()).unwrap();
+        // (A command that fails at once has closed the pipe before the write: not an error.)
+        let _ = child.stdin.take().unwrap().write_all(input.as_bytes());
         let out = child.wait_with_output().unwrap();
         (String::from_utf8_lossy(&out.stdout).into_owned(), String::from_utf8_lossy(&out.stderr).into_owned(), out.status.code().unwrap_or(-1))
     }

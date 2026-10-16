@@ -1,7 +1,9 @@
 name: docs
 
 on:
-  # Run by hand until the repository is public (Pages is not available while it is private).
+  push:
+    branches: [main]
+    paths: ["docs/**", "README.md", "tools/build-docs.sh", ".github/workflows/docs.yml"]
   workflow_dispatch:
 
 permissions:
