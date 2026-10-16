@@ -477,7 +477,7 @@ impl Parser {
     fn command(&mut self) -> Result<()> {
         let start_of_command = self.pos;
         let a1 = self.address(true)?;
-        let mut selector = None;
+        let mut selector = Selector::All;
         if let Some(a1) = a1 {
             self.skip_blanks();
             if self.peek() == Some(b',') {
@@ -487,16 +487,16 @@ impl Parser {
                     self.next();
                     return Err(self.error("unexpected `,'"));
                 };
-                selector = Some(self.range(a1, a2)?);
+                selector = self.range(a1, a2)?;
             } else {
-                selector = Some(self.single(a1)?);
+                selector = self.single(a1)?;
             }
         }
         self.skip_blanks();
         if self.zero_address {
             // GNU sed reports line address 0 after reading the character that follows the address,
             // except for `r`, which accepts it (insert a file before the first line).
-            let is_read = self.peek() == Some(b'r') && matches!(selector, Some(Selector::Single(Addr::Line(0) | Addr::Step { first: 0, step: 0 })));
+            let is_read = self.peek() == Some(b'r') && matches!(selector, Selector::Single(Addr::Line(0) | Addr::Step { first: 0, step: 0 }));
             if !is_read || self.options().posix {
                 self.next();
                 return Err(self.error("invalid usage of line address 0"));
@@ -524,7 +524,7 @@ impl Parser {
             return Err(self.error(&format!("unknown command: `{}'", crate::cli::lossless_bytes(&[ch]))));
         }
         if self.options().posix
-            && matches!(selector, Some(Selector::Range(..)))
+            && matches!(selector, Selector::Range(..))
             && matches!(ch, b'=' | b'a' | b'i' | b'r' | b'l')
         {
             return Err(self.error("command only uses one address"));
@@ -535,7 +535,7 @@ impl Parser {
 
         let kind = match ch {
             b'#' => {
-                if selector.is_some() {
+                if !matches!(selector, Selector::All) {
                     return Err(self.error("comments don't accept any addresses"));
                 }
                 while self.peek().is_some_and(|b| b != b'\n') {
@@ -552,7 +552,7 @@ impl Parser {
                 if self.blocks.is_empty() {
                     return Err(self.error("unexpected `}'"));
                 }
-                if selector.is_some() {
+                if !matches!(selector, Selector::All) {
                     return Err(self.error("`}' doesn't want any addresses"));
                 }
                 let open = self.blocks.pop().expect("blocks is not empty: checked above");
@@ -565,7 +565,7 @@ impl Parser {
                 Kind::BlockEnd
             }
             b':' => {
-                if selector.is_some() {
+                if !matches!(selector, Selector::All) {
                     return Err(self.error(": doesn't want any addresses"));
                 }
                 let label = self.read_label();
@@ -626,7 +626,7 @@ impl Parser {
                 Kind::Removed(width)
             }
             b'q' | b'Q' => {
-                if matches!(selector, Some(Selector::Range(..))) {
+                if matches!(selector, Selector::Range(..)) {
                     return Err(self.error("command only uses one address"));
                 }
                 self.skip_blanks();
@@ -670,8 +670,8 @@ impl Parser {
             }
         };
         let (selector, kind) = match (selector, kind) {
-            (Some(Selector::Single(Addr::Line(0) | Addr::Step { first: 0, step: 0 })), Kind::ReadFile(name)) => {
-                (Some(Selector::Single(Addr::Line(1))), Kind::ReadFileNow(name))
+            (Selector::Single(Addr::Line(0) | Addr::Step { first: 0, step: 0 }), Kind::ReadFile(name)) => {
+                (Selector::Single(Addr::Line(1)), Kind::ReadFileNow(name))
             }
             (selector, kind) => (selector, kind),
         };

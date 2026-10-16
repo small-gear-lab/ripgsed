@@ -23,13 +23,15 @@ pub struct Script {
 
 #[derive(Debug)]
 pub struct Command {
-    pub selector: Option<Selector>,
+    pub selector: Selector,
     pub negate: bool,
     pub kind: Kind,
 }
 
 #[derive(Debug)]
 pub enum Selector {
+    /// No address was written: every line.
+    All,
     Single(Addr),
     Range(Addr, Addr2),
 }

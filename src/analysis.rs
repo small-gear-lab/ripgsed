@@ -37,9 +37,9 @@ pub fn record_local(script: &Script, options: &Options) -> Result<(), Reason> {
 
 fn command_local(command: &Command) -> Result<(), Reason> {
     match &command.selector {
-        None => {}
-        Some(Selector::Single(a)) => addr_local(a)?,
-        Some(Selector::Range(..)) => return Err(Reason::Construct("an address range")),
+        Selector::All => {}
+        Selector::Single(a) => addr_local(a)?,
+        Selector::Range(..) => return Err(Reason::Construct("an address range")),
     }
     match &command.kind {
         // Everything below acts on the current record only.

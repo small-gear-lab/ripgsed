@@ -321,10 +321,10 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
             let command = &script.commands[pc];
             let ahead = match (&command.selector, &command.kind) {
                 _ if command.negate => return Ok(()),
-                (None, Kind::BlockEnd | Kind::Label(_) | Kind::Version) => None,
-                (Some(Selector::Single(Addr::Line(n))), _) if *n > self.line => Some(*n),
-                (Some(Selector::Single(Addr::Line(_))), _) => None,
-                (Some(Selector::Range(Addr::Line(a), _)), _) => match self.ranges[pc] {
+                (Selector::All, Kind::BlockEnd | Kind::Label(_) | Kind::Version) => None,
+                (Selector::Single(Addr::Line(n)), _) if *n > self.line => Some(*n),
+                (Selector::Single(Addr::Line(_)), _) => None,
+                (Selector::Range(Addr::Line(a), _), _) => match self.ranges[pc] {
                     RangeState::Inactive if *a > self.line => Some(*a),
                     RangeState::Closed => None,
                     _ => return Ok(()),
@@ -567,9 +567,9 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
         let script = self.script;
         let command = &script.commands[index];
         let matched = match &command.selector {
-            None => true,
-            Some(Selector::Single(a)) => self.addr_matches(a)?,
-            Some(Selector::Range(a1, a2)) => self.range_matches(index, a1, a2)?,
+            Selector::All => true,
+            Selector::Single(a) => self.addr_matches(a)?,
+            Selector::Range(a1, a2) => self.range_matches(index, a1, a2)?,
         };
         Ok(matched != command.negate)
     }
@@ -729,7 +729,7 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                     self.write_raw(&text)?;
                 }
                 Kind::Change(text) => {
-                    let in_range = matches!(command.selector, Some(Selector::Range(..)))
+                    let in_range = matches!(command.selector, Selector::Range(..))
                         && !command.negate
                         && matches!(self.ranges[pc], RangeState::Active { .. });
                     if !in_range {

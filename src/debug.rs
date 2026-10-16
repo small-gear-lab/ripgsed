@@ -30,14 +30,16 @@ pub fn program(script: &Script, utf8: bool) -> Vec<u8> {
 /// One command as GNU sed's debug output writes it: address, `!`, a space, the command.
 pub fn command_text(command: &Command, utf8: bool) -> Vec<u8> {
     let mut out = Vec::new();
-    if let Some(selector) = &command.selector {
-        selector_text(selector, &mut out);
+    if matches!(command.selector, Selector::All) {
+        if command.negate {
+            out.push(b'!');
+        }
+    } else {
+        selector_text(&command.selector, &mut out);
         if command.negate {
             out.push(b'!');
         }
         out.push(b' ');
-    } else if command.negate {
-        out.push(b'!');
     }
     kind_text(&command.kind, utf8, &mut out);
     out
@@ -45,6 +47,7 @@ pub fn command_text(command: &Command, utf8: bool) -> Vec<u8> {
 
 fn selector_text(selector: &Selector, out: &mut Vec<u8>) {
     match selector {
+        Selector::All => {}
         Selector::Single(a) => addr_text(a, out),
         Selector::Range(a1, a2) => {
             addr_text(a1, out);
