@@ -477,7 +477,8 @@ pub fn main() -> i32 {
         use std::os::unix::ffi::OsStrExt;
         let raw: Vec<Vec<u8>> = std::env::args_os().skip(1).map(|a| a.as_bytes().to_vec()).collect();
         if let Some(kind) = crate::grep::kind_for_name(&program) {
-            return crate::grep::main(&program, raw, kind);
+            // (`egrep` and `fgrep` are `grep -E` and `grep -F` to GNU grep, and its messages say `grep`.)
+            return crate::grep::main("grep", raw, kind);
         }
         if raw.first().is_some_and(|a| a == b"--grep") {
             return crate::grep::main("grep", raw[1..].to_vec(), crate::grep::Kind::Basic);

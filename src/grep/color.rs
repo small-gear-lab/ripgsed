@@ -74,7 +74,9 @@ impl Colors {
                 ("se", Some(v)) if valid(v) => self.separator = v.into(),
                 ("rv", None) => self.reverse = true,
                 ("ne", None) => self.no_erase = true,
-                _ => return,
+                // A name that is not known is skipped; a known one with a bad value ends the list.
+                ("mt" | "ms" | "mc" | "sl" | "cx" | "fn" | "ln" | "bn" | "se" | "rv" | "ne", _) => return,
+                _ => {}
             }
         }
     }

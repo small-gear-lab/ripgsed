@@ -38,6 +38,8 @@ pub struct Printer<'a> {
     /// `-T`: the width of line numbers and byte offsets.
     pub offset_width: usize,
     pub exit_on_match: bool,
+    /// A line was not printed because its text is not valid in the encoding.
+    encoding_errors: bool,
 }
 
 /// How the lines of one input are shown.
@@ -63,6 +65,7 @@ impl<'a> Printer<'a> {
             default_with_filename: false,
             offset_width: 0,
             exit_on_match: options.quiet,
+            encoding_errors: false,
         }
     }
 
@@ -193,6 +196,7 @@ impl<'a> Printer<'a> {
         let o = self.options;
         let bad = self.has_encoding_error(text);
         if !o.only_matching && !self.print_head(name, line_no, offset, sep, text.len(), bad) {
+            self.encoding_errors = true;
             return Ok(false);
         }
         let matching = (sep == SEP_SELECTED) ^ o.invert;
@@ -262,7 +266,11 @@ impl<'a> Printer<'a> {
             } else {
                 if o.only_matching {
                     let sep = if o.invert { SEP_CONTEXT } else { SEP_SELECTED };
-                    if !self.print_head(name, line_no, offset + b as u64, sep, size, bad) {
+                    // (GNU grep looks at the match, not at the line, for an encoding error.)
+                    let bad_match = self.has_encoding_error(&text[b..e.min(text.len())]);
+                    let _ = bad;
+                    if !self.print_head(name, line_no, offset + b as u64, sep, size, bad_match) {
+                        self.encoding_errors = true;
                         return Ok(None);
                     }
                 } else {
@@ -336,6 +344,9 @@ impl<'a> Printer<'a> {
         }
         let mut first_binary_count: Option<u64> = if has_nul { Some(0) } else { None };
 
+        if o.max_count == Some(0) {
+            return Ok(Found { count: 0, binary_matches: false });
+        }
         let before = o.before;
         let after = o.after;
         let context = before.is_some() || after.is_some();
@@ -347,7 +358,7 @@ impl<'a> Printer<'a> {
         let mut last_out: Option<usize> = None;
         let mut pending = 0u64;
         let mut stopped = false;
-        let mut encoding_error_output = false;
+        self.encoding_errors = false;
 
         while pos < data.len() {
             // The next line: up to `eol` (or to a NUL in a binary input, which splits lines).
@@ -366,8 +377,8 @@ impl<'a> Printer<'a> {
             let selected = m.is_match(text) != o.invert;
 
             if stopped {
-                // After `-m`: only the trailing context is left, and it ends at a selected line.
-                if pending == 0 || selected {
+                // After `-m`: only the trailing context is left (selected lines included).
+                if pending == 0 {
                     break;
                 }
                 if !mode.quiet {
@@ -422,11 +433,7 @@ impl<'a> Printer<'a> {
                         p = e + 1;
                         n += 1;
                     }
-                    if !self.print_line(m, name, text, line_no, pos as u64, SEP_SELECTED, terminated)? {
-                        encoding_error_output = true;
-                        mode.quiet = true;
-                        mode.done_on_match = true;
-                    } else {
+                    if self.print_line(m, name, text, line_no, pos as u64, SEP_SELECTED, terminated)? {
                         last_out = Some(next);
                         pending = after.unwrap_or(0);
                     }
@@ -451,7 +458,7 @@ impl<'a> Printer<'a> {
             pos = next;
         }
 
-        let binary_matches = !originally_quiet && (encoding_error_output || (has_nul && count > 0));
+        let binary_matches = !originally_quiet && (std::mem::take(&mut self.encoding_errors) || (has_nul && count > 0));
         Ok(Found { count, binary_matches })
     }
 
