@@ -2,6 +2,15 @@
 
 The release notes of every version. The section of a version is the text of its GitHub release.
 
+## 0.1.3 - 2026-10-16
+
+### Fixed
+
+- `-P`: a match that PCRE2 gives up on (its match limit, for example `^(a|aa)+$` on sixty `a` and a `!`) is now an error, not "no match" (#1).
+  - `grep -P` says `grep: FILE: exceeded PCRE's backtracking limit` and ends the whole run with exit status 2 at that file, as GNU grep does. The files after it are not searched, no count is printed for it, and `-s` does not silence the message.
+  - The sed mode and the library (`Run::apply`) give an error of the run: `ripgsed: exceeded PCRE's backtracking limit`, exit status 4.
+- `--help` of the sed mode names ripgsed, not the name the program runs under, in the heading of the options that only ripgsed has.
+
 ## 0.1.2 - 2026-10-16
 
 ### Fixed
