@@ -15,7 +15,7 @@ jobs:
       # The debug build is slow: one fixture starts sed about 240 times.
       RIPGSED_FIXTURE_TIMEOUT: "120"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # Fixtures of the locale items (LOC-007 and later) make locales with localedef from the
       # definitions in /usr/share/i18n, so the `locales` package must be there.
       - name: Locale definitions and localedef
@@ -30,7 +30,7 @@ jobs:
   fixtures:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # Fixtures of the locale items (LOC-007 and later) make locales with localedef from the
       # definitions in /usr/share/i18n, so the `locales` package must be there.
       - name: Locale definitions and localedef
