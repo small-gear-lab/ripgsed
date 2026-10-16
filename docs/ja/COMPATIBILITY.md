@@ -1,6 +1,6 @@
 # 互換性の一覧
 
-GNU sed の完全互換は、このプロジェクトの最低要件です（[DECISIONS.md](DECISIONS.md) の D4）。`compat/sed.tsv` の一覧は、それが何を意味するかを項目ごとに挙げ、各項目がどこまで進んだかを記録します。
+Full GNU sed compatibility is the minimum requirement of the project (D4 in [DECISIONS.md](DECISIONS.md)). The matrix in `compat/sed.tsv` lists what that means item by item and records how far each item has got. The grep mode has its own matrix, `compat/grep.tsv` (see [GREP.md](GREP.md)), made the same way from the manual of GNU grep and kept in the same columns.
 
 ## 項目の出どころ
 

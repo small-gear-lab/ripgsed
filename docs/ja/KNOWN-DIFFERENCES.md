@@ -9,6 +9,17 @@ ripgsed は GNU sed 4.9 と同じように動作します（同じ出力、C ロ
 - 2 GiB 以上の1レコード：GNU sed は、そのレコードに対して正規表現を照合するとき、`regex input buffer length larger than INT_MAX`（終了状態 4）で止まります。C ライブラリがバッファの長さを `int` で数えているためです。ripgsed にはこの制限がなく、処理を続けます（GNU sed 4.9 で、改行のない 2,147,483,647 バイトの疎ファイルを使って測定。GNU sed は約 4 GiB のメモリを使いました）。それだけのメモリが要るので、fixture はありません。
 - メモリ使用量は多めです。入力を 256 KiB のブロック単位で読み、並列実行では複数のブロックを同時に保持します。
 
+## The grep mode
+
+The grep mode is compared with GNU grep 3.12 (D12); GNU grep 3.11 gives the same results on every case tried, but for the options below that are gone in 3.12.
+
+- `--version` and `--help` print ripgsed's own text (the usage message and the option list are the same, the closing lines are not). `-u` and `--unix-byte-offsets` are options GNU grep 3.12 does not have: they are errors here too.
+- The translated messages of GNU grep (`LANGUAGE=ja`) are not available: their catalogs are under the GPL, as the ones of GNU sed (the English messages are the same). The messages of the PCRE2 library are the library's.
+- `-P` uses the PCRE2 library of the system, so its results and its messages follow the version installed; without the library `-P` fails with a message.
+- A pattern in which GNU grep's DFA and the C library's matcher differ is read both ways, for the lines and for the matches. Not reproduced: `-w` and `-x` are applied to the DFA as syntax (the text `)` that closes the added group), so a pattern with an unmatched `)` can select other lines under `-w` or `-x`; `grep: stack overflow` for a huge nested repetition such as `((a{256}){256})`; the quirks of the C library's matcher that the sed mode lists (`a?(a+)+\1`, the groups of `(c+){0,2}`), which GNU grep has too.
+- The binary and encoding rules follow the pieces GNU grep reads. For a pipe the size of each read decides, which is not fixed, so a NUL that comes late in a pipe may turn the lines before it into binary data at another place than in GNU grep.
+- A file name in the messages of an unreadable file or directory is the one the operand gave; the order of the files of a directory is the file system's, the same as GNU grep's.
+
 ## `--glibc-compat` で再現する glibc の挙動
 
 GNU sed は C ライブラリの正規表現マッチャーを使っています。そのマッチャーが仕様にない動きをする場合、`--glibc-compat`（または環境変数 `RIPGSED_GLIBC_COMPAT=1`）を付けると、ripgsed も同じ動きをして、スクリプトが同じ出力になります。付けない場合は、定義どおりの結果（最左最長、後方参照は定義どおり）になります。差分テストと fixture は GNU sed の結果を保持しているので、このオプションを付けて実行します。

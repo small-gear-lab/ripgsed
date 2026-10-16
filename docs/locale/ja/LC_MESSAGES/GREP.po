@@ -1,0 +1,494 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2026, Small Gear Lab
+# This file is distributed under the same license as the ripgsed package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: ripgsed\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-16 14:50+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: ja <LL@li.org>\n"
+"Language: ja\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../GREP.md:1
+msgid "The grep mode"
+msgstr "grep モード"
+
+#: ../../GREP.md:3
+msgid ""
+"ripgsed also behaves like GNU grep. The mode is chosen by the name the "
+"program runs under, so `ln -s ripgsed grep` is enough: `grep`, `egrep`, "
+"`fgrep` and `rgrep` run the grep mode, and the first argument `--grep` does "
+"the same for the program under its own name (`ripgsed --grep -n pattern "
+"file`). The messages carry the name `grep`, as those of GNU grep do."
+msgstr ""
+"ripgsed は GNU grep としても振る舞います。モードはプログラムが実行される名前で選ぶので、`ln -s ripgsed grep` "
+"だけで足ります。`grep`、`egrep`、`fgrep`、`rgrep` が grep モードで動き、最初の引数 `--grep` "
+"を付ければ、元の名前のままでも同じになります（`ripgsed --grep -n pattern file`）。メッセージには、GNU grep "
+"と同じく `grep` という名前が付きます。"
+
+#: ../../GREP.md:5
+msgid ""
+"The aim is the one of the sed mode (D4 in [DECISIONS.md](DECISIONS.md)): the"
+" same output, the same messages on standard error, the same exit status, in "
+"the C locale and in the locales of the C library. D12 records the rules of "
+"the grep mode."
+msgstr ""
+"目標は sed モードと同じです（[DECISIONS.md](DECISIONS.md) の D4）。C ロケールでも C "
+"ライブラリのロケールでも、同じ出力、標準エラーの同じメッセージ、同じ終了状態を返します。grep モードの規則は D12 に記録しています。"
+
+#: ../../GREP.md:7
+msgid "What is compared with GNU grep"
+msgstr "GNU grep と何を比べているか"
+
+#: ../../GREP.md:9
+msgid ""
+"`compat/grep.tsv` lists the behavior by area: invocation, patterns, output, "
+"context, files, binary files, colors, and `-P`. Every one of its 83 items is"
+" `verified`, which means that the fixtures that cover it give the same "
+"standard output, standard error, exit status and files as GNU grep "
+"(`tests/README.md`). There are 89 fixtures of the grep mode "
+"(`tests/fixtures/grep-*` and `pcre-*`); they are written by `tools/gen-grep-"
+"fixtures.py`, and `tools/gen-fixtures.sh` records what the grep of the "
+"machine prints."
+msgstr ""
+"`compat/grep.tsv` は、挙動を領域ごとに挙げます。起動、パターン、出力、文脈、ファイル、バイナリファイル、色、`-P` です。83 "
+"項目すべてが `verified` で、それを覆う fixture が、GNU grep "
+"と同じ標準出力、標準エラー、終了状態、ファイルを返すという意味です（`tests/README.md`）。grep モードの fixture は 89 "
+"個あり（`tests/fixtures/grep-*` と `pcre-*`）、`tools/gen-grep-fixtures.py` "
+"が書き、`tools/gen-fixtures.sh` がそのマシンの grep の出力を記録します。"
+
+#: ../../GREP.md:10
+msgid ""
+"The reference is the GNU grep of the machine that makes the expected results"
+" (D12). Its version and the version of PCRE2 are in `tests/reference-"
+"grep.json`, which the `fixtures` job of CI checks too: when the runner "
+"brings other versions, the job says so. GNU grep 3.11 (the release of Ubuntu"
+" 24.04) and 3.12 give the same results on every case that was tried, except "
+"that `-u` and `--unix-byte-offsets` are gone in 3.12 (ripgsed follows 3.12),"
+" and that the messages of PCRE2 differ between its releases. `tools/ref-"
+"grep.sh` unpacks another release (checking its hash against the signed "
+"archive index) to see what a version changes."
+msgstr ""
+"基準は、期待結果を作るマシンの GNU grep です（D12）。その版と PCRE2 の版は `tests/reference-grep.json` "
+"にあり、CI の `fixtures` ジョブもこれを調べます。ランナーが別の版を持ち込めば、ジョブがそれを知らせます。GNU grep "
+"3.11（Ubuntu 24.04 のリリース）と 3.12 は、試したすべての場合で同じ結果を返します。ただし `-u` と `--unix-"
+"byte-offsets` は 3.12 でなくなっていて（ripgsed は 3.12 に従います）、PCRE2 "
+"のメッセージは版によって違います。`tools/ref-grep.sh` "
+"は別のリリースを取り出して（署名つきのアーカイブ索引でハッシュを確かめます）、版が何を変えるかを見られるようにします。"
+
+#: ../../GREP.md:11
+msgid ""
+"Random tests that are not part of `cargo test` found most of the details: "
+"random patterns (basic, extended, fixed, with `-i`, `-w`, `-x`, `-v`, in the"
+" C locale and in UTF-8 locales) and random combinations of options on sample"
+" files, run with both programs and compared on the output, the messages and "
+"the status. The last runs of several thousand cases each differ in about one"
+" case in five hundred, and those are the cases of `docs/KNOWN-"
+"DIFFERENCES.md`."
+msgstr ""
+"細部の多くは、`cargo test` に含まれないランダムテストが見つけました。ランダムなパターン（基本、拡張、固定。`-i` `-w` `-x` "
+"`-v` つき、C ロケールと UTF-8 "
+"ロケール）と、サンプルファイルへのランダムなオプションの組み合わせを、両方のプログラムで実行し、出力、メッセージ、終了状態を比べます。数千件ずつの直近の実行で、食い違うのは"
+" 500 件に 1 件ほどで、それは `docs/KNOWN-DIFFERENCES.md` の場合です。"
+
+#: ../../GREP.md:13
+msgid "Patterns"
+msgstr "パターン"
+
+#: ../../GREP.md:15
+#, python-brace-format
+msgid ""
+"GNU grep reads a pattern twice: its own DFA (from gnulib) decides which "
+"lines match, and the regular expression matcher of the C library (the one "
+"GNU sed has) finds the matches for `-o` and `--color`, and decides the lines"
+" when the DFA cannot. They agree on the patterns people write and differ on "
+"odd ones: a repetition operator at the start of an expression, after an "
+"anchor or a word assertion, an interval that is not valid. ripgsed has both "
+"readings of such a pattern. The lines are selected by the DFA reading, the "
+"matches come from the reading of the C library, and the C library's reading "
+"selects the lines too where GNU grep's DFA gives up: a pattern with a back-"
+"reference, and a pattern with a class, a negated set, `\\w` or a word "
+"assertion in a multibyte locale. A mistake in a pattern is the C library's "
+"message, because GNU grep compiles with it first; the DFA's message comes "
+"second (`invalid content of \\{\\}`)."
+msgstr ""
+"GNU grep はパターンを 2 度読みます。自前の DFA（gnulib のもの）がどの行が一致するかを決め、C "
+"ライブラリの正規表現マッチャ（GNU sed が持つもの）が、`-o` と `--color` のための一致を見つけ、DFA "
+"に決められないときは行も決めます。ふつうに書かれるパターンでは両者は一致し、変わったパターンで食い違います。式の先頭、アンカーや単語アサーションの後にある繰り返し演算子、正しくない範囲指定などです。ripgsed"
+" は、そのようなパターンの両方の読み方を持ちます。行は DFA の読み方で選び、一致は C ライブラリの読み方から得ます。GNU grep の DFA "
+"が降りる場面では、C "
+"ライブラリの読み方が行も選びます。後方参照のあるパターンと、マルチバイトのロケールでクラス、否定集合、`\\w`、単語アサーションのあるパターンです。パターンの間違いは、C"
+" ライブラリのメッセージになります。GNU grep はまずそれでコンパイルするからで、DFA のメッセージ（`invalid content of "
+"\\{\\}`）は 2 番目です。"
+
+#: ../../GREP.md:17
+msgid ""
+"The syntaxes are the ones of GNU grep (`RE_SYNTAX_GREP`, `RE_SYNTAX_EGREP`),"
+" not the ones of GNU sed:"
+msgstr ""
+"構文は GNU grep のもの（`RE_SYNTAX_GREP`、`RE_SYNTAX_EGREP`）で、GNU sed のものではありません。"
+
+#: ../../GREP.md:19
+msgid ""
+"A repetition operator at the start of an ERE (`*a`, `+a`, `{1}a`, after `(` "
+"or `|`) is skipped with a warning, `grep: warning: * at start of "
+"expression`. An invalid interval (`a{1`, `a{x}`) and an unmatched `)` are "
+"characters. Only `{2,1}` and a number above 32767 are mistakes."
+msgstr ""
+"ERE の式の先頭にある繰り返し演算子（`*a`、`+a`、`{1}a`、`(` や `|` の後）は、警告つきで読み飛ばされます（`grep: "
+"warning: * at start of expression`）。不正な範囲指定（`a{1`、`a{x}`）と、対応のない `)` "
+"は文字です。間違いになるのは `{2,1}` と、32767 を超える数だけです。"
+
+#: ../../GREP.md:20
+msgid ""
+"A leading `*` of a BRE is a character, `\\{` at the start is the character "
+"`{`, and two operators in a row (`a**`, `a\\{1\\}\\{2\\}`) are allowed."
+msgstr ""
+"BRE の先頭の `*` は文字で、先頭の `\\{` は文字 `{` です。演算子が 2 "
+"つ続くこと（`a**`、`a\\{1\\}\\{2\\}`）も許されます。"
+
+#: ../../GREP.md:21
+msgid ""
+"The escapes of sed (`\\n`, `\\t`, `\\a`, `\\x41`) do not exist: a backslash "
+"before an ordinary character is that character. Under `-i` the C library "
+"compares an escaped letter that means nothing special with the upper-cased "
+"text, so it never matches there; the lines are still selected by the DFA, "
+"which does not have the mistake."
+msgstr ""
+"sed "
+"のエスケープ（`\\n`、`\\t`、`\\a`、`\\x41`）はありません。普通の文字の前のバックスラッシュは、その文字そのものです。`-i` "
+"の下では、C ライブラリは、特別な意味のないエスケープされた文字を、大文字にした文章と比べるので、そこでは決して一致しません。行を選ぶのは DFA "
+"で、DFA にはこの間違いがありません。"
+
+#: ../../GREP.md:22
+msgid ""
+"`-w` and `-x` are the patterns wrapped (`(?<!\\w)(?:` and `)(?!\\w)`, or the"
+" whole line) for the DFA. The matches of `-o` and `--color` are the plain "
+"pattern's, tested the way GNU grep tests them: the leftmost match is a word,"
+" or a shorter match at the same place is tried, or a match further on. The "
+"shorter match is looked for in text that GNU grep cuts at a place measured "
+"from where the search began, not from the start of the line, so `echo 'x y "
+"z' | grep -ow '[^a] *'` prints `x` and `z` but not `y`, and ripgsed does the"
+" same. With both `-w` and `-x`, a match that reaches the end of the line is "
+"reported as the rest of the line with its newline."
+msgstr ""
+"`-w` と `-x` は、DFA に対しては、パターンを包んだもの（`(?<!\\w)(?:` と `)(?!\\w)`、または行全体）です。`-o`"
+" と `--color` の一致は素のパターンのもので、GNU grep "
+"が調べるとおりに調べます。いちばん左の一致が単語か、同じ位置のもっと短い一致か、もっと先の一致を試します。短い一致は、GNU grep "
+"が、検索を始めた位置から測った場所で切り落とした文章の中から探すので、行の先頭から測るのではありません。そのため `echo 'x y z' | "
+"grep -ow '[^a] *'` は `x` と `z` を出して `y` を出さず、ripgsed も同じです。`-w` と `-x` "
+"の両方を指定したときは、行末に届く一致を、改行つきの行の残りとして報告します。"
+
+#: ../../GREP.md:23
+msgid ""
+"Several patterns (`-e`, `-f`, a newline) are separate regular expressions; "
+"the match of `-o` is the leftmost, then the longest of them."
+msgstr ""
+"複数のパターン（`-e`、`-f`、改行）は別々の正規表現です。`-o` の一致は、そのうちいちばん左の、同じ位置ならいちばん長いものです。"
+
+#: ../../GREP.md:24
+msgid ""
+"`-F` is the pattern written with every special character escaped. `-i` and "
+"the classes follow the locale as the sed mode does."
+msgstr "`-F` は、特別な文字をすべてエスケープして書いたパターンです。`-i` とクラスは、sed モードと同じくロケールに従います。"
+
+#: ../../GREP.md:26
+msgid "Reading the inputs"
+msgstr "入力の読み方"
+
+#: ../../GREP.md:28
+msgid ""
+"An input is read as it comes: a pipe is searched while it is written (`tail "
+"-f log | grep --line-buffered x` works), and a large file does not have to "
+"fit in memory. A match that is found early ends the read (`-m`, `-l`, `-q`)."
+msgstr ""
+"入力は来たとおりに読みます。パイプは書かれている最中に検索でき（`tail -f log | grep --line-buffered x` "
+"が動きます）、大きなファイルがメモリに収まる必要もありません。早く見つかった一致で読むのを終えます（`-m`、`-l`、`-q`）。"
+
+#: ../../GREP.md:29
+msgid ""
+"GNU grep reads in pieces and decides per piece whether the data is binary "
+"(it has a NUL byte). A regular file is read in pieces of 96 KiB at fixed "
+"offsets, so the lines of the pieces before the first NUL are printed as "
+"text, and the lines that end in that piece or later are not (`binary file "
+"matches` follows on standard error if something was selected there). For a "
+"pipe the pieces are the reads. ripgsed does the same, with the same offsets "
+"for files; for a pipe the size of the reads decides, as in GNU grep."
+msgstr ""
+"GNU grep は塊ごとに読み、塊ごとに、そのデータがバイナリか（NUL バイトがあるか）を決めます。通常のファイルは、決まった位置で 96 KiB "
+"の塊として読むので、最初の NUL より前の塊の行は文字として出力され、その塊以降で終わる行は出力されません（そこで何かが選ばれていれば、標準エラーに "
+"`binary file matches` が続きます）。パイプの塊は、そのときの読み込みです。ripgsed "
+"も同じようにし、ファイルでは同じ位置を使います。パイプでは、GNU grep と同じく、読み込みの大きさが決めます。"
+
+#: ../../GREP.md:30
+msgid ""
+"In a UTF-8 locale a line with an encoding error is not printed (the message "
+"is the same as for a binary file, except with `-I`); `-o` looks at the match"
+" only."
+msgstr ""
+"UTF-8 のロケールでは、エンコーディングの誤りがある行は出力されません（メッセージはバイナリファイルのときと同じですが、`-I` "
+"のときは出ません）。`-o` は一致だけを見ます。"
+
+#: ../../GREP.md:31
+msgid ""
+"A regular file on standard input is left where GNU grep leaves it: just "
+"after the last selected line when `-m` ended the search, else at the end of "
+"the last piece it read."
+msgstr ""
+"標準入力にある通常のファイルは、GNU grep が残すのと同じ位置に残します。`-m` "
+"が検索を終えたときは、最後に選んだ行の直後、そうでなければ最後に読んだ塊の終わりです。"
+
+#: ../../GREP.md:32
+msgid ""
+"Directories are read in the order of the file system, as GNU grep's `fts` "
+"does; use `sort` where a fixture or a script depends on it."
+msgstr ""
+"ディレクトリは、GNU grep の `fts` と同じく、ファイルシステムの順に読みます。fixture やスクリプトが順序に依存するなら "
+"`sort` を使ってください。"
+
+#: ../../GREP.md:34
+msgid "`-P`"
+msgstr "`-P`"
+
+#: ../../GREP.md:36
+msgid ""
+"The PCRE2 library of the system is opened with `dlopen` when `-P` is first "
+"used, so a build does not need its files and `-P` is the only option that "
+"fails if the library is missing (`grep: Perl matching not supported in a "
+"--disable-perl-regexp build`). The results and the error messages are the "
+"library's, and follow its version. The flags are the ones of GNU grep: "
+"`DOLLAR_ENDONLY`, `CASELESS` for `-i`, `UTF`, `UCP` and `MATCH_INVALID_UTF` "
+"in a UTF-8 locale, and the pattern wrapped for `-w` and `-x`. Only one "
+"pattern is accepted, as in GNU grep."
+msgstr ""
+"`-P` を最初に使うとき、システムの PCRE2 ライブラリを `dlopen` "
+"で開きます。そのため、ビルドにそのファイルは要らず、ライブラリがなければ失敗するのは `-P` だけです（`grep: Perl matching "
+"not supported in a --disable-perl-regexp "
+"build`）。結果とエラーメッセージはライブラリのもので、その版に従います。フラグは GNU grep "
+"と同じです。`DOLLAR_ENDONLY`、`-i` のための `CASELESS`、UTF-8 ロケールでの "
+"`UTF`・`UCP`・`MATCH_INVALID_UTF`、そして `-w` と `-x` のために包んだパターンです。受け付けるパターンは 1 "
+"つだけで、これも GNU grep と同じです。"
+
+#: ../../GREP.md:38
+msgid "Speed"
+msgstr "速度"
+
+#: ../../GREP.md:40
+msgid ""
+"Measured with `gbench`-style runs on 1,000,000 log-like lines (57 MB), in "
+"`C.UTF-8`, one thread, median of three, GNU grep 3.12 on the same machine. A"
+" ratio below 1 is faster than GNU grep."
+msgstr ""
+"`gbench` 式の実行で測りました。100 万行のログ風の行（57 MB）、`C.UTF-8`、1 スレッド、3 回の中央値、同じマシンの GNU "
+"grep 3.12 と比べています。比が 1 より小さければ GNU grep より速いことを表します。"
+
+#: ../../GREP.md
+msgid "workload"
+msgstr "処理"
+
+#: ../../GREP.md
+msgid "GNU grep (s)"
+msgstr "GNU grep（秒）"
+
+#: ../../GREP.md
+msgid "ripgsed (s)"
+msgstr "ripgsed（秒）"
+
+#: ../../GREP.md
+msgid "ratio"
+msgstr "比"
+
+#: ../../GREP.md
+msgid "`ERROR`"
+msgstr "`ERROR`"
+
+#: ../../GREP.md
+msgid "0.109"
+msgstr "0.109"
+
+#: ../../GREP.md
+msgid "0.130"
+msgstr "0.130"
+
+#: ../../GREP.md
+msgid "1.19"
+msgstr "1.19"
+
+#: ../../GREP.md
+msgid "`-c ERROR`"
+msgstr "`-c ERROR`"
+
+#: ../../GREP.md
+msgid "0.066"
+msgstr "0.066"
+
+#: ../../GREP.md
+msgid "0.068"
+msgstr "0.068"
+
+#: ../../GREP.md
+msgid "1.04"
+msgstr "1.04"
+
+#: ../../GREP.md
+msgid "`-i error`"
+msgstr "`-i error`"
+
+#: ../../GREP.md
+msgid "0.159"
+msgstr "0.159"
+
+#: ../../GREP.md
+msgid "0.142"
+msgstr "0.142"
+
+#: ../../GREP.md
+msgid "0.90"
+msgstr "0.90"
+
+#: ../../GREP.md
+msgid "`-n ERROR`"
+msgstr "`-n ERROR`"
+
+#: ../../GREP.md
+msgid "0.132"
+msgstr "0.132"
+
+#: ../../GREP.md
+msgid "0.164"
+msgstr "0.164"
+
+#: ../../GREP.md
+msgid "1.24"
+msgstr "1.24"
+
+#: ../../GREP.md
+#, python-brace-format
+msgid "`-E 'user=(alpha|beta).*id=[0-9]{5}'`"
+msgstr "`-E 'user=(alpha|beta).*id=[0-9]{5}'`"
+
+#: ../../GREP.md
+msgid "0.230"
+msgstr "0.230"
+
+#: ../../GREP.md
+msgid "0.446"
+msgstr "0.446"
+
+#: ../../GREP.md
+msgid "1.94"
+msgstr "1.94"
+
+#: ../../GREP.md
+msgid "`-o '[0-9]\\+'`"
+msgstr "`-o '[0-9]\\+'`"
+
+#: ../../GREP.md
+msgid "1.506"
+msgstr "1.506"
+
+#: ../../GREP.md
+msgid "1.038"
+msgstr "1.038"
+
+#: ../../GREP.md
+msgid "0.69"
+msgstr "0.69"
+
+#: ../../GREP.md
+msgid "`-wc alpha`"
+msgstr "`-wc alpha`"
+
+#: ../../GREP.md
+msgid "0.298"
+msgstr "0.298"
+
+#: ../../GREP.md
+msgid "0.119"
+msgstr "0.119"
+
+#: ../../GREP.md
+msgid "0.40"
+msgstr "0.40"
+
+#: ../../GREP.md
+msgid "`-Fc -e alpha -e beta`"
+msgstr "`-Fc -e alpha -e beta`"
+
+#: ../../GREP.md
+msgid "0.156"
+msgstr "0.156"
+
+#: ../../GREP.md
+msgid "1.00"
+msgstr "1.00"
+
+#: ../../GREP.md
+msgid "a literal that is rare"
+msgstr "まれなリテラル"
+
+#: ../../GREP.md
+msgid "0.072"
+msgstr "0.072"
+
+#: ../../GREP.md
+msgid "0.052"
+msgstr "0.052"
+
+#: ../../GREP.md
+msgid "0.72"
+msgstr "0.72"
+
+#: ../../GREP.md
+msgid "`-c '\\(a\\)\\1'` (back-reference)"
+msgstr "`-c '\\(a\\)\\1'`（後方参照）"
+
+#: ../../GREP.md
+msgid "0.638"
+msgstr "0.638"
+
+#: ../../GREP.md
+msgid "1.529"
+msgstr "1.529"
+
+#: ../../GREP.md
+msgid "2.40"
+msgstr "2.40"
+
+#: ../../GREP.md
+msgid "Japanese text, `-c '\\w\\+'`"
+msgstr "日本語テキスト、`-c '\\w\\+'`"
+
+#: ../../GREP.md
+msgid "0.367"
+msgstr "0.367"
+
+#: ../../GREP.md
+msgid "0.070"
+msgstr "0.070"
+
+#: ../../GREP.md
+msgid "0.19"
+msgstr "0.19"
+
+#: ../../GREP.md:56
+msgid ""
+"A literal that every match contains is looked for in the whole input (also "
+"without regard to case), and only the lines that have it are tested. The "
+"slow cases are a pattern with several alternatives and a repetition (the "
+"engine tests each line, GNU grep's DFA runs over the whole buffer) and a "
+"back-reference. The sed mode's parallel execution is not used by the grep "
+"mode yet."
+msgstr ""
+"すべての一致が含むリテラルを入力全体から探し（大文字小文字を区別しない場合も）、それを含む行だけを調べます。遅いのは、いくつもの選択肢と繰り返しを持つパターン（エンジンは行ごとに調べますが、GNU"
+" grep の DFA はバッファ全体を走査します）と、後方参照です。sed モードの並列実行は、grep モードではまだ使っていません。"

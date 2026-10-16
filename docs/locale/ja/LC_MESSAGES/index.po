@@ -6,28 +6,34 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: ripgsed \n"
+"Project-Id-Version: ripgsed\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-15 12:49+0900\n"
+"POT-Creation-Date: 2026-10-16 14:50+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language: ja\n"
 "Language-Team: ja <LL@li.org>\n"
-"Plural-Forms: nplurals=1; plural=0;\n"
+"Language: ja\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
 "Generated-By: Babel 2.18.0\n"
 
 #: ../../index.md:1
 msgid "ripgsed"
-msgstr ""
+msgstr "ripgsed"
 
 #: ../../index.md:3
-msgid "A stream editor in Rust that keeps the sed language but separates syntax, semantics, and execution strategy."
+msgid ""
+"A stream editor in Rust that keeps the sed language but separates syntax, "
+"semantics, and execution strategy."
 msgstr "sed の言語を保ちつつ、構文・意味論・実行方式を分離する Rust 製のストリームエディタ。"
 
 #: ../../index.md:5
-msgid "**Status: early design stage. Nothing is implemented yet.**"
-msgstr "**状態：初期の設計段階。まだ何も実装されていません。**"
+msgid ""
+"**Status: compatible with GNU sed 4.9 and GNU grep (3.x), as a library and "
+"as a command.**"
+msgstr "**状態: GNU sed 4.9 と GNU grep（3.x）に互換。ライブラリとしても、コマンドとしても使えます。**"
 
+#~ msgid "**Status: early design stage. Nothing is implemented yet.**"
+#~ msgstr "**状態：初期の設計段階。まだ何も実装されていません。**"

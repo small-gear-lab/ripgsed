@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ripgsed\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-16 10:57+0900\n"
+"POT-Creation-Date: 2026-10-16 14:50+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: ja <LL@li.org>\n"
@@ -96,10 +96,89 @@ msgid ""
 msgstr "メモリ使用量は多めです。入力を 256 KiB のブロック単位で読み、並列実行では複数のブロックを同時に保持します。"
 
 #: ../../KNOWN-DIFFERENCES.md:12
+msgid "The grep mode"
+msgstr "grep モード"
+
+#: ../../KNOWN-DIFFERENCES.md:14
+msgid ""
+"The grep mode is compared with GNU grep 3.12 (D12); GNU grep 3.11 gives the "
+"same results on every case tried, but for the options below that are gone in"
+" 3.12."
+msgstr ""
+"grep モードは GNU grep 3.12 と比べています（D12）。GNU grep 3.11 "
+"は、試したすべての場合で同じ結果を返しますが、3.12 でなくなった下記のオプションだけは別です。"
+
+#: ../../KNOWN-DIFFERENCES.md:16
+msgid ""
+"`--version` and `--help` print ripgsed's own text (the usage message and the"
+" option list are the same, the closing lines are not). `-u` and `--unix-"
+"byte-offsets` are options GNU grep 3.12 does not have: they are errors here "
+"too."
+msgstr ""
+"`--version` と `--help` は ripgsed "
+"自身の文面を出力します（使い方のメッセージとオプションの一覧は同じで、最後の行が違います）。`-u` と `--unix-byte-offsets` は"
+" GNU grep 3.12 にないオプションなので、ここでもエラーになります。"
+
+#: ../../KNOWN-DIFFERENCES.md:17
+msgid ""
+"The translated messages of GNU grep (`LANGUAGE=ja`) are not available: their"
+" catalogs are under the GPL, as the ones of GNU sed (the English messages "
+"are the same). The messages of the PCRE2 library are the library's."
+msgstr ""
+"GNU grep の翻訳済みメッセージ（`LANGUAGE=ja`）は使えません。そのカタログは GPL の下にあり、GNU sed "
+"のものと同じです（英語のメッセージは同じです）。PCRE2 ライブラリのメッセージはライブラリのものです。"
+
+#: ../../KNOWN-DIFFERENCES.md:18
+msgid ""
+"`-P` uses the PCRE2 library of the system, so its results and its messages "
+"follow the version installed; without the library `-P` fails with a message."
+msgstr ""
+"`-P` はシステムの PCRE2 ライブラリを使うので、結果もメッセージも、入っている版に従います。ライブラリがなければ、`-P` "
+"はメッセージを出して失敗します。"
+
+#: ../../KNOWN-DIFFERENCES.md:19
+#, python-brace-format
+msgid ""
+"A pattern in which GNU grep's DFA and the C library's matcher differ is read"
+" both ways, for the lines and for the matches. Not reproduced: `-w` and `-x`"
+" are applied to the DFA as syntax (the text `)` that closes the added "
+"group), so a pattern with an unmatched `)` can select other lines under `-w`"
+" or `-x`; `grep: stack overflow` for a huge nested repetition such as "
+"`((a{256}){256})`; the quirks of the C library's matcher that the sed mode "
+"lists (`a?(a+)+\\1`, the groups of `(c+){0,2}`), which GNU grep has too."
+msgstr ""
+"GNU grep の DFA と C "
+"ライブラリのマッチャが食い違うパターンは、行を選ぶときと一致を探すときで、両方の読み方で読みます。再現しないもの。`-w` と `-x` は DFA "
+"に構文として適用されます（追加したグループを閉じる `)` の文字）。そのため、対応のない `)` を持つパターンは、`-w` や `-x` "
+"の下で別の行を選ぶことがあります。`((a{256}){256})` のような巨大な入れ子の繰り返しでの `grep: stack "
+"overflow`。sed モードが挙げる C ライブラリのマッチャの癖（`a?(a+)+\\1`、`(c+){0,2}` のグループ）。これらは "
+"GNU grep にもあります。"
+
+#: ../../KNOWN-DIFFERENCES.md:20
+msgid ""
+"The binary and encoding rules follow the pieces GNU grep reads. For a pipe "
+"the size of each read decides, which is not fixed, so a NUL that comes late "
+"in a pipe may turn the lines before it into binary data at another place "
+"than in GNU grep."
+msgstr ""
+"バイナリとエンコーディングの規則は、GNU grep "
+"が読む塊に従います。パイプでは各読み込みの大きさが決め、それは固定ではないので、パイプの後ろのほうに NUL があると、その前の行が、GNU grep "
+"とは別の場所からバイナリのデータになることがあります。"
+
+#: ../../KNOWN-DIFFERENCES.md:21
+msgid ""
+"A file name in the messages of an unreadable file or directory is the one "
+"the operand gave; the order of the files of a directory is the file "
+"system's, the same as GNU grep's."
+msgstr ""
+"読めないファイルやディレクトリについてのメッセージのファイル名は、オペランドで与えられたものです。ディレクトリのファイルの順序はファイルシステムのもので、GNU"
+" grep と同じです。"
+
+#: ../../KNOWN-DIFFERENCES.md:23
 msgid "glibc behavior reproduced with `--glibc-compat`"
 msgstr "`--glibc-compat` で再現する glibc の挙動"
 
-#: ../../KNOWN-DIFFERENCES.md:14
+#: ../../KNOWN-DIFFERENCES.md:25
 msgid ""
 "GNU sed uses the regular expression matcher of the C library. Where that "
 "matcher does something no specification asks for, `--glibc-compat` (or "
@@ -114,7 +193,7 @@ msgstr ""
 "も同じ動きをして、スクリプトが同じ出力になります。付けない場合は、定義どおりの結果（最左最長、後方参照は定義どおり）になります。差分テストと "
 "fixture は GNU sed の結果を保持しているので、このオプションを付けて実行します。"
 
-#: ../../KNOWN-DIFFERENCES.md:16
+#: ../../KNOWN-DIFFERENCES.md:27
 msgid ""
 "In a pattern that starts with a repetition of a single character (`b*`, "
 "`[ab]*`, `(a*)*`, `a*\\+`) followed by `\\B`, a match that is empty at a "
@@ -128,7 +207,7 @@ msgstr ""
 "'s/b*\\B/<&>/'` は `a<>b` ではなく `ab<>` を出力します。バッファの先頭では起きず、`\\b`、`\\<`、`\\>` "
 "にも当てはまりません。fixture は `rgx-039` です。"
 
-#: ../../KNOWN-DIFFERENCES.md:17
+#: ../../KNOWN-DIFFERENCES.md:28
 #, python-brace-format
 msgid ""
 "A back-reference to a group inside a repetition does not see every value "
@@ -157,7 +236,7 @@ msgstr ""
 "はどこにも一致しません。例外が2つあります。グループの本体が空になれない場合、繰り返しの任意のコピーの中にあるコピーは、開始が同じ必須のコピーに妨げられません。本体が空になれる場合、必須のコピーは、後ろの任意のコピーに妨げられません。コピーがどこから始まりうるかは、マッチの先頭からパターンを後方参照を見ずにたどって求めます。対象は長さ"
 " 256 バイトまでのマッチと、コピーが 16 個までのグループです。fixture は `rgx-040` です。"
 
-#: ../../KNOWN-DIFFERENCES.md:18
+#: ../../KNOWN-DIFFERENCES.md:29
 #, python-brace-format
 msgid ""
 "When the group is the whole body of a loop (`*`, `+`, `{m,}`) and can be "
@@ -180,7 +259,7 @@ msgstr ""
 " に対する `(a*)*\\1` は `<aa>[a]` を出力します）。fixture は `rgx-041` と `rgx-012-backref-"
 "group-in-star-iteration` です。"
 
-#: ../../KNOWN-DIFFERENCES.md:19
+#: ../../KNOWN-DIFFERENCES.md:30
 #, python-brace-format
 msgid ""
 "When GNU sed's first attempt of a search fails because the back-reference "
@@ -196,7 +275,7 @@ msgstr ""
 "に一致しません。先頭でない位置で空のグループが受け付けられない場合は、そうなりません（`b(a?){2}\\1` は `bbaaa` の `baaa` "
 "に一致します）。fixture は `rgx-041` です。"
 
-#: ../../KNOWN-DIFFERENCES.md:20
+#: ../../KNOWN-DIFFERENCES.md:31
 msgid ""
 "A back-reference to a group that can be empty, when another alternative left"
 " the group unset at the start of the match, also fails the whole search in "
@@ -212,7 +291,7 @@ msgstr ""
 "を出力します。空の選択肢が先頭でマッチするはずですが、次の単語の先頭でのマッチは探されません）。パターンにアサーションがあり、先頭で見つかったマッチが空のときは、グループを未設定のままパターンの終わりに達する経路があるだけで検索が失敗します（`b`"
 " に対する `(\\<()|())\\2` は `b` を出力します）。フィクスチャは `rgx-044` です。"
 
-#: ../../KNOWN-DIFFERENCES.md:21
+#: ../../KNOWN-DIFFERENCES.md:32
 msgid ""
 "A relative link target that makes the path too long: GNU sed keeps the "
 "joined path in a buffer of fixed size and cuts it (the limit is 121 bytes, "
@@ -226,7 +305,7 @@ msgstr ""
 " `--follow-symlinks` は別のパスを読んだり編集したりします（`couldn't edit ...: not a regular "
 "file`）。既定では、パス全体を使います。fixture：`cmd-059`。"
 
-#: ../../KNOWN-DIFFERENCES.md:22
+#: ../../KNOWN-DIFFERENCES.md:33
 msgid ""
 "In a multibyte character set (EUC-JP, Shift_JIS, GBK, GB18030, Big5, EUC-KR,"
 " EUC-TW), `\\U` or `\\L` that turns a character into one the set cannot "
@@ -242,7 +321,7 @@ msgstr ""
 "と出力して異常終了します（シグナル。バッファされた行は出力されません）。既定ではその文字をそのまま残します。`tools/locale-diff.py`"
 " で GBK と EUC-JP のすべての 2 バイト列について確かめています。"
 
-#: ../../KNOWN-DIFFERENCES.md:23
+#: ../../KNOWN-DIFFERENCES.md:34
 msgid ""
 "A negated bracket expression under `I` (`[^a-z]`) takes a few unassigned "
 "codes of GBK (0xfe61..0xfe6f), Shift_JIS (0x8461..0x846f, 0x9873..0x987a) "
@@ -258,7 +337,7 @@ msgstr ""
 "文字として取ります。既定では、そのような列は文字ではありません。該当する列はライブラリに尋ねて見つけます（`locale::icase_seq`。2〜4"
 " バイトで、最も長いものが勝ちます）。それらの集合のすべての列について確かめています。"
 
-#: ../../KNOWN-DIFFERENCES.md:24
+#: ../../KNOWN-DIFFERENCES.md:35
 msgid ""
 "A character that can be written in more than one way (EUC-TW: a character of"
 " the first plane as two bytes or as four with the plane prefix) is looked up"
@@ -270,7 +349,7 @@ msgstr ""
 "バイトでも書けます）は、括弧式の中では、ライブラリと同じく、その文字が書かれているバイト列で調べます。`wcrtomb` "
 "が作るバイト列では調べません。`[[=a=]]` は、`8e a1 a4 c1` と書かれた全角の `Ａ` を含みません。これは常に有効です。"
 
-#: ../../KNOWN-DIFFERENCES.md:25
+#: ../../KNOWN-DIFFERENCES.md:36
 msgid ""
 "A range that starts at a collating symbol (`[[.a.]-z]`) takes the first byte"
 " alone of eight Big5 codes (0xf9e9..0xf9eb, 0xf9f9..0xf9fd) and of the four-"
@@ -289,7 +368,7 @@ msgstr ""
 " バイト進みます。ライブラリに尋ねて見つけ（`LibSet::partial_len`）、`tools/locale-diff.py` で Big5 と"
 " EUC-TW について確かめています。"
 
-#: ../../KNOWN-DIFFERENCES.md:26
+#: ../../KNOWN-DIFFERENCES.md:37
 msgid ""
 "A back-reference under `I` to a group of one letter whose capital takes more"
 " bytes than the letter does not match the same letter in glibc: `echo ɐɐ | "
@@ -306,7 +385,7 @@ msgstr ""
 "バイト）。`ɐⱯ` と `iİ` はマッチします。既定では、定義どおりのマッチになります。この規則は、`C.UTF-8` で大文字が長い 20 "
 "文字と、GB18030 の 32 文字（0xa8a1〜0xa8bf。大文字は 4 バイト）にちょうど当てはまることを、全コードポイントで確かめています。"
 
-#: ../../KNOWN-DIFFERENCES.md:27
+#: ../../KNOWN-DIFFERENCES.md:38
 msgid ""
 "A byte sequence built like a UTF-8 character but not one is read by glibc's "
 "matcher as one character, in some places only, and GNU sed's first matcher "
@@ -359,7 +438,7 @@ msgstr ""
 "then-dot`（GNU sed での 47 個の実験。ライセンスの規則を守ってライブラリを読む別の担当に尋ねて見つけ、ここで確かめたもの）です。15"
 " 種類の並び、28 のパターン、3 つの文脈の 2,520 回の比較に差はありません（2 段階の読み方がないと 380 通り）。"
 
-#: ../../KNOWN-DIFFERENCES.md:28
+#: ../../KNOWN-DIFFERENCES.md:39
 msgid ""
 "Always on, not an option: in `C.UTF-8` (the locale of the tables below) and "
 "in any other UTF-8 locale, what the classes contain, how letters change case"
@@ -375,11 +454,11 @@ msgstr ""
 "ライブラリから生成しており（`tools/gen-classes.py`）、Rust の標準ライブラリではなく glibc の Unicode "
 "バージョンに従います。"
 
-#: ../../KNOWN-DIFFERENCES.md:30
+#: ../../KNOWN-DIFFERENCES.md:41
 msgid "glibc behavior that is not reproduced, even with `--glibc-compat`"
 msgstr "`--glibc-compat` を付けても再現しない glibc の挙動"
 
-#: ../../KNOWN-DIFFERENCES.md:32
+#: ../../KNOWN-DIFFERENCES.md:43
 #, python-format
 msgid ""
 "These are cases where glibc's matcher gives a result that disagrees with the"
@@ -456,7 +535,7 @@ msgstr "一致なし"
 msgid "match `x`"
 msgstr "`x` に一致"
 
-#: ../../KNOWN-DIFFERENCES.md:40
+#: ../../KNOWN-DIFFERENCES.md:51
 #, python-brace-format
 msgid ""
 "The first is a back-reference to a group inside a repetition where something"
@@ -476,7 +555,7 @@ msgstr ""
 "の答えは一致なしか文字化けです。固定幅のグループ（`(ab)+\\1`）は仕様どおりに動きます。重ねた量指定子の下のキャプチャ（`((b?)+*|c){1}`）や、パターンの先頭でない繰り返しの後ろの"
 " `\\B` でも差が出ることがあります。一覧上の項目は `compat/sed.tsv` の RGX-009 と RGX-012 です。"
 
-#: ../../KNOWN-DIFFERENCES.md:42
+#: ../../KNOWN-DIFFERENCES.md:53
 msgid ""
 "With `-z`, a `$` at the start of a pattern that goes on with a negated "
 "bracket expression can hold before a newline that the match then consumes: "
@@ -493,11 +572,11 @@ msgstr ""
 "-E 's/\\W^/<&>/g'` で、GNU sed は `a`、改行、`a` "
 "の改行に一致します。どちらもランダムなパターン約2300件のうち1件ほどで見つかりました。"
 
-#: ../../KNOWN-DIFFERENCES.md:44
+#: ../../KNOWN-DIFFERENCES.md:55
 msgid "UTF-8 cases of the C library that are not reproduced"
 msgstr "再現していない C ライブラリの UTF-8 の挙動"
 
-#: ../../KNOWN-DIFFERENCES.md:46
+#: ../../KNOWN-DIFFERENCES.md:57
 msgid ""
 "Random patterns over lines with sequences beyond Unicode and encoded "
 "surrogates (12,000 patterns, four seeds, two locales, compared with GNU "
@@ -509,7 +588,7 @@ msgstr ""
 "との比較）には、食い違うものがありません。上の読み方がないと 16〜18% "
 "が食い違います。この読み方は観察したことのモデルなので、テストが引かなかった形のパターンでは、まだ食い違うかもしれません。"
 
-#: ../../KNOWN-DIFFERENCES.md:47
+#: ../../KNOWN-DIFFERENCES.md:58
 msgid ""
 "With the `I` flag, glibc matches a pattern character against the input in "
 "one direction only: `s/В/X/I` does not match `U+1C80` although both fold to "
@@ -525,7 +604,7 @@ msgstr ""
 "つの大小で照合します。ほかの UTF-8 ロケールでは、`I` の下の文字やブラケット式は C ライブラリのものです。小さなキリル文字の異体字 "
 "U+1C80..U+1C88 がそれ自身にしか取られないという GNU sed 自身の規則が 1 つあり（D11）、こうしたことは起きません。"
 
-#: ../../KNOWN-DIFFERENCES.md:48
+#: ../../KNOWN-DIFFERENCES.md:59
 msgid ""
 "A text of `a`, `i`, or `c` that ends in `\\c` takes the newline GNU sed "
 "appends as its control character (`a x\\c` writes `xJ`)."
@@ -533,7 +612,7 @@ msgstr ""
 "`a`、`i`、`c` のテキストが `\\c` で終わるとき、GNU sed は付け足す改行をその制御文字として取り込みます（`a x\\c` は "
 "`xJ` を書きます）。"
 
-#: ../../KNOWN-DIFFERENCES.md:49
+#: ../../KNOWN-DIFFERENCES.md:60
 msgid ""
 "A range that starts with an invalid collating symbol and ends with a class "
 "(`[[.space.]-[:alpha:]]`) reports `Invalid collation character`, GNU sed "
@@ -542,7 +621,7 @@ msgstr ""
 "無効な照合記号で始まり、クラスで終わる範囲（`[[.space.]-[:alpha:]]`）は、ripgsed では `Invalid "
 "collation character`、GNU sed では `Invalid range end` です。"
 
-#: ../../KNOWN-DIFFERENCES.md:50
+#: ../../KNOWN-DIFFERENCES.md:61
 msgid ""
 "Reading a directory that a symbolic link points to with `--follow-symlinks` "
 "names the target in the read error; GNU sed 4.9 built from the release "
@@ -552,11 +631,11 @@ msgstr ""
 "`--follow-symlinks` でシンボリックリンクの指すディレクトリを読むとき、読み取りエラーには ripgsed "
 "は指す先の名前を出します。GNU sed 4.9 はリリース tarball からビルドしたものがリンクの名前、パッケージ版が指す先の名前を出します。"
 
-#: ../../KNOWN-DIFFERENCES.md:52
+#: ../../KNOWN-DIFFERENCES.md:63
 msgid "Cases of other character sets that are not reproduced"
 msgstr "再現していない、ほかの文字集合の挙動"
 
-#: ../../KNOWN-DIFFERENCES.md:54
+#: ../../KNOWN-DIFFERENCES.md:65
 msgid ""
 "These were found by comparing every byte and every two-byte (and, for EUC-"
 "JP, three-byte) sequence of the sets (`tools/locale-diff.py`) and random "
@@ -567,7 +646,7 @@ msgstr ""
 "diff.py`）、およびランダムなパターン（`tools/locale-"
 "fuzz.py`）を比べて見つけたものです。集合の文字でない列か、特殊なパターンに限ります。"
 
-#: ../../KNOWN-DIFFERENCES.md:56
+#: ../../KNOWN-DIFFERENCES.md:67
 msgid ""
 "In GB18030, under `I`, GNU sed's answers for the letters 0xa8a1..0xa8bf (for"
 " example `[a-z]`, `[^0-9]`) depend on the text around the letter and vary "
@@ -583,7 +662,7 @@ msgstr ""
 "`regexec.c`、`check_node_accept_bytes` と "
 "`transit_state`）が、初期化していない値を読んでいます。ripgsed は、その文字だけを尋ねたときのライブラリの答えを返します。"
 
-#: ../../KNOWN-DIFFERENCES.md:57
+#: ../../KNOWN-DIFFERENCES.md:68
 msgid ""
 "Messages are translated by GNU sed when a language pack for the locale is "
 "installed (`LANGUAGE=ja` with `ja_JP` on Ubuntu: `sed: -e expression #1, "
@@ -606,18 +685,18 @@ msgstr ""
 "のコードに由来するものをいっさい取り込まない方針なので（ARCHITECTURE.md "
 "の出所とライセンスを参照）、これは作業の限界ではなく、ライセンスの限界です。"
 
-#: ../../KNOWN-DIFFERENCES.md:59
+#: ../../KNOWN-DIFFERENCES.md:70
 msgid "Reporting the glibc cases upstream"
 msgstr "glibc への報告"
 
-#: ../../KNOWN-DIFFERENCES.md:61
+#: ../../KNOWN-DIFFERENCES.md:72
 msgid ""
 "The back-reference and `\\B` cases above reproduce with plain "
 "`regcomp`/`regexec` (`REG_EXTENDED`), without sed:"
 msgstr ""
 "上の後方参照と `\\B` の例は、sed を使わず素の `regcomp`/`regexec`（`REG_EXTENDED`）でも再現します。"
 
-#: ../../KNOWN-DIFFERENCES.md:69
+#: ../../KNOWN-DIFFERENCES.md:80
 msgid ""
 "Observed with glibc 2.43 (Ubuntu 2.43-2ubuntu2.4). A report to the glibc bug"
 " tracker (component `regex`) should say that POSIX asks for the leftmost-"

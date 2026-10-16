@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ripgsed\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-15 19:06+0900\n"
+"POT-Creation-Date: 2026-10-16 14:50+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: ja <LL@li.org>\n"
@@ -27,10 +27,14 @@ msgstr "互換性の一覧"
 msgid ""
 "Full GNU sed compatibility is the minimum requirement of the project (D4 in "
 "[DECISIONS.md](DECISIONS.md)). The matrix in `compat/sed.tsv` lists what "
-"that means item by item and records how far each item has got."
+"that means item by item and records how far each item has got. The grep mode"
+" has its own matrix, `compat/grep.tsv` (see [GREP.md](GREP.md)), made the "
+"same way from the manual of GNU grep and kept in the same columns."
 msgstr ""
 "GNU sed の完全互換は、このプロジェクトの最低要件です（[DECISIONS.md](DECISIONS.md) の "
-"D4）。`compat/sed.tsv` の一覧は、それが何を意味するかを項目ごとに挙げ、各項目がどこまで進んだかを記録します。"
+"D4）。`compat/sed.tsv` の一覧は、それが何を意味するかを項目ごとに挙げ、各項目がどこまで進んだかを記録します。grep "
+"モードには専用の一覧 `compat/grep.tsv`（[GREP.md](GREP.md) を参照）があり、GNU grep "
+"のマニュアルから同じ方法で作り、同じ列で管理します。"
 
 #: ../../COMPATIBILITY.md:5
 msgid "Where the items come from"
@@ -74,7 +78,7 @@ msgstr "意味"
 
 #: ../../COMPATIBILITY.md
 msgid "`id`"
-msgstr ""
+msgstr "`id`"
 
 #: ../../COMPATIBILITY.md
 msgid "Stable identifier such as `CMD-005`. Never reused."
@@ -82,7 +86,7 @@ msgstr "`CMD-005` のような固定の識別子。再利用しません。"
 
 #: ../../COMPATIBILITY.md
 msgid "`area`"
-msgstr ""
+msgstr "`area`"
 
 #: ../../COMPATIBILITY.md
 msgid "Group of the item (`command`, `option`, `address`, `regex`, ...)."
@@ -90,7 +94,7 @@ msgstr "項目のグループ（`command`、`option`、`address`、`regex` な�
 
 #: ../../COMPATIBILITY.md
 msgid "`item`"
-msgstr ""
+msgstr "`item`"
 
 #: ../../COMPATIBILITY.md
 msgid "The feature or behavior."
@@ -98,7 +102,7 @@ msgstr "機能または挙動。"
 
 #: ../../COMPATIBILITY.md
 msgid "`status`"
-msgstr ""
+msgstr "`status`"
 
 #: ../../COMPATIBILITY.md
 msgid "`unsupported`, `partial`, or `verified`."
@@ -106,7 +110,7 @@ msgstr "`unsupported`、`partial`、`verified` のいずれか。"
 
 #: ../../COMPATIBILITY.md
 msgid "`source`"
-msgstr ""
+msgstr "`source`"
 
 #: ../../COMPATIBILITY.md
 msgid "Manual section the item comes from, or `tests`."
@@ -114,7 +118,7 @@ msgstr "項目の出どころのマニュアルの節、または `tests`。"
 
 #: ../../COMPATIBILITY.md
 msgid "`notes`"
-msgstr ""
+msgstr "`notes`"
 
 #: ../../COMPATIBILITY.md
 msgid "Points that need care, edge cases, or the decision that affects it."

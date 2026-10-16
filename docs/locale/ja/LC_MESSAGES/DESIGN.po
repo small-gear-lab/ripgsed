@@ -234,7 +234,7 @@ msgstr "担当しないこと"
 
 #: ../../DESIGN.md
 msgid "syntax"
-msgstr ""
+msgstr "syntax"
 
 #: ../../DESIGN.md
 msgid "tokenizing, AST, source spans, syntax diagnostics"
@@ -246,7 +246,7 @@ msgstr "実行、ファイル書き込み"
 
 #: ../../DESIGN.md
 msgid "regex"
-msgstr ""
+msgstr "regex"
 
 #: ../../DESIGN.md
 msgid "per-dialect compilation and matching"
@@ -258,7 +258,7 @@ msgstr "エンジン間の黙示的な意味変更"
 
 #: ../../DESIGN.md
 msgid "analysis"
-msgstr ""
+msgstr "analysis"
 
 #: ../../DESIGN.md
 msgid "state, I/O, and control-flow dependency facts"
@@ -270,7 +270,7 @@ msgstr "解析不能なコードを安全と認定すること"
 
 #: ../../DESIGN.md
 msgid "plan"
-msgstr ""
+msgstr "plan"
 
 #: ../../DESIGN.md
 msgid "choosing an execution strategy, recording why"
@@ -282,7 +282,7 @@ msgstr "VM の意味論の再定義"
 
 #: ../../DESIGN.md
 msgid "runtime"
-msgstr ""
+msgstr "runtime"
 
 #: ../../DESIGN.md
 msgid "cycle, pattern/hold space, command evaluation"
@@ -294,7 +294,7 @@ msgstr "CLI 引数の解釈"
 
 #: ../../DESIGN.md
 msgid "io"
-msgstr ""
+msgstr "io"
 
 #: ../../DESIGN.md
 msgid "record reading, output, backpressure"
@@ -306,7 +306,7 @@ msgstr "スクリプト構文"
 
 #: ../../DESIGN.md
 msgid "cli"
-msgstr ""
+msgstr "cli"
 
 #: ../../DESIGN.md
 msgid "mode selection, argument validation, exit status"
@@ -318,7 +318,7 @@ msgstr "変換ロジックの別実装"
 
 #: ../../DESIGN.md
 msgid "adapters"
-msgstr ""
+msgstr "adapters"
 
 #: ../../DESIGN.md
 msgid "API and editor bindings"
@@ -517,7 +517,7 @@ msgstr "理由"
 
 #: ../../DESIGN.md
 msgid "`s/old/new/g`"
-msgstr ""
+msgstr "`s/old/new/g`"
 
 #: ../../DESIGN.md
 msgid "parallel candidate"
@@ -529,7 +529,7 @@ msgstr "レコード内で完結する部分集合"
 
 #: ../../DESIGN.md
 msgid "`1h; 2,$G`"
-msgstr ""
+msgstr "`1h; 2,$G`"
 
 #: ../../DESIGN.md
 msgid "sequential"
@@ -541,7 +541,7 @@ msgstr "hold space が行をまたぐ"
 
 #: ../../DESIGN.md
 msgid "`N; P; D`"
-msgstr ""
+msgstr "`N; P; D`"
 
 #: ../../DESIGN.md
 msgid "reads and cycles cross records"
@@ -561,7 +561,7 @@ msgstr "開始・終端の状態が継続する"
 
 #: ../../DESIGN.md
 msgid "`q` / `Q`"
-msgstr ""
+msgstr "`q` / `Q`"
 
 #: ../../DESIGN.md
 msgid "early exit and observable extent"
@@ -569,7 +569,7 @@ msgstr "早期終了と観測範囲"
 
 #: ../../DESIGN.md
 msgid "`r` / `w` / `e`"
-msgstr ""
+msgstr "`r` / `w` / `e`"
 
 #: ../../DESIGN.md
 msgid "sequential or rejected"
@@ -672,15 +672,15 @@ msgstr "オプション"
 
 #: ../../DESIGN.md
 msgid "sed"
-msgstr ""
+msgstr "sed"
 
 #: ../../DESIGN.md
 msgid "grep"
-msgstr ""
+msgstr "grep"
 
 #: ../../DESIGN.md
 msgid "`-n`"
-msgstr ""
+msgstr "`-n`"
 
 #: ../../DESIGN.md
 msgid "suppress auto-print"
@@ -692,7 +692,7 @@ msgstr "行番号"
 
 #: ../../DESIGN.md
 msgid "`-i`"
-msgstr ""
+msgstr "`-i`"
 
 #: ../../DESIGN.md
 msgid "edit in place"
@@ -704,7 +704,7 @@ msgstr "大文字小文字を無視"
 
 #: ../../DESIGN.md
 msgid "`-r`"
-msgstr ""
+msgstr "`-r`"
 
 #: ../../DESIGN.md
 msgid "GNU sed alias for ERE"
@@ -716,7 +716,7 @@ msgstr "再帰検索"
 
 #: ../../DESIGN.md
 msgid "`-e`"
-msgstr ""
+msgstr "`-e`"
 
 #: ../../DESIGN.md
 msgid "script"
@@ -728,7 +728,7 @@ msgstr "パターン"
 
 #: ../../DESIGN.md
 msgid "`-f`"
-msgstr ""
+msgstr "`-f`"
 
 #: ../../DESIGN.md
 msgid "script file"
@@ -740,11 +740,11 @@ msgstr "パターンファイル"
 
 #: ../../DESIGN.md
 msgid "`-E`"
-msgstr ""
+msgstr "`-E`"
 
 #: ../../DESIGN.md
 msgid "ERE"
-msgstr ""
+msgstr "ERE"
 
 #: ../../DESIGN.md:222
 msgid ""
@@ -1178,7 +1178,7 @@ msgstr "必須項目"
 
 #: ../../DESIGN.md
 msgid "workload"
-msgstr ""
+msgstr "処理"
 
 #: ../../DESIGN.md
 msgid "input size, line length, match density, script, seed, input hash"
@@ -1407,7 +1407,7 @@ msgstr "先送りできる範囲"
 
 #: ../../DESIGN.md
 msgid "PCRE2"
-msgstr ""
+msgstr "PCRE2"
 
 #: ../../DESIGN.md
 msgid "opt-in only, after the own engine"
@@ -1415,7 +1415,7 @@ msgstr "自前のエンジンの後に、opt-in のみ"
 
 #: ../../DESIGN.md
 msgid "JIT"
-msgstr ""
+msgstr "JIT"
 
 #: ../../DESIGN.md
 msgid "explain"

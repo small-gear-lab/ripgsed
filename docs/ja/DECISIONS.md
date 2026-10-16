@@ -81,3 +81,17 @@
 - マルチバイト集合の事実のうち、速さを左右するものが 2 つあります。0〜127 のバイトが ASCII 文字かどうか（Shift_JIS は 0x5c と 0x7e を円記号とオーバーラインにします）と、マルチバイト文字のすべてのバイトが 0x80 以上かどうか（EUC-JP、EUC-KR は該当。2 バイト目が ASCII の Shift_JIS、GBK、Big5 は非該当）です。どちらも名前から決めず、起動時に `mbrtowc` で測ります。両方成り立つときは、ASCII バイトがそれだけで 1 文字であることを前提とする DFA とリテラル検索が、UTF-8 と同じ要領で ASCII のテキストの上で動きます（DFA は 0x80 以上のバイトで諦め、シミュレーションが引き継ぎます）。それ以外の集合では必要条件のリテラルだけを使って DFA は使わず、シミュレーションが文字単位で進み、マッチは文字境界から始め、位置の直前の文字は行を前向きに読んで探します（2 バイト目が 1 バイト目に見えることがあるので、後ろ向きには読めません）。
 - GNU sed はマルチバイト集合ではスクリプトを文字単位で読みます（正規表現、`y` の文字列、その周りのテキストで、2 バイト目のバックスラッシュ、括弧、区切り文字は、その文字の一部です）が、`s` の置換文はバイト単位で読みます。どちらも再現します。追加のバイトを要求する先頭バイトはコマンドの区切りにできません（`delimiter character is not a single-byte character`）。集合の文字でないバイトはそのまま残り、`.` や括弧式にはマッチせず、`\U \L` はそこで止まります（不正な UTF-8 バイトと同じです）。
 - 各集合のすべての文字と 2 バイト列を GNU sed 4.9 と比べました（`tools/locale-diff.py`。続けて `tools/locale-fuzz.py` でランダムなパターン）。残る差は docs/KNOWN-DIFFERENCES.md に挙げています。
+
+## D12. The grep mode follows GNU grep 3.x
+
+- The project also behaves like GNU grep: the same output, messages and status for the same command line (D4 and D5 for grep). The mode is chosen by the name the program runs under (`grep`, `egrep`, `fgrep`, `rgrep`) or by a first argument `--grep`. The sed mode is unchanged.
+- The reference is the GNU grep of the machine that records the expected results (`tools/gen-fixtures.sh`), as the sed mode's is its GNU sed (D6). The versions of grep and of PCRE2 are recorded in `tests/reference-grep.json`, and CI follows the latest runner image (`ubuntu-latest`) and compares that record: a runner that brings other versions makes the `fixtures` job fail, and that is a change to look at, not to hide. `tools/ref-grep.sh` unpacks the grep and PCRE2 of another release to see what it changes.
+- The regular expression engine is the same engine (D7), asked to read the syntax of GNU grep (`Syntax::grep`) and, where GNU grep's DFA and the C library's matcher differ, both readings (`Syntax::regex_semantic`). The locale rules are the sed mode's (D11).
+- `-P` is the PCRE2 library of the system, opened with `dlopen`, so the crate has no dependency and no build requirement (D1, D8); the BSD-licensed library is never copied. The sources of GNU grep were not read, as those of GNU sed were not: the behavior was learned by running it, and the code that implements it is written here.
+- GNU grep's behavior that is plainly a bug follows the same rule as GNU sed's (D10): the shorter-match search of `-w -o` that measures from where the search began is reproduced because the fixtures and the random tests show it as the result of GNU grep and nothing in the manual contradicts it.
+
+## D13. The library interface is small
+
+- The public interface is `Script` (sed text, or built with methods), `Edit` with `Address` and `Pattern` (the builder), `Run` (the settings of a run, also with threads), `Outcome` and `Error`. Every other module is `#[doc(hidden)]` and may change in any release.
+- The builder writes sed text and the parser of the command line reads it: there is one parser and one VM, a script made with methods is the script written by hand, and a mistake has the message of GNU sed. A command is an address and an operation, and no address is the address that selects every line.
+- It does not claim to beat plain Rust on a trivial job: one literal replacement is faster with `str::replace`. What it gives is what GNU sed means by a script, checked against GNU sed 4.9, and threads where the script allows them (`docs/GREP.md` and the README give the measured numbers).
