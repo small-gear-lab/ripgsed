@@ -67,6 +67,11 @@ pub fn main(program: &str, args: Vec<Vec<u8>>, kind: Kind) -> i32 {
             return 2;
         }
     };
+    if std::env::var_os("POSIXLY_CORRECT").is_none() {
+        for w in &matcher.warnings {
+            eprintln!("{program}: warning: {w}");
+        }
+    }
     // Nothing can be selected: no line may be (`-m 0`), or `-v` with the one empty pattern, which
     // every line matches. Only `-L` still has something to say.
     let nothing_selected = options.max_count == Some(0)

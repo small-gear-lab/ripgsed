@@ -177,6 +177,16 @@ pub enum Wrap {
 pub struct Syntax {
     /// `grep -w` and `grep -x`.
     pub wrap: Wrap,
+    /// The syntax of GNU grep (`RE_SYNTAX_GREP` and `RE_SYNTAX_EGREP`) instead of the one of GNU
+    /// sed: a repetition operator may start an expression or follow another one, an invalid
+    /// interval or an unmatched `)` of an ERE is literal, and the escapes of sed (`\n`, `\t`, ...)
+    /// do not exist.
+    pub grep: bool,
+    /// With `grep`: read the pattern as the C library's matcher does, which differs from the
+    /// reading of GNU grep's DFA (the one that selects the lines) in a few places: an operator
+    /// after an assertion is skipped, and only the brace of an interval at the start of an
+    /// expression is. The matches of `-o` and `--color` come from this reading.
+    pub regex_semantic: bool,
     /// ERE (`-E`/`-r`) instead of BRE.
     pub extended: bool,
     /// `--posix`: the GNU extensions are restricted.
@@ -270,6 +280,10 @@ pub struct Regex {
     relaxed: Option<Box<Regex>>,
     /// Off to test the DFA against the simulation.
     use_dfa: bool,
+    /// What GNU grep warns about in the pattern (`Syntax::grep`).
+    warnings: Vec<String>,
+    /// `Syntax::regex_semantic`: the pattern read by the C library's matcher, for the matches.
+    regex_alt: Option<Box<Regex>>,
     /// In a locale of the C library, for a pattern with a bracket expression of digit ranges: GNU
     /// sed runs a first matcher that reads those ranges by code point (`[0-9]` holds no `٣`), and
     /// a line it does not match is not matched at all. When it does match, the second matcher
@@ -289,6 +303,8 @@ impl Regex {
     /// the delimiter from `syntax.null_data`.
     pub fn compile_with_delimiter(pattern: &[u8], syntax: &Syntax, delim: u8) -> Result<Regex, CompileError> {
         let parsed = parse::parse(pattern, syntax, delim)?;
+        let warnings = parsed.warnings.clone();
+        let divergent = parsed.divergent;
         let filter = if parsed.digit_sets {
             let exact = parse::parse_filter(pattern, syntax, delim)?;
             Some(Box::new(Regex::from_parsed(exact, syntax, delim, None)?))
@@ -296,6 +312,11 @@ impl Regex {
             None
         };
         let mut re = Regex::from_parsed(parsed, syntax, delim, filter)?;
+        re.warnings = warnings;
+        if syntax.grep && divergent && !syntax.regex_semantic {
+            let alt = Syntax { regex_semantic: true, ..*syntax };
+            re.regex_alt = Some(Box::new(Regex::compile_with_delimiter(pattern, &alt, delim)?));
+        }
         if syntax.glibc_compat && syntax.locale.is_utf8() {
             let mut again = parse::parse(pattern, syntax, delim)?;
             if relax(&mut again.node) {
@@ -310,7 +331,12 @@ impl Regex {
         let prog_has_no_backrefs = !prog.has_backrefs;
         let literals = literal::analyze(&parsed.node, syntax.locale.is_chars(), syntax.locale == Locale::Mb);
         let prog_has_lone_high_byte = prog.units.iter().any(|u| matches!(u, ast::Unit::Byte(set) if (0x80..=0xffu8).any(|b| set.contains(b))));
-        Ok(Regex { prog, syntax: *syntax, delim, literals, scratch: Default::default(), quirk_stars: if syntax.glibc_compat { star_before_not_word_boundary(&parsed.node) } else { 0 }, fixed: if prog_has_no_backrefs { dfa::fixed_groups(&parsed.node, parsed.ngroups) } else { None }, node: parsed.node, dfa: Default::default(), boundaries: Default::default(), tails: syntax.locale == Locale::Mb && (syntax.glibc_compat || prog_has_lone_high_byte), relaxed: None, use_dfa: syntax.locale != Locale::Mb || (crate::locale::ascii_bytes_are_characters() && !syntax.glibc_compat), filter })
+        Ok(Regex { prog, syntax: *syntax, delim, literals, scratch: Default::default(), quirk_stars: if syntax.glibc_compat { star_before_not_word_boundary(&parsed.node) } else { 0 }, fixed: if prog_has_no_backrefs { dfa::fixed_groups(&parsed.node, parsed.ngroups) } else { None }, node: parsed.node, dfa: Default::default(), boundaries: Default::default(), tails: syntax.locale == Locale::Mb && (syntax.glibc_compat || prog_has_lone_high_byte), relaxed: None, warnings: Vec::new(), regex_alt: None, use_dfa: syntax.locale != Locale::Mb || (crate::locale::ascii_bytes_are_characters() && !syntax.glibc_compat), filter })
+    }
+
+    /// What GNU grep warns about in the pattern, in the order it meets it.
+    pub fn warnings(&self) -> &[String] {
+        &self.warnings
     }
 
     /// Number of parenthesized subexpressions.
@@ -325,6 +351,9 @@ impl Regex {
     /// A search from 0 starts a new line: later calls with larger `start` on the same text share
     /// what this one learned about character boundaries (`Mb`).
     pub fn captures_at(&self, haystack: &[u8], start: usize, caps: &mut Captures) -> bool {
+        if let Some(alt) = &self.regex_alt {
+            return alt.captures_at(haystack, start, caps);
+        }
         if self.reads_beyond_unicode(haystack) {
             // GNU sed's first matcher, which does not know the sequences and cannot decide the sets
             // (`relaxed`), must find a match for glibc's matcher to be asked at all (`s/./X/g`

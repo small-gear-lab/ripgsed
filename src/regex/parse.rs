@@ -34,6 +34,11 @@ fn err(msg: &str) -> CompileError {
 
 pub struct Parsed {
     pub node: Node,
+    /// What GNU grep warns about in the pattern (it reads the pattern anyway).
+    pub warnings: Vec<String>,
+    /// GNU grep's DFA and the C library's matcher read the pattern differently (see
+    /// `Syntax::regex_semantic`).
+    pub divergent: bool,
     /// UTF-8 under `I`: matches start only at character boundaries (see
     /// `Program::char_starts`, which adds the multibyte-aware sets).
     pub char_starts: bool,
@@ -76,6 +81,11 @@ fn parse_with(pattern: &[u8], syntax: &Syntax, delim: u8, digit_exact: bool) -> 
         completed: 0,
         referenced: vec![false; 10],
         class_syntax_error: false,
+        grep: syntax.grep,
+        regex_semantic: syntax.regex_semantic,
+        divergent: false,
+        warnings: Vec::new(),
+        literal_paren: None,
     };
     let node = p.parse_alt(0)?;
     if p.pos < p.pat.len() {
@@ -97,7 +107,14 @@ fn parse_with(pattern: &[u8], syntax: &Syntax, delim: u8, digit_exact: bool) -> 
         super::Wrap::Word => Node::Concat(vec![Node::Assert(Assert::NoWordBefore), node, Node::Assert(Assert::NoWordAfter)]),
         super::Wrap::Line => Node::Concat(vec![Node::Assert(Assert::BufStart), node, Node::Assert(Assert::BufEnd)]),
     };
-    Ok(Parsed { node, ngroups: p.ngroups, referenced, char_starts, utf8: p.utf8, digit_sets: p.digit_sets })
+    Ok(Parsed { node, divergent: p.divergent, warnings: p.warnings, ngroups: p.ngroups, referenced, char_starts, utf8: p.utf8, digit_sets: p.digit_sets })
+}
+
+/// How an interval is read (see `classify_interval`).
+enum Interval {
+    Valid,
+    Literal,
+    Error(&'static str),
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -145,6 +162,14 @@ struct Parser<'a> {
     completed: u32,
     referenced: Vec<bool>,
     class_syntax_error: bool,
+    /// The syntax of GNU grep (see `Syntax::grep`).
+    grep: bool,
+    regex_semantic: bool,
+    divergent: bool,
+    warnings: Vec<String>,
+    /// GNU grep's ERE: the `)` at this position is a character, because it follows an operator
+    /// that the C library skipped (RE_UNMATCHED_RIGHT_PAREN_ORD), and so does not close a group.
+    literal_paren: Option<usize>,
 }
 
 impl<'a> Parser<'a> {
@@ -166,6 +191,9 @@ impl<'a> Parser<'a> {
     }
 
     fn peek_close(&self) -> bool {
+        if self.literal_paren == Some(self.pos) {
+            return false;
+        }
         if self.ere {
             self.at(0) == Some(b')')
         } else {
@@ -203,19 +231,47 @@ impl<'a> Parser<'a> {
             if self.peek_alt() {
                 break;
             }
-            if self.peek_close() && (depth > 0 || self.gnu) {
+            if self.peek_close() && (depth > 0 || (self.gnu && !(self.grep && self.ere))) {
                 break;
             }
             let (node, quantifiable) = self.parse_atom(first)?;
+            let only_assertions = items.iter().all(|i| matches!(i, Node::Assert(_) | Node::Empty));
             first = false;
             let mut node = node;
             if quantifiable {
                 let mut count = 0;
                 while let Some((q, len)) = self.peek_quant() {
-                    if !self.ere && count > 0 && matches!(q, Quant::Star | Quant::Brace) {
+                    if self.grep && self.ere && q == Quant::Brace {
+                        match self.classify_interval(len) {
+                            Interval::Valid => {}
+                            // An invalid interval of an ERE is read as characters.
+                            Interval::Literal => break,
+                            // (After an assertion the interval is not read by the C library.)
+                            Interval::Error(_) if matches!(node, Node::Assert(_)) => break,
+                            Interval::Error(e) => return Err(err(e)),
+                        }
+                    }
+                    if !self.ere && !self.grep && count > 0 && matches!(q, Quant::Star | Quant::Brace) {
                         return Err(err(E_BADRPT));
                     }
+                    if self.grep && self.ere && matches!(node, Node::Assert(_)) {
+                        self.divergent = true;
+                    }
+                    if self.grep && self.ere && only_assertions && matches!(node, Node::Assert(_)) {
+                        // `^*`: the operator starts the expression, as far as GNU grep is concerned
+                        // (assertions do not end the start of an expression).
+                        let text = match q {
+                            Quant::Star => "* at start of expression",
+                            Quant::Plus => "+ at start of expression",
+                            Quant::Question => "? at start of expression",
+                            Quant::Brace => "{...} at start of expression",
+                        };
+                        self.warnings.push(text.into());
+                    }
                     self.pos += len;
+                    if self.grep && self.ere && matches!(node, Node::Assert(_)) && self.at(0) == Some(b')') {
+                        self.literal_paren = Some(self.pos);
+                    }
                     let (min, max) = match q {
                         Quant::Star => (0, None),
                         Quant::Plus => (1, None),
@@ -228,8 +284,11 @@ impl<'a> Parser<'a> {
             } else if let Some((q, _)) = self.peek_quant() {
                 // After an anchor or other assertion: ERE rejects every
                 // quantifier; BRE rejects an interval and reads the others
-                // as literals.
-                if self.ere || q == Quant::Brace {
+                // as literals. (GNU grep skips the operator of an ERE with a warning, and
+                // reads the interval of a BRE as characters.)
+                if self.grep {
+                    // (skipped or read as characters when the next atom is parsed)
+                } else if self.ere || q == Quant::Brace {
                     return Err(err(E_BADRPT));
                 }
             }
@@ -261,6 +320,80 @@ impl<'a> Parser<'a> {
                 _ => None,
             }
         }
+    }
+
+    /// How the C library reads the text after the opening brace of an interval of an ERE (`len`
+    /// bytes of the operator are before it): as an interval, as the characters that are written (an
+    /// ERE of GNU grep reads an interval it cannot make sense of that way), or as a mistake.
+    fn classify_interval(&self, len: usize) -> Interval {
+        let rest = &self.pat[(self.pos + len).min(self.pat.len())..];
+        #[derive(PartialEq)]
+        enum End {
+            Close,
+            Comma,
+            End,
+        }
+        // `fetch_number`: digits up to `}` or `,`; anything else makes the number invalid (-2).
+        let fetch = |i: &mut usize| -> (i64, End) {
+            let mut num: i64 = -1;
+            loop {
+                if *i >= rest.len() {
+                    return (-2, End::End);
+                }
+                let c = rest[*i];
+                *i += 1;
+                if c == b'}' {
+                    return (num, End::Close);
+                }
+                if c == b',' {
+                    return (num, End::Comma);
+                }
+                if c == b'\\' && *i < rest.len() {
+                    *i += 1;
+                    num = -2;
+                    continue;
+                }
+                num = if !c.is_ascii_digit() || num == -2 {
+                    -2
+                } else if num == -1 {
+                    i64::from(c - b'0')
+                } else {
+                    (num * 10 + i64::from(c - b'0')).min(i64::from(DUP_MAX) + 1)
+                };
+            }
+        };
+        let mut i = 0;
+        let (mut start, term) = fetch(&mut i);
+        let mut last = term;
+        if start == -1 {
+            if last == End::Comma {
+                start = 0;
+            } else {
+                return Interval::Error(E_BADBR);
+            }
+        }
+        let mut end: i64 = 0;
+        if start != -2 {
+            end = match last {
+                End::Close => start,
+                End::Comma => {
+                    let (e, t) = fetch(&mut i);
+                    last = t;
+                    e
+                }
+                End::End => -2,
+            };
+        }
+        if start == -2 || end == -2 {
+            return Interval::Literal;
+        }
+        if (end != -1 && start > end) || last != End::Close {
+            return Interval::Error(E_BADBR);
+        }
+        if i64::from(DUP_MAX) < (if end == -1 { start } else { end }) {
+            return Interval::Error(E_ESIZE);
+        }
+        Interval::Valid
     }
 
     /// Parses `m`, `m,`, `m,n` or `,n` and the closing brace; the opening
@@ -317,13 +450,48 @@ impl<'a> Parser<'a> {
         let c = self.pat[self.pos];
         if self.ere {
             match c {
+                // (In GNU grep's ERE a repetition operator may follow an anchor: it repeats the anchor.)
                 b'^' => {
                     self.pos += 1;
-                    return Ok((Node::Assert(Assert::LineStart), false));
+                    return Ok((Node::Assert(Assert::LineStart), self.grep && !self.regex_semantic));
                 }
                 b'$' => {
                     self.pos += 1;
-                    return Ok((Node::Assert(Assert::LineEnd), false));
+                    return Ok((Node::Assert(Assert::LineEnd), self.grep && !self.regex_semantic));
+                }
+                b'*' | b'+' | b'?' | b'{' if self.grep => {
+                    // GNU grep warns and goes on as if the operator were not there.
+                    if c == b'{' && self.regex_semantic {
+                        self.pos += 1;
+                        if self.at(0) == Some(b')') {
+                            self.literal_paren = Some(self.pos);
+                        }
+                        return Ok((Node::Empty, false));
+                    }
+                    if c == b'{' {
+                        match self.classify_interval(1) {
+                            Interval::Literal => {
+                                self.pos += 1;
+                                return Ok((self.literal_byte(b'{'), true));
+                            }
+                            Interval::Error(_) => {
+                                self.pos += 1;
+                                return Ok((self.literal_byte(b'{'), true));
+                            }
+                            Interval::Valid => {}
+                        }
+                        self.pos += 1;
+                        self.parse_interval()?;
+                        self.divergent = true;
+                        self.warnings.push("{...} at start of expression".into());
+                    } else {
+                        self.pos += 1;
+                        self.warnings.push(format!("{} at start of expression", c as char));
+                    }
+                    if self.at(0) == Some(b')') {
+                        self.literal_paren = Some(self.pos);
+                    }
+                    return Ok((Node::Empty, false));
                 }
                 b'*' | b'+' | b'?' | b'{' => return Err(err(E_BADRPT)),
                 b'(' => {
@@ -388,6 +556,11 @@ impl<'a> Parser<'a> {
                     self.pos += 2;
                     return self.parse_group();
                 }
+                b'{' if self.grep => {
+                    // Without RE_CONTEXT_INVALID_DUP: the characters `{` and `}`.
+                    self.pos += 2;
+                    return Ok((self.literal_byte(b'{'), true));
+                }
                 b'{' => return Err(err(E_BADRPT)),
                 _ => {}
             }
@@ -413,7 +586,7 @@ impl<'a> Parser<'a> {
             };
             if let Some(a) = assert {
                 self.pos += 2;
-                return Ok((Node::Assert(a), false));
+                return Ok((Node::Assert(a), self.grep && self.ere && !self.regex_semantic));
             }
             let class = match e {
                 b'w' => Some((false, true)),
@@ -427,8 +600,8 @@ impl<'a> Parser<'a> {
                 return Ok((Node::Unit(self.shorthand(negated, word)), true));
             }
         }
-        // Escapes that GNU sed converts before compiling; accepted here too.
-        let simple = match e {
+        // Escapes that GNU sed converts before compiling; accepted here too (GNU grep has none).
+        let simple = if self.grep { None } else { match e {
             b'n' => Some(b'\n'),
             b't' => Some(b'\t'),
             b'a' => Some(0x07),
@@ -436,12 +609,12 @@ impl<'a> Parser<'a> {
             b'v' => Some(0x0b),
             b'r' => Some(b'\r'),
             _ => None,
-        };
+        } };
         if let Some(b) = simple {
             self.pos += 2;
             return Ok((self.literal_byte(b), true));
         }
-        if matches!(e, b'd' | b'o' | b'x') {
+        if !self.grep && matches!(e, b'd' | b'o' | b'x') {
             let (radix, max) = match e {
                 b'd' => (10, 3),
                 b'o' => (8, 3),
@@ -461,7 +634,7 @@ impl<'a> Parser<'a> {
                 return Ok((self.literal_byte((value & 0xff) as u8), true));
             }
         }
-        if e == b'c' {
+        if e == b'c' && !self.grep {
             if let Some(x) = self.at(2) {
                 self.pos += 3;
                 return Ok((self.literal_byte(x.to_ascii_uppercase() ^ 0x40), true));

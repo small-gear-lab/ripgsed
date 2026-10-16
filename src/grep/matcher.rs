@@ -9,6 +9,8 @@ pub struct PatternError(pub String);
 pub struct Matcher {
     /// One regular expression for each pattern. Empty: nothing matches (`-f /dev/null`).
     regexes: Vec<Regex>,
+    /// What GNU grep warns about in the patterns.
+    pub warnings: Vec<String>,
 }
 
 /// A literal as a basic regular expression: every character that has a meaning is escaped.
@@ -39,17 +41,23 @@ impl Matcher {
             null_data: options.null_data,
             locale,
             wrap,
+            grep: true,
+            regex_semantic: false,
             ..Syntax::default()
         };
         let mut regexes = Vec::new();
+        let mut warnings: Vec<String> = Vec::new();
         for pattern in &options.patterns {
             let text = if options.kind == Kind::Fixed { escape_fixed(pattern) } else { pattern.clone() };
             match Regex::compile(&text, &syntax) {
-                Ok(re) => regexes.push(re),
+                Ok(re) => {
+                    warnings.extend(re.warnings().iter().cloned());
+                    regexes.push(re);
+                }
                 Err(e) => return Err(PatternError(e.message)),
             }
         }
-        Ok(Matcher { regexes })
+        Ok(Matcher { regexes, warnings })
     }
 
     /// Whether the line (without its terminator) has a match.
