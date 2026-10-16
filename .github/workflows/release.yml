@@ -1,0 +1,42 @@
+name: release
+
+# Publishes the crate to crates.io when a tag `vX.Y.Z` is pushed, with a short-lived token that
+# crates.io gives to this workflow (Trusted Publishing: no token is stored in the repository).
+# On crates.io, the crate has this repository, this workflow file and the environment `release`
+# set as its trusted publisher (crates.io/crates/ripgsed/settings).
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: write   # the GitHub release
+      id-token: write   # the token of crates.io
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: The tag must be on main and name the version of the crate
+        run: |
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main
+          version=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | sed -n '1p')
+          test "v$version" = "$GITHUB_REF_NAME"
+      - name: Toolchain
+        run: rustup toolchain install 1.85 --profile minimal && rustup default 1.85
+      - uses: rust-lang/crates-io-auth-action@v1
+        id: auth
+      - name: Publish
+        run: cargo publish
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
+      - name: GitHub release
+        run: gh release create "$GITHUB_REF_NAME" --verify-tag --generate-notes --title "ripgsed ${GITHUB_REF_NAME#v}"
+        env:
+          GH_TOKEN: ${{ github.token }}
