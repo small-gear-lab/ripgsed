@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ripgsed\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-16 14:50+0900\n"
+"POT-Creation-Date: 2026-10-16 16:45+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: ja <LL@li.org>\n"
@@ -31,9 +31,10 @@ msgstr "sed の言語を保ちつつ、構文・意味論・実行方式を分�
 
 #: ../../index.md:5
 msgid ""
-"**Status: compatible with GNU sed 4.9 and GNU grep (3.x), as a library and "
-"as a command.**"
-msgstr "**状態: GNU sed 4.9 と GNU grep（3.x）に互換。ライブラリとしても、コマンドとしても使えます。**"
+"**Status: experimental (0.1); compatible with GNU sed 4.9 and GNU grep "
+"(3.x), as a library and as a command.**"
+msgstr ""
+"**状態: 実験的（0.1）。GNU sed 4.9 と GNU grep（3.x）に互換。ライブラリとしても、コマンドとしても使えます。**"
 
 #~ msgid "**Status: early design stage. Nothing is implemented yet.**"
 #~ msgstr "**状態：初期の設計段階。まだ何も実装されていません。**"
