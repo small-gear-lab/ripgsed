@@ -126,7 +126,8 @@ fn run_fixture(dir: &Path, scratch: &Path) -> Result<Outcome, String> {
     cmd.arg(dir.join("cmd"))
         .current_dir(&cwd)
         .env_clear()
-        .env("PATH", format!("{}:/usr/bin:/bin", bin.display()))
+        // RIPGSED_EXTRA_PATH: where the GNU tools are, on a system whose tools are not (macOS with Homebrew).
+        .env("PATH", format!("{}:{}/usr/bin:/bin", bin.display(), std::env::var("RIPGSED_EXTRA_PATH").map(|p| p + ":").unwrap_or_default()))
         .env("HOME", "/nonexistent")
         .env("LC_ALL", "C")
         // The fixtures hold GNU sed's results, glibc's quirks included.

@@ -2,7 +2,7 @@ name: ci
 
 on:
   push:
-    branches: [main]
+    branches: [main, "research/**"]
   pull_request:
 
 permissions:
@@ -42,12 +42,16 @@ jobs:
           sparse-checkout-cone-mode: false
       - name: Toolchain
         run: rustup toolchain install 1.85 --profile minimal && rustup default 1.85
+      # The commands of the fixtures use the tools of GNU (od, tr, sort, mktemp ...), not those of BSD.
+      - name: GNU tools
+        run: brew install coreutils findutils gawk diffutils grep
       - run: cargo build
       - run: cargo test --lib --test cli --test public_api
       # The fixtures hold the results of GNU sed and GNU grep, and their commands use GNU tools.
       - name: Fixtures (what passes here is what is shown)
         continue-on-error: true
         run: |
+          export RIPGSED_EXTRA_PATH="$(brew --prefix)/opt/coreutils/libexec/gnubin:$(brew --prefix)/opt/findutils/libexec/gnubin:$(brew --prefix)/opt/gawk/libexec/gnubin:$(brew --prefix)/opt/diffutils/libexec/gnubin:$(brew --prefix)/opt/grep/libexec/gnubin"
           RIPGSED_SHOW_FAILURES=1 cargo test --test differential fixtures_match -- --nocapture > fixtures.log 2>&1 || true
           sed -n '/^fixtures: /p' fixtures.log
           echo "--- the names of the fixtures that fail:"
