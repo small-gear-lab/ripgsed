@@ -10,7 +10,12 @@ permissions:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    # The second one is Linux on ARM (aarch64): the NEON code of src/search.rs and everything else, with GNU sed and glibc.
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.os }}
     env:
       # The debug build is slow: one fixture starts sed about 240 times.
       RIPGSED_FIXTURE_TIMEOUT: "120"

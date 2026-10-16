@@ -1,12 +1,19 @@
 //! Byte search primitives: `memchr`, `memrchr`, `count`, and `memmem`.
 //!
 //! Written for this project (no dependency, D8). On x86_64 they use SSE2, which every x86_64
-//! CPU has, and AVX2 when the CPU reports it; elsewhere, and for short inputs, a portable
-//! scalar loop. The results are always those of the obvious scalar definitions, which the
+//! CPU has, and AVX2 when the CPU reports it; on aarch64 (Apple Silicon, Linux on ARM) they use
+//! NEON, which every aarch64 CPU has; elsewhere, and for short inputs, a portable scalar loop. The results are always those of the obvious scalar definitions, which the
 //! tests check against random inputs around every vector width.
 
 /// The index of the first `needle` in `hay`.
 pub fn memchr(needle: u8, hay: &[u8]) -> Option<usize> {
+    #[cfg(target_arch = "aarch64")]
+    {
+        if hay.len() >= 16 {
+            // SAFETY: NEON is part of the aarch64 baseline.
+            return unsafe { arm::memchr_neon(needle, hay) };
+        }
+    }
     #[cfg(target_arch = "x86_64")]
     {
         if hay.len() >= 16 {
@@ -21,6 +28,13 @@ pub fn memchr(needle: u8, hay: &[u8]) -> Option<usize> {
 
 /// The index of the last `needle` in `hay`.
 pub fn memrchr(needle: u8, hay: &[u8]) -> Option<usize> {
+    #[cfg(target_arch = "aarch64")]
+    {
+        if hay.len() >= 16 {
+            // SAFETY: NEON is part of the aarch64 baseline.
+            return unsafe { arm::memrchr_neon(needle, hay) };
+        }
+    }
     #[cfg(target_arch = "x86_64")]
     {
         if hay.len() >= 16 {
@@ -33,6 +47,13 @@ pub fn memrchr(needle: u8, hay: &[u8]) -> Option<usize> {
 
 /// The number of `needle` bytes in `hay`.
 pub fn count(needle: u8, hay: &[u8]) -> usize {
+    #[cfg(target_arch = "aarch64")]
+    {
+        if hay.len() >= 16 {
+            // SAFETY: NEON is part of the aarch64 baseline.
+            return unsafe { arm::count_neon(needle, hay) };
+        }
+    }
     #[cfg(target_arch = "x86_64")]
     {
         if hay.len() >= 16 {
@@ -131,6 +152,13 @@ impl Finder {
 }
 
 fn memmem_with(hay: &[u8], needle: &[u8], i1: usize, i2: usize) -> Option<usize> {
+    #[cfg(target_arch = "aarch64")]
+    {
+        if hay.len() >= needle.len() + 16 {
+            // SAFETY: NEON is part of the aarch64 baseline.
+            return unsafe { arm::memmem_neon(hay, needle, i1, i2) };
+        }
+    }
     #[cfg(target_arch = "x86_64")]
     {
         if hay.len() >= needle.len() + 16 {
@@ -386,6 +414,122 @@ mod x86 {
                     m &= m - 1;
                 }
                 j += 32;
+            }
+            memmem_scalar(hay, needle, j)
+        }
+    }
+}
+
+#[cfg(target_arch = "aarch64")]
+mod arm {
+    use super::memmem_scalar;
+    use std::arch::aarch64::*;
+
+    /// The comparison result of 16 bytes (each 0x00 or 0xFF) as 4 bits per byte in a `u64`: byte `k`
+    /// is bits `4k..4k+4`. NEON has no `movemask`; narrowing by 4 bits is the usual way.
+    #[inline]
+    #[target_feature(enable = "neon")]
+    unsafe fn mask(cmp: uint8x16_t) -> u64 {
+        unsafe { vget_lane_u64::<0>(vreinterpret_u64_u8(vshrn_n_u16::<4>(vreinterpretq_u16_u8(cmp)))) }
+    }
+
+    #[target_feature(enable = "neon")]
+    pub unsafe fn memchr_neon(needle: u8, hay: &[u8]) -> Option<usize> {
+        unsafe {
+            let n = vdupq_n_u8(needle);
+            let p = hay.as_ptr();
+            let len = hay.len();
+            let mut i = 0;
+            while i + 16 <= len {
+                let m = mask(vceqq_u8(vld1q_u8(p.add(i)), n));
+                if m != 0 {
+                    return Some(i + (m.trailing_zeros() / 4) as usize);
+                }
+                i += 16;
+            }
+            if i < len {
+                // The last, overlapping block: bytes before `i` held no match, so the first hit is right.
+                let start = len - 16;
+                let m = mask(vceqq_u8(vld1q_u8(p.add(start)), n));
+                if m != 0 {
+                    return Some(start + (m.trailing_zeros() / 4) as usize);
+                }
+            }
+            None
+        }
+    }
+
+    #[target_feature(enable = "neon")]
+    pub unsafe fn memrchr_neon(needle: u8, hay: &[u8]) -> Option<usize> {
+        unsafe {
+            let n = vdupq_n_u8(needle);
+            let p = hay.as_ptr();
+            let mut end = hay.len();
+            while end >= 16 {
+                let start = end - 16;
+                let m = mask(vceqq_u8(vld1q_u8(p.add(start)), n));
+                if m != 0 {
+                    return Some(start + 15 - (m.leading_zeros() / 4) as usize);
+                }
+                end = start;
+            }
+            // The first `end` (< 16) bytes: one overlapping block at the start.
+            if end > 0 {
+                let m = mask(vceqq_u8(vld1q_u8(p), n)) & ((1u64 << (4 * end)) - 1);
+                if m != 0 {
+                    return Some(15 - (m.leading_zeros() / 4) as usize);
+                }
+            }
+            None
+        }
+    }
+
+    #[target_feature(enable = "neon")]
+    pub unsafe fn count_neon(needle: u8, hay: &[u8]) -> usize {
+        unsafe {
+            let n = vdupq_n_u8(needle);
+            let p = hay.as_ptr();
+            let len = hay.len();
+            let mut total = 0usize;
+            let mut i = 0;
+            // Each byte lane counts up to 255 blocks before it is summed.
+            while i + 16 <= len {
+                let mut acc = vdupq_n_u8(0);
+                let mut blocks = 0;
+                while i + 16 <= len && blocks < 255 {
+                    acc = vsubq_u8(acc, vceqq_u8(vld1q_u8(p.add(i)), n));
+                    i += 16;
+                    blocks += 1;
+                }
+                total += vaddlvq_u8(acc) as usize;
+            }
+            total + hay[i..].iter().filter(|&&b| b == needle).count()
+        }
+    }
+
+    #[target_feature(enable = "neon")]
+    pub unsafe fn memmem_neon(hay: &[u8], needle: &[u8], i1: usize, i2: usize) -> Option<usize> {
+        unsafe {
+            let n = needle.len();
+            let v1 = vdupq_n_u8(needle[i1]);
+            let v2 = vdupq_n_u8(needle[i2]);
+            let p = hay.as_ptr();
+            let last_start = hay.len() - n;
+            let mut j = 0;
+            // A block covers candidate starts j..j+16; its loads end at j + max(i1, i2) + 16.
+            while j + 16 <= last_start + 1 {
+                let a = vld1q_u8(p.add(j + i1));
+                let b = vld1q_u8(p.add(j + i2));
+                // One bit per byte (the lowest of its four), so that `m &= m - 1` steps over a candidate.
+                let mut m = mask(vandq_u8(vceqq_u8(a, v1), vceqq_u8(b, v2))) & 0x1111_1111_1111_1111;
+                while m != 0 {
+                    let k = (m.trailing_zeros() / 4) as usize;
+                    if &hay[j + k..j + k + n] == needle {
+                        return Some(j + k);
+                    }
+                    m &= m - 1;
+                }
+                j += 16;
             }
             memmem_scalar(hay, needle, j)
         }
