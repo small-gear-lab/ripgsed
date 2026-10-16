@@ -13,6 +13,8 @@
 //!
 //! Environment:
 //! - `RIPGSED_FIXTURES=name1,name2` runs only the named fixtures.
+//! - `RIPGSED_BIN=/path/to/sed` runs the fixtures with another program as `sed` (to see how another
+//!   implementation of sed does against the results of GNU sed 4.9; the grep fixtures need `RIPGSED_SKIP=grep-,pcre-`).
 //! - `RIPGSED_SKIP=prefix1,name2` leaves out the fixtures whose name starts with one of these (for a
 //!   system where they do not apply: the locales of glibc, `/dev/full`, `/proc`).
 //! - `RIPGSED_SHOW_PENDING=1` also lists pending fixtures that already pass.
@@ -118,10 +120,11 @@ fn run_fixture(dir: &Path, scratch: &Path) -> Result<Outcome, String> {
         copy_tree(&dir.join("files"), &cwd);
     }
     // Run as plain `sed` so that messages carry the same `sed:` prefix as GNU sed.
-    symlink(env!("CARGO_BIN_EXE_ripgsed"), bin.join("sed")).unwrap();
+    let program = std::env::var("RIPGSED_BIN").unwrap_or_else(|_| env!("CARGO_BIN_EXE_ripgsed").to_string());
+    symlink(&program, bin.join("sed")).unwrap();
     // The grep mode is chosen by the name the program runs under, and its messages carry it.
     for name in ["grep", "egrep", "fgrep"] {
-        symlink(env!("CARGO_BIN_EXE_ripgsed"), bin.join(name)).unwrap();
+        symlink(&program, bin.join(name)).unwrap();
     }
 
     let mut cmd = Command::new("sh");
