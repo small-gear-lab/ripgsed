@@ -30,7 +30,7 @@ jobs:
           test "v$version" = "$GITHUB_REF_NAME"
       - name: Toolchain
         run: rustup toolchain install 1.85 --profile minimal && rustup default 1.85
-      - uses: rust-lang/crates-io-auth-action@v1
+      - uses: rust-lang/crates-io-auth-action@v1.0.5
         id: auth
       - name: Publish
         run: cargo publish
