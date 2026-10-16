@@ -118,6 +118,126 @@ pub enum Kind {
     Version,
 }
 
+/// What a command depends on or changes besides the record it runs on. A script is
+/// record-local (and can run on chunks in parallel) when every command reaches only its record.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Reach {
+    /// Only the record the command runs on.
+    Record,
+    /// Records before or after it, or the end of the input: the construct is named.
+    OtherRecords(&'static str),
+    HoldSpace,
+    /// Ends the run early.
+    EndOfRun(&'static str),
+    /// Something outside the output stream: files, other processes.
+    Outside(&'static str),
+}
+
+impl Reach {
+    /// The construct that makes the command not record-local, if it does.
+    pub fn construct(self) -> Option<&'static str> {
+        match self {
+            Reach::Record => None,
+            Reach::HoldSpace => Some("the hold space"),
+            Reach::OtherRecords(name) | Reach::EndOfRun(name) | Reach::Outside(name) => Some(name),
+        }
+    }
+}
+
+impl Selector {
+    pub fn reach(&self) -> Reach {
+        match self {
+            Selector::All => Reach::Record,
+            Selector::Single(a) => a.reach(),
+            Selector::Range(..) => Reach::OtherRecords("an address range"),
+        }
+    }
+}
+
+impl Addr {
+    pub fn reach(&self) -> Reach {
+        match self {
+            // A single address 0 is rejected by the parser, so `Line(0)` only starts a range.
+            Addr::Line(_) | Addr::Step { .. } | Addr::Null => Reach::Record,
+            // `$` needs to know where the whole input ends.
+            Addr::Last => Reach::OtherRecords("$"),
+            // An empty regexp reuses the one used last, on an earlier record.
+            Addr::Regex(p) if p.regex.is_none() => Reach::OtherRecords("an empty regexp"),
+            Addr::Regex(_) => Reach::Record,
+        }
+    }
+}
+
+impl Command {
+    /// The wider of what the address and the operation reach.
+    pub fn reach(&self) -> Reach {
+        match self.selector.reach() {
+            Reach::Record => self.kind.reach(),
+            other => other,
+        }
+    }
+}
+
+impl Kind {
+    pub fn reach(&self) -> Reach {
+        match self {
+            Kind::BlockStart(_)
+            | Kind::BlockEnd
+            | Kind::Label(_)
+            | Kind::Branch { .. }
+            | Kind::Append(_)
+            | Kind::Insert(_)
+            | Kind::Change(_)
+            | Kind::Delete
+            | Kind::Print
+            | Kind::PrintFirst
+            | Kind::Zap
+            | Kind::LineNumber
+            | Kind::List(_)
+            | Kind::Translate(_)
+            | Kind::Version => Reach::Record,
+            Kind::Substitute(sub) => {
+                if sub.pattern.regex.is_none() {
+                    // `s//x/` reuses the regexp last used, which depends on the records before.
+                    Reach::OtherRecords("an empty regexp")
+                } else if sub.write.is_some() {
+                    Reach::Outside("the w flag of s")
+                } else if sub.eval {
+                    Reach::Outside("the e flag of s")
+                } else {
+                    Reach::Record
+                }
+            }
+            Kind::DeleteFirst | Kind::Next | Kind::NextAppend => Reach::OtherRecords("D, n or N"),
+            Kind::Get | Kind::GetAppend | Kind::Hold | Kind::HoldAppend | Kind::Exchange => Reach::HoldSpace,
+            Kind::Quit(_) | Kind::QuitSilent(_) => Reach::EndOfRun("q or Q"),
+            Kind::FileName => Reach::OtherRecords("F"),
+            Kind::ReadFile(_) | Kind::ReadFileNow(_) | Kind::ReadLine(_) | Kind::WriteFile(_) | Kind::WriteFirstLine(_) => {
+                Reach::Outside("a file command")
+            }
+            Kind::Execute(_) => Reach::Outside("e"),
+            Kind::Removed(_) => Reach::Outside("L"),
+        }
+    }
+}
+
+/// What GNU sed says about the addresses of a command letter, or `None` if it accepts them:
+/// `#`, `:` and `}` take none, `q` and `Q` one, and under `--posix` `=`, `a`, `i`, `r` and `l`
+/// one as well (GNU sed lets them take a range). Whether a command takes addresses at all is
+/// decided here, before its arguments are read.
+pub fn address_complaint(letter: u8, selector: &Selector, posix: bool) -> Option<&'static str> {
+    let any = !matches!(selector, Selector::All);
+    let range = matches!(selector, Selector::Range(..));
+    match letter {
+        b'#' if any => Some("comments don't accept any addresses"),
+        b'}' if any => Some("`}' doesn't want any addresses"),
+        b':' if any => Some(": doesn't want any addresses"),
+        b'q' | b'Q' if range => Some("command only uses one address"),
+        b'=' | b'a' | b'i' | b'r' | b'l' if posix && range => Some("command only uses one address"),
+        _ => None,
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BranchWhen {
     Always,
@@ -188,5 +308,53 @@ impl fmt::Display for SyntaxError {
             Location::File { name, line } => write!(f, "file {name} line {line}: {}", self.message),
             Location::Bare => f.write_str(&self.message),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn address_counts_by_command_letter() {
+        let none = Selector::All;
+        let one = Selector::Single(Addr::Line(1));
+        let range = Selector::Range(Addr::Line(1), Addr2::Line(2));
+        // No address is always fine.
+        for letter in *b"#:}qQ=aird{" {
+            assert_eq!(address_complaint(letter, &none, false), None, "{}", letter as char);
+        }
+        // `#`, `:` and `}` take none.
+        for (letter, message) in [(b'#', "comments don't accept any addresses"), (b':', ": doesn't want any addresses"), (b'}', "`}' doesn't want any addresses")] {
+            assert_eq!(address_complaint(letter, &one, false), Some(message));
+        }
+        // `q` and `Q` take one; a range is too many.
+        for letter in *b"qQ" {
+            assert_eq!(address_complaint(letter, &one, false), None);
+            assert_eq!(address_complaint(letter, &range, false), Some("command only uses one address"));
+        }
+        // `=`, `a`, `i`, `r` and `l` take a range, unless `--posix`.
+        for letter in *b"=air" {
+            assert_eq!(address_complaint(letter, &range, false), None);
+            assert_eq!(address_complaint(letter, &range, true), Some("command only uses one address"));
+            assert_eq!(address_complaint(letter, &one, true), None);
+        }
+        assert_eq!(address_complaint(b'd', &range, true), None);
+    }
+
+    #[test]
+    fn reach_of_a_command_is_the_wider_of_its_address_and_operation() {
+        let parse = |text: &str| {
+            let chunk = Chunk { source: ChunkSource::Expression(1), text: text.as_bytes().to_vec() };
+            super::parse(&[(chunk, ParseOptions::default())]).expect("parses")
+        };
+        let reach = |text: &str| parse(text).commands.first().expect("a command").reach();
+        assert_eq!(reach("5p"), Reach::Record);
+        assert_eq!(reach("$p"), Reach::OtherRecords("$"));
+        assert_eq!(reach("1,3d"), Reach::OtherRecords("an address range"));
+        assert_eq!(reach("x"), Reach::HoldSpace);
+        assert_eq!(reach("q"), Reach::EndOfRun("q or Q"));
+        assert_eq!(reach("s/a/b/w out"), Reach::Outside("the w flag of s"));
+        assert_eq!(reach("$d").construct(), Some("$"));
     }
 }

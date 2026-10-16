@@ -6,7 +6,7 @@
 //! is conservative: anything not proven record-local runs sequentially.
 
 use crate::runtime::Options;
-use crate::syntax::{Addr, Command, Kind, Script, Selector};
+use crate::syntax::{Command, Script};
 
 /// Why a script cannot run in parallel.
 #[derive(Debug, PartialEq, Eq)]
@@ -36,60 +36,9 @@ pub fn record_local(script: &Script, options: &Options) -> Result<(), Reason> {
 }
 
 fn command_local(command: &Command) -> Result<(), Reason> {
-    match &command.selector {
-        Selector::All => {}
-        Selector::Single(a) => addr_local(a)?,
-        Selector::Range(..) => return Err(Reason::Construct("an address range")),
-    }
-    match &command.kind {
-        // Everything below acts on the current record only.
-        Kind::BlockStart(_)
-        | Kind::BlockEnd
-        | Kind::Label(_)
-        | Kind::Branch { .. }
-        | Kind::Append(_)
-        | Kind::Insert(_)
-        | Kind::Change(_)
-        | Kind::Delete
-        | Kind::Print
-        | Kind::PrintFirst
-        | Kind::Zap
-        | Kind::LineNumber
-        | Kind::List(_)
-        | Kind::Translate(_)
-        | Kind::Version => Ok(()),
-        Kind::Substitute(sub) => {
-            if sub.pattern.regex.is_none() {
-                // `s//x/` reuses the regexp last used, which depends on the records before.
-                Err(Reason::Construct("an empty regexp"))
-            } else if sub.write.is_some() {
-                Err(Reason::Construct("the w flag of s"))
-            } else if sub.eval {
-                Err(Reason::Construct("the e flag of s"))
-            } else {
-                Ok(())
-            }
-        }
-        Kind::DeleteFirst | Kind::Next | Kind::NextAppend => Err(Reason::Construct("D, n or N")),
-        Kind::Get | Kind::GetAppend | Kind::Hold | Kind::HoldAppend | Kind::Exchange => Err(Reason::Construct("the hold space")),
-        Kind::Quit(_) | Kind::QuitSilent(_) => Err(Reason::Construct("q or Q")),
-        Kind::FileName => Err(Reason::Construct("F")),
-        Kind::ReadFile(_) | Kind::ReadFileNow(_) | Kind::ReadLine(_) | Kind::WriteFile(_) | Kind::WriteFirstLine(_) => {
-            Err(Reason::Construct("a file command"))
-        }
-        Kind::Execute(_) => Err(Reason::Construct("e")),
-        Kind::Removed(_) => Err(Reason::Construct("L")),
-    }
-}
-
-fn addr_local(addr: &Addr) -> Result<(), Reason> {
-    match addr {
-        // A single address 0 is rejected by the parser, so `Line(0)` only starts a range.
-        Addr::Line(_) | Addr::Step { .. } | Addr::Null => Ok(()),
-        // `$` needs to know where the whole input ends.
-        Addr::Last => Err(Reason::Construct("$")),
-        Addr::Regex(p) if p.regex.is_none() => Err(Reason::Construct("an empty regexp")),
-        Addr::Regex(_) => Ok(()),
+    match command.reach().construct() {
+        None => Ok(()),
+        Some(name) => Err(Reason::Construct(name)),
     }
 }
 

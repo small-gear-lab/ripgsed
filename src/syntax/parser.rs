@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 use super::{
-    Addr, Addr2, BranchWhen, CaseConversion, Command, Kind, Location, Pattern, ReplacementPart, Script, Selector,
+    address_complaint, Addr, Addr2, BranchWhen, CaseConversion, Command, Kind, Location, Pattern, ReplacementPart, Script, Selector,
     Substitute, SyntaxError,
 };
 use crate::regex::{Locale, Regex, Syntax};
@@ -523,11 +523,11 @@ impl Parser {
         if self.options().posix && matches!(ch, b'F' | b'e' | b'Q' | b'T' | b'z' | b'v' | b'W' | b'R') {
             return Err(self.error(&format!("unknown command: `{}'", crate::cli::lossless_bytes(&[ch]))));
         }
-        if self.options().posix
-            && matches!(selector, Selector::Range(..))
-            && matches!(ch, b'=' | b'a' | b'i' | b'r' | b'l')
-        {
-            return Err(self.error("command only uses one address"));
+        if ch == b'}' && self.blocks.is_empty() {
+            return Err(self.error("unexpected `}'"));
+        }
+        if let Some(message) = address_complaint(ch, &selector, self.options().posix) {
+            return Err(self.error(message));
         }
         if self.options().sandbox && matches!(ch, b'e' | b'r' | b'R' | b'w' | b'W') {
             return Err(self.error("e/r/w commands disabled in sandbox mode"));
@@ -535,9 +535,6 @@ impl Parser {
 
         let kind = match ch {
             b'#' => {
-                if !matches!(selector, Selector::All) {
-                    return Err(self.error("comments don't accept any addresses"));
-                }
                 while self.peek().is_some_and(|b| b != b'\n') {
                     self.pos += 1;
                 }
@@ -549,12 +546,6 @@ impl Parser {
                 Kind::BlockStart(0)
             }
             b'}' => {
-                if self.blocks.is_empty() {
-                    return Err(self.error("unexpected `}'"));
-                }
-                if !matches!(selector, Selector::All) {
-                    return Err(self.error("`}' doesn't want any addresses"));
-                }
                 let open = self.blocks.pop().expect("blocks is not empty: checked above");
                 self.block_positions.pop();
                 let end = self.script.commands.len();
@@ -565,9 +556,6 @@ impl Parser {
                 Kind::BlockEnd
             }
             b':' => {
-                if !matches!(selector, Selector::All) {
-                    return Err(self.error(": doesn't want any addresses"));
-                }
                 let label = self.read_label();
                 if label.is_empty() {
                     return Err(self.error("\":\" lacks a label"));
@@ -626,9 +614,6 @@ impl Parser {
                 Kind::Removed(width)
             }
             b'q' | b'Q' => {
-                if matches!(selector, Selector::Range(..)) {
-                    return Err(self.error("command only uses one address"));
-                }
                 self.skip_blanks();
                 let code = if !self.options().posix && self.peek().is_some_and(|b| b.is_ascii_digit()) {
                     int_argument(self.read_number())
