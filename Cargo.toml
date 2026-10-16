@@ -10,7 +10,7 @@ readme = "README.md"
 keywords = ["sed", "regex", "text", "stream-editor", "cli"]
 categories = ["command-line-utilities", "text-processing"]
 # The fixtures of the tests are tens of megabytes: they stay in the repository.
-include = ["/src", "/tests/public_api.rs", "/README.md", "/LICENSE-*", "/NOTICE", "/docs/*.md"]
+include = ["/src", "/tests/public_api.rs", "/README.md", "/README.ja.md", "/LICENSE-*", "/NOTICE", "/docs/*.md"]
 authors = ["marie-222 <289302950+marie-222@users.noreply.github.com>"]
 
 [dependencies]

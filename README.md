@@ -1,5 +1,7 @@
 # ripgsed
 
+[日本語](README.ja.md)
+
 A fast GNU sed 4.9 in Rust, as a command and as a library. The same program is also a grep.
 
 > **Status: experimental (0.1).** The aim is a drop-in replacement for GNU sed (and a grep). What is claimed below is what the tests verify. The library interface may change before 1.0, and the program is only tested on Linux.
@@ -69,7 +71,7 @@ It is developed and tested on Linux (Ubuntu). It asks the C library about locale
 - **Checked**: 83 items of [compat/grep.tsv](compat/grep.tsv) are verified by 89 fixtures made with GNU grep 3.11 and PCRE2 10.42 (what the CI runner has). The four things that 3.12 changes are one switch in the source, see [docs/GREP.md](docs/GREP.md). Random patterns and random option combinations agree with GNU grep in all but about one case in five hundred.
 - **Input** is searched as it is read: a pipe as it arrives, and a file larger than memory is fine.
 - **Directory trees** are searched on several threads, with the output in the order of one thread. A tree of 1,000 files (71 MB): `-rc ERROR` in 0.023 s against GNU grep's 0.103 s.
-- **One thread, 57 MB of log lines**, ripgsed against the machine's GNU grep (3.12), as a ratio of the time: a literal 1.0 to 1.2 (`-c` and `-F` the same; `-i` faster, a rare literal 0.7), `-o` 0.7, `-w` 0.4, `\w` in Japanese text 0.2. Slower: an alternation with a repetition about 1.9, a back-reference 2.4. The table and the differences are in [docs/GREP.md](docs/GREP.md).
+- **One thread, 57 MB of log lines**, ripgsed against the machine's GNU grep (3.12), as a ratio of the time (above 1 is slower): a literal 1.0 to 1.2 (`-c` and `-F` the same; `-i` faster, a rare literal 0.7), `-o` 0.7, `-w` 0.4, `\w` in Japanese text 0.2. Slower: an alternation with a repetition about 1.9, a back-reference 2.4. The table and the differences are in [docs/GREP.md](docs/GREP.md).
 - **`-P`** is PCRE2, built with the program.
 
 ## Perl-style patterns: `-P`
