@@ -90,6 +90,48 @@ fn usage_line(program: &str) -> String {
     format!("Usage: {program} [OPTION]... {{script-only-if-no-other-script}} [input-file]...")
 }
 
+/// What `--help` prints, and what a wrong command line prints after its message.
+fn help_text(program: &str) -> String {
+    format!(
+        "{usage}
+
+Options of sed:
+  -n, --quiet, --silent     do not print the pattern space at the end of a cycle
+      --debug               print the script in canonical form and annotate its execution
+  -e, --expression=SCRIPT   add SCRIPT to the commands to run
+  -f, --file=FILE           add the commands in FILE to the commands to run
+      --follow-symlinks     follow symbolic links when editing in place
+  -i[SUFFIX], --in-place[=SUFFIX]
+                            edit files in place (with SUFFIX, keep a backup of each file)
+  -l N, --line-length=N     wrap the output of the `l' command at N characters
+      --posix               turn off the GNU extensions
+  -E, -r, --regexp-extended
+                            read the regular expressions of the script as extended ones
+  -s, --separate            treat the files as separate streams, not as one long stream
+      --sandbox             reject the commands e, r and w
+  -u, --unbuffered          read and write as little at a time as possible
+  -z, --null-data           lines end in a NUL byte, not in a newline
+  -b, --binary              accepted and ignored
+      --help                display this help text and exit
+      --version             display version information and exit
+
+Options that only {program} has:
+  -P, --perl-regexp         read the regular expressions of the script as PCRE2 ones
+      --glibc-compat        also reproduce the quirks of the C library's regular expression
+                            matcher (the environment variable RIPGSED_GLIBC_COMPAT=1 does too)
+      --grep                as the first argument: behave as grep (see `{program} --grep --help')
+
+Without -e, -f or --expression, the first argument that is not an option is the script.
+The other arguments are input files; without any, the standard input is read.
+Scripts that act on one line at a time run on several threads for large files;
+RIPGSED_JOBS=N sets the number of threads (1: one thread).
+
+ripgsed home page: <https://github.com/small-gear-lab/ripgsed>
+",
+        usage = usage_line(program)
+    )
+}
+
 /// How a long option takes its argument.
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Arg {
@@ -274,7 +316,7 @@ fn parse_args(args: Vec<String>, program: &str) -> Result<Result<Invocation, ()>
 
     let usage_error = |message: String| -> i32 {
         eprintln!("{message}");
-        eprintln!("{}", usage_line(program));
+        eprint!("{}", help_text(program));
         EXIT_BAD_USAGE
     };
 
@@ -344,7 +386,7 @@ fn parse_args(args: Vec<String>, program: &str) -> Result<Result<Invocation, ()>
         if state.version {
             println!("{}", version_text(name));
         } else {
-            println!("{}", usage_line(name));
+            print!("{}", help_text(name));
         }
         return Ok(Err(()));
     }
@@ -353,7 +395,7 @@ fn parse_args(args: Vec<String>, program: &str) -> Result<Result<Invocation, ()>
 
     if state.chunks.is_empty() {
         if operands.is_empty() {
-            eprintln!("{}", usage_line(program));
+            eprint!("{}", help_text(program));
             return Err(EXIT_BAD_USAGE);
         }
         state.expressions += 1;

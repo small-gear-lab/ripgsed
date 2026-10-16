@@ -400,6 +400,11 @@ pub fn parse(args: Vec<Vec<u8>>, program: &str, default_kind: Kind) -> Parsed {
                     continue;
                 }
                 let Some(&(_, kind, opt)) = SHORT_OPTIONS.iter().filter(|e| available(e.2)).find(|(l, ..)| *l == c) else {
+                    if super::GNU_GREP_3_12 && c == 'u' {
+                        // GNU grep 3.12 still lists `u` among the short options and no longer handles
+                        // it, so it gives the usage without saying that the option is invalid.
+                        return bad_usage(None, program);
+                    }
                     usage!(format!("{program}: invalid option -- '{c}'"));
                 };
                 let value = match kind {
