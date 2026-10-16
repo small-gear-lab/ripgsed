@@ -1,4 +1,4 @@
-//! `grep -P`: the PCRE2 library of the system, loaded when it is first needed.
+//! `grep -P` and `sed -P`: the PCRE2 library of the system, loaded when it is first needed.
 //!
 //! The crate has no dependencies, and a build must not need the PCRE2 files, so the library is
 //! opened with `dlopen` and the few functions that are used are looked up by name. If it is not
@@ -15,6 +15,7 @@ unsafe extern "C" {
 const RTLD_NOW: c_int = 2;
 
 pub const CASELESS: u32 = 0x0000_0008;
+pub const MULTILINE: u32 = 0x0000_0400;
 pub const DOLLAR_ENDONLY: u32 = 0x0000_0010;
 pub const UCP: u32 = 0x0002_0000;
 pub const UTF: u32 = 0x0008_0000;
@@ -28,6 +29,7 @@ type OvectorPointer = unsafe extern "C" fn(*mut c_void) -> *mut usize;
 type ErrorMessage = unsafe extern "C" fn(c_int, *mut u8, usize) -> c_int;
 type CodeFree = unsafe extern "C" fn(*mut c_void);
 type MatchDataFree = unsafe extern "C" fn(*mut c_void);
+type PatternInfo = unsafe extern "C" fn(*const c_void, u32, *mut c_void) -> c_int;
 type JitCompile = unsafe extern "C" fn(*mut c_void, u32) -> c_int;
 
 struct Lib {
@@ -38,6 +40,7 @@ struct Lib {
     error_message: ErrorMessage,
     code_free: CodeFree,
     match_data_free: MatchDataFree,
+    pattern_info: PatternInfo,
     jit_compile: Option<JitCompile>,
 }
 
@@ -73,6 +76,7 @@ fn load() -> Option<Lib> {
             error_message: std::mem::transmute::<*mut c_void, ErrorMessage>(sym(c"pcre2_get_error_message_8")?),
             code_free: std::mem::transmute::<*mut c_void, CodeFree>(sym(c"pcre2_code_free_8")?),
             match_data_free: std::mem::transmute::<*mut c_void, MatchDataFree>(sym(c"pcre2_match_data_free_8")?),
+            pattern_info: std::mem::transmute::<*mut c_void, PatternInfo>(sym(c"pcre2_pattern_info_8")?),
             jit_compile: jit,
         })
     }
@@ -83,7 +87,18 @@ pub struct Pcre {
     lib: &'static Lib,
     code: *mut c_void,
     data: *mut c_void,
+    groups: usize,
 }
+
+impl std::fmt::Debug for Pcre {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("Pcre")
+    }
+}
+
+/// The value of an offset of a group that took no part in the match.
+const UNSET: usize = usize::MAX;
+const INFO_CAPTURECOUNT: u32 = 4;
 
 impl Pcre {
     /// Compiles `pattern`; the error is the message of the library.
@@ -114,7 +129,32 @@ impl Pcre {
             unsafe { (lib.code_free)(code) };
             return Err("memory exhausted".to_string());
         }
-        Ok(Pcre { lib, code, data })
+        let mut groups: u32 = 0;
+        // SAFETY: `code` is a compiled pattern and the answer for this item is one `u32`.
+        unsafe { (lib.pattern_info)(code, INFO_CAPTURECOUNT, (&mut groups as *mut u32).cast()) };
+        Ok(Pcre { lib, code, data, groups: groups as usize })
+    }
+
+    /// The number of parenthesized groups of the pattern.
+    pub fn group_count(&self) -> usize {
+        self.groups
+    }
+
+    /// Like `find`, with the offsets of every group (`None` for a group that took no part).
+    pub fn captures(&self, subject: &[u8], start: usize, out: &mut Vec<Option<(usize, usize)>>) -> bool {
+        let Some((s, e)) = self.find(subject, start) else {
+            return false;
+        };
+        out.clear();
+        out.push(Some((s, e)));
+        // SAFETY: the match data was made for this pattern, so its vector holds a pair for the
+        // whole match and for each group.
+        let ov = unsafe { (self.lib.ovector_pointer)(self.data) };
+        for g in 1..=self.groups {
+            let (a, b) = unsafe { (*ov.add(2 * g), *ov.add(2 * g + 1)) };
+            out.push((a != UNSET && b != UNSET).then_some((a, b)));
+        }
+        true
     }
 
     /// The first match in `subject` that starts at or after `start`: its start and end.

@@ -34,6 +34,8 @@ pub struct Chunk {
 pub struct ParseOptions {
     /// `-E` / `-r` seen before the chunk being parsed.
     pub extended: bool,
+    /// `-P`: the regular expressions are PCRE2 ones.
+    pub pcre: bool,
     pub posix: bool,
     pub posixly_correct: bool,
     pub sandbox: bool,
@@ -335,9 +337,10 @@ impl Parser {
             grep: false,
             regex_semantic: false,
         };
-        match Regex::compile(&normalize_escapes(text, o.posixly_correct), &syntax) {
+        let compiled = if o.pcre { Regex::compile_pcre(text, &syntax) } else { Regex::compile(&normalize_escapes(text, o.posixly_correct), &syntax) };
+        match compiled {
             Ok(re) => {
-                let source = normalize_escapes_for_debug(text, o.posixly_correct);
+                let source = if o.pcre { text.to_vec() } else { normalize_escapes_for_debug(text, o.posixly_correct) };
                 Ok(Pattern { regex: Some(Rc::new(re)), source, icase, multiline })
             }
             Err(e) if !e.has_location() => Err(SyntaxError {
@@ -391,7 +394,7 @@ impl Parser {
                 }
                 continue;
             }
-            if ch == b'[' && regex {
+            if ch == b'[' && regex && !self.options().pcre {
                 out.push(ch);
                 self.copy_bracket(&mut out, limit)?;
                 continue;

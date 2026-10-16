@@ -159,14 +159,6 @@ pub struct Printer<'a> {
     capture: Option<Vec<Event>>,
 }
 
-/// How the lines of one input are shown.
-struct Mode {
-    /// Lines are not printed (`-c`, `-l`, `-L`, `-q`, or a binary file).
-    quiet: bool,
-    /// Stop at the first selected line.
-    done_on_match: bool,
-}
-
 impl<'a> Printer<'a> {
     pub fn new(options: &'a Options, colors: Colors, locale: Locale, sink: Box<dyn Write + 'a>) -> Printer<'a> {
         Printer {

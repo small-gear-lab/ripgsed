@@ -114,6 +114,7 @@ enum Opt {
     Posix,
     Quiet,
     ExtendedRegexp,
+    PerlRegexp,
     Sandbox,
     Separate,
     Unbuffered,
@@ -132,6 +133,7 @@ const LONG_OPTIONS: &[(&str, Arg, Opt)] = &[
     ("line-length", Arg::Required, Opt::LineLength),
     ("null-data", Arg::No, Opt::NullData),
     ("zero-terminated", Arg::No, Opt::NullData),
+    ("perl-regexp", Arg::No, Opt::PerlRegexp),
     ("posix", Arg::No, Opt::Posix),
     ("quiet", Arg::No, Opt::Quiet),
     ("regexp-extended", Arg::No, Opt::ExtendedRegexp),
@@ -151,6 +153,7 @@ const SHORT_OPTIONS: &[(char, Arg, Opt)] = &[
     ('i', Arg::Optional, Opt::InPlace),
     ('l', Arg::Required, Opt::LineLength),
     ('n', Arg::No, Opt::Quiet),
+    ('P', Arg::No, Opt::PerlRegexp),
     ('r', Arg::No, Opt::ExtendedRegexp),
     ('s', Arg::No, Opt::Separate),
     ('u', Arg::No, Opt::Unbuffered),
@@ -196,7 +199,11 @@ impl State {
             Opt::Binary => {}
             Opt::Debug => self.options.debug = true,
             Opt::Quiet => self.options.quiet = true,
-            Opt::ExtendedRegexp => self.parse_base.extended = true,
+            Opt::ExtendedRegexp => {
+                self.parse_base.extended = true;
+                self.parse_base.pcre = false;
+            }
+            Opt::PerlRegexp => self.parse_base.pcre = true,
             Opt::Separate => self.options.separate = true,
             Opt::NullData => {
                 self.options.separator = 0;

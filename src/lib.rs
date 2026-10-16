@@ -65,6 +65,8 @@ pub mod locale;
 #[doc(hidden)]
 pub mod parallel;
 #[doc(hidden)]
+pub mod pcre;
+#[doc(hidden)]
 pub mod regex;
 #[doc(hidden)]
 pub mod runtime;

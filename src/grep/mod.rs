@@ -6,7 +6,6 @@ mod color;
 mod glob;
 mod matcher;
 mod options;
-mod pcre;
 mod search;
 
 use std::io::{self, Read, Write};

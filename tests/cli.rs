@@ -78,3 +78,63 @@ mod grep_mode {
         assert_eq!((out.as_str(), err.as_str(), status), ("", "", 1));
     }
 }
+
+/// `-P`: the regular expressions of the script are PCRE2 ones (the library of the system).
+mod sed_pcre {
+    use std::io::Write;
+    use std::process::{Command, Stdio};
+
+    const BIN: &str = env!("CARGO_BIN_EXE_ripgsed");
+
+    fn sed(args: &[&str], input: &str) -> (String, String, i32) {
+        let mut child = Command::new(BIN)
+            .args(args)
+            .env("LC_ALL", "C.UTF-8")
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .expect("run ripgsed");
+        child.stdin.take().unwrap().write_all(input.as_bytes()).unwrap();
+        let out = child.wait_with_output().unwrap();
+        (String::from_utf8_lossy(&out.stdout).into_owned(), String::from_utf8_lossy(&out.stderr).into_owned(), out.status.code().unwrap_or(-1))
+    }
+
+    fn have_pcre() -> bool {
+        sed(&["-P", "s/a/b/"], "a\n").2 == 0
+    }
+
+    #[test]
+    fn perl_syntax_in_substitution_and_address() {
+        if !have_pcre() {
+            return;
+        }
+        assert_eq!(sed(&["-P", "s/(\\d+)\\s(?=bar)/<\\1>/"], "foo123 bar\n").0, "foo<123>bar\n");
+        assert_eq!(sed(&["--perl-regexp", "-n", "/^(?i)hello/p"], "abc\nHello\n").0, "Hello\n");
+        assert_eq!(sed(&["--perl-regexp", "s/\\b(\\w)(\\w*)/\\U\\1\\E\\2/g"], "ab cd\n").0, "Ab Cd\n");
+    }
+
+    #[test]
+    fn flags_and_unset_groups() {
+        if !have_pcre() {
+            return;
+        }
+        assert_eq!(sed(&["-P", "s/(x)?c/[\\1]/"], "abc\n").0, "ab[]\n");
+        assert_eq!(sed(&["-P", "N;s/a$/X/M"], "a\nb\n").0, "X\nb\n");
+        assert_eq!(sed(&["-P", "N;s/a$/X/"], "a\nb\n").0, "a\nb\n");
+        assert_eq!(sed(&["-P", "s/é/E/I"], "É\n").0, "E\n");
+    }
+
+    #[test]
+    fn errors_are_reported_like_other_regexp_errors() {
+        if !have_pcre() {
+            return;
+        }
+        let (_, err, status) = sed(&["-P", "s/(/x/"], "a\n");
+        assert_eq!(status, 1);
+        assert!(err.starts_with("ripgsed: -e expression #1, char 6: "), "{err}");
+        let (_, err, status) = sed(&["-P", "s/a/\\2/"], "a\n");
+        assert_eq!(status, 1);
+        assert!(err.contains("invalid reference \\2 on `s' command's RHS"), "{err}");
+    }
+}

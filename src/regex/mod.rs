@@ -292,9 +292,32 @@ pub struct Regex {
     /// a line it does not match is not matched at all. When it does match, the second matcher
     /// (collation, `٣` is in `[0-9]`) decides where. `filter` is the pattern read the first way.
     filter: Option<Box<Regex>>,
+    /// `sed -P`: the pattern is a PCRE2 one and this is what matches; everything above is then an
+    /// empty pattern's.
+    pcre: Option<std::rc::Rc<crate::pcre::Pcre>>,
 }
 
 impl Regex {
+    /// Compiles `pattern` with the PCRE2 library (`sed -P`). The flags come from `syntax`:
+    /// `icase`, `multiline` and a UTF-8 locale.
+    pub fn compile_pcre(pattern: &[u8], syntax: &Syntax) -> Result<Regex, CompileError> {
+        use crate::pcre;
+        let mut flags = 0;
+        if syntax.icase {
+            flags |= pcre::CASELESS;
+        }
+        flags |= if syntax.multiline { pcre::MULTILINE } else { pcre::DOLLAR_ENDONLY };
+        if syntax.locale.is_utf8() {
+            flags |= pcre::UTF | pcre::MATCH_INVALID_UTF | pcre::UCP;
+        }
+        let compiled = pcre::Pcre::new(pattern, flags).map_err(|message| CompileError {
+            message: if message.starts_with("Perl matching not supported") { "the PCRE2 library (libpcre2-8) is not installed".to_string() } else { message },
+        })?;
+        let mut re = Regex::compile(b"", &Syntax { locale: syntax.locale, ..Syntax::default() })?;
+        re.pcre = Some(std::rc::Rc::new(compiled));
+        Ok(re)
+    }
+
     /// Compiles `pattern`. Errors carry GNU's message text.
     pub fn compile(pattern: &[u8], syntax: &Syntax) -> Result<Regex, CompileError> {
         let delim = if syntax.null_data { b'\0' } else { b'\n' };
@@ -337,7 +360,7 @@ impl Regex {
         let prog_has_no_backrefs = !prog.has_backrefs;
         let literals = literal::analyze(&parsed.node, syntax.locale.is_chars(), syntax.locale == Locale::Mb);
         let prog_has_lone_high_byte = prog.units.iter().any(|u| matches!(u, ast::Unit::Byte(set) if (0x80..=0xffu8).any(|b| set.contains(b))));
-        Ok(Regex { prog, syntax: *syntax, delim, literals, scratch: Default::default(), quirk_stars: if syntax.glibc_compat { star_before_not_word_boundary(&parsed.node) } else { 0 }, fixed: if prog_has_no_backrefs { dfa::fixed_groups(&parsed.node, parsed.ngroups) } else { None }, node: parsed.node, dfa: Default::default(), boundaries: Default::default(), tails: syntax.locale == Locale::Mb && (syntax.glibc_compat || prog_has_lone_high_byte), relaxed: None, warnings: Vec::new(), regex_alt: None, regex_selects: false, use_dfa: syntax.locale != Locale::Mb || (crate::locale::ascii_bytes_are_characters() && !syntax.glibc_compat), filter })
+        Ok(Regex { prog, syntax: *syntax, delim, literals, scratch: Default::default(), quirk_stars: if syntax.glibc_compat { star_before_not_word_boundary(&parsed.node) } else { 0 }, fixed: if prog_has_no_backrefs { dfa::fixed_groups(&parsed.node, parsed.ngroups) } else { None }, node: parsed.node, dfa: Default::default(), boundaries: Default::default(), tails: syntax.locale == Locale::Mb && (syntax.glibc_compat || prog_has_lone_high_byte), relaxed: None, warnings: Vec::new(), regex_alt: None, regex_selects: false, use_dfa: syntax.locale != Locale::Mb || (crate::locale::ascii_bytes_are_characters() && !syntax.glibc_compat), filter, pcre: None })
     }
 
     /// What GNU grep warns about in the pattern, in the order it meets it.
@@ -347,6 +370,9 @@ impl Regex {
 
     /// Number of parenthesized subexpressions.
     pub fn group_count(&self) -> usize {
+        if let Some(p) = &self.pcre {
+            return p.group_count();
+        }
         self.prog.ngroups
     }
 
@@ -357,6 +383,9 @@ impl Regex {
     /// A search from 0 starts a new line: later calls with larger `start` on the same text share
     /// what this one learned about character boundaries (`Mb`).
     pub fn captures_at(&self, haystack: &[u8], start: usize, caps: &mut Captures) -> bool {
+        if let Some(p) = &self.pcre {
+            return p.captures(haystack, start, &mut caps.groups);
+        }
         if let Some(alt) = &self.regex_alt {
             return alt.captures_at(haystack, start, caps);
         }
@@ -510,6 +539,9 @@ impl Regex {
     /// the match may meet a newline the match consumes even when the pattern
     /// has groups. Use this for addresses and `captures_at` for `s`.
     pub fn is_match(&self, haystack: &[u8]) -> bool {
+        if let Some(p) = &self.pcre {
+            return p.find(haystack, 0).is_some();
+        }
         if let (Some(alt), true) = (&self.regex_alt, self.regex_selects) {
             return alt.is_match(haystack);
         }

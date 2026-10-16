@@ -261,6 +261,7 @@ impl Run {
     fn parse_options(&self) -> ParseOptions {
         ParseOptions {
             extended: false,
+            pcre: false,
             posix: false,
             posixly_correct: false,
             sandbox: self.sandbox,

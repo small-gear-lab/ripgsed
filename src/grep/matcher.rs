@@ -1,7 +1,7 @@
 //! The patterns of a grep run: what is a match, and where it is.
 
 use super::options::{Kind, Options};
-use super::pcre::{self, Pcre};
+use crate::pcre::{self, Pcre};
 use crate::regex::{Captures, Locale, Regex, Syntax, Wrap};
 
 /// A pattern that does not compile: the message of GNU grep.
