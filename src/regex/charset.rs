@@ -383,9 +383,9 @@ thread_local! {
     static EXT: std::cell::Cell<u8> = const { std::cell::Cell::new(0) };
 }
 
-/// Runs `f` with a reading of sequences beyond Unicode (`--glibc-compat`, UTF-8). Level 1 is what
-/// GNU sed's first matcher does: such a sequence is a character that negated sets, `\W` and `\S`
-/// take and `.` does not. Level 2 is glibc's matcher: `.` takes it too, and an encoded surrogate.
+/// Runs `f` with glibc's reading of sequences beyond Unicode (`--glibc-compat`, UTF-8). Level 1: a
+/// sequence above U+10FFFF is one character that no class holds (`.`, `\\W` and negated sets take it).
+/// Level 2: an encoded surrogate is one character for `.` too.
 pub fn with_ext<R>(level: u8, f: impl FnOnce() -> R) -> R {
     struct Reset(u8);
     impl Drop for Reset {
@@ -427,6 +427,17 @@ fn beyond_unicode(hay: &[u8], pos: usize) -> Option<(char, usize)> {
         cp = (cp << 6) | (b & 0x3f) as u32;
     }
     (cp >= min).then_some((BEYOND_UNICODE, len))
+}
+
+/// `--glibc-compat`, UTF-8: how far a search goes on after an empty match at `pos`: the whole
+/// sequence when a sequence beyond Unicode starts there (glibc reads it as one character), else 1.
+pub fn beyond_len(hay: &[u8], pos: usize) -> usize {
+    if hay.get(pos).is_some_and(|&b| b >= 0xf4) {
+        if let Some((BEYOND_UNICODE, len)) = with_ext(1, || decode_utf8(hay, pos)) {
+            return len;
+        }
+    }
+    1
 }
 
 /// With `with_ext`: the length (3) of an encoded surrogate (`ED A0..BF xx`), which glibc's `.`

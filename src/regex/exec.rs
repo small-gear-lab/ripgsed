@@ -257,10 +257,7 @@ impl<'a> Searcher<'a> {
                     // (At level 2 of `with_ext`: `.` takes an encoded surrogate whole.)
                     return if self.utf8 && !self.mb && exclude.is_none_or(|e| e != b) { surrogate_len(self.hay, pos) } else { None };
                 };
-                // (A sequence beyond Unicode is no character for `.` in GNU sed's first matcher.)
-                if c == super::charset::BEYOND_UNICODE && ext_level() == 1 {
-                    return None;
-                }
+
                 (exclude.is_none_or(|b| c as u32 != b as u32 && c != '\n')).then_some(len)
             }
             Unit::Chars(cs) => {
@@ -1241,6 +1238,10 @@ impl<'s, 'a> Backtracker<'s, 'a> {
         while i < b {
             match (self.s.dec(i), self.s.dec(j)) {
                 (Some((c1, l1)), Some((c2, l2))) => {
+                    // (Two sequences beyond Unicode are one stand-in character each: compare the bytes.)
+                    if c1 == super::charset::BEYOND_UNICODE && hay[i..i + l1] != hay[j..j + l2] && hay[i] >= 0xf4 {
+                        return None;
+                    }
                     if c1 != c2 && self.s.upper(c1) != self.s.upper(c2) {
                         return None;
                     }

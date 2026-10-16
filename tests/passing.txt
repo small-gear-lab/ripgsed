@@ -1215,6 +1215,7 @@ loc-013-single-byte-character-sets
 loc-013-single-byte-classes-and-case
 loc-013-single-byte-ranges-follow-collation
 loc-013-turkish-single-byte-case
+loc-014-first-matcher-and-bracket-then-dot
 loc-014-sequences-beyond-unicode
 opt-001-version-status
 opt-002-help-invalid-option

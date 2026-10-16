@@ -94,7 +94,7 @@
 
 mod ast;
 mod charset;
-pub use charset::{simple_lower, simple_upper};
+pub use charset::{beyond_len, simple_lower, simple_upper};
 mod classes_table;
 mod compile;
 mod dfa;
@@ -251,6 +251,10 @@ pub struct Regex {
     /// `Mb`: a match can end inside a character (a lone byte of 0x80 or more in the pattern, or
     /// `--glibc-compat`), so what is read at a position there stops at the end of that character.
     tails: bool,
+    /// `--glibc-compat`, UTF-8: the pattern as GNU sed's first matcher reads it, with every set it
+    /// cannot decide (a range, a class, a negated set, `\\w`, a back-reference) replaced by any
+    /// bytes (see `reads_beyond_unicode`). `None` when no unit changes.
+    relaxed: Option<Box<Regex>>,
     /// Off to test the DFA against the simulation.
     use_dfa: bool,
     /// In a locale of the C library, for a pattern with a bracket expression of digit ranges: GNU
@@ -278,7 +282,14 @@ impl Regex {
         } else {
             None
         };
-        Regex::from_parsed(parsed, syntax, delim, filter)
+        let mut re = Regex::from_parsed(parsed, syntax, delim, filter)?;
+        if syntax.glibc_compat && syntax.locale.is_utf8() {
+            let mut again = parse::parse(pattern, syntax, delim)?;
+            if relax(&mut again.node) {
+                re.relaxed = Some(Box::new(Regex::from_parsed(again, syntax, delim, None)?));
+            }
+        }
+        Ok(re)
     }
 
     fn from_parsed(parsed: parse::Parsed, syntax: &Syntax, delim: u8, filter: Option<Box<Regex>>) -> Result<Regex, CompileError> {
@@ -286,7 +297,7 @@ impl Regex {
         let prog_has_no_backrefs = !prog.has_backrefs;
         let literals = literal::analyze(&parsed.node, syntax.locale.is_chars(), syntax.locale == Locale::Mb);
         let prog_has_lone_high_byte = prog.units.iter().any(|u| matches!(u, ast::Unit::Byte(set) if (0x80..=0xffu8).any(|b| set.contains(b))));
-        Ok(Regex { prog, syntax: *syntax, delim, literals, scratch: Default::default(), quirk_stars: if syntax.glibc_compat { star_before_not_word_boundary(&parsed.node) } else { 0 }, fixed: if prog_has_no_backrefs { dfa::fixed_groups(&parsed.node, parsed.ngroups) } else { None }, node: parsed.node, dfa: Default::default(), boundaries: Default::default(), tails: syntax.locale == Locale::Mb && (syntax.glibc_compat || prog_has_lone_high_byte), use_dfa: syntax.locale != Locale::Mb || (crate::locale::ascii_bytes_are_characters() && !syntax.glibc_compat), filter })
+        Ok(Regex { prog, syntax: *syntax, delim, literals, scratch: Default::default(), quirk_stars: if syntax.glibc_compat { star_before_not_word_boundary(&parsed.node) } else { 0 }, fixed: if prog_has_no_backrefs { dfa::fixed_groups(&parsed.node, parsed.ngroups) } else { None }, node: parsed.node, dfa: Default::default(), boundaries: Default::default(), tails: syntax.locale == Locale::Mb && (syntax.glibc_compat || prog_has_lone_high_byte), relaxed: None, use_dfa: syntax.locale != Locale::Mb || (crate::locale::ascii_bytes_are_characters() && !syntax.glibc_compat), filter })
     }
 
     /// Number of parenthesized subexpressions.
@@ -302,13 +313,17 @@ impl Regex {
     /// what this one learned about character boundaries (`Mb`).
     pub fn captures_at(&self, haystack: &[u8], start: usize, caps: &mut Captures) -> bool {
         if self.reads_beyond_unicode(haystack) {
-            // GNU sed's first matcher, which does not know the sequences, must find a match for glibc's
-            // matcher to be asked at all (`s/./X/g` leaves a line of such sequences alone).
-            // (It looks at the whole line, also when the search goes on from the middle of it.)
-            if !charset::with_ext(1, || self.captures_at_once(haystack, 0, &mut Captures::default())) {
+            // GNU sed's first matcher, which does not know the sequences and cannot decide the sets
+            // (`relaxed`), must find a match for glibc's matcher to be asked at all (`s/./X/g`
+            // leaves a line of such sequences alone). It looks at the whole line, also when the
+            // search goes on from the middle of it.
+            let first = self.relaxed.as_deref().unwrap_or(self);
+            if !first.captures_at_once(haystack, 0, &mut Captures::default()) {
                 return false;
             }
-            return charset::with_ext(2, || self.captures_at_once(haystack, start, caps));
+            // (glibc takes an encoded surrogate for `.` only in a pattern with no set the first matcher
+            // could not decide.)
+            return charset::with_ext(self.surrogate_level(), || self.captures_at_once(haystack, start, caps));
         }
         self.captures_at_once(haystack, start, caps)
     }
@@ -317,6 +332,12 @@ impl Regex {
     /// character although it is not one (an encoded surrogate, a value above U+10FFFF).
     fn reads_beyond_unicode(&self, haystack: &[u8]) -> bool {
         self.syntax.glibc_compat && self.syntax.locale.is_utf8() && haystack.iter().any(|&b| b == 0xed || b >= 0xf4)
+    }
+
+    /// The level of `charset::with_ext` for glibc's matcher: 2 (surrogates too) when the first matcher
+    /// can decide the whole pattern, 1 otherwise.
+    fn surrogate_level(&self) -> u8 {
+        if self.relaxed.is_none() && surrogate_context(&self.node, true, false) { 2 } else { 1 }
     }
 
     fn captures_at_once(&self, haystack: &[u8], start: usize, caps: &mut Captures) -> bool {
@@ -394,7 +415,8 @@ impl Regex {
     /// has groups. Use this for addresses and `captures_at` for `s`.
     pub fn is_match(&self, haystack: &[u8]) -> bool {
         if self.reads_beyond_unicode(haystack) {
-            return charset::with_ext(1, || self.is_match_once(haystack)) && charset::with_ext(2, || self.is_match_once(haystack));
+            let first = self.relaxed.as_deref().unwrap_or(self);
+            return first.is_match_once(haystack) && charset::with_ext(self.surrogate_level(), || self.is_match_once(haystack));
         }
         self.is_match_once(haystack)
     }
@@ -434,6 +456,54 @@ impl Regex {
             tails: false,
         };
         searcher.exists()
+    }
+}
+
+/// glibc takes an encoded surrogate for `.` only where the pattern is a lone `.` or the `.` is
+/// repeated with no lower or no upper bound (`.`, `.*`, `.\\?`, `.\\+`, `a.*`), not in `a.`,
+/// `.\\{1,2\\}` and the like.
+fn surrogate_context(node: &ast::Node, top: bool, in_star: bool) -> bool {
+    use ast::{Node, Unit};
+    match node {
+        Node::Unit(Unit::Any { .. }) => top || in_star,
+        Node::Concat(items) if items.len() == 1 => surrogate_context(&items[0], top, in_star),
+        Node::Concat(items) => items.iter().all(|n| surrogate_context(n, false, in_star)),
+        Node::Alt(items) => items.iter().all(|n| surrogate_context(n, false, in_star)),
+        Node::Group(_, inner) => surrogate_context(inner, top, in_star),
+        Node::Repeat(inner, min, max) => surrogate_context(inner, false, in_star || *min == 0 || max.is_none()),
+        _ => true,
+    }
+}
+
+/// GNU sed's first matcher cannot decide a set whose members depend on the character set (a range
+/// between different ends, a class, a negated set, `\w`) and a back-reference: it reads each as
+/// any bytes. Replaces them in the tree; whether anything changed.
+fn relax(node: &mut ast::Node) -> bool {
+    use ast::{Node, Unit};
+    let any = || Node::Repeat(Box::new(Node::Unit(Unit::Byte(charset::ByteSet::full()))), 0, None);
+    match node {
+        Node::Unit(Unit::Chars(cs)) => {
+            // (A set of ASCII digits only is decided exactly: `[0-9]`, `[[:digit:]]`.)
+            let digits = !cs.negated && cs.classes.iter().all(|c| *c == charset::Class::Digit) && cs.ranges.iter().all(|&(lo, hi)| lo >= '0' as u32 && hi <= '9' as u32);
+            if (cs.negated || !cs.classes.is_empty() || cs.ranges.iter().any(|&(lo, hi)| lo != hi)) && !digits {
+                *node = any();
+                true
+            } else {
+                false
+            }
+        }
+        Node::Backref(_) => {
+            *node = any();
+            true
+        }
+        // (The word assertions look at the characters around, which it cannot decide either.)
+        Node::Assert(ast::Assert::WordBoundary | ast::Assert::NotWordBoundary | ast::Assert::WordStart | ast::Assert::WordEnd) => {
+            *node = Node::Empty;
+            true
+        }
+        Node::Group(_, inner) | Node::Repeat(inner, _, _) => relax(inner),
+        Node::Concat(items) | Node::Alt(items) => items.iter_mut().fold(false, |changed, n| relax(n) | changed),
+        _ => false,
     }
 }
 
