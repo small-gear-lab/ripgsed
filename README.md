@@ -35,7 +35,7 @@ ln -s "$(command -v ripgsed)" ~/.local/bin/grep   # ... and as a grep (also egre
 
 The program takes its mode from the name it runs under, so the links are all there is to it; `ripgsed --grep ...` is the grep without a link. In a script that has to run the same with any sed, call `ripgsed` by its name.
 
-It is developed and tested on Linux (Ubuntu). It asks the C library about locales, and other systems are untested. Editor integration is not implemented.
+It is developed and tested on Linux (Ubuntu, glibc), where the compatibility with GNU sed 4.9 is verified. On macOS it builds and the tests of the program itself pass (CI), but the compatibility is not verified there, and the locale is `C` or UTF-8 by name. The standard sed of macOS is BSD sed, and GNU sed comes as `gsed` (`brew install gnu-sed`): ripgsed is a faster `gsed`, so link it under that name (`ln -s ~/.cargo/bin/ripgsed ~/.local/bin/gsed`). Editor integration is not implemented.
 
 ## Performance
 

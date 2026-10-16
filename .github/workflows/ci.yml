@@ -33,17 +33,21 @@ jobs:
     runs-on: macos-latest
     continue-on-error: true
     steps:
-      # Without tests/fixtures: some of its file names are not UTF-8, which macOS cannot create.
+      # Without the fixture whose file names are not UTF-8, which macOS cannot create.
       - uses: actions/checkout@v7
         with:
           sparse-checkout: |
             /*
-            !/tests/fixtures/
+            !/tests/fixtures/iof-011-script-argument-not-utf8/
           sparse-checkout-cone-mode: false
       - name: Toolchain
         run: rustup toolchain install 1.85 --profile minimal && rustup default 1.85
       - run: cargo build
       - run: cargo test --lib --test cli --test public_api
+      # The fixtures hold the results of GNU sed and GNU grep, and their commands use GNU tools.
+      - name: Fixtures (what passes here is what is shown)
+        continue-on-error: true
+        run: RIPGSED_SHOW_FAILURES=1 cargo test --test differential fixtures_match -- --nocapture 2>&1 | tail -n 400
 
   fixtures:
     runs-on: ubuntu-latest
