@@ -640,6 +640,8 @@ impl<'a> Parser<'a> {
         let mut code_point_set = true;
         let mut bytes = ByteSet::empty();
         let mut cs = CharSet::default();
+        // A range is written (even `[a-a]`): GNU sed's first matcher takes the set as multibyte-aware.
+        let mut range_written = false;
         let mut first = true;
         loop {
             let Some(c) = self.at(0) else {
@@ -698,6 +700,7 @@ impl<'a> Parser<'a> {
                 if self.at(0) == Some(b'-') && self.at(1).is_some() && self.at(1) != Some(b']') {
                     return Err(err(E_ERANGE));
                 }
+                range_written = true;
                 if self.utf8 {
                     cs.ranges.push((lo, hi));
                 } else {
@@ -744,7 +747,7 @@ impl<'a> Parser<'a> {
                 }
             }
         }
-        cs.mb = negated || !cs.classes.is_empty() || cs.ranges.iter().any(|&(lo, hi)| lo != hi || hi > 0x7f);
+        cs.mb = negated || range_written || !cs.classes.is_empty() || cs.ranges.iter().any(|&(lo, hi)| lo != hi || hi > 0x7f);
         let mut sb_bytes = None;
         if (self.libc || self.sb) && needs_lib && !raw_seen {
             // The library compiles the whole bracket expression, as GNU sed does, and decides

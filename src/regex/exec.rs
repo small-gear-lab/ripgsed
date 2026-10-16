@@ -277,7 +277,15 @@ impl<'a> Searcher<'a> {
                         }
                     }
                 }
-                let hit = if self.mb { cs.matches_seq(c, &self.hay[pos..pos + len]) } else { cs.matches_char(c) };
+                // (A sequence beyond Unicode belongs to no class: a negated set of the library takes it,
+                // whatever the library says of the stand-in character.)
+                let hit = if c == super::charset::BEYOND_UNICODE && self.hay[pos] >= 0xf4 && cs.lib.is_some() {
+                    cs.negated && cs.exclude.is_none_or(|b| b != self.hay[pos])
+                } else if self.mb {
+                    cs.matches_seq(c, &self.hay[pos..pos + len])
+                } else {
+                    cs.matches_char(c)
+                };
                 if hit {
                     return Some(len);
                 }
@@ -409,7 +417,8 @@ impl<'a> Searcher<'a> {
         if self.prog.has_backrefs {
             return self.search(0).is_some();
         }
-        if self.use_dfa {
+        // (With `with_ext` the DFAs do not know a sequence beyond Unicode, see `dfa_span`.)
+        if self.use_dfa && !(ext_level() > 0 && self.hay.iter().any(|&b| b >= 0xed)) {
             let mut slot = self.dfa.borrow_mut();
             if let Some(set) = slot.get(self.prog, self.node, self.utf8, self.mb, self.delim) {
                 if let Ok(found) = set.unanchored.is_match(self.hay) {

@@ -334,10 +334,10 @@ impl Regex {
         self.syntax.glibc_compat && self.syntax.locale.is_utf8() && haystack.iter().any(|&b| b == 0xed || b >= 0xf4)
     }
 
-    /// The level of `charset::with_ext` for glibc's matcher: 2 (surrogates too) when the first matcher
-    /// can decide the whole pattern, 1 otherwise.
+    /// The level of `charset::with_ext` for glibc's matcher: 2 (surrogates too) or 1.
     fn surrogate_level(&self) -> u8 {
-        if self.relaxed.is_none() && surrogate_context(&self.node, true, false) { 2 } else { 1 }
+        // (glibc takes an encoded surrogate for `.` only without such a set, and never under `I`.)
+        if !self.syntax.icase && !has_multibyte_set(&self.node) { 2 } else { 1 }
     }
 
     fn captures_at_once(&self, haystack: &[u8], start: usize, caps: &mut Captures) -> bool {
@@ -347,7 +347,7 @@ impl Regex {
         if start > haystack.len() {
             return false;
         }
-        if self.filter.as_ref().is_some_and(|f| !f.is_match(haystack)) {
+        if self.filter.as_ref().is_some_and(|f| !f.is_match_once(haystack)) {
             return false;
         }
         if let Some(lit) = &self.literals.pure {
@@ -422,7 +422,7 @@ impl Regex {
     }
 
     fn is_match_once(&self, haystack: &[u8]) -> bool {
-        if self.filter.as_ref().is_some_and(|f| !f.is_match(haystack)) {
+        if self.filter.as_ref().is_some_and(|f| !f.is_match_once(haystack)) {
             return false;
         }
         if let Some(lit) = &self.literals.pure {
@@ -459,19 +459,17 @@ impl Regex {
     }
 }
 
-/// glibc takes an encoded surrogate for `.` only where the pattern is a lone `.` or the `.` is
-/// repeated with no lower or no upper bound (`.`, `.*`, `.\\?`, `.\\+`, `a.*`), not in `a.`,
-/// `.\\{1,2\\}` and the like.
-fn surrogate_context(node: &ast::Node, top: bool, in_star: bool) -> bool {
+/// Whether the pattern has a set that GNU sed takes as multibyte-aware (a range written between ends,
+/// a class, a negated set, a non-ASCII character, `\\w`).
+fn has_multibyte_set(node: &ast::Node) -> bool {
     use ast::{Node, Unit};
     match node {
-        Node::Unit(Unit::Any { .. }) => top || in_star,
-        Node::Concat(items) if items.len() == 1 => surrogate_context(&items[0], top, in_star),
-        Node::Concat(items) => items.iter().all(|n| surrogate_context(n, false, in_star)),
-        Node::Alt(items) => items.iter().all(|n| surrogate_context(n, false, in_star)),
-        Node::Group(_, inner) => surrogate_context(inner, top, in_star),
-        Node::Repeat(inner, min, max) => surrogate_context(inner, false, in_star || *min == 0 || max.is_none()),
-        _ => true,
+        Node::Unit(Unit::Chars(cs)) => cs.mb,
+        // (A word assertion counts too: it looks at the characters around.)
+        Node::Assert(ast::Assert::WordBoundary | ast::Assert::NotWordBoundary | ast::Assert::WordStart | ast::Assert::WordEnd) => true,
+        Node::Group(_, inner) | Node::Repeat(inner, _, _) => has_multibyte_set(inner),
+        Node::Concat(items) | Node::Alt(items) => items.iter().any(has_multibyte_set),
+        _ => false,
     }
 }
 
