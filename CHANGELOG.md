@@ -2,6 +2,13 @@
 
 The release notes of every version. The section of a version is the text of its GitHub release.
 
+## 0.1.2 - 2026-10-16
+
+### Fixed
+
+- `sed --help`, and the usage printed after a wrong command line, show the list of the options (with the ones that only ripgsed has) as GNU sed does, in place of one line.
+- grep, for the day the switch for GNU grep 3.12 is on: `-u` gives only the usage, as that release does.
+
 ## 0.1.1 - 2026-10-16
 
 ### Fixed
