@@ -115,11 +115,11 @@ Options of sed:
       --help                display this help text and exit
       --version             display version information and exit
 
-Options that only {program} has:
+Options that only ripgsed has:
   -P, --perl-regexp         read the regular expressions of the script as PCRE2 ones
       --glibc-compat        also reproduce the quirks of the C library's regular expression
                             matcher (the environment variable RIPGSED_GLIBC_COMPAT=1 does too)
-      --grep                as the first argument: behave as grep (see `{program} --grep --help')
+      --grep                as the first argument: behave as grep (see `ripgsed --grep --help')
 
 Without -e, -f or --expression, the first argument that is not an option is the script.
 The other arguments are input files; without any, the standard input is read.
