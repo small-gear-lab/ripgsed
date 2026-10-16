@@ -2,6 +2,14 @@
 
 The release notes of every version. The section of a version is the text of its GitHub release.
 
+## 0.1.1 - 2026-10-16
+
+### Fixed
+
+- `--version` (sed and grep) said "not yet fully compatible". It now says that the program is experimental and gives the address of the project.
+
+This is the first release made by the release workflow of the repository (Trusted Publishing of crates.io).
+
 ## 0.1.0 - 2026-10-16
 
 The first release. It is experimental: the aim is a drop-in replacement for GNU sed 4.9 (and a grep), and what is claimed is what the tests verify. It is tested on Linux only.
