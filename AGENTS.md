@@ -79,8 +79,7 @@ fixtures. The files `tests/fixtures/*/files/` are inputs; `expected/` is generat
 
 ## Commits and language
 
-- Commit messages are in English and say what changed, concretely. No `Co-Authored-By:` and no attribution lines. Do not
-  name a branch or a merge path instead of the change.
+- Commit messages are in English and say what changed, concretely, not the name of a branch or of a merge path.
 - The people who talk to you may write Japanese; the code, the documents, the commits and the issues are in English
   (the Japanese documents are the translations).
 
