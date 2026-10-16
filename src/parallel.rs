@@ -30,6 +30,12 @@ enum Work {
 
 type Done = (u64, Result<ChunkOutput, Fatal>);
 
+/// Where the reader thread gets its bytes.
+type Reader<'a> = Box<dyn std::io::Read + Send + 'a>;
+
+/// Opens the inputs one after another; an error is reported as the message of the run.
+type Open<'a> = Box<dyn FnMut() -> Option<Result<(String, Reader<'a>), Fatal>> + Send + 'a>;
+
 /// Runs the script over `files` (`-` and an empty list mean standard input) with `jobs`
 /// workers, writing to `outputs.stdout` in input order.
 pub fn run(
@@ -39,6 +45,50 @@ pub fn run(
     jobs: usize,
     block: usize,
     outputs: &mut Outputs,
+) -> Result<(), Fatal> {
+    let mut names = if files.is_empty() { vec!["-".to_string()] } else { files.to_vec() }.into_iter();
+    let open: Open<'static> = Box::new(move || {
+        let name = names.next()?;
+        let reader: Reader<'static> = if name == "-" {
+            // SAFETY: descriptor 0 is owned by the process; ManuallyDrop keeps it open.
+            Box::new(StdinRead(ManuallyDrop::new(unsafe { File::from_raw_fd(0) })))
+        } else {
+            match File::open(&name) {
+                Ok(f) => Box::new(f),
+                Err(e) => return Some(Err(Fatal::new(format!("can't read {name}: {}", strerror(&e)), 2))),
+            }
+        };
+        Some(Ok((name, reader)))
+    });
+    run_inputs(script_chunks, options, open, jobs, block, &mut |bytes: &[u8], unterminated: bool| {
+        outputs.stdout.write_raw(bytes).map_err(|e| crate::io::write_error("stdout", &e))?;
+        outputs.stdout.set_unterminated(unterminated);
+        Ok(())
+    })
+}
+
+/// Runs the script over one reader with `jobs` workers; `write` gets the output of each chunk,
+/// in input order, with whether it ends without a terminator.
+pub fn run_reader<'a>(
+    script_chunks: Vec<(Chunk, ParseOptions)>,
+    options: &Options,
+    reader: Reader<'a>,
+    jobs: usize,
+    block: usize,
+    write: &mut dyn FnMut(&[u8], bool) -> Result<(), Fatal>,
+) -> Result<(), Fatal> {
+    let mut reader = Some(reader);
+    let open: Open<'a> = Box::new(move || reader.take().map(|r| Ok(("-".to_string(), r))));
+    run_inputs(script_chunks, options, open, jobs, block, write)
+}
+
+fn run_inputs<'a>(
+    script_chunks: Vec<(Chunk, ParseOptions)>,
+    options: &Options,
+    mut open: Open<'a>,
+    jobs: usize,
+    block: usize,
+    write: &mut dyn FnMut(&[u8], bool) -> Result<(), Fatal>,
 ) -> Result<(), Fatal> {
     let jobs = jobs.max(1);
     let script_chunks = Arc::new(script_chunks);
@@ -54,23 +104,16 @@ pub fn run(
     let separator = options.separator;
     let mut result = Ok(());
     std::thread::scope(|scope| {
-        // The reader: files in order, chunks in order.
-        let names: Vec<String> = if files.is_empty() { vec!["-".to_string()] } else { files.to_vec() };
+        // The reader: inputs in order, chunks in order.
         scope.spawn(move || {
             let mut seq = 0u64;
             let mut first_line = 1u64;
-            for name in names {
-                let reader: Box<dyn std::io::Read> = if name == "-" {
-                    // SAFETY: descriptor 0 is owned by the process; ManuallyDrop keeps it open.
-                    Box::new(StdinRead(ManuallyDrop::new(unsafe { File::from_raw_fd(0) })))
-                } else {
-                    match File::open(&name) {
-                        Ok(f) => Box::new(f),
-                        Err(e) => {
-                            let error = Fatal::new(format!("can't read {name}: {}", strerror(&e)), 2);
-                            let _ = work_tx.send(Work::Failed { seq, error });
-                            return;
-                        }
+            while let Some(next) = open() {
+                let (name, reader) = match next {
+                    Ok(pair) => pair,
+                    Err(error) => {
+                        let _ = work_tx.send(Work::Failed { seq, error });
+                        return;
                     }
                 };
                 let mut chunks = ChunkReader::new(reader, separator, block);
@@ -131,11 +174,10 @@ pub fn run(
                 match output {
                     Ok(chunk) => {
                         if !chunk.bytes.is_empty() {
-                            if let Err(e) = outputs.stdout.write_raw(&chunk.bytes) {
-                                result = Err(crate::io::write_error("stdout", &e));
+                            if let Err(e) = write(&chunk.bytes, chunk.unterminated) {
+                                result = Err(e);
                                 break 'receive;
                             }
-                            outputs.stdout.set_unterminated(chunk.unterminated);
                         }
                         let _ = credit_tx.send(());
                     }

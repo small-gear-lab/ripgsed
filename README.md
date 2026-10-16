@@ -26,6 +26,30 @@ A stream editor in Rust that keeps the sed language but separates syntax, semant
 
 Memory use is higher than GNU sed's (4 to 70 MiB against 2 MiB, and 172 MiB for the Japanese `\w` workload; one 20 MB line takes about 60 MiB in both), because input is read in blocks. A script that reads other records, uses the hold space, or touches files runs sequentially; the sequential path is faster than GNU sed on every workload above.
 
+## As a library
+
+A script is a list of commands, each an address and an operation (no address means every line). Write it as sed text, or build it with methods; both give the same `Script`, and a `Run` applies it to a reader, a writer, or bytes.
+
+```rust
+use ripgsed::{Address, Edit, Pattern, Run, Script};
+
+// As sed text ...
+let script = Script::parse("2,3d;s/foo/bar/g")?;
+// ... or with methods. The builder writes sed text and the same parser reads it, so a mistake
+// (a range for `q`, an unknown label) gets the message of GNU sed.
+let same = Edit::new()
+    .when(Address::lines(2..=3)).delete()
+    .substitute(Pattern::basic("foo"), "bar").global()
+    .build()?;
+
+let out = Run::new().jobs(0).apply(&same, b"foo\nfoo\nfoo\nfoo foo\n")?;
+assert_eq!(out, b"bar\nbar bar\n");
+```
+
+The commands without a method yet (the hold space, `n` `N` `D` `P`, `r` `w`, labels) go in with `Edit::raw("1!G;h;$!d")`. `Run::jobs` spreads a script whose lines are independent over threads, with the same output byte for byte; `Run::glibc_compat` reproduces the quirks of the C library's matcher.
+
+Do not expect it to beat plain Rust on a trivial job. Measured on 55.6 MB of log-like lines, `str::replace` for a literal is about 2.7 times faster than the same `s/alpha/X/g` through ripgsed on one thread, and `regex::Regex::replace_all` about 1.7 to 2.3 times faster than `s/[0-9]+/N/g`; a small input (100 lines) through a script that is already built takes about twice as long as the same work with a built `regex::Regex`. What the library gives is what GNU sed means by a script (the addresses and ranges, the `s` flags, the case conversions, the locale rules), checked against GNU sed 4.9, and threads when the script allows them. For one literal replacement, use `str::replace`.
+
 ## Plan
 
 The first milestone is full GNU sed 4.9 compatibility, verified by differential tests (D4 in [docs/DECISIONS.md](docs/DECISIONS.md)). Automatic parallelism and the DFA-based regex search are in; PCRE2, the grep mode, and editor integration come after compatibility is complete.

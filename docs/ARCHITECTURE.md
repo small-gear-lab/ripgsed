@@ -62,7 +62,7 @@ A set with `lib` is opaque to the DFA (`expand_utf8` refuses it), so such a patt
 
 ## Policies
 
-- The CLI is a thin layer over the library modules (parse, then run); there is no stable Rust API yet (see DESIGN.md). Record-local scripts on large regular files run in parallel over an ordered chunk stream; everything else runs on the sequential VM.
+- The public Rust API is small: `Script`, `Edit` (with `Address` and `Pattern`), `Run`, `Outcome` and `Error` (`src/api.rs`, `src/edit.rs`); every other module is `#[doc(hidden)]`, used by the command and the tests, and free to change. `Edit` writes sed text and the parser of the command line reads it, so there is one parser and one VM, and a script made with methods is the script written by hand; the text is checked when the `Script` is made, and a `Run` parses it again with its own settings (locale, `-z`, sandbox, `--glibc-compat`). The CLI is a thin layer over the same modules (parse, then run). Record-local scripts run in parallel over an ordered chunk stream (large regular files on the command line; `Run::jobs` for a reader or bytes in memory); everything else runs on the sequential VM.
 - Unsupported syntax is a compile-time error and is never silently reinterpreted.
 - Input is held as bytes. The record terminator is kept separate from the record body.
 
