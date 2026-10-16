@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ripgsed\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-16 16:48+0900\n"
+"POT-Creation-Date: 2026-10-16 18:37+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: ja <LL@li.org>\n"
@@ -35,9 +35,11 @@ msgstr "構成"
 
 #: ../../ARCHITECTURE.md:7
 msgid ""
-"One crate (lib + bin). No workspace split until dependency boundaries "
-"settle."
-msgstr "crate は一つ（lib + bin）。依存境界が固まるまで workspace 分割はしません。"
+"One crate (lib + bin), with one dependency (`pcre2-sys`, for `-P`). No "
+"workspace split until dependency boundaries settle."
+msgstr ""
+"crate は一つ（lib + bin）で、依存は 1 つ（`-P` のための `pcre2-sys`）です。依存境界が固まるまで workspace "
+"分割はしません。"
 
 #: ../../ARCHITECTURE.md
 msgid "Module"
@@ -69,13 +71,30 @@ msgstr "`regex`"
 
 #: ../../ARCHITECTURE.md
 msgid ""
-"the regular expression engine: BRE/ERE dialects, leftmost-longest matching, "
-"captures"
-msgstr "正規表現エンジン：BRE/ERE の方言、左端最長一致、キャプチャ"
+"the regular expression engine: BRE/ERE dialects (also the syntax of GNU "
+"grep), leftmost-longest matching, captures; `Regex::compile_pcre` wraps a "
+"PCRE2 pattern behind the same interface"
+msgstr ""
+"正規表現エンジン：BRE/ERE の方言（GNU grep の構文も）、左端最長一致、キャプチャ。`Regex::compile_pcre` "
+"が、PCRE2 のパターンを同じインターフェースの裏に包みます"
 
 #: ../../ARCHITECTURE.md
 msgid "sed syntax, substitution"
 msgstr "sed の構文、置換"
+
+#: ../../ARCHITECTURE.md
+msgid "`pcre`"
+msgstr "`pcre`"
+
+#: ../../ARCHITECTURE.md
+msgid ""
+"the PCRE2 library through `pcre2-sys`: compile, match, group offsets (`sed "
+"-P`, `grep -P`)"
+msgstr "`pcre2-sys` を通した PCRE2 ライブラリ：コンパイル、マッチ、グループのオフセット（`sed -P`、`grep -P`）"
+
+#: ../../ARCHITECTURE.md
+msgid "what a match means to sed or grep"
+msgstr "マッチが sed や grep にとって何を意味するか"
 
 #: ../../ARCHITECTURE.md
 msgid "`locale`"
@@ -205,11 +224,11 @@ msgid ""
 "the grep mode: the options of GNU grep (`options`), the patterns and what a "
 "match is (`matcher`), searching an input and printing lines with their "
 "context (`search`), names, `-r` and `--include` (`glob`), colors (`color`), "
-"and `-P` through the PCRE2 library of the system (`pcre`)"
+"and `-P` (through `pcre`)"
 msgstr ""
 "grep モード。GNU grep "
-"のオプション（`options`）、パターンと「一致」とは何か（`matcher`）、入力の検索と文脈つきの行の出力（`search`）、名前・`-r`・`--include`（`glob`）、色（`color`）、システムの"
-" PCRE2 ライブラリを通した `-P`（`pcre`）"
+"のオプション（`options`）、パターンと「一致」とは何か（`matcher`）、入力の検索と文脈つきの行の出力（`search`）、名前・`-r`・`--include`（`glob`）、色（`color`）、`-P`（`pcre`"
+" を通す）"
 
 #: ../../ARCHITECTURE.md
 msgid ""
@@ -217,17 +236,17 @@ msgid ""
 "grep when asked to)"
 msgstr "正規表現の構文（`regex` エンジンは、求められたときに GNU grep の構文を読む）"
 
-#: ../../ARCHITECTURE.md:24
+#: ../../ARCHITECTURE.md:25
 msgid "The regex engine"
 msgstr "正規表現エンジン"
 
-#: ../../ARCHITECTURE.md:26
+#: ../../ARCHITECTURE.md:27
 msgid ""
 "A search goes through up to three stages, each cheaper than the next and "
 "each producing exactly what the NFA simulation would:"
 msgstr "検索は最大3段階を通ります。後の段階ほど高価で、どの段階も NFA シミュレーションと完全に同じ結果を返します。"
 
-#: ../../ARCHITECTURE.md:28
+#: ../../ARCHITECTURE.md:29
 msgid ""
 "**Literal prefilter** (`regex::literal`). A pattern that is only a literal "
 "is answered by a substring search; a pattern that requires a literal "
@@ -236,7 +255,7 @@ msgid ""
 msgstr ""
 "**リテラル先読み**（`regex::literal`）。リテラルだけのパターンは部分文字列検索で答えます。あるリテラルを必須とするパターン（単純なグループにまたがってもよい）は、それを含まない入力をオートマトンを動かす前に弾きます。"
 
-#: ../../ARCHITECTURE.md:29
+#: ../../ARCHITECTURE.md:30
 msgid ""
 "**Lazy DFAs** (`regex::dfa`), used when the pattern has no back-reference "
 "and the haystack has no delimiter or newline byte (in a UTF-8 locale, "
@@ -248,7 +267,7 @@ msgstr ""
 " ロケールでは、文字を UTF-8 のバイト列に展開して DFA "
 "をバイト上で動かします。大文字小文字の畳み込みや単語アサーションのあるパターンは、ASCII のテキストに限ります。"
 
-#: ../../ARCHITECTURE.md:30
+#: ../../ARCHITECTURE.md:31
 msgid ""
 "A forward unanchored DFA finds the earliest match end; a reverse DFA (built "
 "from the mirrored pattern) finds the leftmost start of a match ending there;"
@@ -260,19 +279,19 @@ msgstr ""
 "DFA（パターンを鏡像にして作る）が、そこで終わるマッチの最も左の開始位置を見つけます。それより前の開始位置（マッチはもっと後で終わる必要がある）は、作業量の予算の範囲で、前向きで先頭固定の"
 " DFA で試します。最も長い終わりは、前向きで先頭固定の DFA が与えます。"
 
-#: ../../ARCHITECTURE.md:31
+#: ../../ARCHITECTURE.md:32
 msgid ""
 "States are built on demand (at most 2000; beyond that the search falls "
 "back)."
 msgstr "状態は必要になったときに作ります（最大 2000。それを超えると探索は別の方法に切り替わります）。"
 
-#: ../../ARCHITECTURE.md:32
+#: ../../ARCHITECTURE.md:33
 msgid ""
 "Looking for the earliest end first keeps repeated searches on one long line "
 "linear."
 msgstr "最も早い終わりを先に探すので、1 本の長い行での繰り返しの探索も線形のままです。"
 
-#: ../../ARCHITECTURE.md:33
+#: ../../ARCHITECTURE.md:34
 msgid ""
 "**NFA simulation and backtracking** (`regex::exec`). The reference: it "
 "handles back-references, non-ASCII input, and everything the DFAs decline, "
@@ -281,7 +300,7 @@ msgstr ""
 "**NFA シミュレーションとバックトラック**（`regex::exec`）。基準となる実装です。後方参照、非 ASCII 入力、DFA "
 "が引き受けないものすべてを扱い、DFA が見つけた範囲に対して部分マッチを割り当てます。"
 
-#: ../../ARCHITECTURE.md:35
+#: ../../ARCHITECTURE.md:36
 msgid ""
 "The DFA path is tested against the simulation on random patterns and "
 "haystacks (`regex::tests`), and by the fixtures and the execution fuzz test,"
@@ -290,11 +309,11 @@ msgstr ""
 "DFA 経路は、ランダムなパターンと入力でシミュレーションと突き合わせ（`regex::tests`）、有効にした状態で fixture と実行 "
 "fuzz テストも通しています。"
 
-#: ../../ARCHITECTURE.md:37
+#: ../../ARCHITECTURE.md:38
 msgid "Locales"
 msgstr "ロケール"
 
-#: ../../ARCHITECTURE.md:39
+#: ../../ARCHITECTURE.md:40
 msgid ""
 "`locale::from_env` calls `setlocale(LC_ALL, \"\")` once, before anything "
 "else, and reads the character set of `LC_CTYPE` and the names of `LC_CTYPE` "
@@ -394,7 +413,7 @@ msgid ""
 "about the 256 bytes"
 msgstr "1 バイト。括弧式ごとにバイト集合を持ち、256 バイトを C ライブラリに尋ねて埋める"
 
-#: ../../ARCHITECTURE.md:49
+#: ../../ARCHITECTURE.md:50
 msgid ""
 "In `Libc` the parser builds a `CharSet` with `lib` set whenever the answer "
 "depends on the locale, and `CharSet::matches_char` asks the library:"
@@ -402,7 +421,7 @@ msgstr ""
 "`Libc` では、答えがロケールに依存するとき、パーサーは `lib` を持つ `CharSet` "
 "を作り、`CharSet::matches_char` がライブラリに尋ねます。"
 
-#: ../../ARCHITECTURE.md:51
+#: ../../ARCHITECTURE.md:52
 msgid ""
 "a bracket expression that has a range, a class, an equivalence class or a "
 "collating symbol, or that is read under `I`, is compiled as a whole by "
@@ -414,14 +433,14 @@ msgstr ""
 "sed のメッセージ `Invalid range end`、`Invalid collation character` などになります）、1 文字ずつ"
 " `regexec` で試します。"
 
-#: ../../ARCHITECTURE.md:52
+#: ../../ARCHITECTURE.md:53
 msgid ""
 "Answers are remembered (ASCII in two bit masks, the rest in a table), so a "
 "text costs one library call per distinct character."
 msgstr ""
 "答えは覚えておくので（ASCII は 2 つのビットマスク、それ以外は表）、テキストごとに、異なる文字 1 つにつきライブラリを 1 回呼ぶだけです。"
 
-#: ../../ARCHITECTURE.md:53
+#: ../../ARCHITECTURE.md:54
 msgid ""
 "This is what GNU sed does, so ranges follow the collation of `LC_COLLATE`, "
 "and classes and case follow `LC_CTYPE`, with nothing to model;"
@@ -429,7 +448,7 @@ msgstr ""
 "GNU sed と同じことをするので、範囲は `LC_COLLATE` の照合順序に、クラスと大文字小文字は `LC_CTYPE` "
 "に従い、自前でモデル化するものはありません。"
 
-#: ../../ARCHITECTURE.md:54
+#: ../../ARCHITECTURE.md:55
 msgid ""
 "a pattern with a bracket expression of single characters and ranges between "
 "ASCII digits is also compiled a second time with those ranges read as code "
@@ -443,7 +462,7 @@ msgstr ""
 "の最初のマッチャーがそうします）。この読み方でマッチしないレコードにはマッチせず（`Regex::filter`）、通ったレコードの中のマッチはライブラリのものです（`echo"
 " 3٣ | sed 's/[0-9]/N/g'` は `NN`、`echo ٣ | sed 's/[0-9]/N/'` は `٣` を出力します）。"
 
-#: ../../ARCHITECTURE.md:55
+#: ../../ARCHITECTURE.md:56
 msgid ""
 "under `I`, a literal letter or a bracket expression of single characters "
 "does not take U+1C80..U+1C88 unless the pattern writes the character (an "
@@ -452,7 +471,7 @@ msgstr ""
 "`I` の下では、リテラルの文字や単一の文字だけのブラケット式は、パターンがその文字自体を書かない限り U+1C80..U+1C88 "
 "を取りません（GNU sed の最初のマッチャーについて観察した規則です）。"
 
-#: ../../ARCHITECTURE.md:56
+#: ../../ARCHITECTURE.md:57
 msgid ""
 "`\\w`, `\\W`, `\\s`, `\\S` are `[_[:alnum:]]` and `[[:space:]]` for the "
 "library; the word assertions use `iswalnum`;"
@@ -460,7 +479,7 @@ msgstr ""
 "`\\w`、`\\W`、`\\s`、`\\S` はライブラリにとって `[_[:alnum:]]` と `[[:space:]]` "
 "です。単語アサーションは `iswalnum` を使います。"
 
-#: ../../ARCHITECTURE.md:57
+#: ../../ARCHITECTURE.md:58
 msgid ""
 "a literal letter under `I` is compiled by `regcomp` with `REG_ICASE` and "
 "asked the same way (in `tr_TR.UTF-8` `i` goes with `İ`, and `I` with `ı`); "
@@ -470,7 +489,7 @@ msgstr ""
 "では `i` は `İ` と、`I` は `ı` と組になります）。`I` の下の後方参照と `\\U \\L \\u \\l` は "
 "`towupper`/`towlower` を使います。"
 
-#: ../../ARCHITECTURE.md:59
+#: ../../ARCHITECTURE.md:60
 msgid ""
 "A set with `lib` is opaque to the DFA (`expand_utf8` refuses it), so such a "
 "pattern runs the DFA on ASCII haystacks and the NFA simulation on the rest; "
@@ -479,7 +498,7 @@ msgstr ""
 "`lib` を持つ集合は DFA には不透明です（`expand_utf8` は断ります）。そのため、そのようなパターンは ASCII "
 "のヘイスタックでは DFA、それ以外では NFA シミュレーションで動きます。既定の経路は影響を受けません。"
 
-#: ../../ARCHITECTURE.md:61
+#: ../../ARCHITECTURE.md:62
 msgid ""
 "**Other character sets.** `regcomp` and `iswalnum` work on `wchar_t`, which "
 "is Unicode in glibc for every character set, so the questions above are the "
@@ -488,7 +507,7 @@ msgstr ""
 "**ほかの文字集合。** `regcomp` と `iswalnum` は `wchar_t` で動き、glibc では文字集合によらず "
 "`wchar_t` が Unicode なので、上の問い合わせは `Mb` でも `Libc` と同じです。違うのは文字の読み書きだけです。"
 
-#: ../../ARCHITECTURE.md:63
+#: ../../ARCHITECTURE.md:64
 msgid ""
 "`locale::mb_decode` (`mbrtowc`) and `locale::mb_encode` (`wcrtomb`) are the "
 "only places that know the encoding."
@@ -496,7 +515,7 @@ msgstr ""
 "符号化を知っているのは `locale::mb_decode`（`mbrtowc`）と "
 "`locale::mb_encode`（`wcrtomb`）だけです。"
 
-#: ../../ARCHITECTURE.md:64
+#: ../../ARCHITECTURE.md:65
 msgid ""
 "`Searcher::dec` and the parser's `dec` replace `decode_utf8` (for `Mb`), "
 "`LibSet` asks the library about the bytes the character is written with "
@@ -508,7 +527,7 @@ msgstr ""
 "は文字が書かれているバイト列についてライブラリに尋ね（`contains_seq`。EUC-TW の文字には 2 "
 "通りの書き方があり、ライブラリは渡された書き方に答えます）、`\\U \\L` はワイド文字を経由して変換して書き戻します。"
 
-#: ../../ARCHITECTURE.md:65
+#: ../../ARCHITECTURE.md:66
 msgid ""
 "A byte that `mbrtowc` refuses, or accepts but the library's own matcher does"
 " not take for `.` (0x80 in GBK, found at start-up), is an invalid byte, as "
@@ -517,7 +536,7 @@ msgstr ""
 "`mbrtowc` が拒む、または受け付けてもライブラリ自身のマッチャが `.` に取らないバイト（GBK の 0x80。起動時に調べる）は、UTF-8"
 " と同じく不正バイトです。"
 
-#: ../../ARCHITECTURE.md:66
+#: ../../ARCHITECTURE.md:67
 msgid ""
 "A multibyte match starts only at character boundaries "
 "(`Program::char_starts` is always on) and every step consumes whole "
@@ -526,7 +545,7 @@ msgstr ""
 "マルチバイトのマッチは文字境界からしか始まらず（`Program::char_starts` は常に有効）、どの歩みも文字全体を消費するので、文字の 2"
 " バイト目だけが単独でマッチすることはありません。"
 
-#: ../../ARCHITECTURE.md:67
+#: ../../ARCHITECTURE.md:68
 msgid ""
 "`Searcher::dec_before` finds the character before a position by reading the "
 "line forward from a known boundary (the nearest ASCII byte that is a "
@@ -540,13 +559,13 @@ msgstr ""
 "に覚えた境界。そのため長い行でも線形のままです）。EUC-JP でも 2 バイト目は 1 "
 "バイト目としても有効なので、どの文字集合でも後ろ向きの復号はできません。"
 
-#: ../../ARCHITECTURE.md:68
+#: ../../ARCHITECTURE.md:69
 msgid ""
 "The `s` loop steps one character, not one byte, after an empty match in "
 "`Mb`."
 msgstr "`Mb` では、空マッチのあと `s` のループは 1 バイトではなく 1 文字進みます。"
 
-#: ../../ARCHITECTURE.md:69
+#: ../../ARCHITECTURE.md:70
 msgid ""
 "A pattern can hold a byte of 0x80 or more that is not a whole character "
 "(`s/\\xa4./X/`, the lead byte of a two-byte character), and with `--glibc-"
@@ -555,11 +574,11 @@ msgstr ""
 "パターンには、文字全体でない 0x80 以上のバイト（`s/\\xa4./X/`。2 バイト文字の先頭バイト）を書けます。また `--glibc-"
 "compat` では、括弧式が文字の先頭バイトだけを取ることがあります。"
 
-#: ../../ARCHITECTURE.md:70
+#: ../../ARCHITECTURE.md:71
 msgid "The match then ends inside the character."
 msgstr "そのときマッチは文字の途中で終わります。"
 
-#: ../../ARCHITECTURE.md:71
+#: ../../ARCHITECTURE.md:72
 msgid ""
 "`Regex::tails` says that this can happen: `Searcher::dec` reads a character "
 "at a position inside another one only from the bytes left of it (as glibc "
@@ -570,7 +589,7 @@ msgstr ""
 "は、別の文字の内側の位置では、その文字の残りのバイトだけから文字を読み（glibc "
 "は行全体を先頭から復号するので同じです）、文字の内側から始まる検索は次の文字から続けます。"
 
-#: ../../ARCHITECTURE.md:72
+#: ../../ARCHITECTURE.md:73
 msgid ""
 "`locale::ascii_bytes_are_characters` (measured with `mbrtowc` at start-up: "
 "bytes 0..127 are ASCII, and no multibyte character has an ASCII byte) says "
@@ -579,7 +598,7 @@ msgstr ""
 "`locale::ascii_bytes_are_characters`（起動時に `mbrtowc` で測る。0〜127 のバイトが ASCII "
 "で、ASCII バイトを含むマルチバイト文字がない）は、DFA とリテラル検索が ASCII バイトを見てよいかを表します。"
 
-#: ../../ARCHITECTURE.md:73
+#: ../../ARCHITECTURE.md:74
 msgid ""
 "EUC-JP and EUC-KR pass; Shift_JIS (0x5c, 0x7e), GBK and Big5 (second bytes "
 "0x40..0x7e) do not, so there the DFAs are off and only `required` literals "
@@ -589,11 +608,11 @@ msgstr ""
 "0x40〜0x7e）は満たさないので、後者では DFA を使わず、`required` のリテラル（ASCII バイトが ASCII "
 "である限り正しい必要条件）だけを使います。"
 
-#: ../../ARCHITECTURE.md:74
+#: ../../ARCHITECTURE.md:75
 msgid "`expand_utf8` is never used for `Mb`."
 msgstr "`Mb` で `expand_utf8` は使いません。"
 
-#: ../../ARCHITECTURE.md:75
+#: ../../ARCHITECTURE.md:76
 msgid ""
 "`Sb` has no decoder: bytes are characters. The bracket expression is "
 "compiled by `regcomp` as a whole and the byte set is filled by asking about "
@@ -605,7 +624,7 @@ msgstr ""
 "バイトずつ尋ねて埋めます。DFA とリテラル検索はそのバイト集合の上で `C` ロケールと同じように動き、0x80〜0xff "
 "の単語構成文字は起動時に埋める表から引きます（`locale::word_byte_high`）。"
 
-#: ../../ARCHITECTURE.md:76
+#: ../../ARCHITECTURE.md:77
 msgid ""
 "The script is read character by character where GNU sed does "
 "(`Parser::multibyte_tail`, `locale::script_char_len` in `normalize_escapes`)"
@@ -616,11 +635,11 @@ msgstr ""
 "`locale::script_char_len`）。そのため、2 バイト目が "
 "`\\`、`[`、`]`、区切り文字であっても文字の一部のままです。置換文は、これも GNU sed と同じく、バイト単位で読みます。"
 
-#: ../../ARCHITECTURE.md:78
+#: ../../ARCHITECTURE.md:79
 msgid "Policies"
 msgstr "方針"
 
-#: ../../ARCHITECTURE.md:80
+#: ../../ARCHITECTURE.md:81
 msgid ""
 "The public Rust API is small: `Script` (with `Dialect`: basic, extended or "
 "Perl-style patterns), `Edit` (with `Address` and `Pattern`), `Run`, "
@@ -632,7 +651,7 @@ msgstr ""
 "だけです（`src/api.rs`、`src/edit.rs`）。ほかのモジュールはすべて `#[doc(hidden)]` "
 "で、コマンドとテストが使うもので、自由に変えられます。"
 
-#: ../../ARCHITECTURE.md:81
+#: ../../ARCHITECTURE.md:82
 msgid ""
 "`Edit` writes sed text and the parser of the command line reads it, so there"
 " is one parser and one VM, and a script made with methods is the script "
@@ -644,11 +663,11 @@ msgstr ""
 "つだけで、メソッドで作ったスクリプトは手で書いたスクリプトと同じものです。テキストは `Script` を作るときに検査され、`Run` "
 "は自分の設定（ロケール、`-z`、サンドボックス、`--glibc-compat`）でもう一度パースします。"
 
-#: ../../ARCHITECTURE.md:82
+#: ../../ARCHITECTURE.md:83
 msgid "The CLI is a thin layer over the same modules (parse, then run)."
 msgstr "CLI は同じモジュールの上の薄い層です（パースして、実行する）。"
 
-#: ../../ARCHITECTURE.md:83
+#: ../../ARCHITECTURE.md:84
 msgid ""
 "Record-local scripts run in parallel over an ordered chunk stream (large "
 "regular files on the command line; `Run::jobs` for a reader or bytes in "
@@ -657,37 +676,41 @@ msgstr ""
 "レコード単位で完結するスクリプトは、順序つきのチャンク列の上で並列に動きます（コマンドラインの大きな通常ファイル、またはメモリ上のリーダーやバイト列に対する"
 " `Run::jobs`）。それ以外は逐次の VM で動きます。"
 
-#: ../../ARCHITECTURE.md:84
+#: ../../ARCHITECTURE.md:85
 msgid ""
 "Unsupported syntax is a compile-time error and is never silently "
 "reinterpreted."
 msgstr "未対応構文はコンパイル時エラーとし、黙って別の意味に解釈しません。"
 
-#: ../../ARCHITECTURE.md:85
+#: ../../ARCHITECTURE.md:86
 msgid ""
 "Input is held as bytes. The record terminator is kept separate from the "
 "record body."
 msgstr "入力はバイト列として保持します。レコード末尾の区切りは本文と区別して扱います。"
 
-#: ../../ARCHITECTURE.md:87
+#: ../../ARCHITECTURE.md:88
 msgid "Provenance and licensing"
 msgstr "由来とライセンス"
 
-#: ../../ARCHITECTURE.md:89
-msgid ""
-"GNU sed and GNU grep sources live in `reference/` (untracked) for reading "
-"behavior only. Code is not copied from them."
-msgstr ""
-"GNU sed と GNU grep のソースは、挙動を調べるためだけに `reference/`（git "
-"管理外）に置きます。そこからコードは写しません。"
-
 #: ../../ARCHITECTURE.md:90
+msgid ""
+"GNU sed and GNU grep source code is not copied, and is not read either: the "
+"behavior was learned by running the tools (D12), and where the source had to"
+" be consulted, another reader gave only the observable rule. Clones under "
+"`reference/` are untracked. PCRE2 is BSD-licensed, so its source may be read"
+" and ported (D14)."
+msgstr ""
+"GNU sed と GNU grep "
+"のソースコードはコピーせず、読むこともしません。挙動は、ツールを動かして調べました（D12）。ソースを参照する必要があったときは、別の読み手が、観察できる規則だけを渡しました。`reference/`"
+" 以下の clone は追跡しません。PCRE2 は BSD ライセンスなので、ソースを読んで移植してかまいません（D14）。"
+
+#: ../../ARCHITECTURE.md:91
 msgid ""
 "Expected test output is generated by running GNU sed as a command (see "
 "`tests/README.md` in the repository)."
 msgstr "テストの期待値は GNU sed をコマンドとして実行して生成します（リポジトリの `tests/README.md` を参照）。"
 
-#: ../../ARCHITECTURE.md:91
+#: ../../ARCHITECTURE.md:92
 msgid ""
 "The project is licensed under `MIT OR Apache-2.0`. Nothing derived from GPL "
 "code may be added, because that would conflict with the license."
@@ -814,3 +837,10 @@ msgstr ""
 #~ "は自分の設定（ロケール、`-z`、サンドボックス、`--glibc-compat`）でもう一度パースします。CLI "
 #~ "は同じモジュールの上の薄い層です（パースして、実行する）。レコード単位で完結するスクリプトは、順序つきのチャンク列の上で並列に動きます（コマンドラインの大きな通常ファイル、またはメモリ上のリーダーやバイト列に対する"
 #~ " `Run::jobs`）。それ以外は逐次の VM で動きます。"
+
+#~ msgid ""
+#~ "GNU sed and GNU grep sources live in `reference/` (untracked) for reading "
+#~ "behavior only. Code is not copied from them."
+#~ msgstr ""
+#~ "GNU sed と GNU grep のソースは、挙動を調べるためだけに `reference/`（git "
+#~ "管理外）に置きます。そこからコードは写しません。"

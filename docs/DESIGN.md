@@ -1,10 +1,10 @@
 # ripgsed design notes
 
-**Status: design document; the sed-compatible core is implemented.** The sequential VM, the regex engine, and automatic parallel execution exist (see [ARCHITECTURE.md](ARCHITECTURE.md) and the README for measured results); the grep mode, PCRE2, and editor integration described below do not, and there is no published crate. Module names, CLI options, types, and extension syntax for the parts not yet built are proposals and may change. Statements marked "recommended" are current leanings, not settled decisions.
+**Status: design document; the sed-compatible core, the grep mode, `-P` (PCRE2) and the Rust library are implemented and published as an experimental 0.1.** The sequential VM, the regex engine, and automatic parallel execution exist (see [ARCHITECTURE.md](ARCHITECTURE.md) and the README for measured results); editor integration, `--explain` and the choice of the regular expression engine described below do not. Module names, CLI options, types, and extension syntax for the parts not yet built are proposals and may change. Statements marked "recommended" are current leanings, not settled decisions.
 
 ## How to read this
 
-- The sed-compatible core is built and verified item by item against GNU sed 4.9 (`compat/sed.tsv`, [COMPATIBILITY.md](COMPATIBILITY.md)); the decisions it needed are in [DECISIONS.md](DECISIONS.md). The "to decide" items below belong to the parts that are not built (the grep mode, PCRE2, the public API, editor integration): each should be resolved, and its scope and acceptance criteria recorded in the repository, before that part is built.
+- The sed-compatible core is built and verified item by item against GNU sed 4.9 (`compat/sed.tsv`, [COMPATIBILITY.md](COMPATIBILITY.md)); the decisions it needed are in [DECISIONS.md](DECISIONS.md). The "to decide" items below belong to the parts that are not built (editor integration, `--explain`, the choice of the engine): each should be resolved, and its scope and acceptance criteria recorded in the repository, before that part is built.
 - Priorities: **P0** sequential core, **P1** correctness and public boundaries, **P2** optimization, **P3** extensions and integrations. A priority label does not mean "implemented".
 
 ## Goals and non-goals
@@ -189,11 +189,11 @@ Each worker returns its chunk's results in input order. Deletions are empty outp
 
 As a drop-in replacement, one binary serves both tools and picks the mode from the program name.
 
-**Proposal:**
+**Built (D12, D14):**
 
-- The mode comes from the basename of `argv[0]`: `sed` selects the sed mode and `grep` selects the grep mode. Installing means putting a symlink or hard link named `sed` or `grep` on `PATH`; no shell alias is involved, so scripts, cron, and other programs that run `sed` or `grep` use it too.
-- Under the name `sed` or `grep`, the command line is interpreted exactly as the GNU tool would, including its error behavior. No ripgsed-specific selector or option is recognized, because a GNU tool would reject it.
-- Under any other name (such as `ripgsed`), the default is the sed mode, and a leading `--grep` (or `--sed`) selects the mode explicitly. Options specific to ripgsed (for example `--explain`, `--engine`, `--extensions`) are available only under this name. Ambiguously placed selectors are rejected.
+- The mode comes from the basename of `argv[0]`: `sed` selects the sed mode, and `grep`, `egrep`, `fgrep` and `rgrep` select the grep mode. Installing means putting a symlink or hard link named `sed` or `grep` on `PATH`; no shell alias is involved, so scripts, cron, and other programs that run `sed` or `grep` use it too.
+- Under the name `sed` or `grep`, the command line is interpreted as the GNU tool would, including its error behavior, with one addition: an option that the GNU tool rejects as invalid may mean something here (`-P` and `--glibc-compat` in the sed mode), so no command line that is valid for the GNU tool changes its meaning.
+- Under any other name (such as `ripgsed`), the default is the sed mode, and a leading `--grep` selects the grep mode explicitly (the first argument only). The options that only ripgsed has are in its `--help`. The proposals `--explain`, `--engine` and `--extensions` are not built.
 - Once the mode is fixed, the remaining arguments are parsed with that tool's rules. Everything after `--` is an operand.
 
 The same option letter means different things in the two tools, which is why the mode must be fixed before parsing:
@@ -225,13 +225,13 @@ Both modes aim at long-term compatibility with the GNU tools, reached in stages.
 
 The only intentional difference from the GNU tools is how the program identifies itself. Everything else is meant to be compatible.
 
-- `--version` prints `ripgsed 0.1.0` under the name `ripgsed`. Under the names `sed` and `grep` it keeps the GNU layout for the first line but names this project, for example `sed (ripgsed) 0.1.0`. Later lines state which GNU version the behavior targets and the current compatibility status.
+- `--version` prints `ripgsed X.Y.Z` under the name `ripgsed`. Under the names `sed` and `grep` it keeps the GNU layout for the first line but names this project, for example `sed (ripgsed) X.Y.Z`. The next line states which GNU version the behavior targets and that the program is experimental.
 - It never prints `GNU sed` or `GNU grep` as its own name. Scripts that detect GNU by reading the first line of `--version` (such as configure scripts) then take their non-GNU path instead of relying on extensions that may be unimplemented. The reference sed used by `tools/gen-fixtures.sh` is checked in the same way, so ripgsed is never mistaken for it.
 - The version number is ripgsed's own and is never disguised as a GNU version.
-- `--help` and the bug-report and home-page lines identify ripgsed. Like the GNU tools, `--version` and `--help` write to stdout and exit with status 0.
+- `--help` lists the options (with the ones that only ripgsed has) and the home page of ripgsed. Like the GNU tools, `--version` and `--help` write to stdout and exit with status 0.
 - Error messages, option behavior, and exit statuses stay compatible; error text matches GNU sed word for word (D5), apart from the program-name prefix.
 
-**To decide:** how GNU's long-option abbreviation (unambiguous prefixes) is reproduced, and whether the GNU `egrep` / `fgrep` wrappers (`grep -E` / `grep -F`) become program names too. In-place editing is not implemented until safe replacement writes, backups, permissions, symlinks, and retention on failure are specified.
+**Decided:** unambiguous prefixes of long options are accepted as `getopt_long` does, and `egrep`, `fgrep` and `rgrep` are program names (the messages of the grep mode say `grep`).
 
 ## Regular expressions and GNU sed compatibility
 
@@ -243,7 +243,7 @@ The syntax a pattern is read in is a dialect: BRE or ERE, each with the GNU exte
 
 ### Engine abstraction
 
-The project's own engine is the default, and other engines (optional PCRE2, later experiments) must be able to sit beside it, so the rest of the code depends on an interface, not on a library. See D3 in [DECISIONS.md](DECISIONS.md).
+The project's own engine is the default, and other engines (PCRE2, later experiments) must be able to sit beside it, so the rest of the code depends on an interface, not on a library. See D3 in [DECISIONS.md](DECISIONS.md). In the code, PCRE2 sits beside the own engine inside `Regex` (`Regex::compile_pcre`, D14), not behind the traits below, which are the shape that was considered.
 
 ```rust
 // Illustrates the shape only; not a settled API.
@@ -280,11 +280,13 @@ trait Matcher {
 
 ## PCRE2 and ReDoS protection
 
-PCRE2 is an opt-in extension candidate. Backtracking can be expensive depending on input; PCRE2 support does not imply ReDoS immunity.
+PCRE2 is an opt-in extension: `-P` in the sed mode and in the grep mode, with the library built into the program through `pcre2-sys` (D14). Backtracking can be expensive depending on input; PCRE2 support does not imply ReDoS immunity.
+
+**Not built yet:** the options for the limits below, and the error for an exceeded limit. The library's own default limits apply, and an error of the library during a match (the match limit, for example) is treated as no match, which this section forbids. GNU grep reports `exceeded PCRE's backtracking limit` and exits with status 2; ripgsed has to do the same.
 
 ```sh
-# Hypothetical CLI. Values are examples, not recommended safe defaults.
-ripgsed --engine=pcre2 \
+# Hypothetical CLI: the options for the limits do not exist. Values are examples, not recommended safe defaults.
+ripgsed -P \
   --match-limit=100000 \
   --depth-limit=1000 \
   --heap-limit-kib=8192 \
@@ -426,7 +428,7 @@ GNU sed is GPLv3 or later. Copying or modifying that code in a distributed deriv
 
 ### Policy for this repository
 
-- Do not copy GNU sed or GNU grep source code into this repository. Local clones under `reference/` are untracked and exist for reading behavior only.
+- Do not copy GNU sed or GNU grep source code into this repository, and do not read it either: the behavior was learned by running the tools (D12), and where the source had to be consulted, another reader gave only the observable rule. Local clones under `reference/` are untracked. PCRE2 is BSD-licensed and may be read and ported (see D14).
 - Expected test output is generated by running GNU sed as a command, not copied from its test suite.
 - Record provenance per file; do not try to fix a permissive label onto copied code afterwards.
 - Subprocess invocation, linking, and code copying are different acts; evaluate the actual composition and distribution form.
@@ -437,11 +439,11 @@ This document contains no GNU sed implementation code.
 
 | Decision | Recommended first step | Can defer |
 | --- | --- | --- |
-| PCRE2 | opt-in only, after the own engine | JIT |
+| PCRE2 | built: `-P`, through `pcre2-sys` (D14) | limits and the error for an exceeded limit; a pure-Rust engine |
 | explain | plan-only, fixed output stream | machine-readable schema |
 | workers / chunks | built: record-local scripts run in parallel over ordered chunks (D9) | thresholds, auto-tuning |
 | Named hold | specify grammar and initial state separately | the full extension commands |
-| API stability | internal API shared with the CLI | compatibility guarantees for a public crate |
+| API stability | published as an experimental 0.1: the interface may change before 1.0 | compatibility guarantees |
 | Editor | subprocess plus preview | FFI or a custom UI |
 
 ## References
