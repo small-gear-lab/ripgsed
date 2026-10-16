@@ -1,0 +1,9 @@
+cat > in.txt
+# The text of a, i or c is only backslashes and ends the script: t backslashes after the one of `a\`
+for t in 1 2 3 4 5 6 7 8; do
+  bs=$(printf '%*s' "$t" '' | tr ' ' '\\')
+  for cmd in a i c; do
+    printf '== %s %s\n' "$cmd" "$t"
+    sed "$cmd\\$bs" < in.txt | od -An -c
+  done
+done

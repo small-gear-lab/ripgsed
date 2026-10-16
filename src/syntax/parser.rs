@@ -809,6 +809,17 @@ impl Parser {
                 Some(_) => {}
             }
         }
+        // A text of backslashes only, up to the end of the script (`a\` and then `\\\`): GNU sed
+        // keeps `t - 1` of the `t` backslashes when `t` is even and `(t - 1) / 2` when it is odd.
+        let rest = &self.src[self.pos..];
+        if first == b'\\' && !rest.is_empty() && rest.iter().all(|&b| b == b'\\') {
+            let t = rest.len();
+            let kept = if t % 2 == 0 { t - 1 } else { (t - 1) / 2 };
+            self.pos = self.src.len();
+            let mut text = vec![b'\\'; kept];
+            text.push(b'\n');
+            return Ok(text);
+        }
         let mut raw = Vec::new();
         while let Some(ch) = self.next() {
             match ch {

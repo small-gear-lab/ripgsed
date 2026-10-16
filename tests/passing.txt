@@ -796,6 +796,7 @@ cmd-060-probe-execute-program
 cmd-061-probe-do-subst
 cmd-062-probe-utils-fp-name
 cmd-063-probe-resize-buffer
+cmd-064-a-text-of-only-backslashes-at-the-end
 cyc-001-autoprint-basic
 cyc-001-crlf-kept
 cyc-001-delete-skips-autoprint
