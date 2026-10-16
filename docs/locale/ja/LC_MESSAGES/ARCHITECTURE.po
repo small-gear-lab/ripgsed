@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ripgsed\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-16 15:54+0900\n"
+"POT-Creation-Date: 2026-10-16 16:48+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: ja <LL@li.org>\n"
@@ -242,23 +242,37 @@ msgid ""
 "and the haystack has no delimiter or newline byte (in a UTF-8 locale, "
 "characters are spelled out as UTF-8 byte sequences so the DFAs run on bytes;"
 " patterns with case folding or word assertions are limited to ASCII "
-"haystacks). A forward unanchored DFA finds the earliest match end; a reverse"
-" DFA (built from the mirrored pattern) finds the leftmost start of a match "
-"ending there; earlier starts, whose matches must end later, are tried with a"
-" forward anchored DFA inside a work budget; and the forward anchored DFA "
-"gives the longest end. States are built on demand (at most 2000; beyond that"
-" the search falls back). Looking for the earliest end first keeps repeated "
-"searches on one long line linear."
+"haystacks)."
 msgstr ""
-"**遅延 DFA**（`regex::dfa`）。パターンに後方参照がなく、入力に区切り文字・改行バイトがないときに使います（UTF-8 "
-"ロケールでは、パターンの文字を UTF-8 のバイト列に展開して DFA "
-"をバイト単位で動かします。大文字小文字の畳み込みや単語アサーションを含むパターンは ASCII のみの入力に限ります）。前向きの非アンカー DFA "
-"が最も早いマッチ終端を見つけ、逆向き "
-"DFA（パターンを鏡写しにして構築）がそこで終わるマッチの最左の開始位置を見つけます。それより前の開始位置から始まるマッチは終端がより後ろになるはずなので、前向きのアンカー"
-" DFA を作業量の上限内で順に試し、最長の終端も前向きのアンカー DFA "
-"が求めます。状態は必要になったときに作ります（最大2000。超えたらフォールバック）。最初に最も早い終端を探すことで、長い1行に対する繰り返し検索も線形時間に収まります。"
+"**遅延 DFA**（`regex::dfa`）は、パターンに後方参照がなく、対象のテキストに区切りの文字や改行のバイトがないときに使います。UTF-8"
+" ロケールでは、文字を UTF-8 のバイト列に展開して DFA "
+"をバイト上で動かします。大文字小文字の畳み込みや単語アサーションのあるパターンは、ASCII のテキストに限ります。"
 
 #: ../../ARCHITECTURE.md:30
+msgid ""
+"A forward unanchored DFA finds the earliest match end; a reverse DFA (built "
+"from the mirrored pattern) finds the leftmost start of a match ending there;"
+" earlier starts, whose matches must end later, are tried with a forward "
+"anchored DFA inside a work budget; and the forward anchored DFA gives the "
+"longest end."
+msgstr ""
+"前向きで先頭固定でない DFA が最も早いマッチの終わりを見つけ、逆向きの "
+"DFA（パターンを鏡像にして作る）が、そこで終わるマッチの最も左の開始位置を見つけます。それより前の開始位置（マッチはもっと後で終わる必要がある）は、作業量の予算の範囲で、前向きで先頭固定の"
+" DFA で試します。最も長い終わりは、前向きで先頭固定の DFA が与えます。"
+
+#: ../../ARCHITECTURE.md:31
+msgid ""
+"States are built on demand (at most 2000; beyond that the search falls "
+"back)."
+msgstr "状態は必要になったときに作ります（最大 2000。それを超えると探索は別の方法に切り替わります）。"
+
+#: ../../ARCHITECTURE.md:32
+msgid ""
+"Looking for the earliest end first keeps repeated searches on one long line "
+"linear."
+msgstr "最も早い終わりを先に探すので、1 本の長い行での繰り返しの探索も線形のままです。"
+
+#: ../../ARCHITECTURE.md:33
 msgid ""
 "**NFA simulation and backtracking** (`regex::exec`). The reference: it "
 "handles back-references, non-ASCII input, and everything the DFAs decline, "
@@ -267,7 +281,7 @@ msgstr ""
 "**NFA シミュレーションとバックトラック**（`regex::exec`）。基準となる実装です。後方参照、非 ASCII 入力、DFA "
 "が引き受けないものすべてを扱い、DFA が見つけた範囲に対して部分マッチを割り当てます。"
 
-#: ../../ARCHITECTURE.md:32
+#: ../../ARCHITECTURE.md:35
 msgid ""
 "The DFA path is tested against the simulation on random patterns and "
 "haystacks (`regex::tests`), and by the fixtures and the execution fuzz test,"
@@ -276,11 +290,11 @@ msgstr ""
 "DFA 経路は、ランダムなパターンと入力でシミュレーションと突き合わせ（`regex::tests`）、有効にした状態で fixture と実行 "
 "fuzz テストも通しています。"
 
-#: ../../ARCHITECTURE.md:34
+#: ../../ARCHITECTURE.md:37
 msgid "Locales"
 msgstr "ロケール"
 
-#: ../../ARCHITECTURE.md:36
+#: ../../ARCHITECTURE.md:39
 msgid ""
 "`locale::from_env` calls `setlocale(LC_ALL, \"\")` once, before anything "
 "else, and reads the character set of `LC_CTYPE` and the names of `LC_CTYPE` "
@@ -380,7 +394,7 @@ msgid ""
 "about the 256 bytes"
 msgstr "1 バイト。括弧式ごとにバイト集合を持ち、256 バイトを C ライブラリに尋ねて埋める"
 
-#: ../../ARCHITECTURE.md:46
+#: ../../ARCHITECTURE.md:49
 msgid ""
 "In `Libc` the parser builds a `CharSet` with `lib` set whenever the answer "
 "depends on the locale, and `CharSet::matches_char` asks the library:"
@@ -388,24 +402,34 @@ msgstr ""
 "`Libc` では、答えがロケールに依存するとき、パーサーは `lib` を持つ `CharSet` "
 "を作り、`CharSet::matches_char` がライブラリに尋ねます。"
 
-#: ../../ARCHITECTURE.md:48
+#: ../../ARCHITECTURE.md:51
 msgid ""
 "a bracket expression that has a range, a class, an equivalence class or a "
 "collating symbol, or that is read under `I`, is compiled as a whole by "
 "`regcomp` (the error codes become GNU sed's messages: `Invalid range end`, "
 "`Invalid collation character`, ...) and a character is tested with `regexec`"
-" on its own. Answers are remembered (ASCII in two bit masks, the rest in a "
-"table), so a text costs one library call per distinct character. This is "
-"what GNU sed does, so ranges follow the collation of `LC_COLLATE`, and "
-"classes and case follow `LC_CTYPE`, with nothing to model;"
+" on its own."
 msgstr ""
 "範囲・クラス・等価クラス・照合記号を含むか、`I` の下で読まれるブラケット式は、全体を `regcomp` でコンパイルし（エラーコードは GNU "
 "sed のメッセージ `Invalid range end`、`Invalid collation character` などになります）、1 文字ずつ"
-" `regexec` で試します。答えは覚えておくので（ASCII は 2 つのビットマスク、それ以外は表）、テキストごとに、異なる文字 1 "
-"つにつきライブラリを 1 回呼ぶだけです。GNU sed と同じことをするので、範囲は `LC_COLLATE` の照合順序に、クラスと大文字小文字は "
-"`LC_CTYPE` に従い、自前でモデル化するものはありません。"
+" `regexec` で試します。"
 
-#: ../../ARCHITECTURE.md:49
+#: ../../ARCHITECTURE.md:52
+msgid ""
+"Answers are remembered (ASCII in two bit masks, the rest in a table), so a "
+"text costs one library call per distinct character."
+msgstr ""
+"答えは覚えておくので（ASCII は 2 つのビットマスク、それ以外は表）、テキストごとに、異なる文字 1 つにつきライブラリを 1 回呼ぶだけです。"
+
+#: ../../ARCHITECTURE.md:53
+msgid ""
+"This is what GNU sed does, so ranges follow the collation of `LC_COLLATE`, "
+"and classes and case follow `LC_CTYPE`, with nothing to model;"
+msgstr ""
+"GNU sed と同じことをするので、範囲は `LC_COLLATE` の照合順序に、クラスと大文字小文字は `LC_CTYPE` "
+"に従い、自前でモデル化するものはありません。"
+
+#: ../../ARCHITECTURE.md:54
 msgid ""
 "a pattern with a bracket expression of single characters and ranges between "
 "ASCII digits is also compiled a second time with those ranges read as code "
@@ -419,7 +443,7 @@ msgstr ""
 "の最初のマッチャーがそうします）。この読み方でマッチしないレコードにはマッチせず（`Regex::filter`）、通ったレコードの中のマッチはライブラリのものです（`echo"
 " 3٣ | sed 's/[0-9]/N/g'` は `NN`、`echo ٣ | sed 's/[0-9]/N/'` は `٣` を出力します）。"
 
-#: ../../ARCHITECTURE.md:50
+#: ../../ARCHITECTURE.md:55
 msgid ""
 "under `I`, a literal letter or a bracket expression of single characters "
 "does not take U+1C80..U+1C88 unless the pattern writes the character (an "
@@ -428,7 +452,7 @@ msgstr ""
 "`I` の下では、リテラルの文字や単一の文字だけのブラケット式は、パターンがその文字自体を書かない限り U+1C80..U+1C88 "
 "を取りません（GNU sed の最初のマッチャーについて観察した規則です）。"
 
-#: ../../ARCHITECTURE.md:51
+#: ../../ARCHITECTURE.md:56
 msgid ""
 "`\\w`, `\\W`, `\\s`, `\\S` are `[_[:alnum:]]` and `[[:space:]]` for the "
 "library; the word assertions use `iswalnum`;"
@@ -436,7 +460,7 @@ msgstr ""
 "`\\w`、`\\W`、`\\s`、`\\S` はライブラリにとって `[_[:alnum:]]` と `[[:space:]]` "
 "です。単語アサーションは `iswalnum` を使います。"
 
-#: ../../ARCHITECTURE.md:52
+#: ../../ARCHITECTURE.md:57
 msgid ""
 "a literal letter under `I` is compiled by `regcomp` with `REG_ICASE` and "
 "asked the same way (in `tr_TR.UTF-8` `i` goes with `İ`, and `I` with `ı`); "
@@ -446,7 +470,7 @@ msgstr ""
 "では `i` は `İ` と、`I` は `ı` と組になります）。`I` の下の後方参照と `\\U \\L \\u \\l` は "
 "`towupper`/`towlower` を使います。"
 
-#: ../../ARCHITECTURE.md:54
+#: ../../ARCHITECTURE.md:59
 msgid ""
 "A set with `lib` is opaque to the DFA (`expand_utf8` refuses it), so such a "
 "pattern runs the DFA on ASCII haystacks and the NFA simulation on the rest; "
@@ -455,7 +479,7 @@ msgstr ""
 "`lib` を持つ集合は DFA には不透明です（`expand_utf8` は断ります）。そのため、そのようなパターンは ASCII "
 "のヘイスタックでは DFA、それ以外では NFA シミュレーションで動きます。既定の経路は影響を受けません。"
 
-#: ../../ARCHITECTURE.md:56
+#: ../../ARCHITECTURE.md:61
 msgid ""
 "**Other character sets.** `regcomp` and `iswalnum` work on `wchar_t`, which "
 "is Unicode in glibc for every character set, so the questions above are the "
@@ -464,78 +488,112 @@ msgstr ""
 "**ほかの文字集合。** `regcomp` と `iswalnum` は `wchar_t` で動き、glibc では文字集合によらず "
 "`wchar_t` が Unicode なので、上の問い合わせは `Mb` でも `Libc` と同じです。違うのは文字の読み書きだけです。"
 
-#: ../../ARCHITECTURE.md:58
+#: ../../ARCHITECTURE.md:63
 msgid ""
 "`locale::mb_decode` (`mbrtowc`) and `locale::mb_encode` (`wcrtomb`) are the "
-"only places that know the encoding. `Searcher::dec` and the parser's `dec` "
-"replace `decode_utf8` (for `Mb`), `LibSet` asks the library about the bytes "
-"the character is written with (`contains_seq`; a character of EUC-TW has two"
-" spellings, and the library answers for the one it is given), and `\\U \\L` "
-"convert through the wide character and write it back. A byte that `mbrtowc` "
-"refuses, or accepts but the library's own matcher does not take for `.` "
-"(0x80 in GBK, found at start-up), is an invalid byte, as in UTF-8."
+"only places that know the encoding."
 msgstr ""
 "符号化を知っているのは `locale::mb_decode`（`mbrtowc`）と "
-"`locale::mb_encode`（`wcrtomb`）だけです。`Searcher::dec` とパーサの `dec` が（`Mb` "
-"では）`decode_utf8` に代わり、`LibSet` "
-"は文字が書かれているバイト列についてライブラリに尋ね（`contains_seq`。EUC-TW の文字には 2 "
-"通りの書き方があり、ライブラリは渡された書き方に答えます）、`\\U \\L` はワイド文字を経由して変換して書き戻します。`mbrtowc` "
-"が拒む、または受け付けてもライブラリ自身のマッチャが `.` に取らないバイト（GBK の 0x80。起動時に調べる）は、UTF-8 "
-"と同じく不正バイトです。"
+"`locale::mb_encode`（`wcrtomb`）だけです。"
 
-#: ../../ARCHITECTURE.md:59
+#: ../../ARCHITECTURE.md:64
+msgid ""
+"`Searcher::dec` and the parser's `dec` replace `decode_utf8` (for `Mb`), "
+"`LibSet` asks the library about the bytes the character is written with "
+"(`contains_seq`; a character of EUC-TW has two spellings, and the library "
+"answers for the one it is given), and `\\U \\L` convert through the wide "
+"character and write it back."
+msgstr ""
+"`Searcher::dec` とパーサの `dec` が（`Mb` では）`decode_utf8` に代わり、`LibSet` "
+"は文字が書かれているバイト列についてライブラリに尋ね（`contains_seq`。EUC-TW の文字には 2 "
+"通りの書き方があり、ライブラリは渡された書き方に答えます）、`\\U \\L` はワイド文字を経由して変換して書き戻します。"
+
+#: ../../ARCHITECTURE.md:65
+msgid ""
+"A byte that `mbrtowc` refuses, or accepts but the library's own matcher does"
+" not take for `.` (0x80 in GBK, found at start-up), is an invalid byte, as "
+"in UTF-8."
+msgstr ""
+"`mbrtowc` が拒む、または受け付けてもライブラリ自身のマッチャが `.` に取らないバイト（GBK の 0x80。起動時に調べる）は、UTF-8"
+" と同じく不正バイトです。"
+
+#: ../../ARCHITECTURE.md:66
 msgid ""
 "A multibyte match starts only at character boundaries "
 "(`Program::char_starts` is always on) and every step consumes whole "
-"characters, so the second byte of a character is never matched alone. "
+"characters, so the second byte of a character is never matched alone."
+msgstr ""
+"マルチバイトのマッチは文字境界からしか始まらず（`Program::char_starts` は常に有効）、どの歩みも文字全体を消費するので、文字の 2"
+" バイト目だけが単独でマッチすることはありません。"
+
+#: ../../ARCHITECTURE.md:67
+msgid ""
 "`Searcher::dec_before` finds the character before a position by reading the "
 "line forward from a known boundary (the nearest ASCII byte that is a "
 "character of its own, or a boundary found by an earlier question about the "
 "same line and remembered in `BoundaryCache`, so a long line stays linear): "
 "in EUC-JP a second byte is also a valid first byte, so backward decoding is "
-"not an option in any of the sets. The `s` loop steps one character, not one "
-"byte, after an empty match in `Mb`."
+"not an option in any of the sets."
 msgstr ""
-"マルチバイトのマッチは文字境界からしか始まらず（`Program::char_starts` は常に有効）、どの歩みも文字全体を消費するので、文字の 2"
-" バイト目だけが単独でマッチすることはありません。`Searcher::dec_before` "
-"は、位置の直前の文字を、わかっている境界から行を前向きに読んで見つけます（最寄りの、それ自体が文字である ASCII "
-"バイト、または同じ行についての以前の問い合わせで見つかって `BoundaryCache` に覚えた境界。そのため長い行でも線形のままです）。EUC-"
-"JP でも 2 バイト目は 1 バイト目としても有効なので、どの文字集合でも後ろ向きの復号はできません。`Mb` では、空マッチのあと `s` "
-"のループは 1 バイトではなく 1 文字進みます。"
+"`Searcher::dec_before` は、位置の直前の文字を、わかっている境界から行を前向きに読んで見つけます（最寄りの、それ自体が文字である "
+"ASCII バイト、または同じ行についての以前の問い合わせで見つかって `BoundaryCache` "
+"に覚えた境界。そのため長い行でも線形のままです）。EUC-JP でも 2 バイト目は 1 "
+"バイト目としても有効なので、どの文字集合でも後ろ向きの復号はできません。"
 
-#: ../../ARCHITECTURE.md:60
+#: ../../ARCHITECTURE.md:68
+msgid ""
+"The `s` loop steps one character, not one byte, after an empty match in "
+"`Mb`."
+msgstr "`Mb` では、空マッチのあと `s` のループは 1 バイトではなく 1 文字進みます。"
+
+#: ../../ARCHITECTURE.md:69
 msgid ""
 "A pattern can hold a byte of 0x80 or more that is not a whole character "
 "(`s/\\xa4./X/`, the lead byte of a two-byte character), and with `--glibc-"
-"compat` a bracket expression can take the first byte of a character alone. "
-"The match then ends inside the character. `Regex::tails` says that this can "
-"happen: `Searcher::dec` reads a character at a position inside another one "
-"only from the bytes left of it (as glibc does, which decodes the whole line "
-"from its start), and a search that starts inside a character goes on at the "
-"next one."
+"compat` a bracket expression can take the first byte of a character alone."
 msgstr ""
 "パターンには、文字全体でない 0x80 以上のバイト（`s/\\xa4./X/`。2 バイト文字の先頭バイト）を書けます。また `--glibc-"
-"compat` では、括弧式が文字の先頭バイトだけを取ることがあります。そのときマッチは文字の途中で終わります。`Regex::tails` "
-"はそうなりうることを表します。`Searcher::dec` は、別の文字の内側の位置では、その文字の残りのバイトだけから文字を読み（glibc "
+"compat` では、括弧式が文字の先頭バイトだけを取ることがあります。"
+
+#: ../../ARCHITECTURE.md:70
+msgid "The match then ends inside the character."
+msgstr "そのときマッチは文字の途中で終わります。"
+
+#: ../../ARCHITECTURE.md:71
+msgid ""
+"`Regex::tails` says that this can happen: `Searcher::dec` reads a character "
+"at a position inside another one only from the bytes left of it (as glibc "
+"does, which decodes the whole line from its start), and a search that starts"
+" inside a character goes on at the next one."
+msgstr ""
+"`Regex::tails` はそうなりうることを表します。`Searcher::dec` "
+"は、別の文字の内側の位置では、その文字の残りのバイトだけから文字を読み（glibc "
 "は行全体を先頭から復号するので同じです）、文字の内側から始まる検索は次の文字から続けます。"
 
-#: ../../ARCHITECTURE.md:61
+#: ../../ARCHITECTURE.md:72
 msgid ""
 "`locale::ascii_bytes_are_characters` (measured with `mbrtowc` at start-up: "
 "bytes 0..127 are ASCII, and no multibyte character has an ASCII byte) says "
-"whether the DFAs and the literal search may look at ASCII bytes. EUC-JP and "
-"EUC-KR pass; Shift_JIS (0x5c, 0x7e), GBK and Big5 (second bytes 0x40..0x7e) "
-"do not, so there the DFAs are off and only `required` literals (a necessary "
-"condition, correct whenever ASCII bytes are ASCII) are used. `expand_utf8` "
-"is never used for `Mb`."
+"whether the DFAs and the literal search may look at ASCII bytes."
 msgstr ""
 "`locale::ascii_bytes_are_characters`（起動時に `mbrtowc` で測る。0〜127 のバイトが ASCII "
-"で、ASCII バイトを含むマルチバイト文字がない）は、DFA とリテラル検索が ASCII バイトを見てよいかを表します。EUC-JP と EUC-"
-"KR は満たし、Shift_JIS（0x5c、0x7e）、GBK、Big5（2 バイト目が 0x40〜0x7e）は満たさないので、後者では DFA "
-"を使わず、`required` のリテラル（ASCII バイトが ASCII である限り正しい必要条件）だけを使います。`Mb` で "
-"`expand_utf8` は使いません。"
+"で、ASCII バイトを含むマルチバイト文字がない）は、DFA とリテラル検索が ASCII バイトを見てよいかを表します。"
 
-#: ../../ARCHITECTURE.md:62
+#: ../../ARCHITECTURE.md:73
+msgid ""
+"EUC-JP and EUC-KR pass; Shift_JIS (0x5c, 0x7e), GBK and Big5 (second bytes "
+"0x40..0x7e) do not, so there the DFAs are off and only `required` literals "
+"(a necessary condition, correct whenever ASCII bytes are ASCII) are used."
+msgstr ""
+"EUC-JP と EUC-KR は満たし、Shift_JIS（0x5c、0x7e）、GBK、Big5（2 バイト目が "
+"0x40〜0x7e）は満たさないので、後者では DFA を使わず、`required` のリテラル（ASCII バイトが ASCII "
+"である限り正しい必要条件）だけを使います。"
+
+#: ../../ARCHITECTURE.md:74
+msgid "`expand_utf8` is never used for `Mb`."
+msgstr "`Mb` で `expand_utf8` は使いません。"
+
+#: ../../ARCHITECTURE.md:75
 msgid ""
 "`Sb` has no decoder: bytes are characters. The bracket expression is "
 "compiled by `regcomp` as a whole and the byte set is filled by asking about "
@@ -547,7 +605,7 @@ msgstr ""
 "バイトずつ尋ねて埋めます。DFA とリテラル検索はそのバイト集合の上で `C` ロケールと同じように動き、0x80〜0xff "
 "の単語構成文字は起動時に埋める表から引きます（`locale::word_byte_high`）。"
 
-#: ../../ARCHITECTURE.md:63
+#: ../../ARCHITECTURE.md:76
 msgid ""
 "The script is read character by character where GNU sed does "
 "(`Parser::multibyte_tail`, `locale::script_char_len` in `normalize_escapes`)"
@@ -558,52 +616,64 @@ msgstr ""
 "`locale::script_char_len`）。そのため、2 バイト目が "
 "`\\`、`[`、`]`、区切り文字であっても文字の一部のままです。置換文は、これも GNU sed と同じく、バイト単位で読みます。"
 
-#: ../../ARCHITECTURE.md:65
+#: ../../ARCHITECTURE.md:78
 msgid "Policies"
 msgstr "方針"
 
-#: ../../ARCHITECTURE.md:67
+#: ../../ARCHITECTURE.md:80
 msgid ""
 "The public Rust API is small: `Script` (with `Dialect`: basic, extended or "
 "Perl-style patterns), `Edit` (with `Address` and `Pattern`), `Run`, "
 "`Outcome` and `Error` (`src/api.rs`, `src/edit.rs`); every other module is "
-"`#[doc(hidden)]`, used by the command and the tests, and free to change. "
-"`Edit` writes sed text and the parser of the command line reads it, so there"
-" is one parser and one VM, and a script made with methods is the script "
-"written by hand; the text is checked when the `Script` is made, and a `Run` "
-"parses it again with its own settings (locale, `-z`, sandbox, `--glibc-"
-"compat`). The CLI is a thin layer over the same modules (parse, then run). "
-"Record-local scripts run in parallel over an ordered chunk stream (large "
-"regular files on the command line; `Run::jobs` for a reader or bytes in "
-"memory); everything else runs on the sequential VM."
+"`#[doc(hidden)]`, used by the command and the tests, and free to change."
 msgstr ""
 "公開する Rust API は小さく、`Script`（`Dialect` で基本・拡張・Perl "
 "風のパターンを選ぶ）、`Edit`（`Address` と `Pattern` を伴う）、`Run`、`Outcome`、`Error` "
 "だけです（`src/api.rs`、`src/edit.rs`）。ほかのモジュールはすべて `#[doc(hidden)]` "
-"で、コマンドとテストが使うもので、自由に変えられます。`Edit` は sed "
-"のテキストを書き、コマンドラインと同じパーサーがそれを読むので、パーサーも VM も 1 "
+"で、コマンドとテストが使うもので、自由に変えられます。"
+
+#: ../../ARCHITECTURE.md:81
+msgid ""
+"`Edit` writes sed text and the parser of the command line reads it, so there"
+" is one parser and one VM, and a script made with methods is the script "
+"written by hand; the text is checked when the `Script` is made, and a `Run` "
+"parses it again with its own settings (locale, `-z`, sandbox, `--glibc-"
+"compat`)."
+msgstr ""
+"`Edit` は sed のテキストを書き、コマンドラインと同じパーサーがそれを読むので、パーサーも VM も 1 "
 "つだけで、メソッドで作ったスクリプトは手で書いたスクリプトと同じものです。テキストは `Script` を作るときに検査され、`Run` "
-"は自分の設定（ロケール、`-z`、サンドボックス、`--glibc-compat`）でもう一度パースします。CLI "
-"は同じモジュールの上の薄い層です（パースして、実行する）。レコード単位で完結するスクリプトは、順序つきのチャンク列の上で並列に動きます（コマンドラインの大きな通常ファイル、またはメモリ上のリーダーやバイト列に対する"
+"は自分の設定（ロケール、`-z`、サンドボックス、`--glibc-compat`）でもう一度パースします。"
+
+#: ../../ARCHITECTURE.md:82
+msgid "The CLI is a thin layer over the same modules (parse, then run)."
+msgstr "CLI は同じモジュールの上の薄い層です（パースして、実行する）。"
+
+#: ../../ARCHITECTURE.md:83
+msgid ""
+"Record-local scripts run in parallel over an ordered chunk stream (large "
+"regular files on the command line; `Run::jobs` for a reader or bytes in "
+"memory); everything else runs on the sequential VM."
+msgstr ""
+"レコード単位で完結するスクリプトは、順序つきのチャンク列の上で並列に動きます（コマンドラインの大きな通常ファイル、またはメモリ上のリーダーやバイト列に対する"
 " `Run::jobs`）。それ以外は逐次の VM で動きます。"
 
-#: ../../ARCHITECTURE.md:68
+#: ../../ARCHITECTURE.md:84
 msgid ""
 "Unsupported syntax is a compile-time error and is never silently "
 "reinterpreted."
 msgstr "未対応構文はコンパイル時エラーとし、黙って別の意味に解釈しません。"
 
-#: ../../ARCHITECTURE.md:69
+#: ../../ARCHITECTURE.md:85
 msgid ""
 "Input is held as bytes. The record terminator is kept separate from the "
 "record body."
 msgstr "入力はバイト列として保持します。レコード末尾の区切りは本文と区別して扱います。"
 
-#: ../../ARCHITECTURE.md:71
+#: ../../ARCHITECTURE.md:87
 msgid "Provenance and licensing"
 msgstr "由来とライセンス"
 
-#: ../../ARCHITECTURE.md:73
+#: ../../ARCHITECTURE.md:89
 msgid ""
 "GNU sed and GNU grep sources live in `reference/` (untracked) for reading "
 "behavior only. Code is not copied from them."
@@ -611,13 +681,13 @@ msgstr ""
 "GNU sed と GNU grep のソースは、挙動を調べるためだけに `reference/`（git "
 "管理外）に置きます。そこからコードは写しません。"
 
-#: ../../ARCHITECTURE.md:74
+#: ../../ARCHITECTURE.md:90
 msgid ""
 "Expected test output is generated by running GNU sed as a command (see "
 "`tests/README.md` in the repository)."
 msgstr "テストの期待値は GNU sed をコマンドとして実行して生成します（リポジトリの `tests/README.md` を参照）。"
 
-#: ../../ARCHITECTURE.md:75
+#: ../../ARCHITECTURE.md:91
 msgid ""
 "The project is licensed under `MIT OR Apache-2.0`. Nothing derived from GPL "
 "code may be added, because that would conflict with the license."
@@ -699,3 +769,48 @@ msgstr ""
 #~ "CLI はライブラリのモジュールの薄い層です（パースして、実行します）。安定した Rust API はまだありません（DESIGN.md "
 #~ "を参照）。レコード単位で完結するスクリプトが大きな通常ファイルに対して実行されるときは、順序つきのチャンクの上で並列に動きます。それ以外は逐次の VM "
 #~ "で実行します。"
+
+#~ msgid ""
+#~ "**Lazy DFAs** (`regex::dfa`), used when the pattern has no back-reference "
+#~ "and the haystack has no delimiter or newline byte (in a UTF-8 locale, "
+#~ "characters are spelled out as UTF-8 byte sequences so the DFAs run on bytes;"
+#~ " patterns with case folding or word assertions are limited to ASCII "
+#~ "haystacks). A forward unanchored DFA finds the earliest match end; a reverse"
+#~ " DFA (built from the mirrored pattern) finds the leftmost start of a match "
+#~ "ending there; earlier starts, whose matches must end later, are tried with a"
+#~ " forward anchored DFA inside a work budget; and the forward anchored DFA "
+#~ "gives the longest end. States are built on demand (at most 2000; beyond that"
+#~ " the search falls back). Looking for the earliest end first keeps repeated "
+#~ "searches on one long line linear."
+#~ msgstr ""
+#~ "**遅延 DFA**（`regex::dfa`）。パターンに後方参照がなく、入力に区切り文字・改行バイトがないときに使います（UTF-8 "
+#~ "ロケールでは、パターンの文字を UTF-8 のバイト列に展開して DFA "
+#~ "をバイト単位で動かします。大文字小文字の畳み込みや単語アサーションを含むパターンは ASCII のみの入力に限ります）。前向きの非アンカー DFA "
+#~ "が最も早いマッチ終端を見つけ、逆向き "
+#~ "DFA（パターンを鏡写しにして構築）がそこで終わるマッチの最左の開始位置を見つけます。それより前の開始位置から始まるマッチは終端がより後ろになるはずなので、前向きのアンカー"
+#~ " DFA を作業量の上限内で順に試し、最長の終端も前向きのアンカー DFA "
+#~ "が求めます。状態は必要になったときに作ります（最大2000。超えたらフォールバック）。最初に最も早い終端を探すことで、長い1行に対する繰り返し検索も線形時間に収まります。"
+
+#~ msgid ""
+#~ "The public Rust API is small: `Script` (with `Dialect`: basic, extended or "
+#~ "Perl-style patterns), `Edit` (with `Address` and `Pattern`), `Run`, "
+#~ "`Outcome` and `Error` (`src/api.rs`, `src/edit.rs`); every other module is "
+#~ "`#[doc(hidden)]`, used by the command and the tests, and free to change. "
+#~ "`Edit` writes sed text and the parser of the command line reads it, so there"
+#~ " is one parser and one VM, and a script made with methods is the script "
+#~ "written by hand; the text is checked when the `Script` is made, and a `Run` "
+#~ "parses it again with its own settings (locale, `-z`, sandbox, `--glibc-"
+#~ "compat`). The CLI is a thin layer over the same modules (parse, then run). "
+#~ "Record-local scripts run in parallel over an ordered chunk stream (large "
+#~ "regular files on the command line; `Run::jobs` for a reader or bytes in "
+#~ "memory); everything else runs on the sequential VM."
+#~ msgstr ""
+#~ "公開する Rust API は小さく、`Script`（`Dialect` で基本・拡張・Perl "
+#~ "風のパターンを選ぶ）、`Edit`（`Address` と `Pattern` を伴う）、`Run`、`Outcome`、`Error` "
+#~ "だけです（`src/api.rs`、`src/edit.rs`）。ほかのモジュールはすべて `#[doc(hidden)]` "
+#~ "で、コマンドとテストが使うもので、自由に変えられます。`Edit` は sed "
+#~ "のテキストを書き、コマンドラインと同じパーサーがそれを読むので、パーサーも VM も 1 "
+#~ "つだけで、メソッドで作ったスクリプトは手で書いたスクリプトと同じものです。テキストは `Script` を作るときに検査され、`Run` "
+#~ "は自分の設定（ロケール、`-z`、サンドボックス、`--glibc-compat`）でもう一度パースします。CLI "
+#~ "は同じモジュールの上の薄い層です（パースして、実行する）。レコード単位で完結するスクリプトは、順序つきのチャンク列の上で並列に動きます（コマンドラインの大きな通常ファイル、またはメモリ上のリーダーやバイト列に対する"
+#~ " `Run::jobs`）。それ以外は逐次の VM で動きます。"
