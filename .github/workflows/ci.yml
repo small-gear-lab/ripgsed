@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   test:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     env:
       # The debug build is slow: one fixture starts sed about 240 times.
       RIPGSED_FIXTURE_TIMEOUT: "120"
@@ -28,7 +28,7 @@ jobs:
         run: tools/compat-summary.sh
 
   fixtures:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       # Fixtures of the locale items (LOC-007 and later) make locales with localedef from the
