@@ -690,7 +690,7 @@ fn add_patterns(patterns: &mut Vec<Vec<u8>>, text: &[u8]) {
 pub fn version_text(program: &str) -> String {
     let _ = program;
     format!(
-        "grep (ripgsed) {}\nLicense: MIT OR Apache-2.0.\nBehavior target: GNU grep 3.11 and later (not yet fully compatible)\n",
+        "grep (ripgsed) {}\nLicense: MIT OR Apache-2.0.\nBehavior target: GNU grep 3.11 and later (experimental, see https://github.com/small-gear-lab/ripgsed)\n",
         env!("CARGO_PKG_VERSION")
     )
 }

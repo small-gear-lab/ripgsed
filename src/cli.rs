@@ -370,7 +370,7 @@ fn version_text(program: &str) -> String {
     if program == "ripgsed" {
         format!("ripgsed {version}")
     } else {
-        format!("{program} (ripgsed) {version}\nBehavior target: GNU sed 4.9 (not yet fully compatible)")
+        format!("{program} (ripgsed) {version}\nBehavior target: GNU sed 4.9 (experimental, see https://github.com/small-gear-lab/ripgsed)")
     }
 }
 
