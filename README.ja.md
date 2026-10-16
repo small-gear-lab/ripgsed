@@ -35,7 +35,7 @@ ln -s "$(command -v ripgsed)" ~/.local/bin/grep   # ... grep として（egrep�
 
 プログラムは、起動された名前で動作モードを決めるので、リンクを作るだけで済みます。リンクなしで grep を使うには `ripgsed --grep ...` です。どの sed でも同じように動かさなければならないスクリプトでは、`ripgsed` を名前で呼んでください。
 
-開発とテストは Linux（Ubuntu）で行っています。ロケールを C ライブラリに尋ねるので、ほかの環境では確かめていません。エディタとの連携は実装していません。
+開発とテストは Linux（Ubuntu、glibc）で行っていて、GNU sed 4.9 との互換性は、そこで確かめています。macOS（Apple Silicon、CI）では、ビルドでき、プログラム自身のテストが通り、そこに当てはまる 1,879 個の fixture が通ります（glibc のロケール、`/dev/full`、`/proc`、Linux での `/dev/stdin` の開き方に関するものは除いています）。ロケールは名前から判定する `C` か UTF-8 で、ほかのマルチバイトの文字集合はバイト列として読みます。macOS の標準の sed は BSD sed で、GNU sed は `gsed`（`brew install gnu-sed`）として入ります。ripgsed は速い `gsed` なので、その名前でリンクしてください（`ln -s ~/.cargo/bin/ripgsed ~/.local/bin/gsed`）。エディタとの連携は実装していません。
 
 ## 速度
 
