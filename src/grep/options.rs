@@ -633,6 +633,10 @@ pub fn parse(args: Vec<Vec<u8>>, program: &str, default_kind: Kind) -> Parsed {
         add_patterns(&mut o.patterns, &first);
     }
     o.files = operands;
+    if o.quiet {
+        // -q says nothing, whatever -l and -L ask for.
+        o.list_files = ListFiles::No;
+    }
     if o.before.is_none() {
         o.before = default_context;
     }

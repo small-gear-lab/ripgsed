@@ -85,8 +85,8 @@ struct State {
 impl State {
     fn new(o: &Options, exit_on_match: bool) -> State {
         let list = o.list_files != ListFiles::No;
-        let count_only = o.count && !(exit_on_match || list);
-        let quiet = count_only || exit_on_match || list;
+        let count_only = o.count && !(o.quiet || list);
+        let quiet = count_only || o.quiet || list;
         State {
             count: 0,
             line_no: 0,
@@ -96,9 +96,12 @@ impl State {
             stopped: false,
             done: false,
             quiet,
-            originally_quiet: quiet,
+            // (With -m, the message is not held back by -l and -L.)
+            originally_quiet: count_only || o.quiet || (list && o.max_count.is_none()),
             count_only,
-            done_on_match: exit_on_match || list,
+            // (With -m, -l and -L do not stop at the first selected line, as in GNU grep: the
+            // whole input is read, so that a binary part after it is noticed.)
+            done_on_match: exit_on_match || (list && o.max_count.is_none()),
             binary_from: None,
             in_binary: false,
             count_at_binary: None,
@@ -169,7 +172,8 @@ impl<'a> Printer<'a> {
             filenames_in_directories: false,
             default_with_filename: false,
             offset_width: 0,
-            exit_on_match: options.quiet,
+            // (-m holds back the early exit of -q as well.)
+            exit_on_match: options.quiet && options.max_count.is_none(),
             encoding_errors: false,
         }
     }
@@ -493,8 +497,9 @@ impl<'a> Printer<'a> {
                 break;
             }
         }
+        let encoding_errors = std::mem::take(&mut self.encoding_errors) && o.binary_files == BinaryFiles::Binary;
         let binary_matches = !st.originally_quiet
-            && (std::mem::take(&mut self.encoding_errors) || st.count_at_binary.is_some_and(|c| st.count > c));
+            && (encoding_errors || st.count_at_binary.is_some_and(|c| st.count > c));
         Ok(Found { count: st.count, binary_matches, last_selected_end: st.last_selected_end, ended_early: st.done || st.stopped, max_reached: st.stopped })
     }
 
@@ -506,7 +511,8 @@ impl<'a> Printer<'a> {
         let before = o.before;
         let after = o.after;
         let context = before.is_some() || after.is_some();
-        let max = o.max_count;
+        // (-m does not stop a search that only lists.)
+        let max = if o.list_files != ListFiles::No { None } else { o.max_count };
         let finders: &Option<Vec<Needle>> = &st.needles;
         let mut hits: Vec<Option<usize>> = vec![None; finders.as_ref().map_or(0, Vec::len)];
         // `pos` is the start of the next line to look at, relative to `buf`.
@@ -608,6 +614,22 @@ impl<'a> Printer<'a> {
                 st.count += 1;
                 st.last_selected_end = Some(base + next as u64);
                 if !st.quiet {
+                    // Trailing context that was not printed yet (a line that could not be printed
+                    // leaves some): from the last line printed, or from the start of the buffer.
+                    if st.pending > 0 {
+                        let mut cur = st.last_out.map_or(0, |l| l.saturating_sub(base) as usize);
+                        while st.pending > 0 && cur < pos {
+                            let e = crate::search::memchr(eol, &buf[cur..]).map_or(buf.len(), |i| cur + i);
+                            let n = st.line_no - crate::search::count(eol, &buf[cur..pos]) as u64;
+                            if self.print_line(m, name, &buf[cur..e], n, base + cur as u64, SEP_CONTEXT, true)? {
+                                cur = e + 1;
+                                st.last_out = Some(base + cur as u64);
+                            } else if st.last_out.is_none() {
+                                st.last_out = Some(base);
+                            }
+                            st.pending -= 1;
+                        }
+                    }
                     // Leading context, back from this line to the last line printed.
                     let lower = st.last_out.map_or(0, |l| (l.saturating_sub(base)) as usize);
                     let mut first = pos;
@@ -647,8 +669,13 @@ impl<'a> Printer<'a> {
                     }
                     if self.print_line(m, name, text, st.line_no, line_offset, SEP_SELECTED, terminated)? {
                         st.last_out = Some(base + next as u64);
-                        st.pending = after.unwrap_or(0);
                     }
+                    // (As in GNU grep, a line that could not be printed starts its trailing context
+                    // too, and counts as output for the group separator.)
+                    st.pending = after.unwrap_or(0);
+                    self.used = true;
+                } else {
+                    // (A group separator is due once anything was selected, printed or not.)
                     self.used = true;
                 }
                 if self.exit_on_match {
@@ -667,9 +694,13 @@ impl<'a> Printer<'a> {
                     }
                 }
             } else if st.pending > 0 && !st.quiet {
-                self.print_line(m, name, text, st.line_no, line_offset, SEP_CONTEXT, terminated)?;
-                st.pending -= 1;
-                st.last_out = Some(base + next as u64);
+                if self.print_line(m, name, text, st.line_no, line_offset, SEP_CONTEXT, terminated)? {
+                    st.pending -= 1;
+                    st.last_out = Some(base + next as u64);
+                } else {
+                    // (GNU grep tries the same line again for each line of context left.)
+                    st.pending = 0;
+                }
             }
             pos = next;
         }
@@ -681,7 +712,7 @@ impl<'a> Printer<'a> {
     pub fn summary(&mut self, name: &[u8], found: &Found) -> io::Result<()> {
         let o = self.options;
         let list = o.list_files != ListFiles::No;
-        if o.count && !(self.exit_on_match || list) {
+        if o.count && !(o.quiet || list) {
             if self.with_filename {
                 self.print_filename(name);
                 if o.null {

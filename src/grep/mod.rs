@@ -136,7 +136,7 @@ pub fn main(program: &str, args: Vec<Vec<u8>>, kind: Kind) -> i32 {
         eprintln!("{program}: write error: {}", "Broken pipe");
         return 2;
     }
-    if run.error_seen && !(options.quiet && run.matched) {
+    if run.error_seen {
         2
     } else if run.matched {
         0
@@ -176,10 +176,17 @@ impl Run<'_> {
             }
         };
         if meta.is_dir() {
+            if !self.dirs.is_empty() && self.dirs.skips(operand, false) {
+                return Ok(());
+            }
             match self.options.directories {
                 Directories::Skip => return Ok(()),
                 Directories::Read => {
+                    // The directory is opened and fails when it is read: it has no selected line.
                     self.report(operand, "Is a directory");
+                    let found = search::Found { count: 0, binary_matches: false, last_selected_end: None, ended_early: false, max_reached: false };
+                    self.printer.with_filename = self.printer.default_with_filename;
+                    self.printer.summary(operand, &found)?;
                     return Ok(());
                 }
                 Directories::Recurse => {
@@ -227,7 +234,7 @@ impl Run<'_> {
                 }
             }
         }
-        if found.as_ref().is_some_and(|f| f.count > 0) && self.options.quiet {
+        if found.as_ref().is_some_and(|f| f.count > 0) && self.printer.exit_on_match {
             self.printer.flush()?;
             std::process::exit(0);
         }
@@ -293,6 +300,7 @@ impl Run<'_> {
         let mut file = match std::fs::File::open(path) {
             Ok(f) => f,
             Err(e) => {
+                // (A file that cannot be opened is not searched: no count, no listing.)
                 self.report(name, &crate::io::strerror(&e));
                 return Ok(());
             }
@@ -301,7 +309,7 @@ impl Run<'_> {
         let regular = meta.as_ref().is_some_and(|m| m.is_file());
         let size = meta.filter(|m| m.is_file()).map(|m| m.len());
         let found = self.search_reader(name, &mut file, regular, size, in_directory)?;
-        if found.is_some_and(|f| f.count > 0) && self.options.quiet {
+        if found.is_some_and(|f| f.count > 0) && self.printer.exit_on_match {
             self.printer.flush()?;
             std::process::exit(0);
         }
@@ -325,6 +333,8 @@ impl Run<'_> {
             Ok(f) => f,
             Err(e) if self.printer.is_read_error(&e) => {
                 self.report(name, &crate::io::strerror(&e));
+                let found = search::Found { count: 0, binary_matches: false, last_selected_end: None, ended_early: false, max_reached: false };
+                self.printer.summary(name, &found)?;
                 return Ok(None);
             }
             Err(e) => return Err(e),
