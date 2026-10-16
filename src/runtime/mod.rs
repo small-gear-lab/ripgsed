@@ -150,6 +150,7 @@ struct ChunkRecords {
     pos: usize,
     separator: u8,
     name: Rc<str>,
+    spare: Vec<u8>,
 }
 
 impl RecordSource for ChunkRecords {
@@ -158,12 +159,19 @@ impl RecordSource for ChunkRecords {
             return Ok(None);
         }
         let rest = &self.data[self.pos..];
-        let (body, used, terminated) = match crate::search::memchr(self.separator, rest) {
-            Some(i) => (rest[..i].to_vec(), i + 1, true),
-            None => (rest.to_vec(), rest.len(), false),
+        let (len, used, terminated) = match crate::search::memchr(self.separator, rest) {
+            Some(i) => (i, i + 1, true),
+            None => (rest.len(), rest.len(), false),
         };
+        let mut body = std::mem::take(&mut self.spare);
+        body.clear();
+        body.extend_from_slice(&rest[..len]);
         self.pos += used;
         Ok(Some(Fetched { record: crate::io::Record { body, terminated }, new_file: false, file_name: self.name.clone() }))
+    }
+
+    fn recycle(&mut self, buf: Vec<u8>) {
+        self.spare = buf;
     }
 
     fn is_last(&mut self, _separate: bool) -> Result<bool, Fatal> {
@@ -177,7 +185,7 @@ impl RecordSource for ChunkRecords {
 pub fn run_chunk(script: &Script, options: &Options, data: Vec<u8>, first_line: u64) -> Result<ChunkOutput, Fatal> {
     let sink = Rc::new(std::cell::RefCell::new(Vec::with_capacity(data.len() + data.len() / 8)));
     let mut outputs = Outputs::new(Box::new(SharedBuffer(sink.clone())), options.separator);
-    let mut source = ChunkRecords { data, pos: 0, separator: options.separator, name: Rc::from("-") };
+    let mut source = ChunkRecords { data, pos: 0, separator: options.separator, name: Rc::from("-"), spare: Vec::new() };
     run_from(script, options.clone(), &mut source, &mut outputs, first_line.saturating_sub(1))?;
     let unterminated = outputs.stdout.ends_unterminated();
     outputs.flush_all()?;
