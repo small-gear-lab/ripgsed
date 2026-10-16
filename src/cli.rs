@@ -456,7 +456,8 @@ extern "C" fn save_inherited_sigpipe() {
 }
 
 #[used]
-#[unsafe(link_section = ".init_array")]
+#[cfg_attr(target_vendor = "apple", unsafe(link_section = "__DATA,__mod_init_func"))]
+#[cfg_attr(not(target_vendor = "apple"), unsafe(link_section = ".init_array"))]
 static SAVE_SIGPIPE: extern "C" fn() = save_inherited_sigpipe;
 
 /// Rust ignores SIGPIPE at startup; GNU sed keeps what it inherited, which is normally the

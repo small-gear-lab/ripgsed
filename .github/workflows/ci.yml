@@ -27,6 +27,18 @@ jobs:
       - name: Compatibility summary
         run: tools/compat-summary.sh
 
+  # Not tested by the fixtures (they need GNU sed and the locales of glibc): only that it builds and that
+  # the tests of the program itself pass. The locale is then C or UTF-8 by name (src/locale.rs).
+  macos:
+    runs-on: macos-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v7
+      - name: Toolchain
+        run: rustup toolchain install 1.85 --profile minimal && rustup default 1.85
+      - run: cargo build
+      - run: cargo test --lib --test cli --test public_api
+
   fixtures:
     runs-on: ubuntu-latest
     steps:
