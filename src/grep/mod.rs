@@ -163,15 +163,8 @@ impl Run<'_> {
 
     fn operand(&mut self, operand: &[u8]) -> io::Result<()> {
         if operand == b"-" {
-            let mut data = Vec::new();
             let name = self.stdin_name.clone();
-            if let Err(e) = io::stdin().lock().read_to_end(&mut data) {
-                self.report(&name, &crate::io::strerror(&e));
-                return Ok(());
-            }
-            // A regular file on standard input has a size; a pipe has not.
-            let size = std::fs::metadata("/dev/stdin").ok().filter(|m| m.is_file()).map(|m| m.len());
-            return self.search(&name, &data, size, false);
+            return self.standard_input(&name);
         }
         let path = PathBuf::from(std::ffi::OsStr::from_bytes(operand));
         // A name on the command line is also checked against `--include` and `--exclude`.
@@ -186,9 +179,6 @@ impl Run<'_> {
             match self.options.directories {
                 Directories::Skip => return Ok(()),
                 Directories::Read => {
-                    if !self.files.is_empty() && self.files.skips(operand, false) && false {
-                        return Ok(());
-                    }
                     self.report(operand, "Is a directory");
                     return Ok(());
                 }
@@ -208,6 +198,40 @@ impl Run<'_> {
             return Ok(());
         }
         self.file(&path, operand, false)
+    }
+
+    /// Standard input, read from descriptor 0 as it is (nothing is read ahead of what is searched).
+    /// A regular file on it is left just after the last selected line when `-m` and the like
+    /// end the search early.
+    fn standard_input(&mut self, name: &[u8]) -> io::Result<()> {
+        use std::io::{Seek, SeekFrom};
+        use std::os::fd::FromRawFd;
+        // SAFETY: descriptor 0 belongs to the process; `ManuallyDrop` keeps it open.
+        let mut file = std::mem::ManuallyDrop::new(unsafe { std::fs::File::from_raw_fd(0) });
+        let meta = file.metadata().ok();
+        let regular = meta.as_ref().is_some_and(|m| m.is_file());
+        let start = if regular { file.stream_position().ok() } else { None };
+        let size = meta.filter(|m| m.is_file()).map(|m| m.len().saturating_sub(start.unwrap_or(0)));
+        let found = self.search_reader(name, &mut *file, regular, size, false)?;
+        if let (Some(start), Some(found)) = (start, found.as_ref()) {
+            // The input is left where GNU grep leaves it: just after the last selected line when
+            // `-m` ended the search, else where its last buffer ended.
+            if found.ended_early {
+                let target = if found.max_reached {
+                    found.last_selected_end
+                } else {
+                    found.last_selected_end.map(|end| (((end.saturating_sub(1)) / 98304 + 1) * 98304).min(size.unwrap_or(u64::MAX)))
+                };
+                if let Some(t) = target {
+                    let _ = file.seek(SeekFrom::Start(start + t));
+                }
+            }
+        }
+        if found.as_ref().is_some_and(|f| f.count > 0) && self.options.quiet {
+            self.printer.flush()?;
+            std::process::exit(0);
+        }
+        Ok(())
     }
 
     /// Searches the files of a directory (recursively), naming them by joining the names.
@@ -266,18 +290,26 @@ impl Run<'_> {
     }
 
     fn file(&mut self, path: &Path, name: &[u8], in_directory: bool) -> io::Result<()> {
-        let data = match std::fs::read(path) {
-            Ok(d) => d,
+        let mut file = match std::fs::File::open(path) {
+            Ok(f) => f,
             Err(e) => {
                 self.report(name, &crate::io::strerror(&e));
                 return Ok(());
             }
         };
-        let size = Some(data.len() as u64);
-        self.search(name, &data, size, in_directory)
+        let meta = file.metadata().ok();
+        let regular = meta.as_ref().is_some_and(|m| m.is_file());
+        let size = meta.filter(|m| m.is_file()).map(|m| m.len());
+        let found = self.search_reader(name, &mut file, regular, size, in_directory)?;
+        if found.is_some_and(|f| f.count > 0) && self.options.quiet {
+            self.printer.flush()?;
+            std::process::exit(0);
+        }
+        Ok(())
     }
 
-    fn search(&mut self, name: &[u8], data: &[u8], size: Option<u64>, in_directory: bool) -> io::Result<()> {
+    /// Searches an input. `None` when it could not be read at all.
+    fn search_reader(&mut self, name: &[u8], input: &mut dyn Read, regular: bool, size: Option<u64>, in_directory: bool) -> io::Result<Option<search::Found>> {
         // With -r and one operand, the files found in directories carry their names.
         self.printer.with_filename = self.printer.default_with_filename || (in_directory && self.printer.filenames_in_directories);
         // With -T the numbers are as wide as the largest offset the input can have.
@@ -289,7 +321,14 @@ impl Run<'_> {
         } else {
             0
         };
-        let found = self.printer.search(&self.matcher, name, data)?;
+        let found = match self.printer.search_stream(&self.matcher, name, input, regular) {
+            Ok(f) => f,
+            Err(e) if self.printer.is_read_error(&e) => {
+                self.report(name, &crate::io::strerror(&e));
+                return Ok(None);
+            }
+            Err(e) => return Err(e),
+        };
         self.printer.summary(name, &found)?;
         if found.binary_matches {
             let _ = self.printer.flush();
@@ -301,12 +340,7 @@ impl Run<'_> {
         }
         if found.count > 0 {
             self.matched = true;
-            if self.options.quiet {
-                self.printer.flush()?;
-                std::process::exit(0);
-            }
         }
-        let _ = ListFiles::No;
-        Ok(())
+        Ok(Some(found))
     }
 }

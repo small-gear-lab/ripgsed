@@ -1,6 +1,6 @@
 //! Searching one input and writing what is selected, with its context.
 
-use std::io::{self, Write};
+use std::io::{self, Read, Write};
 
 use super::color::Colors;
 use super::matcher::Matcher;
@@ -9,6 +9,24 @@ use crate::regex::Locale;
 
 const SEP_SELECTED: u8 = b':';
 const SEP_CONTEXT: u8 = b'-';
+
+/// Marks an error that came from writing the output.
+#[derive(Debug)]
+pub struct Writing(pub io::Error);
+
+impl std::fmt::Display for Writing {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl std::error::Error for Writing {}
+
+impl Writing {
+    fn wrap(e: io::Error) -> io::Error {
+        io::Error::new(e.kind(), Writing(e))
+    }
+}
 
 /// A literal looked for in a whole input.
 enum Needle {
@@ -31,6 +49,78 @@ pub struct Found {
     pub count: u64,
     /// The input is binary and something was selected in it: the message is due.
     pub binary_matches: bool,
+    /// Where the last selected line ends in the input (a seekable standard input is left there).
+    pub last_selected_end: Option<u64>,
+    /// The search stopped before the end of the input (`-m`, `-l`, `-q`, a binary file).
+    pub ended_early: bool,
+    /// ... because `-m` was reached.
+    pub max_reached: bool,
+}
+
+/// What searching one input has found out so far.
+struct State {
+    count: u64,
+    line_no: u64,
+    /// The offset of the first line that is not done.
+    next_offset: u64,
+    /// The offset after the last line printed.
+    last_out: Option<u64>,
+    pending: u64,
+    /// `-m` has been reached: only trailing context is left.
+    stopped: bool,
+    done: bool,
+    /// Lines are not printed (`-c`, `-l`, `-L`, `-q`, or a binary input).
+    quiet: bool,
+    originally_quiet: bool,
+    count_only: bool,
+    done_on_match: bool,
+    /// The offset from which the input is binary (lines that end there or later are).
+    binary_from: Option<u64>,
+    in_binary: bool,
+    count_at_binary: Option<u64>,
+    last_selected_end: Option<u64>,
+    needles: Option<Vec<Needle>>,
+}
+
+impl State {
+    fn new(o: &Options, exit_on_match: bool) -> State {
+        let list = o.list_files != ListFiles::No;
+        let count_only = o.count && !(exit_on_match || list);
+        let quiet = count_only || exit_on_match || list;
+        State {
+            count: 0,
+            line_no: 0,
+            next_offset: 0,
+            last_out: None,
+            pending: 0,
+            stopped: false,
+            done: false,
+            quiet,
+            originally_quiet: quiet,
+            count_only,
+            done_on_match: exit_on_match || list,
+            binary_from: None,
+            in_binary: false,
+            count_at_binary: None,
+            last_selected_end: None,
+            needles: None,
+        }
+    }
+
+    /// Where the part of `buf` that is still needed starts: the line not finished, and (for
+    /// leading context) the `before` lines before the first line not done, after the last
+    /// line printed.
+    fn keep_from(&self, buf: &[u8], base: u64, eol: u8, before: u64) -> usize {
+        let next = (self.next_offset - base) as usize;
+        let mut from = next;
+        let lower = self.last_out.map_or(0, |l| l.saturating_sub(base) as usize);
+        let mut k = 0;
+        while k < before && from > lower {
+            from = buf[lower..from - 1].iter().rposition(|&c| c == eol).map_or(lower, |i| lower + i + 1);
+            k += 1;
+        }
+        from
+    }
 }
 
 /// Standard output, the state shared by all inputs (the separator between groups is printed
@@ -84,17 +174,23 @@ impl<'a> Printer<'a> {
         }
     }
 
+    /// Whether an error came from reading the input (and not from writing the output, which
+    /// is wrapped in `Writing`).
+    pub fn is_read_error(&self, e: &io::Error) -> bool {
+        e.get_ref().is_none_or(|inner| !inner.is::<Writing>())
+    }
+
     pub fn flush(&mut self) -> io::Result<()> {
         if !self.out.is_empty() {
-            self.sink.write_all(&self.out)?;
+            self.sink.write_all(&self.out).map_err(Writing::wrap)?;
             self.out.clear();
         }
-        self.sink.flush()
+        self.sink.flush().map_err(Writing::wrap)
     }
 
     fn maybe_flush(&mut self) -> io::Result<()> {
         if self.out.len() >= (1 << 16) {
-            self.sink.write_all(&self.out)?;
+            self.sink.write_all(&self.out).map_err(Writing::wrap)?;
             self.out.clear();
         }
         Ok(())
@@ -335,66 +431,98 @@ impl<'a> Printer<'a> {
 
     // ---- one input ---------------------------------------------------------------------
 
-    /// Searches `data` (the whole input) and prints what the options ask for.
-    pub fn search(&mut self, m: &Matcher, name: &[u8], data: &[u8]) -> io::Result<Found> {
+    /// Searches an input, reading it as it goes, and prints what the options ask for.
+    ///
+    /// GNU grep reads an input in buffers and decides per buffer whether it is binary (it has a
+    /// NUL byte); its output follows from that. A regular file is read in pieces of 96 KiB at
+    /// fixed places, so the piece with the first NUL is known from its offset; for a pipe the
+    /// pieces are the reads. The lines that end in that piece or later are not printed.
+    pub fn search_stream(&mut self, m: &Matcher, name: &[u8], input: &mut dyn Read, regular: bool) -> io::Result<Found> {
+        const PIECE: u64 = 98304;
+        const READ: usize = 1 << 18;
         let o = self.options;
         let eol = self.eol;
-        let mut has_nul = false;
-        if o.binary_files != BinaryFiles::Text && eol == b'\n' {
-            has_nul = data.contains(&0);
-        }
-        if has_nul && o.binary_files == BinaryFiles::WithoutMatch {
-            return Ok(Found { count: 0, binary_matches: false });
-        }
-        let list = o.list_files != ListFiles::No;
-        let count_only = o.count && !(self.exit_on_match || list);
-        let mut mode = Mode {
-            quiet: count_only || self.exit_on_match || list,
-            done_on_match: self.exit_on_match || list,
-        };
-        let originally_quiet = mode.quiet;
-        if has_nul && !count_only {
-            mode.quiet = true;
-            mode.done_on_match = true;
-        }
-        let mut first_binary_count: Option<u64> = if has_nul { Some(0) } else { None };
-
+        let mut st = State::new(o, self.exit_on_match);
         if o.max_count == Some(0) {
-            return Ok(Found { count: 0, binary_matches: false });
+            return Ok(Found { count: 0, binary_matches: false, last_selected_end: None, ended_early: false, max_reached: false });
         }
-        let finders: Option<Vec<Needle>> = if o.invert || has_nul {
-            None
-        } else {
-            m.needles().map(|n| {
+        if !o.invert {
+            st.needles = m.needles().map(|n| {
                 n.into_iter()
                     .map(|(bytes, fold)| if fold { Needle::Fold(crate::search::FoldFinder::new(&bytes)) } else { Needle::Exact(crate::search::Finder::new(&bytes)) })
                     .collect()
-            })
-        };
-        // The next place each literal is found (`usize::MAX`: not in the rest of the input).
-        let mut hits: Vec<Option<usize>> = vec![None; finders.as_ref().map_or(0, Vec::len)];
+            });
+        }
+        let mut buf: Vec<u8> = Vec::with_capacity(READ + 4096);
+        let mut base: u64 = 0;
+        self.encoding_errors = false;
+        let check_nul = o.binary_files != BinaryFiles::Text && eol == b'\n';
+        loop {
+            let old_len = buf.len();
+            buf.resize(old_len + READ, 0);
+            let n = loop {
+                match input.read(&mut buf[old_len..]) {
+                    Ok(n) => break n,
+                    Err(e) if e.kind() == io::ErrorKind::Interrupted => {}
+                    Err(e) => {
+                        buf.truncate(old_len);
+                        return Err(e);
+                    }
+                }
+            };
+            buf.truncate(old_len + n);
+            let eof = n == 0;
+            if check_nul && st.binary_from.is_none() && n > 0 {
+                if let Some(i) = crate::search::memchr(0, &buf[old_len..]) {
+                    let at = base + (old_len + i) as u64;
+                    st.binary_from = Some(if regular { at / PIECE * PIECE } else { base + old_len as u64 });
+                }
+            }
+            self.process(m, name, &mut st, &buf, base, eof)?;
+            if st.done {
+                break;
+            }
+            // What is kept: the line that is not finished, and the lines before it that a
+            // match may want as leading context.
+            let keep_from = st.keep_from(&buf, base, eol, o.before.unwrap_or(0));
+            if keep_from > 0 {
+                buf.drain(..keep_from);
+                base += keep_from as u64;
+            }
+            if eof {
+                break;
+            }
+        }
+        let binary_matches = !st.originally_quiet
+            && (std::mem::take(&mut self.encoding_errors) || st.count_at_binary.is_some_and(|c| st.count > c));
+        Ok(Found { count: st.count, binary_matches, last_selected_end: st.last_selected_end, ended_early: st.done || st.stopped, max_reached: st.stopped })
+    }
+
+    /// Processes the complete lines of `buf` (all of them, at the end of the input) that are not
+    /// done yet; `base` is the offset of `buf[0]` in the input.
+    fn process(&mut self, m: &Matcher, name: &[u8], st: &mut State, buf: &[u8], base: u64, eof: bool) -> io::Result<()> {
+        let o = self.options;
+        let eol = self.eol;
         let before = o.before;
         let after = o.after;
         let context = before.is_some() || after.is_some();
         let max = o.max_count;
-        let mut count = 0u64;
-        let mut line_no = 0u64;
-        let mut pos = 0usize;
-        // The end (after the terminator) of the last line printed, if any.
-        let mut last_out: Option<usize> = None;
-        let mut pending = 0u64;
-        let mut stopped = false;
-        self.encoding_errors = false;
-
-        while pos < data.len() {
+        let finders: &Option<Vec<Needle>> = &st.needles;
+        let mut hits: Vec<Option<usize>> = vec![None; finders.as_ref().map_or(0, Vec::len)];
+        // `pos` is the start of the next line to look at, relative to `buf`.
+        let mut pos = (st.next_offset - base) as usize;
+        loop {
+            if pos >= buf.len() {
+                break;
+            }
             // Nothing to print before the next line that has one of the literals: go there.
-            if let (Some(finders), 0, false) = (&finders, pending, stopped) {
+            if let (Some(finders), 0, false) = (finders, st.pending, st.stopped) {
                 let mut next = usize::MAX;
                 for (i, f) in finders.iter().enumerate() {
                     let hit = match hits[i] {
                         Some(h) if h >= pos => h,
                         _ => {
-                            let h = f.find(&data[pos..]).map_or(usize::MAX, |r| pos + r);
+                            let h = f.find(&buf[pos..]).map_or(usize::MAX, |r| pos + r);
                             hits[i] = Some(h);
                             h
                         }
@@ -402,64 +530,99 @@ impl<'a> Printer<'a> {
                     next = next.min(hit);
                 }
                 if next == usize::MAX {
+                    // No line in the rest of this buffer is selected: all but the line that
+                    // is not finished are done.
+                    let end = crate::search::memrchr(eol, &buf[pos..]).map_or(pos, |i| pos + i + 1);
+                    if o.line_number {
+                        st.line_no += crate::search::count(eol, &buf[pos..end]) as u64;
+                    }
+                    pos = end;
+                    if eof && pos < buf.len() {
+                        // The last line has no terminator, and no literal.
+                        st.line_no += 1;
+                        pos = buf.len();
+                    }
                     break;
                 }
-                let line_start = crate::search::memrchr(eol, &data[pos..next]).map_or(pos, |i| pos + i + 1);
+                let line_start = crate::search::memrchr(eol, &buf[pos..next]).map_or(pos, |i| pos + i + 1);
                 if o.line_number {
-                    line_no += crate::search::count(eol, &data[pos..line_start]) as u64;
+                    st.line_no += crate::search::count(eol, &buf[pos..line_start]) as u64;
                 }
                 pos = line_start;
             }
-            // The next line: up to `eol` (or to a NUL in a binary input, which splits lines).
-            let rest = &data[pos..];
-            let end_rel = if has_nul && eol != 0 {
-                rest.iter().position(|&b| b == eol || b == 0)
-            } else {
-                crate::search::memchr(eol, rest)
-            };
+            // The next line: up to `eol`, or to a NUL in the part of a binary input where NUL ends lines.
+            let rest = &buf[pos..];
+            let line_offset = base + pos as u64;
+            let mut end_rel = crate::search::memchr(eol, rest);
+            if let Some(bf) = st.binary_from {
+                // (A line that ends where the binary part is, or later, ends at a NUL too.)
+                let eol_at = end_rel.map(|i| line_offset + i as u64);
+                if eol_at.is_none_or(|e| e >= bf) && eol != 0 {
+                    let limit = end_rel.unwrap_or(rest.len());
+                    if let Some(z) = crate::search::memchr(0, &rest[..limit]) {
+                        end_rel = Some(z);
+                    }
+                }
+            }
             let (text_end, next, terminated) = match end_rel {
                 Some(i) => (pos + i, pos + i + 1, true),
-                None => (data.len(), data.len(), false),
+                None if eof => (buf.len(), buf.len(), false),
+                None => break, // not finished: wait for the rest of it
             };
-            let text = &data[pos..text_end];
-            line_no += 1;
-            let selected = m.is_match(text) != o.invert;
-
-            if stopped {
-                // After `-m`: only the trailing context is left (selected lines included).
-                if pending == 0 {
+            let eol_offset = base + text_end as u64;
+            // From the first line that is part of the binary piece on, nothing is printed.
+            if !st.in_binary && st.binary_from.is_some_and(|bf| eol_offset >= bf) {
+                if o.binary_files == BinaryFiles::WithoutMatch {
+                    // A binary input has no match: what was printed before stays, the count is 0.
+                    st.count = 0;
+                    st.done = true;
                     break;
                 }
-                if !mode.quiet {
-                    self.print_line(m, name, text, line_no, pos as u64, SEP_CONTEXT, terminated)?;
-                    pending -= 1;
-                    last_out = Some(next);
+                st.in_binary = true;
+                st.count_at_binary = Some(st.count);
+                if !st.count_only {
+                    st.quiet = true;
+                    st.done_on_match = true;
+                }
+            }
+            let text = &buf[pos..text_end];
+            st.line_no += 1;
+            let selected = m.is_match(text) != o.invert;
+
+            if st.stopped {
+                // After `-m`: only the trailing context is left (selected lines included).
+                if st.pending == 0 {
+                    st.done = true;
+                    break;
+                }
+                if !st.quiet {
+                    self.print_line(m, name, text, st.line_no, line_offset, SEP_CONTEXT, terminated)?;
+                    st.pending -= 1;
+                    st.last_out = Some(base + next as u64);
                 }
                 pos = next;
                 continue;
             }
 
             if selected {
-                count += 1;
-                if first_binary_count.is_some() && first_binary_count == Some(0) && !count_only {
-                    // (the count before the first NUL is 0 here: the whole input is one buffer)
-                }
-                if !mode.quiet {
+                st.count += 1;
+                st.last_selected_end = Some(base + next as u64);
+                if !st.quiet {
                     // Leading context, back from this line to the last line printed.
-                    let lower = last_out.unwrap_or(0);
+                    let lower = st.last_out.map_or(0, |l| (l.saturating_sub(base)) as usize);
                     let mut first = pos;
-                    let mut first_no = line_no;
+                    let mut first_no = st.line_no;
                     if let Some(b) = before {
                         let mut k = 0;
                         while k < b && first > lower {
                             let prev_end = first - 1;
-                            let prev_start = data[lower..prev_end].iter().rposition(|&c| c == eol).map_or(lower, |i| lower + i + 1);
+                            let prev_start = buf[lower..prev_end].iter().rposition(|&c| c == eol).map_or(lower, |i| lower + i + 1);
                             first = prev_start;
                             first_no -= 1;
                             k += 1;
                         }
                     }
-                    let adjacent = last_out == Some(first);
+                    let adjacent = st.last_out == Some(base + first as u64);
                     if context && self.used && !adjacent {
                         if let Some(Some(sep)) = Some(o.group_separator.clone().unwrap_or(Some(b"--".to_vec()))) {
                             if self.colored() {
@@ -477,38 +640,41 @@ impl<'a> Printer<'a> {
                     let mut p = first;
                     let mut n = first_no;
                     while p < pos {
-                        let e = crate::search::memchr(eol, &data[p..]).map_or(data.len(), |i| p + i);
-                        self.print_line(m, name, &data[p..e], n, p as u64, SEP_CONTEXT, true)?;
+                        let e = crate::search::memchr(eol, &buf[p..]).map_or(buf.len(), |i| p + i);
+                        self.print_line(m, name, &buf[p..e], n, base + p as u64, SEP_CONTEXT, true)?;
                         p = e + 1;
                         n += 1;
                     }
-                    if self.print_line(m, name, text, line_no, pos as u64, SEP_SELECTED, terminated)? {
-                        last_out = Some(next);
-                        pending = after.unwrap_or(0);
+                    if self.print_line(m, name, text, st.line_no, line_offset, SEP_SELECTED, terminated)? {
+                        st.last_out = Some(base + next as u64);
+                        st.pending = after.unwrap_or(0);
                     }
                     self.used = true;
                 }
                 if self.exit_on_match {
-                    return Ok(Found { count, binary_matches: false });
+                    st.done = true;
+                    pos = next;
+                    break;
                 }
-                if mode.done_on_match {
+                if st.done_on_match {
+                    st.done = true;
+                    pos = next;
                     break;
                 }
                 if let Some(limit) = max {
-                    if count >= limit {
-                        stopped = true;
+                    if st.count >= limit {
+                        st.stopped = true;
                     }
                 }
-            } else if pending > 0 && !mode.quiet {
-                self.print_line(m, name, text, line_no, pos as u64, SEP_CONTEXT, terminated)?;
-                pending -= 1;
-                last_out = Some(next);
+            } else if st.pending > 0 && !st.quiet {
+                self.print_line(m, name, text, st.line_no, line_offset, SEP_CONTEXT, terminated)?;
+                st.pending -= 1;
+                st.last_out = Some(base + next as u64);
             }
             pos = next;
         }
-
-        let binary_matches = !originally_quiet && (std::mem::take(&mut self.encoding_errors) || (has_nul && count > 0));
-        Ok(Found { count, binary_matches })
+        st.next_offset = base + pos as u64;
+        Ok(())
     }
 
     /// The summary line of an input: its count, or its name.
