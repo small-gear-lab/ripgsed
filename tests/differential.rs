@@ -39,14 +39,21 @@ fn root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
 }
 
-/// Compatibility item id -> status, from compat/sed.tsv.
+/// The compatibility matrices: GNU sed (the fixtures of every area but the ones below) and
+/// GNU grep (`grep-*` and `pcre-*` fixtures, which call `grep`, `egrep` and `fgrep`).
+const MATRICES: [&str; 2] = ["compat/sed.tsv", "compat/grep.tsv"];
+
+/// Compatibility item id -> status, from the matrices.
 fn load_matrix() -> BTreeMap<String, String> {
-    let text = fs::read_to_string(root().join("compat/sed.tsv")).expect("compat/sed.tsv");
     let mut map = BTreeMap::new();
-    for line in text.lines().skip(1) {
-        let cols: Vec<&str> = line.split('\t').collect();
-        assert!(cols.len() == 6, "bad matrix row: {line}");
-        map.insert(cols[0].to_string(), cols[3].to_string());
+    for file in MATRICES {
+        let text = fs::read_to_string(root().join(file)).unwrap_or_else(|_| panic!("{file}"));
+        for line in text.lines().skip(1) {
+            let cols: Vec<&str> = line.split('\t').collect();
+            assert!(cols.len() == 6, "bad matrix row: {line}");
+            let previous = map.insert(cols[0].to_string(), cols[3].to_string());
+            assert!(previous.is_none(), "{file}: item {} is in two matrices", cols[0]);
+        }
     }
     map
 }
@@ -110,6 +117,10 @@ fn run_fixture(dir: &Path, scratch: &Path) -> Result<Outcome, String> {
     }
     // Run as plain `sed` so that messages carry the same `sed:` prefix as GNU sed.
     symlink(env!("CARGO_BIN_EXE_ripgsed"), bin.join("sed")).unwrap();
+    // The grep mode is chosen by the name the program runs under, and its messages carry it.
+    for name in ["grep", "egrep", "fgrep"] {
+        symlink(env!("CARGO_BIN_EXE_ripgsed"), bin.join(name)).unwrap();
+    }
 
     let mut cmd = Command::new("sh");
     cmd.arg(dir.join("cmd"))
@@ -414,29 +425,31 @@ fn fixtures_match_gnu_sed() {
     assert!(failures.is_empty(), "fixture failures:\n{}", failures.join("\n"));
 }
 
-/// Rewrites the `status` column of compat/sed.tsv from the fixture results.
+/// Rewrites the `status` column of the matrices from the fixture results.
 fn update_matrix(coverage: &BTreeMap<String, (usize, usize)>) {
-    let path = root().join("compat/sed.tsv");
-    let text = fs::read_to_string(&path).unwrap();
-    let mut out = String::new();
-    for (i, line) in text.lines().enumerate() {
-        let mut cols: Vec<String> = line.split('\t').map(str::to_string).collect();
-        if i > 0 {
-            if let Some(&(total, passing)) = coverage.get(&cols[0]) {
-                cols[3] = if passing == total {
-                    "verified"
-                } else if passing > 0 {
-                    "partial"
-                } else {
-                    "unsupported"
+    for file in MATRICES {
+        let path = root().join(file);
+        let text = fs::read_to_string(&path).unwrap();
+        let mut out = String::new();
+        for (i, line) in text.lines().enumerate() {
+            let mut cols: Vec<String> = line.split('\t').map(str::to_string).collect();
+            if i > 0 {
+                if let Some(&(total, passing)) = coverage.get(&cols[0]) {
+                    cols[3] = if passing == total {
+                        "verified"
+                    } else if passing > 0 {
+                        "partial"
+                    } else {
+                        "unsupported"
+                    }
+                    .to_string();
                 }
-                .to_string();
             }
+            out.push_str(&cols.join("\t"));
+            out.push('\n');
         }
-        out.push_str(&cols.join("\t"));
-        out.push('\n');
+        fs::write(path, out).unwrap();
     }
-    fs::write(path, out).unwrap();
 }
 
 /// Every `verified` matrix item must be covered by at least one fixture.

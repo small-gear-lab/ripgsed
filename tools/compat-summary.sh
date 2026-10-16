@@ -3,7 +3,10 @@
 set -euo pipefail
 
 root=$(cd "$(dirname "$0")/.." && pwd)
-tsv="$root/compat/sed.tsv"
+tsv=$(mktemp)
+trap 'rm -f "$tsv"' EXIT
+# The matrices of sed and grep, one table.
+awk 'FNR == 1 && NR != 1 { next } { print }' "$root/compat/sed.tsv" "$root/compat/grep.tsv" > "$tsv"
 
 printf '%-16s %12s %8s %9s\n' area unsupported partial verified
 awk -F'\t' '

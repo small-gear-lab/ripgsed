@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Make the reference GNU grep: the grep and PCRE2 of Ubuntu 24.04 (grep 3.11, PCRE2 10.42),
-# which are what the CI runner has, whatever the machine running this is.
+# Unpack another release of GNU grep: the grep and PCRE2 of Ubuntu 24.04 (grep 3.11, PCRE2 10.42).
+# The expected results of the fixtures come from the grep of the machine (tools/gen-fixtures.sh);
+# this script is for seeing what another release changes, by running a fixture with both.
 #
 #   tools/ref-grep.sh          print the path of the reference `grep` wrapper (made if needed)
 #

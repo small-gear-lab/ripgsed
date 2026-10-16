@@ -40,4 +40,4 @@ jobs:
       - name: Regenerate the expected results
         run: ls tests/fixtures | python3 -c 'import os,signal,sys; signal.signal(signal.SIGPIPE, signal.SIG_DFL); os.execvp(sys.argv[1], sys.argv[1:])' xargs tools/gen-fixtures.sh > /dev/null
       - name: Expected results must be up to date
-        run: git diff --exit-code -- tests/fixtures tests/reference.json
+        run: git diff --exit-code -- tests/fixtures tests/reference.json tests/reference-grep.json
