@@ -28,6 +28,12 @@ jobs:
           git merge-base --is-ancestor "$GITHUB_SHA" origin/main
           version=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | sed -n '1p')
           test "v$version" = "$GITHUB_REF_NAME"
+      # Before the publication: a version without notes must not be published.
+      - name: The notes of this version in CHANGELOG.md
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          awk -v v="$version" '/^## /{ if (found) exit; found = ($2 == v) } found' CHANGELOG.md | sed '1d' > "$RUNNER_TEMP/notes.md"
+          test -s "$RUNNER_TEMP/notes.md"
       - name: Toolchain
         run: rustup toolchain install 1.85 --profile minimal && rustup default 1.85
       - uses: rust-lang/crates-io-auth-action@v1.0.5
@@ -37,6 +43,6 @@ jobs:
         env:
           CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
       - name: GitHub release
-        run: gh release create "$GITHUB_REF_NAME" --verify-tag --generate-notes --title "ripgsed ${GITHUB_REF_NAME#v}"
+        run: gh release create "$GITHUB_REF_NAME" --verify-tag --notes-file "$RUNNER_TEMP/notes.md" --title "ripgsed ${GITHUB_REF_NAME#v}"
         env:
           GH_TOKEN: ${{ github.token }}
