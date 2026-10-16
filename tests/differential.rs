@@ -13,6 +13,8 @@
 //!
 //! Environment:
 //! - `RIPGSED_FIXTURES=name1,name2` runs only the named fixtures.
+//! - `RIPGSED_SKIP=prefix1,name2` leaves out the fixtures whose name starts with one of these (for a
+//!   system where they do not apply: the locales of glibc, `/dev/full`, `/proc`).
 //! - `RIPGSED_SHOW_PENDING=1` also lists pending fixtures that already pass.
 //! - `RIPGSED_SHOW_FAILURES=1` prints the differences of pending fixtures that fail.
 //! - `RIPGSED_UPDATE_PASSING=1` rewrites `tests/passing.txt` with every fixture
@@ -326,6 +328,9 @@ fn fixtures_match_gnu_sed() {
     let only: Option<Vec<String>> = std::env::var("RIPGSED_FIXTURES")
         .ok()
         .map(|v| v.split(',').map(str::to_string).collect());
+    let skip: Vec<String> = std::env::var("RIPGSED_SKIP")
+        .map(|v| v.split(',').filter(|s| !s.is_empty()).map(str::to_string).collect())
+        .unwrap_or_default();
     let show_pending = std::env::var("RIPGSED_SHOW_PENDING").is_ok_and(|v| v == "1");
     let show_failures = std::env::var("RIPGSED_SHOW_FAILURES").is_ok_and(|v| v == "1");
 
@@ -335,7 +340,7 @@ fn fixtures_match_gnu_sed() {
         .filter(|p| p.is_dir())
         .filter(|p| {
             let name = p.file_name().unwrap().to_string_lossy().to_string();
-            only.as_ref().is_none_or(|o| o.contains(&name))
+            only.as_ref().is_none_or(|o| o.contains(&name)) && !skip.iter().any(|s| name.starts_with(s.as_str()))
         })
         .collect();
     dirs.sort();

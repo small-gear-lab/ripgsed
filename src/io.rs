@@ -519,6 +519,13 @@ impl<R: BufRead> RecordSource for ReaderSource<R> {
     }
 }
 
+/// `ELOOP`, "Too many levels of symbolic links": 40 on Linux, 62 on macOS and the BSDs (the other
+/// numbers this file uses, 9, 21, 22 and 28, are the same on all of them).
+#[cfg(target_os = "linux")]
+const ELOOP: i32 = 40;
+#[cfg(not(target_os = "linux"))]
+const ELOOP: i32 = 62;
+
 /// The operating system's message for an I/O error, without Rust's ` (os error N)` suffix.
 pub fn strerror(e: &io::Error) -> String {
     let text = e.to_string();
@@ -856,7 +863,7 @@ pub fn follow_link_chain(path: &std::path::Path) -> Result<std::path::PathBuf, F
             Ok(target) => {
                 // At most 40 links are followed, as the kernel does.
                 if followed == 40 {
-                    return Err(FollowError::Loop(io::Error::from_raw_os_error(40)));
+                    return Err(FollowError::Loop(io::Error::from_raw_os_error(ELOOP)));
                 }
                 followed += 1;
                 current = if target.is_absolute() {
