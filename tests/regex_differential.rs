@@ -78,6 +78,7 @@ impl Flags {
             locale: if self.utf8 { Locale::Utf8 } else { Locale::C },
             // GNU sed's own results, quirks included.
             glibc_compat: true,
+            ..Syntax::default()
         }
     }
 }

@@ -92,6 +92,11 @@ fn parse_with(pattern: &[u8], syntax: &Syntax, delim: u8, digit_exact: bool) -> 
     let mut referenced = p.referenced;
     referenced.resize(p.ngroups + 1, false);
     let char_starts = p.mb || (p.utf8 && p.icase);
+    let node = match syntax.wrap {
+        super::Wrap::None => node,
+        super::Wrap::Word => Node::Concat(vec![Node::Assert(Assert::NoWordBefore), node, Node::Assert(Assert::NoWordAfter)]),
+        super::Wrap::Line => Node::Concat(vec![Node::Assert(Assert::BufStart), node, Node::Assert(Assert::BufEnd)]),
+    };
     Ok(Parsed { node, ngroups: p.ngroups, referenced, char_starts, utf8: p.utf8, digit_sets: p.digit_sets })
 }
 

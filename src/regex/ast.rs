@@ -34,6 +34,21 @@ pub enum Assert {
     WordStart,
     /// `\>`
     WordEnd,
+    /// No word character before (the start of `grep -w`): the position is the start of the text
+    /// or follows a character that is not part of a word.
+    NoWordBefore,
+    /// No word character after (the end of `grep -w`).
+    NoWordAfter,
+}
+
+impl Assert {
+    /// Whether the assertion looks at the characters around the position.
+    pub fn is_word(self) -> bool {
+        matches!(
+            self,
+            Assert::WordBoundary | Assert::NotWordBoundary | Assert::WordStart | Assert::WordEnd | Assert::NoWordBefore | Assert::NoWordAfter
+        )
+    }
 }
 
 #[derive(Clone, Debug)]

@@ -161,9 +161,22 @@ impl Locale {
     }
 }
 
+/// What `grep -w` and `grep -x` ask of a match: the whole pattern is wrapped in assertions.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum Wrap {
+    #[default]
+    None,
+    /// `-w`: no word character before the match or after it.
+    Word,
+    /// `-x`: the match is the whole text.
+    Line,
+}
+
 /// The dialect and flags a pattern is read in.
 #[derive(Debug, Clone, Copy, Default)]
 pub struct Syntax {
+    /// `grep -w` and `grep -x`.
+    pub wrap: Wrap,
     /// ERE (`-E`/`-r`) instead of BRE.
     pub extended: bool,
     /// `--posix`: the GNU extensions are restricted.
@@ -466,7 +479,7 @@ fn has_multibyte_set(node: &ast::Node) -> bool {
     match node {
         Node::Unit(Unit::Chars(cs)) => cs.mb,
         // (A word assertion counts too: it looks at the characters around.)
-        Node::Assert(ast::Assert::WordBoundary | ast::Assert::NotWordBoundary | ast::Assert::WordStart | ast::Assert::WordEnd) => true,
+        Node::Assert(a) if a.is_word() => true,
         Node::Group(_, inner) | Node::Repeat(inner, _, _) => has_multibyte_set(inner),
         Node::Concat(items) | Node::Alt(items) => items.iter().any(has_multibyte_set),
         _ => false,
@@ -495,7 +508,7 @@ fn relax(node: &mut ast::Node) -> bool {
             true
         }
         // (The word assertions look at the characters around, which it cannot decide either.)
-        Node::Assert(ast::Assert::WordBoundary | ast::Assert::NotWordBoundary | ast::Assert::WordStart | ast::Assert::WordEnd) => {
+        Node::Assert(a) if a.is_word() => {
             *node = Node::Empty;
             true
         }

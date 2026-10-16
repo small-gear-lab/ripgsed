@@ -370,6 +370,8 @@ impl<'a> Searcher<'a> {
             Assert::NotWordBoundary => self.word_before(pos) == self.word_after(pos),
             Assert::WordStart => !self.word_before(pos) && self.word_after(pos),
             Assert::WordEnd => self.word_before(pos) && !self.word_after(pos),
+            Assert::NoWordBefore => !self.word_before(pos),
+            Assert::NoWordAfter => !self.word_after(pos),
         }
     }
 

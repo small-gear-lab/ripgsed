@@ -57,6 +57,8 @@ pub mod cli;
 #[doc(hidden)]
 pub mod debug;
 #[doc(hidden)]
+pub mod grep;
+#[doc(hidden)]
 pub mod io;
 #[doc(hidden)]
 pub mod locale;

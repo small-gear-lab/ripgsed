@@ -331,6 +331,7 @@ impl Parser {
             null_data: o.null_data,
             locale: o.locale,
             glibc_compat: o.glibc_compat,
+            wrap: crate::regex::Wrap::None,
         };
         match Regex::compile(&normalize_escapes(text, o.posixly_correct), &syntax) {
             Ok(re) => {

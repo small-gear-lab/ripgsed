@@ -472,6 +472,17 @@ fn parallel_jobs(script: &crate::syntax::Script, options: &Options, files: &[Str
 pub fn main() -> i32 {
     restore_inherited_sigpipe();
     let program = program_name();
+    // The grep mode: the program is run as `grep`, `egrep` or `fgrep`, or the first argument is `--grep`.
+    {
+        use std::os::unix::ffi::OsStrExt;
+        let raw: Vec<Vec<u8>> = std::env::args_os().skip(1).map(|a| a.as_bytes().to_vec()).collect();
+        if let Some(kind) = crate::grep::kind_for_name(&program) {
+            return crate::grep::main(&program, raw, kind);
+        }
+        if raw.first().is_some_and(|a| a == b"--grep") {
+            return crate::grep::main("grep", raw[1..].to_vec(), crate::grep::Kind::Basic);
+        }
+    }
     let args: Vec<String> = std::env::args_os().skip(1).map(lossless_string).collect();
     let invocation = match parse_args(args, &program) {
         Ok(Ok(i)) => i,

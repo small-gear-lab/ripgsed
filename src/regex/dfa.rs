@@ -139,6 +139,8 @@ impl Dfa {
             Assert::NotWordBoundary => prev.is_word() == next.is_word(),
             Assert::WordStart => !prev.is_word() && next.is_word(),
             Assert::WordEnd => prev.is_word() && !next.is_word(),
+            Assert::NoWordBefore => !prev.is_word(),
+            Assert::NoWordAfter => !next.is_word(),
         }
     }
 
@@ -366,6 +368,8 @@ pub fn reverse(node: &super::ast::Node) -> super::ast::Node {
             Assert::BufEnd => Assert::BufStart,
             Assert::WordStart => Assert::WordEnd,
             Assert::WordEnd => Assert::WordStart,
+            Assert::NoWordBefore => Assert::NoWordAfter,
+            Assert::NoWordAfter => Assert::NoWordBefore,
             other => *other,
         }),
         other => other.clone(),
@@ -460,7 +464,7 @@ fn expand_utf8(node: &super::ast::Node) -> Option<super::ast::Node> {
             Node::Empty => Node::Empty,
             Node::Backref(_) => unreachable!("`supports` rejects programs with back-references"),
             Node::Assert(a) => match a {
-                Assert::WordBoundary | Assert::NotWordBoundary | Assert::WordStart | Assert::WordEnd => return None,
+                a if a.is_word() => return None,
                 _ => Node::Assert(*a),
             },
             Node::Group(n, inner) => Node::Group(*n, Box::new(walk(inner, budget)?)),

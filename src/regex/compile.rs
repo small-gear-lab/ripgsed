@@ -113,9 +113,7 @@ pub fn compile(
             && c.insts.iter().any(|i| {
                 matches!(
                     i,
-                    Inst::Assert(
-                        Assert::WordBoundary | Assert::NotWordBoundary | Assert::WordStart | Assert::WordEnd
-                    )
+                    Inst::Assert(a) if a.is_word()
                 )
             }));
     let mut unit_pcs = vec![0u32; c.units.len()];
