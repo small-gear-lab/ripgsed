@@ -1,0 +1,12 @@
+export LC_ALL=C.UTF-8
+# Sequences built like UTF-8 characters but not characters: an encoded surrogate (ED A0 80), a value
+# above U+10FFFF (F4 90 80 80), and the longer forms of up to six bytes
+S=$(printf '\355\240\200'); B=$(printf '\364\220\200\200'); L=$(printf '\374\204\200\200\200\200')
+for seq in S B L; do
+  eval "q=\$$seq"
+  for text in "$q" "a${q}b" "${q}${q}" "a${q}${q}b" "${q}a${q}"; do
+    for script in 's/./X/g' 's/.*/X/' 's/\W/X/g' 's/[^a]/X/g' 's/\w/X/g' 's/\b/|/g' 's/[[:alpha:]]/X/g' 's/[^[:alpha:]]/X/g'; do
+      printf '%s\n' "$text" | sed "$script" | od -An -c
+    done
+  done
+done

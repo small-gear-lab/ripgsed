@@ -12,7 +12,7 @@
 use std::collections::{HashMap, HashSet};
 
 use super::ast::{Assert, Unit};
-use super::charset::{decode_utf8, decode_utf8_before, is_word_byte, is_word_char, is_word_char_libc, simple_upper};
+use super::charset::{decode_utf8, decode_utf8_before, ext_level, is_word_byte, is_word_char, is_word_char_libc, simple_upper, surrogate_len};
 use super::compile::{GroupCopy, Inst, Program};
 
 const NONE: usize = usize::MAX;
@@ -26,7 +26,8 @@ enum Check {
     Pass,
     NeedNewline,
 }
-const RING: usize = 5;
+// (A unit takes up to six bytes: a sequence beyond Unicode under `--glibc-compat`.)
+const RING: usize = 7;
 /// Above this many (instruction, position) pairs the capture pass uses no
 /// bit tables.
 const BIG_TABLE_BITS: usize = 1 << 27;
@@ -252,7 +253,14 @@ impl<'a> Searcher<'a> {
         match &self.prog.units[u as usize] {
             Unit::Byte(set) => set.contains(b).then_some(1),
             Unit::Any { exclude } => {
-                let (c, len) = self.dec(pos)?;
+                let Some((c, len)) = self.dec(pos) else {
+                    // (At level 2 of `with_ext`: `.` takes an encoded surrogate whole.)
+                    return if self.utf8 && !self.mb && exclude.is_none_or(|e| e != b) { surrogate_len(self.hay, pos) } else { None };
+                };
+                // (A sequence beyond Unicode is no character for `.` in GNU sed's first matcher.)
+                if c == super::charset::BEYOND_UNICODE && ext_level() == 1 {
+                    return None;
+                }
                 (exclude.is_none_or(|b| c as u32 != b as u32 && c != '\n')).then_some(len)
             }
             Unit::Chars(cs) => {
@@ -381,7 +389,7 @@ impl<'a> Searcher<'a> {
         if self.mb {
             return self.mb_scan(pos).0;
         }
-        (1..=3).any(|back| {
+        (1..=if ext_level() > 0 { 5 } else { 3 }).any(|back| {
             pos >= back && decode_utf8(self.hay, pos - back).is_some_and(|(_, l)| l > back)
         })
     }
@@ -420,6 +428,10 @@ impl<'a> Searcher<'a> {
     /// `Some(None)` for "no match".
     fn dfa_span(&self, from: usize) -> Option<Option<(usize, usize)>> {
         if !self.use_dfa {
+            return None;
+        }
+        // (With `with_ext` a sequence beyond Unicode is one character, which the DFAs do not know.)
+        if ext_level() > 0 && self.hay.iter().any(|&b| b >= 0xed) {
             return None;
         }
         let mut slot = self.dfa.borrow_mut();

@@ -301,6 +301,25 @@ impl Regex {
     /// A search from 0 starts a new line: later calls with larger `start` on the same text share
     /// what this one learned about character boundaries (`Mb`).
     pub fn captures_at(&self, haystack: &[u8], start: usize, caps: &mut Captures) -> bool {
+        if self.reads_beyond_unicode(haystack) {
+            // GNU sed's first matcher, which does not know the sequences, must find a match for glibc's
+            // matcher to be asked at all (`s/./X/g` leaves a line of such sequences alone).
+            // (It looks at the whole line, also when the search goes on from the middle of it.)
+            if !charset::with_ext(1, || self.captures_at_once(haystack, 0, &mut Captures::default())) {
+                return false;
+            }
+            return charset::with_ext(2, || self.captures_at_once(haystack, start, caps));
+        }
+        self.captures_at_once(haystack, start, caps)
+    }
+
+    /// `--glibc-compat`, UTF-8: the text has a byte that can start a sequence glibc reads as one
+    /// character although it is not one (an encoded surrogate, a value above U+10FFFF).
+    fn reads_beyond_unicode(&self, haystack: &[u8]) -> bool {
+        self.syntax.glibc_compat && self.syntax.locale.is_utf8() && haystack.iter().any(|&b| b == 0xed || b >= 0xf4)
+    }
+
+    fn captures_at_once(&self, haystack: &[u8], start: usize, caps: &mut Captures) -> bool {
         if start == 0 {
             self.boundaries.borrow_mut().clear();
         }
@@ -374,6 +393,13 @@ impl Regex {
     /// the match may meet a newline the match consumes even when the pattern
     /// has groups. Use this for addresses and `captures_at` for `s`.
     pub fn is_match(&self, haystack: &[u8]) -> bool {
+        if self.reads_beyond_unicode(haystack) {
+            return charset::with_ext(1, || self.is_match_once(haystack)) && charset::with_ext(2, || self.is_match_once(haystack));
+        }
+        self.is_match_once(haystack)
+    }
+
+    fn is_match_once(&self, haystack: &[u8]) -> bool {
         if self.filter.as_ref().is_some_and(|f| !f.is_match(haystack)) {
             return false;
         }

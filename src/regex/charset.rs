@@ -355,7 +355,7 @@ pub fn decode_utf8(hay: &[u8], pos: usize) -> Option<(char, usize)> {
         0xc2..=0xdf => (2, 0x80, (b0 & 0x1f) as u32),
         0xe0..=0xef => (3, 0x800, (b0 & 0x0f) as u32),
         0xf0..=0xf4 => (4, 0x10000, (b0 & 0x07) as u32),
-        _ => return None,
+        _ => return beyond_unicode(hay, pos),
     };
     if pos + len > hay.len() {
         return None;
@@ -371,12 +371,84 @@ pub fn decode_utf8(hay: &[u8], pos: usize) -> Option<(char, usize)> {
     if cp < min {
         return None;
     }
-    char::from_u32(cp).map(|c| (c, len))
+    match char::from_u32(cp) {
+        Some(c) => Some((c, len)),
+        // Above U+10FFFF (a surrogate is not one: see `surrogate_len`).
+        None if cp > 0x10ffff => beyond_unicode(hay, pos),
+        None => None,
+    }
+}
+
+thread_local! {
+    static EXT: std::cell::Cell<u8> = const { std::cell::Cell::new(0) };
+}
+
+/// Runs `f` with a reading of sequences beyond Unicode (`--glibc-compat`, UTF-8). Level 1 is what
+/// GNU sed's first matcher does: such a sequence is a character that negated sets, `\W` and `\S`
+/// take and `.` does not. Level 2 is glibc's matcher: `.` takes it too, and an encoded surrogate.
+pub fn with_ext<R>(level: u8, f: impl FnOnce() -> R) -> R {
+    struct Reset(u8);
+    impl Drop for Reset {
+        fn drop(&mut self) {
+            EXT.with(|e| e.set(self.0));
+        }
+    }
+    let _reset = Reset(EXT.with(|e| e.replace(level)));
+    f()
+}
+
+/// The stand-in for a character above U+10FFFF: it belongs to no class.
+pub const BEYOND_UNICODE: char = '\u{ffff}';
+
+/// With `with_ext`: a sequence built like a UTF-8 character of up to six bytes but with a value
+/// above U+10FFFF is one character that no class holds for glibc (`.`, `\W`, `[^a]` take it, `\w`
+/// and `[[:alpha:]]` do not). The stand-in is `BEYOND_UNICODE`.
+#[cold]
+fn beyond_unicode(hay: &[u8], pos: usize) -> Option<(char, usize)> {
+    if EXT.with(|e| e.get()) == 0 {
+        return None;
+    }
+    let b0 = *hay.get(pos)?;
+    let (len, min, init) = match b0 {
+        0xf0..=0xf7 => (4, 0x110000u32, (b0 & 0x07) as u32),
+        0xf8..=0xfb => (5, 0x200000, (b0 & 0x03) as u32),
+        0xfc..=0xfd => (6, 0x4000000, (b0 & 0x01) as u32),
+        _ => return None,
+    };
+    if pos + len > hay.len() {
+        return None;
+    }
+    let mut cp = init;
+    for k in 1..len {
+        let b = hay[pos + k];
+        if b & 0xc0 != 0x80 {
+            return None;
+        }
+        cp = (cp << 6) | (b & 0x3f) as u32;
+    }
+    (cp >= min).then_some((BEYOND_UNICODE, len))
+}
+
+/// With `with_ext`: the length (3) of an encoded surrogate (`ED A0..BF xx`), which glibc's `.`
+/// takes as one character and nothing else does.
+pub fn surrogate_len(hay: &[u8], pos: usize) -> Option<usize> {
+    if EXT.with(|e| e.get()) < 2 {
+        return None;
+    }
+    match hay.get(pos..pos + 3)? {
+        [0xed, 0xa0..=0xbf, 0x80..=0xbf] => Some(3),
+        _ => None,
+    }
+}
+
+/// The level of `with_ext` that is on (0 for none).
+pub fn ext_level() -> u8 {
+    EXT.with(|e| e.get())
 }
 
 /// Decodes the character that ends exactly at `pos`, if any.
 pub fn decode_utf8_before(hay: &[u8], pos: usize) -> Option<(char, usize)> {
-    for len in 1..=4usize {
+    for len in 1..=6usize {
         if len > pos {
             break;
         }
