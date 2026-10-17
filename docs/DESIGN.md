@@ -177,7 +177,7 @@ Each worker returns its chunk's results in input order. Deletions are empty outp
 | `1h; 2,$G` | sequential | hold space crosses records |
 | `N; P; D` | sequential | reads and cycles cross records |
 | range addresses | parallel, on a guess | each chunk starts from the state the last chunk the writer took ended in, and is run again if the chunk before it ends in another |
-| `$` | parallel | the chunk that holds the end of every input is told so |
+| `$`, `$-N` | parallel | each chunk is told how many records follow it, up to what the script looks ahead |
 | `F`, `s//x/` after a known regexp | parallel | the chunk knows its input; the regexp is the one just tried |
 | `q` / `Q` | parallel | record-local; the first quit in input order wins and the chunks after it are dropped |
 | `w`, `W`, `s///w` | parallel | each chunk keeps what it writes to each file and the writer puts it there in order; `/dev/stdout` and `/dev/stderr` stay sequential |
