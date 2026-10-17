@@ -34,7 +34,9 @@ RIPGSED_FIXTURE_TIMEOUT=300 cargo test    # all of it, in the DEBUG build: CI ru
 - Run the long things in the background and wait for them with a marker file or a monitor; do not block on them.
 - The code is formatted with `cargo fmt` (the standard settings, no `rustfmt.toml`) and passes
   `cargo clippy --all-targets -- -D warnings`. `git config blame.ignoreRevsFile .git-blame-ignore-revs` lets `git blame`
-  skip the commits that only formatted (GitHub reads the file by itself).
+  skip the commits that only formatted (GitHub reads the file by itself). CI checks both in the job `lint`, on the latest
+  stable toolchain (a release that adds a lint can turn a run red: the code is then made to pass it); the tests run on
+  1.85, the least version that builds the crate.
 - `git config core.hooksPath .githooks`, once in each clone, turns on `.githooks/pre-commit`: it runs `cargo fmt --check`
   and `cargo clippy --all-targets -- -D warnings` when a Rust file is part of the commit and stops the commit if one fails.
   It looks at the working tree, not only at what is staged. `git commit --no-verify` skips it (work in progress on a

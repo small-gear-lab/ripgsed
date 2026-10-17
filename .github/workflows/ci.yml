@@ -9,6 +9,18 @@ permissions:
   contents: read
 
 jobs:
+  # rustfmt and clippy are tools of the people who write the code, not of the least version that builds it: they
+  # run on the latest stable toolchain. A release that adds a lint can turn a run red with no change of the code;
+  # the code is then made to pass it. The tests below keep to 1.85, the version that rust-version names.
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Toolchain
+        run: rustup toolchain install stable --profile minimal --component rustfmt --component clippy && rustup default stable
+      - run: cargo fmt --check
+      - run: cargo clippy --all-targets -- -D warnings
+
   test:
     # The second one is Linux on ARM (aarch64): the NEON code of src/search.rs and everything else, with GNU sed and glibc.
     strategy:
