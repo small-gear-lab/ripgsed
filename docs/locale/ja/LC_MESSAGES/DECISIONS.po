@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ripgsed\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-17 17:50+0900\n"
+"POT-Creation-Date: 2026-10-17 20:11+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: ja <LL@li.org>\n"
@@ -920,6 +920,108 @@ msgstr ""
 "比べる GNU sed がないので、答えは fixture ではなく、行のモデルから `tests/from_end.rs` に書いてある。fixture"
 " `adr-019-invalid-address-forms` から `2,-1p` を外した（GNU sed は拒否し、ripgsed "
 "は受け付けるため）。"
+
+#: ../../DECISIONS.md:141
+msgid ""
+"D16. Shortcuts are plans that an analysis proves, and the sequential VM is "
+"what they must equal"
+msgstr "D16. 近道は解析が証明する計画であり、逐次の VM がそれと一致すべき基準である"
+
+#: ../../DECISIONS.md:143
+msgid ""
+"A script is read as the commands that it is made of (the syntax tree), and an"
+" analysis of them (`src/analysis.rs`) may find that a part of the input does "
+"not need to be read, or can be read in another way. What it finds is a plan, "
+"and the sequential VM, which runs every cycle on every record, stays what a "
+"plan has to give the same answer as."
+msgstr ""
+"スクリプトは、それを構成するコマンド（構文木）として読まれ、その解析（`src/analysis.rs`）によって、入力のある部分は読まなくてよい、あるいは別の方法で読めると分かることがある。分かったことは計画であり、サイクルをすべてのレコードで実行する逐次の"
+" VM が、計画の答えが一致すべき基準であり続ける。"
+
+#: ../../DECISIONS.md:144
+msgid "The plans that there are:"
+msgstr "いまある計画："
+
+#: ../../DECISIONS.md:145
+msgid ""
+"threads: a script that does nothing from record to record (`record_local`) "
+"runs on chunks, with the state of its ranges guessed and run again if wrong, "
+"and its output put back in order;"
+msgstr ""
+"スレッド：レコード間で何もしないスクリプト（`record_local`）は、チャンクごとに実行する。範囲の状態は推測して、外れたらやり直し、出力は順に戻す。"
+
+#: ../../DECISIONS.md:146
+msgid ""
+"the end of a file (`tail_window`): `-n '$p'`, `$!d`, `-n '$-9,$p'`: the "
+"records before the last few leave nothing, so the last ones are read from the"
+" end of the file;"
+msgstr ""
+"ファイルの末尾（`tail_window`）：`-n '$p'`、`$!d`、`-n "
+"'$-9,$p'`。最後の数レコードより前は何も残さないので、最後の数レコードをファイルの末尾から読む。"
+
+#: ../../DECISIONS.md:147
+msgid ""
+"the start (`head_limit`): `-n '1,10p'`, `3!d`: the records after the last "
+"line number leave nothing, so the run stops there;"
+msgstr "先頭（`head_limit`）：`-n '1,10p'`、`3!d`。最後の行番号より後は何も残さないので、そこで実行を止める。"
+
+#: ../../DECISIONS.md:148
+msgid "both ends (`head_tail_plan`): `-n '1p;$p'`;"
+msgstr "両端（`head_tail_plan`）：`-n '1p;$p'`。"
+
+#: ../../DECISIONS.md:149
+msgid "the next line of a step (`skip_ahead`): `-n '0~1000p'`."
+msgstr "ステップの次の行（`skip_ahead`）：`-n '0~1000p'`。"
+
+#: ../../DECISIONS.md:150
+msgid ""
+"A plan is proved for a record that nothing is true for (every address but a "
+"regexp is false): the commands that can run for it are followed from the "
+"first, and each has to leave nothing behind (print, write, keep, read on) "
+"until the record is deleted or the script ends and is quiet. What cannot be "
+"shown is not a plan: it runs on the VM."
+msgstr ""
+"計画は、どのアドレスも真にならない（正規表現以外のアドレスはすべて偽）レコードについて証明する。そのレコードに対して動きうるコマンドを最初から順にたどり、レコードが削除されるか、スクリプトが終わって静か（`-n`）になるまで、どのコマンドも何も残さない（出力、書き込み、保持、先読みをしない）ことを示す。示せないものは計画ではなく、VM"
+" で実行する。"
+
+#: ../../DECISIONS.md:151
+msgid ""
+"What is looked at when the run starts is the input: a file named on the "
+"command line, or standard input that is a file (not a pipe, which the process"
+" that writes to it sees, and which a run that stops early would change), and,"
+" for what stops early, that every file named can be read, so that nothing is "
+"missed that the usual run would say. When it does not hold, nothing has been "
+"written yet and the usual run goes on, so the answer is the same."
+msgstr ""
+"実行の開始時に確かめるのは入力である。コマンドラインで名前を指定したファイル、または通常ファイルである標準入力（pipe は対象外。pipe "
+"に書き込む側のプロセスに見えるし、早く止める実行はそれを変えてしまう）。早く止める計画では、名前を指定したすべてのファイルが読めることも確かめる（通常の実行が報告するはずのことを見逃さないため）。満たさなければ、まだ何も書いていないので、通常の実行が続き、答えは同じになる。"
+
+#: ../../DECISIONS.md:152
+msgid ""
+"A plan has a switch (`RIPGSED_JOBS`, `RIPGSED_TAIL=0`, "
+"`RIPGSED_TAIL_MIN_BYTES`, `RIPGSED_HEAD=0`), and the tests that compare plans"
+" with the VM are run with each plan forced on every file, however small: the "
+"fixtures (GNU sed's results) and the random scripts with the ends read "
+"(`RIPGSED_TAIL_MIN_BYTES=0`), and the fixtures on four threads and chunks of "
+"16 bytes. CI does it in the job `forced`. A plan that is wrong gives a wrong "
+"answer without saying so, which is worse than a slow one: it is not trusted "
+"for what the tests do not force."
+msgstr ""
+"計画にはスイッチがある（`RIPGSED_JOBS`、`RIPGSED_TAIL=0`、`RIPGSED_TAIL_MIN_BYTES`、`RIPGSED_HEAD=0`）。計画と"
+" VM "
+"を比べるテストは、どんなに小さいファイルでも、計画をすべてのファイルで強制して実行する。末尾を読む強制（`RIPGSED_TAIL_MIN_BYTES=0`）でのフィクスチャ（GNU"
+" sed の結果）とランダムなスクリプト、および 4 スレッド・16 バイトのチャンクでのフィクスチャ。CI では `forced` の job "
+"が行う。間違った計画は、何も言わずに間違った答えを出すので、遅いよりも悪い。テストが強制しないものには、頼らない。"
+
+#: ../../DECISIONS.md:153
+msgid ""
+"A test that a plan is used reads a file of gigabytes that is a hole (a sparse"
+" file) in the memory that a run that does not use the plan has not got "
+"(`ulimit -v`), and every program of such a test has what it can write bounded"
+" (AGENTS.md)."
+msgstr ""
+"計画が使われることを確かめるテストは、空洞（疎ファイル）の数 GiB のファイルを、その計画を使わない実行が持たないメモリ（`ulimit "
+"-v`）の下で読む。そのようなテストのプログラムは、すべて、書き出せる量に上限を付ける（AGENTS.md）。"
 
 #~ msgid ""
 #~ "One rule is not the library's but GNU sed's own: a bracket expression that "

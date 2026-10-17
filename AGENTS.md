@@ -1,7 +1,7 @@
 # AGENTS.md
 
 Guidance for coding agents (and people) working in this repository. The project is described in
-[README.md](README.md); the decisions behind it are in [docs/DECISIONS.md](docs/DECISIONS.md) (D1 to D14) and the
+[README.md](README.md); the decisions behind it are in [docs/DECISIONS.md](docs/DECISIONS.md) (D1 to D16) and the
 layout in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). This file only says how to work here.
 
 ## What this is
@@ -41,6 +41,11 @@ RIPGSED_FIXTURE_TIMEOUT=300 cargo test    # all of it, in the DEBUG build: CI ru
   and `cargo clippy --all-targets -- -D warnings` when a Rust file is part of the commit and stops the commit if one fails.
   It looks at the working tree, not only at what is staged. `git commit --no-verify` skips it (work in progress on a
   `research/*` branch); the tests stay for before a push.
+- The scripts that run on threads or on part of the input are plans that must give what the sequential VM gives (D16).
+  The fixtures and the random scripts are small, so run them with the plans forced on every file (CI does, in the job
+  `forced`): `RIPGSED_TAIL_MIN_BYTES=0 cargo test --test differential --test execution_fuzz`, and
+  `RIPGSED_JOBS=4 RIPGSED_BLOCK=16 RIPGSED_TAIL_MIN_BYTES=0 cargo test --test differential`. `RIPGSED_TAIL=0` and
+  `RIPGSED_HEAD=0` turn the reading of the ends and the stop at the last line number off, to compare.
 - One fixture or a few: `RIPGSED_FIXTURES=name1,name2 RIPGSED_SHOW_FAILURES=1 cargo test --test differential fixtures_match -- --nocapture`.
   `RIPGSED_SKIP=prefix,...` leaves some out. `RIPGSED_UPDATE_PASSING=1` and `RIPGSED_UPDATE_MATRIX=1` (full runs only)
   rewrite `tests/passing.txt` and the `status` column. `RIPGSED_JOBS=1` runs the grep and the sed mode on one thread.
