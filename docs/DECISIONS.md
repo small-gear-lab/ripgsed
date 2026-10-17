@@ -137,3 +137,17 @@ Decisions that have been made, with their reasons. Proposals and open questions 
 - A bare negative line number (`-3,$`) is not accepted: the command line would read it as options before the script is read.
 - `$,-9!d` keeps the last 10 lines, as `tail -10` does, with a lookahead of N records in the input (`RecordSource::records_after`). The chunk executor is told how many records follow a chunk, up to what the script asks to see (`analysis::lookahead`), so these scripts run in parallel too.
 - GNU sed has nothing to compare with, so `tests/from_end.rs` states the answers from a model of the lines, and not a fixture. The fixture `adr-019-invalid-address-forms` no longer has `2,-1p`, which GNU sed rejects and ripgsed accepts.
+
+## D16. Shortcuts are plans that an analysis proves, and the sequential VM is what they must equal
+
+- A script is read as the commands that it is made of (the syntax tree), and an analysis of them (`src/analysis.rs`) may find that a part of the input does not need to be read, or can be read in another way. What it finds is a plan, and the sequential VM, which runs every cycle on every record, stays what a plan has to give the same answer as.
+- The plans that there are:
+  - threads: a script that does nothing from record to record (`record_local`) runs on chunks, with the state of its ranges guessed and run again if wrong, and its output put back in order;
+  - the end of a file (`tail_window`): `-n '$p'`, `$!d`, `-n '$-9,$p'`: the records before the last few leave nothing, so the last ones are read from the end of the file;
+  - the start (`head_limit`): `-n '1,10p'`, `3!d`: the records after the last line number leave nothing, so the run stops there;
+  - both ends (`head_tail_plan`): `-n '1p;$p'`;
+  - the next line of a step (`skip_ahead`): `-n '0~1000p'`.
+- A plan is proved for a record that nothing is true for (every address but a regexp is false): the commands that can run for it are followed from the first, and each has to leave nothing behind (print, write, keep, read on) until the record is deleted or the script ends and is quiet. What cannot be shown is not a plan: it runs on the VM.
+- What is looked at when the run starts is the input: a file named on the command line, or standard input that is a file (not a pipe, which the process that writes to it sees, and which a run that stops early would change), and, for what stops early, that every file named can be read, so that nothing is missed that the usual run would say. When it does not hold, nothing has been written yet and the usual run goes on, so the answer is the same.
+- A plan has a switch (`RIPGSED_JOBS`, `RIPGSED_TAIL=0`, `RIPGSED_TAIL_MIN_BYTES`, `RIPGSED_HEAD=0`), and the tests that compare plans with the VM are run with each plan forced on every file, however small: the fixtures (GNU sed's results) and the random scripts with the ends read (`RIPGSED_TAIL_MIN_BYTES=0`), and the fixtures on four threads and chunks of 16 bytes. CI does it in the job `forced`. A plan that is wrong gives a wrong answer without saying so, which is worse than a slow one: it is not trusted for what the tests do not force.
+- A test that a plan is used reads a file of gigabytes that is a hole (a sparse file) in the memory that a run that does not use the plan has not got (`ulimit -v`), and every program of such a test has what it can write bounded (AGENTS.md).

@@ -178,6 +178,10 @@ Each worker returns its chunk's results in input order. Deletions are empty outp
 | `N; P; D` | sequential | reads and cycles cross records |
 | range addresses | parallel, on a guess | each chunk starts from the state the last chunk the writer took ended in, and is run again if the chunk before it ends in another |
 | `$`, `$-N` | parallel | each chunk is told how many records follow it, up to what the script looks ahead |
+| `-n '$p'`, `$!d`, `-n '$-9,$p'` | the end of the file | what is before the last few records leaves nothing: they are read from the end of the file (D16) |
+| `-n '1,10p'`, `3!d` | stop at the last line number | what is after it leaves nothing: the run stops there (D16) |
+| `-n '1p;$p'` | both ends | what is between them leaves nothing: the two ends are read (D16) |
+| `-n '0~1000p'` | skip to the next line | the lines between are counted, not run |
 | `F`, `s//x/` after a known regexp | parallel | the chunk knows its input; the regexp is the one just tried |
 | `q` / `Q` | parallel | record-local; the first quit in input order wins and the chunks after it are dropped |
 | `-s`, `-i` | parallel | each file is a stream of its own: the first chunk of a file starts from the state of the start of an input, its `$` and `$-N` stop at its end, and with `-i` the writer begins and finishes the file that replaces each input; a file named twice, `-`, and a file that the script writes and that is an input stay sequential |
