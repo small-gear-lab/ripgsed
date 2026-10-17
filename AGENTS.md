@@ -46,6 +46,11 @@ RIPGSED_FIXTURE_TIMEOUT=300 cargo test    # all of it, in the DEBUG build: CI ru
   rewrite `tests/passing.txt` and the `status` column. `RIPGSED_JOBS=1` runs the grep and the sed mode on one thread.
 - A new behavior gets a fixture (`tests/README.md` says how) or a test in `tests/cli.rs` / `tests/public_api.rs`.
   Write the test first and see it fail.
+- **A test must be safe when it fails**, and so must the run that sees it fail: a test is first run before the code that
+  makes it pass, and one that collects the output of a program in memory (`Command::output()`) will collect all of it.
+  Bound what a test can write (`head -c` in a shell command, not a bare `cat`), run the program under `ulimit -v`, and
+  know how much a file of gigabytes (a sparse one) will be read, before running it: a test that did not say where to
+  stop has taken the memory of the machine twice.
 
 ## Making fixtures: GNU tools only
 

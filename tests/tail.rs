@@ -214,3 +214,94 @@ fn what_cannot_be_searched_from_the_end_is_read_as_before() {
     );
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+/// What `sh` shows of standard input that is a file: the output of the run, and what is left of the file for
+/// the next command (a run that reads to the end leaves nothing, as one that is cut short would leave something).
+fn through_stdin(
+    forced: bool,
+    before: &str,
+    args: &[&str],
+    file: &std::path::Path,
+) -> (Vec<u8>, Option<i32>) {
+    let mut command = Command::new("sh");
+    command
+        .args([
+            "-c",
+            &format!("{before} \"$0\" \"$@\"; echo \"--- left:\"; head -c 100000"),
+        ])
+        .arg(BIN)
+        .args(args)
+        .stdin(std::fs::File::open(file).unwrap())
+        .env("LC_ALL", "C")
+        .env("RIPGSED_JOBS", "1");
+    if forced {
+        command.env("RIPGSED_TAIL_MIN_BYTES", "0");
+    } else {
+        command.env("RIPGSED_TAIL", "0");
+    }
+    let out = command.output().expect("run sh");
+    (out.stdout, out.status.code())
+}
+
+#[test]
+fn standard_input_that_is_a_file_is_read_from_its_end_too() {
+    let dir = std::env::temp_dir().join(format!("ripgsed-tail-stdin-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let file = dir.join("in.txt");
+    let scripts: &[&[&str]] = &[
+        &["-n", "$p"],
+        &["$!d"],
+        &["-n", "$-2,$p"],
+        &["-n", "$p;$q3"],
+        &["-n", "p"],
+    ];
+    for count in 0..=7usize {
+        for terminated in [true, false] {
+            std::fs::write(&file, lines(count, terminated, b'\n')).unwrap();
+            // From the start of the file, and from the second line (what was read before is not part of it).
+            for before in ["", "read first;"] {
+                for script in scripts {
+                    assert_eq!(
+                        through_stdin(true, before, script, &file),
+                        through_stdin(false, before, script, &file),
+                        "script {script:?} on {count} records, last terminated {terminated}, after `{before}`"
+                    );
+                }
+            }
+        }
+    }
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn only_the_end_of_a_huge_file_on_standard_input_is_read() {
+    // (What is left of the file is shown with `head -c`: if the run did not read to the end, the next command would
+    // otherwise write gigabytes into the memory of this test.)
+    let dir =
+        std::env::temp_dir().join(format!("ripgsed-tail-stdin-sparse-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let file = dir.join("huge.txt");
+    let size: u64 = 6 << 30;
+    let mut f = std::fs::File::create(&file).unwrap();
+    f.set_len(size).unwrap();
+    f.seek(SeekFrom::Start(size - 6)).unwrap();
+    f.write_all(b"x\ny\nz\n").unwrap();
+    drop(f);
+    let out = Command::new("sh")
+        .args([
+            "-c",
+            "ulimit -v 1500000; \"$0\" -n '$p'; echo \"--- left:\"; head -c 100",
+        ])
+        .arg(BIN)
+        .stdin(std::fs::File::open(&file).unwrap())
+        .env("LC_ALL", "C")
+        .output()
+        .expect("run sh");
+    assert_eq!(
+        String::from_utf8_lossy(&out.stdout),
+        "z\n--- left:\n",
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+}
