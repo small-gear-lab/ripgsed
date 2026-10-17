@@ -122,13 +122,12 @@ pub enum Kind {
 /// record-local (and can run on chunks in parallel) when every command reaches only its record.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Reach {
-    /// Only the record the command runs on.
+    /// Only the record the command runs on. `q` and `Q` count: the run ends after their record, and a
+    /// chunk executor drops what comes after it.
     Record,
     /// Records before or after it, or the end of the input: the construct is named.
     OtherRecords(&'static str),
     HoldSpace,
-    /// Ends the run early.
-    EndOfRun(&'static str),
     /// Something outside the output stream: files, other processes.
     Outside(&'static str),
 }
@@ -139,7 +138,7 @@ impl Reach {
         match self {
             Reach::Record => None,
             Reach::HoldSpace => Some("the hold space"),
-            Reach::OtherRecords(name) | Reach::EndOfRun(name) | Reach::Outside(name) => Some(name),
+            Reach::OtherRecords(name) | Reach::Outside(name) => Some(name),
         }
     }
 }
@@ -149,7 +148,22 @@ impl Selector {
         match self {
             Selector::All => Reach::Record,
             Selector::Single(a) => a.reach(),
-            Selector::Range(..) => Reach::OtherRecords("an address range"),
+            // A range is a state that goes from record to record, but a small one: a chunk can be run with a
+            // guess of the state it starts in and be run again if the chunk before it ends in another.
+            Selector::Range(a1, a2) => match (a1.reach(), a2.reach()) {
+                (Reach::Record, Reach::Record) => Reach::Record,
+                (Reach::Record, other) | (other, _) => other,
+            },
+        }
+    }
+}
+
+impl Addr2 {
+    pub fn reach(&self) -> Reach {
+        match self {
+            // An empty regexp reuses the one used last, on an earlier record.
+            Addr2::Regex(p) if p.regex.is_none() => Reach::OtherRecords("an empty regexp"),
+            _ => Reach::Record,
         }
     }
 }
@@ -159,8 +173,8 @@ impl Addr {
         match self {
             // A single address 0 is rejected by the parser, so `Line(0)` only starts a range.
             Addr::Line(_) | Addr::Step { .. } | Addr::Null => Reach::Record,
-            // `$` needs to know where the whole input ends.
-            Addr::Last => Reach::OtherRecords("$"),
+            // `$` is the last record of the whole input, which the chunk that holds it is told.
+            Addr::Last => Reach::Record,
             // An empty regexp reuses the one used last, on an earlier record.
             Addr::Regex(p) if p.regex.is_none() => Reach::OtherRecords("an empty regexp"),
             Addr::Regex(_) => Reach::Record,
@@ -193,31 +207,44 @@ impl Kind {
             | Kind::PrintFirst
             | Kind::Zap
             | Kind::LineNumber
+            | Kind::Quit(_)
+            | Kind::QuitSilent(_)
             | Kind::List(_)
             | Kind::Translate(_)
             | Kind::Version => Reach::Record,
             Kind::Substitute(sub) => {
-                if sub.pattern.regex.is_none() {
+                if sub.eval {
+                    Reach::Outside("the e flag of s")
+                } else if let Some(name) = &sub.write {
+                    written_file(name)
+                } else if sub.pattern.regex.is_none() {
                     // `s//x/` reuses the regexp last used, which depends on the records before.
                     Reach::OtherRecords("an empty regexp")
-                } else if sub.write.is_some() {
-                    Reach::Outside("the w flag of s")
-                } else if sub.eval {
-                    Reach::Outside("the e flag of s")
                 } else {
                     Reach::Record
                 }
             }
             Kind::DeleteFirst | Kind::Next | Kind::NextAppend => Reach::OtherRecords("D, n or N"),
             Kind::Get | Kind::GetAppend | Kind::Hold | Kind::HoldAppend | Kind::Exchange => Reach::HoldSpace,
-            Kind::Quit(_) | Kind::QuitSilent(_) => Reach::EndOfRun("q or Q"),
-            Kind::FileName => Reach::OtherRecords("F"),
-            Kind::ReadFile(_) | Kind::ReadFileNow(_) | Kind::ReadLine(_) | Kind::WriteFile(_) | Kind::WriteFirstLine(_) => {
-                Reach::Outside("a file command")
-            }
+            Kind::FileName => Reach::Record,
+            // A file the script writes gets the bytes in order (a chunk keeps them and the writer puts them
+            // there); standard output and standard error do not wait for that. `r` streams its file (which
+            // may never end, or be as big as the output is not meant to hold) and `R` keeps its place in it.
+            Kind::WriteFile(name) | Kind::WriteFirstLine(name) => written_file(name),
+            Kind::ReadFile(_) | Kind::ReadFileNow(_) | Kind::ReadLine(_) => Reach::Outside("a file command"),
             Kind::Execute(_) => Reach::Outside("e"),
             Kind::Removed(_) => Reach::Outside("L"),
         }
+    }
+}
+
+/// What writing to the file `name` reaches: standard output and standard error are written as the run goes
+/// (and are not in a file that a chunk keeps for the writer).
+fn written_file(name: &[u8]) -> Reach {
+    if name == b"/dev/stdout" || name == b"/dev/stderr" {
+        Reach::Outside("w to /dev/stdout or /dev/stderr")
+    } else {
+        Reach::Record
     }
 }
 
@@ -350,11 +377,17 @@ mod tests {
         };
         let reach = |text: &str| parse(text).commands.first().expect("a command").reach();
         assert_eq!(reach("5p"), Reach::Record);
-        assert_eq!(reach("$p"), Reach::OtherRecords("$"));
-        assert_eq!(reach("1,3d"), Reach::OtherRecords("an address range"));
+        assert_eq!(reach("$p"), Reach::Record);
+        assert_eq!(reach("1,3d"), Reach::Record);
+        assert_eq!(reach("/a/,//d"), Reach::OtherRecords("an empty regexp"));
         assert_eq!(reach("x"), Reach::HoldSpace);
-        assert_eq!(reach("q"), Reach::EndOfRun("q or Q"));
-        assert_eq!(reach("s/a/b/w out"), Reach::Outside("the w flag of s"));
-        assert_eq!(reach("$d").construct(), Some("$"));
+        assert_eq!(reach("q"), Reach::Record);
+        assert_eq!(reach("Q5"), Reach::Record);
+        assert_eq!(reach("$q"), Reach::Record);
+        assert_eq!(reach("s/a/b/w out"), Reach::Record);
+        assert_eq!(reach("w out"), Reach::Record);
+        assert_eq!(reach("s/a/b/w /dev/stdout"), Reach::Outside("w to /dev/stdout or /dev/stderr"));
+        assert_eq!(reach("r in"), Reach::Outside("a file command"));
+        assert_eq!(reach("0,/a/d"), Reach::Record);
     }
 }

@@ -335,12 +335,13 @@ impl Run {
 
     /// Like [`run`](Run::run) for a reader that can move to another thread; uses the threads
     /// of [`jobs`](Run::jobs) when the script allows it, and runs on the calling thread when it
-    /// does not. A script that stops early (`q`) or reads ahead cannot be spread, so its exit
-    /// status is the one of [`run`](Run::run).
+    /// does not. A script that reads ahead cannot be spread. A `q` or `Q` can: the output stops at the
+    /// first record that reaches it and the exit status is the one it asked for, as in [`run`](Run::run).
     pub fn run_parallel<R: Read + Send, W: Write>(&self, script: &Script, input: R, mut output: W) -> Result<Outcome, Error> {
         let threads = self.threads();
         let parsed = script.parsed(&self.parse_options())?;
-        let spread = threads >= 2 && crate::analysis::record_local(&parsed, &self.options()).is_ok();
+        // (A script that writes files is run on the calling thread: the files are the sequential run's to open.)
+        let spread = threads >= 2 && parsed.write_files.is_empty() && crate::analysis::record_local(&parsed, &self.options()).is_ok();
         if !spread {
             return self.run(script, input, output);
         }
@@ -353,9 +354,9 @@ impl Run {
             PARALLEL_BLOCK,
             &mut |bytes: &[u8], _unterminated: bool| output.write_all(bytes).map_err(|e| crate::io::write_error("output", &e)),
         )
-        .and_then(|()| output.flush().map_err(|e| crate::io::write_error("output", &e)));
+        .and_then(|status| output.flush().map(|()| status).map_err(|e| crate::io::write_error("output", &e)));
         match result {
-            Ok(()) => Ok(Outcome { exit_status: 0 }),
+            Ok(status) => Ok(Outcome { exit_status: status }),
             Err(e) => Err(e.into()),
         }
     }
