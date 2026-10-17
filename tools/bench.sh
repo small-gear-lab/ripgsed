@@ -87,3 +87,14 @@ row 'one 20 MB line, s///g'    long.txt 's/alpha/X/g'
 row 'UTF-8: s/ユーザー/U/g'     jp.txt 's/ユーザー/U/g'
 row 'UTF-8: -E s/[0-9]+/N/g'  jp.txt -E 's/[0-9]+/N/g'
 row 'UTF-8: s/\w+/<&>/g'       jp.txt 's/\w\+/<&>/g'
+
+# Scripts that ran only sequentially before the chunk executor took q, Q, $, F, ranges and w files.
+# The w files are written in the scratch directory; only standard output is compared by hash.
+row 'q: 500000q (quits half way)'      log.txt '500000q'
+row 'q: /NEVERMATCH/q (never quits)'   log.txt '/NEVERMATCH/q'
+row '$!s/alpha/X/'                      log.txt '$!s/alpha/X/'
+row 'short ranges /ERROR/,/WARN/'      log.txt '/ERROR/,/WARN/s/alpha/X/'
+row 'long ranges id=1234x..id=5678x'   log.txt '/id=1234[0-9] /,/id=5678[0-9] /s/alpha/X/'
+row 'F every 1000th line'              log.txt '0~1000F'
+row 'w: /ERROR/w file'                 log.txt "/ERROR/w $scratch/w1.out"
+row 's/alpha/X/w file'                 log.txt "s/alpha/X/w $scratch/w2.out"
