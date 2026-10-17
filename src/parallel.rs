@@ -14,6 +14,7 @@
 //! gives it back after the chunk is written.
 
 use std::fs::File;
+use std::collections::VecDeque;
 use std::io::{Seek, SeekFrom};
 use std::mem::ManuallyDrop;
 use std::os::fd::FromRawFd;
@@ -194,6 +195,8 @@ fn run_inputs<'a>(
     let stdin_start = Arc::new(Mutex::new(None::<u64>));
 
     let separator = options.separator;
+    // How many records after a chunk the script has to see before the chunk is run (at least one, for `$`).
+    let needed = parse(&script_chunks).map_or(1, |script| crate::analysis::lookahead(&script));
     let mut result = Ok(Finish { status: 0, stdin_offset: None });
     std::thread::scope(|scope| {
         // The reader: inputs in order, chunks in order.
@@ -203,15 +206,38 @@ fn run_inputs<'a>(
             move || {
                 let mut seq = 0u64;
                 let mut first_line = 1u64;
-                // A chunk is held back until the next one is read (or the inputs end), so that the last
-                // one can say it is: `$` is the last record of everything that is read, not of one input.
-                let mut held: Option<Work> = None;
-                let release = |held: &mut Option<Work>| held.take().is_none_or(|work| work_tx.send(work).is_ok());
+                // A chunk is held back until `needed` records are read after it (or the inputs end), so that it
+                // can say how many records follow it: `$` is the last record of everything that is read, not of
+                // one input, and `$-N` needs to see N records ahead. `behind` is how many records the held
+                // chunks hold apart from the first.
+                let mut held: VecDeque<Work> = VecDeque::new();
+                let mut behind = 0u64;
+                // Sends the chunks that have enough after them (all of them with `flush`), each when the
+                // writer has caught up enough (bounds memory). `false` if the writer stopped.
+                let release = |held: &mut VecDeque<Work>, behind: &mut u64, flush: bool| {
+                    while !held.is_empty() && (flush || *behind >= needed) {
+                        if credit_rx.recv().is_err() {
+                            return false;
+                        }
+                        let mut work = held.pop_front().expect("a held chunk");
+                        if let Work::Chunk { job, .. } = &mut work {
+                            job.input.after = (*behind).min(needed);
+                        }
+                        *behind = match held.front() {
+                            Some(Work::Chunk { job, .. }) => *behind - job.input.records,
+                            _ => 0,
+                        };
+                        if work_tx.send(work).is_err() {
+                            return false;
+                        }
+                    }
+                    true
+                };
                 while let Some(next) = open() {
                     let Input { name, reader, stdin_start: start } = match next {
                         Ok(input) => input,
                         Err(error) => {
-                            if release(&mut held) {
+                            if release(&mut held, &mut behind, true) {
                                 let _ = work_tx.send(Work::Failed { seq, error });
                             }
                             return;
@@ -230,24 +256,22 @@ fn run_inputs<'a>(
                         }
                         match chunks.next_chunk() {
                             Ok(Some(chunk)) => {
-                                // Wait until the writer has caught up enough (bounds memory).
-                                if credit_rx.recv().is_err() {
-                                    return; // the writer stopped
-                                }
                                 stdin_end = stdin_end.map(|end| end + chunk.data.len() as u64);
-                                let input = ChunkInput { data: chunk.data, first_line, last: false, name: Arc::clone(&name) };
-                                let work = Work::Chunk { seq, job: Job { input, stdin_end } };
+                                let input = ChunkInput { data: chunk.data, first_line, records: chunk.records, after: 0, name: Arc::clone(&name) };
                                 first_line += chunk.records;
                                 seq += 1;
-                                if !release(&mut held) {
+                                if !held.is_empty() {
+                                    behind += chunk.records;
+                                }
+                                held.push_back(Work::Chunk { seq: seq - 1, job: Job { input, stdin_end } });
+                                if !release(&mut held, &mut behind, false) {
                                     return;
                                 }
-                                held = Some(work);
                             }
                             Ok(None) => break,
                             Err(e) => {
                                 let error = Fatal::new(format!("read error on {}: {}", crate::io::display_name(&name), strerror(&e)), 4);
-                                if release(&mut held) {
+                                if release(&mut held, &mut behind, true) {
                                     let _ = work_tx.send(Work::Failed { seq, error });
                                 }
                                 return;
@@ -255,10 +279,7 @@ fn run_inputs<'a>(
                         }
                     }
                 }
-                if let Some(Work::Chunk { job, .. }) = &mut held {
-                    job.input.last = true;
-                }
-                release(&mut held);
+                release(&mut held, &mut behind, true);
             }
         });
 

@@ -55,6 +55,7 @@ fn selector_text(selector: &Selector, out: &mut Vec<u8>) {
             match a2 {
                 Addr2::Line(n) => out.extend_from_slice(n.to_string().as_bytes()),
                 Addr2::Last => out.push(b'$'),
+                Addr2::FromEnd(n) => out.extend_from_slice(format!("${}", -(*n as i64)).as_bytes()),
                 Addr2::Regex(p) => pattern_text(p, out),
                 Addr2::Step { first, step } => out.extend_from_slice(format!("{first}~{step}").as_bytes()),
                 Addr2::Plus(0) | Addr2::Multiple(0) => out.extend_from_slice(b"[ADDR-NULL]"),
@@ -69,6 +70,7 @@ fn addr_text(addr: &Addr, out: &mut Vec<u8>) {
     match addr {
         Addr::Line(n) => out.extend_from_slice(n.to_string().as_bytes()),
         Addr::Last => out.push(b'$'),
+        Addr::FromEnd(n) => out.extend_from_slice(format!("${}", -(*n as i64)).as_bytes()),
         Addr::Null => out.extend_from_slice(b"[ADDR-NULL]"),
         Addr::Step { first, step: 0 } => out.extend_from_slice(first.to_string().as_bytes()),
         Addr::Step { first, step } => out.extend_from_slice(format!("{first}~{step}").as_bytes()),
