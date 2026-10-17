@@ -3,6 +3,7 @@
 #
 #   tools/bench.sh            run every workload (5 runs each, median)
 #   RUNS=9 SIZE=2000000 tools/bench.sh
+#   ONLY='y/' tools/bench.sh   only the rows whose name has that text (every row if it is not set)
 #
 # Inputs are generated deterministically (fixed seed) in a scratch directory. For every
 # workload the two programs must print identical output (compared by hash) or the row is
@@ -91,6 +92,9 @@ measure_inplace() { # program args... -> "median_seconds rss_mib hash"; edits fo
 
 table_row() { # name measure-function arguments-of-the-function...: the function gets the program first
   local name=$1 fn=$2; shift 2
+  if [ -n "${ONLY:-}" ] && [[ "$name" != *"$ONLY"* ]]; then
+    return
+  fi
   read -r gt gr gh <<< "$(JOBS= "$fn" "$gnu" "$@")"
   read -r st sr sh <<< "$(JOBS=1 "$fn" "$ours" "$@")"
   read -r ot or oh <<< "$(JOBS= "$fn" "$ours" "$@")"
@@ -157,3 +161,4 @@ row "-n '1p;\$p' (both ends)"         log.txt -n '1p;$p'
 row "10q (quits at once)"            log.txt '10q'
 row "-n 0~1000p (every 1000th)"      log.txt -n '0~1000p'
 row "-n 2~7p (every 7th)"            log.txt -n '2~7p'
+row 'y/a-z/A-Z/ (26 letters)'         log.txt 'y/abcdefghijklmnopqrstuvwxyz/ABCDEFGHIJKLMNOPQRSTUVWXYZ/'
