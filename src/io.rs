@@ -231,9 +231,14 @@ pub trait RecordSource {
     }
     /// Hands back a buffer the caller is done with, to be reused for a later record.
     fn recycle(&mut self, _buf: Vec<u8>) {}
+    /// How many records follow the one last returned, up to `cap`: of all input, or of its file when
+    /// `separate` is set. Looks ahead as far as it has to, and no further.
+    fn records_after(&mut self, separate: bool, cap: usize) -> Result<usize, Fatal>;
     /// Whether the record last returned is the last one: of all input, or of
     /// its file when `separate` is set.
-    fn is_last(&mut self, separate: bool) -> Result<bool, Fatal>;
+    fn is_last(&mut self, separate: bool) -> Result<bool, Fatal> {
+        Ok(self.records_after(separate, 1)? == 0)
+    }
 }
 
 /// The input files of a run, read as one continuous stream of records.
@@ -250,8 +255,8 @@ enum Source {
 pub struct FileInputs {
     names: std::vec::IntoIter<String>,
     current: Option<(Source, Rc<str>)>,
-    /// A record read ahead of time, and whether it starts a new file.
-    peeked: Option<Fetched>,
+    /// The records read ahead of time (one for `$`, more for `$-N`), and whether each starts a new file.
+    peeked: std::collections::VecDeque<Fetched>,
     /// A buffer for the next record (see `RecordSource::recycle`).
     spare: Vec<u8>,
     started_file: bool,
@@ -279,7 +284,7 @@ impl FileInputs {
         FileInputs {
             names: names.into_iter(),
             current: None,
-            peeked: None,
+            peeked: std::collections::VecDeque::new(),
             spare: Vec::new(),
             started_file: false,
             separator,
@@ -297,7 +302,7 @@ impl FileInputs {
     /// Call when the run is over: gives back a record that was only looked at, so that the
     /// offset left on standard input is exact.
     pub fn finish(&mut self) {
-        if let Some(p) = self.peeked.take() {
+        for p in self.peeked.drain(..) {
             if &*p.file_name == "-" {
                 stdin_unconsume((p.record.body.len() + usize::from(p.record.terminated)) as u64);
             }
@@ -371,10 +376,11 @@ impl FileInputs {
         false
     }
 
-    /// Reads ahead one record. A read error stops the run, unless `lookahead` is set: GNU sed
-    /// does not notice an error while it only looks for the end of the input.
-    fn fill(&mut self, lookahead: bool) -> Result<(), Fatal> {
-        while self.peeked.is_none() {
+    /// Reads ahead until `count` records are held (fewer at the end of the input). A read error stops the
+    /// run, unless `lookahead` is set: GNU sed does not notice an error while it only looks for the end
+    /// of the input.
+    fn fill_to(&mut self, count: usize, lookahead: bool) -> Result<(), Fatal> {
+        while self.peeked.len() < count {
             if self.current.is_none() && !self.open_next() {
                 return match self.fatal.take() {
                     Some(f) => Err(f),
@@ -390,7 +396,7 @@ impl FileInputs {
                 Ok(Some(record)) => {
                     let new_file = !self.started_file;
                     self.started_file = true;
-                    self.peeked = Some(Fetched { record, new_file, file_name: name.clone() });
+                    self.peeked.push_back(Fetched { record, new_file, file_name: name.clone() });
                 }
                 Ok(None) => self.current = None,
                 Err(e) => {
@@ -408,13 +414,13 @@ impl FileInputs {
 
 impl RecordSource for FileInputs {
     fn next_record(&mut self) -> Result<Option<Fetched>, Fatal> {
-        self.fill(false)?;
-        Ok(self.peeked.take())
+        self.fill_to(1, false)?;
+        Ok(self.peeked.pop_front())
     }
 
     fn skip_records(&mut self, mut n: u64) -> Result<u64, Fatal> {
         let mut done = 0;
-        if n > 0 && self.peeked.take().is_some() {
+        while n > 0 && self.peeked.pop_front().is_some() {
             done += 1;
             n -= 1;
         }
@@ -453,34 +459,37 @@ impl RecordSource for FileInputs {
         }
     }
 
-    fn is_last(&mut self, separate: bool) -> Result<bool, Fatal> {
-        if separate && self.peeked.is_none() {
+    fn records_after(&mut self, separate: bool, cap: usize) -> Result<usize, Fatal> {
+        if !separate {
+            self.fill_to(cap, true)?;
+            return Ok(self.peeked.len().min(cap));
+        }
+        loop {
+            // The records read ahead that are of the file being read: a record that starts a file is of the next one.
+            let same = self.peeked.iter().take_while(|p| !p.new_file).count();
+            if same >= cap || same < self.peeked.len() {
+                return Ok(same.min(cap));
+            }
             // Only the current file matters: the next one is not opened (nor its errors found)
             // before sed gets there.
-            let Some((source, name)) = self.current.as_mut() else { return Ok(true) };
+            let Some((source, name)) = self.current.as_mut() else { return Ok(same) };
             let read = match source {
                 Source::Chunked(source) => source.next_record_into(std::mem::take(&mut self.spare)),
                 Source::Stdin => stdin_record_into(std::mem::take(&mut self.spare), self.separator, self.unbuffered),
             };
-            return match read {
+            match read {
                 Ok(Some(record)) => {
                     let new_file = !self.started_file;
                     self.started_file = true;
-                    self.peeked = Some(Fetched { record, new_file, file_name: name.clone() });
-                    Ok(false)
+                    self.peeked.push_back(Fetched { record, new_file, file_name: name.clone() });
                 }
                 // The end of the file, or an error that only shows once sed reads on.
                 Ok(None) | Err(_) => {
                     self.current = None;
-                    Ok(true)
+                    return Ok(same);
                 }
-            };
+            }
         }
-        self.fill(true)?;
-        Ok(match &self.peeked {
-            None => true,
-            Some(next) => separate && next.new_file,
-        })
     }
 }
 
@@ -489,17 +498,20 @@ pub struct ReaderSource<R: BufRead> {
     reader: R,
     separator: u8,
     first: bool,
-    peeked: Option<Record>,
+    peeked: std::collections::VecDeque<Record>,
 }
 
 impl<R: BufRead> ReaderSource<R> {
     pub fn new(reader: R, separator: u8) -> Self {
-        ReaderSource { reader, separator, first: true, peeked: None }
+        ReaderSource { reader, separator, first: true, peeked: std::collections::VecDeque::new() }
     }
 
-    fn fill(&mut self) -> Result<(), Fatal> {
-        if self.peeked.is_none() {
-            self.peeked = read_record(&mut self.reader, self.separator).map_err(|e| Fatal::new(strerror(&e), 4))?;
+    fn fill_to(&mut self, count: usize) -> Result<(), Fatal> {
+        while self.peeked.len() < count {
+            match read_record(&mut self.reader, self.separator).map_err(|e| Fatal::new(strerror(&e), 4))? {
+                Some(record) => self.peeked.push_back(record),
+                None => break,
+            }
         }
         Ok(())
     }
@@ -507,15 +519,15 @@ impl<R: BufRead> ReaderSource<R> {
 
 impl<R: BufRead> RecordSource for ReaderSource<R> {
     fn next_record(&mut self) -> Result<Option<Fetched>, Fatal> {
-        self.fill()?;
+        self.fill_to(1)?;
         let new_file = self.first;
         self.first = false;
-        Ok(self.peeked.take().map(|record| Fetched { record, new_file, file_name: Rc::from("-") }))
+        Ok(self.peeked.pop_front().map(|record| Fetched { record, new_file, file_name: Rc::from("-") }))
     }
 
-    fn is_last(&mut self, _separate: bool) -> Result<bool, Fatal> {
-        self.fill()?;
-        Ok(self.peeked.is_none())
+    fn records_after(&mut self, _separate: bool, cap: usize) -> Result<usize, Fatal> {
+        self.fill_to(cap)?;
+        Ok(self.peeked.len().min(cap))
     }
 }
 

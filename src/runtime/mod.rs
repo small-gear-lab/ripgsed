@@ -158,8 +158,11 @@ pub struct ChunkInput {
     pub data: Vec<u8>,
     /// The line number of the first record.
     pub first_line: u64,
-    /// Whether no record follows the chunk in any input.
-    pub last: bool,
+    /// The number of records in the chunk.
+    pub records: u64,
+    /// How many records follow the chunk in all the inputs: all of them, or as many as the script asks to
+    /// see ahead (see `analysis::lookahead`) if there are more.
+    pub after: u64,
     /// The input the records are from.
     pub name: std::sync::Arc<str>,
 }
@@ -182,8 +185,11 @@ struct ChunkRecords<'a> {
     separator: u8,
     name: Rc<str>,
     spare: Vec<u8>,
-    /// Whether no record follows the chunk in the input.
-    last: bool,
+    /// How many records the chunk holds, and how many were handed out.
+    records: u64,
+    consumed: u64,
+    /// How many records follow the chunk (see `ChunkInput::after`).
+    after: u64,
 }
 
 impl RecordSource for ChunkRecords<'_> {
@@ -200,6 +206,7 @@ impl RecordSource for ChunkRecords<'_> {
         body.clear();
         body.extend_from_slice(&rest[..len]);
         self.pos += used;
+        self.consumed += 1;
         Ok(Some(Fetched { record: crate::io::Record { body, terminated }, new_file: false, file_name: self.name.clone() }))
     }
 
@@ -207,9 +214,11 @@ impl RecordSource for ChunkRecords<'_> {
         self.spare = buf;
     }
 
-    fn is_last(&mut self, _separate: bool) -> Result<bool, Fatal> {
-        // (`-s` and `-i` do not run chunk by chunk, so the end of the chunk is the end of the input or not.)
-        Ok(self.pos >= self.data.len() && self.last)
+    fn records_after(&mut self, _separate: bool, cap: usize) -> Result<usize, Fatal> {
+        // (`-s` and `-i` do not run chunk by chunk, so the records after this one are those of the chunk and
+        // those after the chunk.)
+        let following = (self.records - self.consumed).saturating_add(self.after);
+        Ok(following.min(cap as u64) as usize)
     }
 }
 
@@ -221,7 +230,7 @@ pub fn run_chunk(script: &Script, options: &Options, input: &ChunkInput, carry: 
     let data = &input.data;
     let sink = Rc::new(std::cell::RefCell::new(Vec::with_capacity(data.len() + data.len() / 8)));
     let mut outputs = Outputs::capturing(Box::new(crate::io::SharedBuffer(sink.clone())), options.separator);
-    let mut source = ChunkRecords { data, pos: 0, separator: options.separator, name: Rc::from(&*input.name), spare: Vec::new(), last: input.last };
+    let mut source = ChunkRecords { data, pos: 0, separator: options.separator, name: Rc::from(&*input.name), spare: Vec::new(), records: input.records, consumed: 0, after: input.after };
     let ended = run_from(script, options.clone(), &mut source, &mut outputs, input.first_line.saturating_sub(1), carry)?;
     let unterminated = outputs.stdout.ends_unterminated();
     outputs.flush_all()?;
@@ -589,6 +598,12 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
         self.input.is_last(self.options.separate)
     }
 
+    /// How many records follow the current one, up to `cap`.
+    fn records_after(&mut self, cap: u64) -> Result<u64, Fatal> {
+        let cap = usize::try_from(cap).unwrap_or(usize::MAX);
+        Ok(self.input.records_after(self.options.separate, cap)? as u64)
+    }
+
     fn resolve(&mut self, pattern: &Pattern, from_address: bool) -> Result<Rc<Regex>, Fatal> {
         match &pattern.regex {
             Some(re) => {
@@ -616,6 +631,7 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
         Ok(match addr {
             Addr::Line(n) => self.line == *n,
             Addr::Last => self.is_last()?,
+            Addr::FromEnd(n) => self.records_after(n.saturating_add(1))? == *n,
             Addr::Step { first, step } => {
                 if *step == 0 {
                     self.line == *first
@@ -642,7 +658,7 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
     /// What a range becomes once it has ended: a numeric start never matches again, while a
     /// regexp start can begin a new range.
     fn ended(a1: &Addr) -> RangeState {
-        if matches!(a1, Addr::Line(_)) { RangeState::Closed } else { RangeState::Inactive }
+        if matches!(a1, Addr::Line(_) | Addr::FromEnd(_)) { RangeState::Closed } else { RangeState::Inactive }
     }
 
     fn range_matches(&mut self, index: usize, a1: &Addr, a2: &Addr2) -> Result<bool, Fatal> {
@@ -670,6 +686,9 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                     }
                     !matches!(state, RangeState::Closed) && line >= *n && !passed_end
                 }
+                // `$-N` starts the range on the line with N lines after it, or on the first line that has fewer (the
+                // line it names was skipped, or there are not that many lines), but only once.
+                Addr::FromEnd(n) => !matches!(state, RangeState::Closed) && self.records_after(n.saturating_add(1))? <= *n,
                 other => self.addr_matches(other)?,
             };
             if !starts {
@@ -708,6 +727,13 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                         }
                         state = RangeState::Active { until: None, overshoot: false };
                     }
+                    Addr2::FromEnd(n) => {
+                        if self.records_after(n.saturating_add(1))? <= *n {
+                            self.ranges[index] = Self::ended(a1);
+                            return Ok(true);
+                        }
+                        state = RangeState::Active { until: None, overshoot: false };
+                    }
                     Addr2::Regex(_) => state = RangeState::Active { until: None, overshoot: false },
                 }
                 self.ranges[index] = state;
@@ -726,6 +752,15 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                 line >= n
             }
             (None, Addr2::Last) => self.is_last()?,
+            (None, Addr2::FromEnd(n)) => {
+                let after = self.records_after(n.saturating_add(1))?;
+                if after < *n {
+                    // The end line was skipped: this line is already outside the range.
+                    self.ranges[index] = Self::ended(a1);
+                    return Ok(false);
+                }
+                after == *n
+            }
             (None, Addr2::Regex(p)) => self.regex_matches(p)?,
             (None, Addr2::Step { first, step }) => {
                 line >= *first && if *step == 0 { line == *first } else { (line - *first) % *step == 0 }

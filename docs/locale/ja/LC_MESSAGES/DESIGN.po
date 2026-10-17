@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ripgsed\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-17 17:07+0900\n"
+"POT-Creation-Date: 2026-10-17 17:45+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: ja <LL@li.org>\n"
@@ -564,16 +564,18 @@ msgid ""
 msgstr "各チャンクは、ライターが最後に取り込んだチャンクが終わった状態から始める。前のチャンクが別の状態で終わったときは、その状態でもう一度実行する"
 
 #: ../../DESIGN.md
-msgid "`$`"
-msgstr "`$`"
+msgid "`$`, `$-N`"
+msgstr "`$`、`$-N`"
 
 #: ../../DESIGN.md
 msgid "parallel"
 msgstr "並列"
 
 #: ../../DESIGN.md
-msgid "the chunk that holds the end of every input is told so"
-msgstr "すべての入力の終わりを含むチャンクには、そのことを伝える"
+msgid ""
+"each chunk is told how many records follow it, up to what the script looks "
+"ahead"
+msgstr "各チャンクには、後ろに何レコード続くかを（スクリプトが先読みする数まで）伝える"
 
 #: ../../DESIGN.md
 msgid "`F`, `s//x/` after a known regexp"
@@ -1731,3 +1733,9 @@ msgstr "実装時には、依拠する参照資料のバージョンを固定し
 
 #~ msgid "external side effects, ordering, failure point"
 #~ msgstr "外部副作用、順序、失敗時点"
+
+#~ msgid "`$`"
+#~ msgstr "`$`"
+
+#~ msgid "the chunk that holds the end of every input is told so"
+#~ msgstr "すべての入力の終わりを含むチャンクには、そのことを伝える"

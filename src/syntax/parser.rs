@@ -261,6 +261,17 @@ impl Parser {
                 self.pos = blanks_start;
                 Ok(Some(AddrParsed::Line(n)))
             }
+            b'-' if !first && !self.options().posix => {
+                // `addr,-N`: the first address and the N lines before it (ripgsed only; GNU sed rejects it).
+                let at = self.pos;
+                self.pos += 1;
+                self.skip_blanks();
+                if !self.peek().is_some_and(|b| b.is_ascii_digit()) {
+                    self.pos = at;
+                    return Ok(None);
+                }
+                Ok(Some(AddrParsed::Back(self.read_number())))
+            }
             b'+' | b'~' if !first && !self.options().posix => {
                 self.pos += 1;
                 self.skip_blanks();
@@ -278,6 +289,12 @@ impl Parser {
             }
             b'$' => {
                 self.pos += 1;
+                // `$-N`: the line with N lines after it (ripgsed only; GNU sed stops at the `-`).
+                if self.peek() == Some(b'-') && !self.options().posix && self.src.get(self.pos + 1).is_some_and(u8::is_ascii_digit) {
+                    self.pos += 1;
+                    let n = self.read_number();
+                    return Ok(Some(if n == 0 { AddrParsed::Last } else { AddrParsed::FromEnd(n) }));
+                }
                 Ok(Some(AddrParsed::Last))
             }
             b'/' | b'\\' => {
@@ -701,14 +718,33 @@ impl Parser {
             }
             AddrParsed::Line(n) => Ok(Selector::Single(Addr::Line(n))),
             AddrParsed::Last => Ok(Selector::Single(Addr::Last)),
+            AddrParsed::FromEnd(n) => Ok(Selector::Single(Addr::FromEnd(n))),
             AddrParsed::Step { first, step } => Ok(Selector::Single(Addr::Step { first, step })),
             AddrParsed::Null => Ok(Selector::Single(Addr::Null)),
             AddrParsed::Regex(p) => Ok(Selector::Single(Addr::Regex(p))),
-            AddrParsed::Plus(_) | AddrParsed::Multiple(_) => unreachable!("rejected as a first address"),
+            AddrParsed::Plus(_) | AddrParsed::Multiple(_) | AddrParsed::Back(_) => unreachable!("rejected as a first address"),
         }
     }
 
+    /// `addr,-N` is the first address and the N lines before it, as `addr,+N` is the first address and the N
+    /// lines after it: `10,-3` is `7,10`. It is written as that range of line numbers, so it needs a line
+    /// number to count back from: a regexp has already let the lines before it go by. `-0` is one line.
+    fn back_range(&mut self, a1: AddrParsed, n: u64) -> Result<Selector> {
+        let before = n;
+        let (first, last) = match a1 {
+            AddrParsed::Line(0) => return Err(self.error("invalid usage of line address 0")),
+            AddrParsed::Line(m) => (Addr::Line(m.saturating_sub(before).max(1)), Addr2::Line(m)),
+            AddrParsed::Last => (if before == 0 { Addr::Last } else { Addr::FromEnd(before) }, Addr2::Last),
+            AddrParsed::FromEnd(k) => (Addr::FromEnd(k.saturating_add(before)), Addr2::FromEnd(k)),
+            _ => return Err(self.error("invalid usage of -N after a regexp or a step as first address")),
+        };
+        Ok(Selector::Range(first, last))
+    }
+
     fn range(&mut self, a1: AddrParsed, a2: AddrParsed) -> Result<Selector> {
+        if let AddrParsed::Back(n) = a2 {
+            return self.back_range(a1, n);
+        }
         let first = match a1 {
             AddrParsed::Line(0) => {
                 // `0,/regexp/` is the only use of line 0 as a range start.
@@ -719,19 +755,22 @@ impl Parser {
             }
             AddrParsed::Line(n) => Addr::Line(n),
             AddrParsed::Last => Addr::Last,
+            AddrParsed::FromEnd(n) => Addr::FromEnd(n),
             AddrParsed::Step { first, step } => Addr::Step { first, step },
             AddrParsed::Null => Addr::Null,
             AddrParsed::Regex(p) => Addr::Regex(p),
-            AddrParsed::Plus(_) | AddrParsed::Multiple(_) => unreachable!("rejected as a first address"),
+            AddrParsed::Plus(_) | AddrParsed::Multiple(_) | AddrParsed::Back(_) => unreachable!("rejected as a first address"),
         };
         let second = match a2 {
             AddrParsed::Line(n) => Addr2::Line(n),
             AddrParsed::Last => Addr2::Last,
+            AddrParsed::FromEnd(n) => Addr2::FromEnd(n),
             AddrParsed::Regex(p) => Addr2::Regex(p),
             AddrParsed::Plus(n) => Addr2::Plus(n),
             AddrParsed::Multiple(n) => Addr2::Multiple(n),
             AddrParsed::Step { first, step } => Addr2::Step { first, step },
             AddrParsed::Null => unreachable!("only a first address can be null"),
+            AddrParsed::Back(_) => unreachable!("written as a range of line numbers above"),
         };
         Ok(Selector::Range(first, second))
     }
@@ -1081,7 +1120,10 @@ fn has_recursive_control_escape(text: &[u8]) -> bool {
 enum AddrParsed {
     Line(u64),
     Last,
+    FromEnd(u64),
     Step { first: u64, step: u64 },
+    /// `-N` as a second address: the first address and the N lines before it.
+    Back(u64),
     Regex(Pattern),
     Null,
     Plus(u64),

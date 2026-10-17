@@ -6,7 +6,7 @@
 //! is conservative: anything not proven record-local runs sequentially.
 
 use crate::runtime::Options;
-use crate::syntax::{Addr, Command, Kind, Reach, Script, Selector};
+use crate::syntax::{Addr, Addr2, Command, Kind, Reach, Script, Selector};
 
 /// Why a script cannot run in parallel.
 #[derive(Debug, PartialEq, Eq)]
@@ -33,6 +33,28 @@ pub fn record_local(script: &Script, options: &Options) -> Result<(), Reason> {
         command_local(&script.commands, index, command, options)?;
     }
     Ok(())
+}
+
+/// How many records after the current one the script has to see: one for `$`, N+1 for `$-N` (the most of
+/// the addresses that look ahead).
+pub fn lookahead(script: &Script) -> u64 {
+    let mut most = 1u64;
+    for command in &script.commands {
+        let mut count = |n: &u64| most = most.max(n.saturating_add(1));
+        match &command.selector {
+            Selector::Single(Addr::FromEnd(n)) => count(n),
+            Selector::Range(first, last) => {
+                if let Addr::FromEnd(n) = first {
+                    count(n);
+                }
+                if let Addr2::FromEnd(n) = last {
+                    count(n);
+                }
+            }
+            _ => {}
+        }
+    }
+    most
 }
 
 fn command_local(commands: &[Command], index: usize, command: &Command, options: &Options) -> Result<(), Reason> {
@@ -79,7 +101,7 @@ mod tests {
 
     #[test]
     fn record_local_scripts() {
-        for s in ["s/a/b/g", "/x/d", "y/abc/xyz/", "2~3p", "5s/a/b/", "s/a/b/;ta;s/c/d/;:a", "=", "/a/{s/a/b/;p}", "a text", "l", "q", "5q3", "/a/Q", "/a/{s/a/b/;q}", "$p", "$!d", "$s/a/b/", "$!{s/a/b/;p}", "$q", "F", "3{F;d}", "1,3p", "/a/,/b/d", "/a/,$d", "0,/a/d", "2,+3s/a/b/", "/a/,~4p", "2~3,5p", "/a/,/b/!d", "/a/,/b/c\\text", "/a/s//b/", "/a/!s//b/", "s/a/b/;s//c/", "$!{s/a/b/;s//c/}", "/a/w out", "/a/W out", "s/a/b/w out", "/a/{s/b/c/w out\n}"] {
+        for s in ["s/a/b/g", "/x/d", "y/abc/xyz/", "2~3p", "5s/a/b/", "s/a/b/;ta;s/c/d/;:a", "=", "/a/{s/a/b/;p}", "a text", "l", "q", "5q3", "/a/Q", "/a/{s/a/b/;q}", "$p", "$!d", "$s/a/b/", "$!{s/a/b/;p}", "$q", "$-2p", "$-1,$d", "2,$-3p", "$-2,$-1s/a/b/", "F", "3{F;d}", "1,3p", "/a/,/b/d", "/a/,$d", "0,/a/d", "2,+3s/a/b/", "/a/,~4p", "2~3,5p", "/a/,/b/!d", "/a/,/b/c\\text", "/a/s//b/", "/a/!s//b/", "s/a/b/;s//c/", "$!{s/a/b/;s//c/}", "/a/w out", "/a/W out", "s/a/b/w out", "/a/{s/b/c/w out\n}"] {
             assert!(local(s), "{s} should be record-local");
         }
     }
@@ -97,5 +119,19 @@ mod tests {
         let script = parse(&[(chunk, ParseOptions::default())]).expect("parses");
         let options = Options { follow_symlinks: true, ..Options::default() };
         assert_eq!(record_local(&script, &options), Err(Reason::Construct("F with --follow-symlinks")));
+    }
+
+    #[test]
+    fn the_script_asks_to_see_as_far_ahead_as_its_addresses_look() {
+        let ahead = |text: &str| {
+            let chunk = Chunk { source: ChunkSource::Expression(1), text: text.as_bytes().to_vec() };
+            lookahead(&parse(&[(chunk, ParseOptions::default())]).expect("parses"))
+        };
+        assert_eq!(ahead("p"), 1);
+        assert_eq!(ahead("$p"), 1);
+        assert_eq!(ahead("$-0p"), 1);
+        assert_eq!(ahead("$-2p"), 3);
+        assert_eq!(ahead("2,$-4p"), 5);
+        assert_eq!(ahead("$-3,$-1p;$-9d"), 10);
     }
 }

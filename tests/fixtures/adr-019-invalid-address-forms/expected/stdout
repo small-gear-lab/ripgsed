@@ -136,9 +136,6 @@ three
 == 0,/x/,/y/p
 sed: -e expression #1, char 6: unknown command: `,'
 1
-== 2,-1p
-sed: -e expression #1, char 3: unexpected `,'
-1
 == 2~+1p
 sed: -e expression #1, char 3: unknown command: `+'
 1

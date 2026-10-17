@@ -40,6 +40,8 @@ pub enum Selector {
 pub enum Addr {
     Line(u64),
     Last,
+    /// `$-N` (N > 0): the line with N lines after it. A ripgsed extension: GNU sed rejects it.
+    FromEnd(u64),
     /// `first~step`
     Step { first: u64, step: u64 },
     Regex(Pattern),
@@ -51,6 +53,8 @@ pub enum Addr {
 pub enum Addr2 {
     Line(u64),
     Last,
+    /// `addr1,$-N`
+    FromEnd(u64),
     Regex(Pattern),
     /// `addr1,first~step`: ends at the first line from `first` on that is `step` lines apart.
     Step { first: u64, step: u64 },
@@ -174,7 +178,7 @@ impl Addr {
             // A single address 0 is rejected by the parser, so `Line(0)` only starts a range.
             Addr::Line(_) | Addr::Step { .. } | Addr::Null => Reach::Record,
             // `$` is the last record of the whole input, which the chunk that holds it is told.
-            Addr::Last => Reach::Record,
+            Addr::Last | Addr::FromEnd(_) => Reach::Record,
             // An empty regexp reuses the one used last, on an earlier record.
             Addr::Regex(p) if p.regex.is_none() => Reach::OtherRecords("an empty regexp"),
             Addr::Regex(_) => Reach::Record,

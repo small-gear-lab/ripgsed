@@ -128,3 +128,12 @@ Decisions that have been made, with their reasons. Proposals and open questions 
 - The pattern is PCRE2's, so `.` does not match a newline unless `(?s)`, `\d` is a digit (not sed's `\dNNN`), and `\n`, `\t`, `\xHH` are the library's. A delimiter inside a bracket expression must be escaped, as in Perl: the sed reading of `[/]` is not used. `M` uses the newline the library was built with (a line feed), also under `-z`.
 - The library has the same: `Pattern::perl` and `Script::parse_perl`, with `Script::dialect` (`Dialect::{Basic, Extended, Perl}`) in place of the flag for extended patterns. A script uses one dialect, and mixing them is an error when it is built; 
 - There is no GNU sed to compare with, so the tests state the library's answers (`tests/cli.rs`) and `--debug` prints the pattern as it was written.
+
+## D15. Addresses counted from the end: `$-N` and `addr,-N`
+
+- GNU sed 4.9 rejects both (`unknown command: `-'`, `unexpected `,'`), so a script that works with GNU sed is not affected, as with `-P` (D14). There is no switch for them: the spelling is what asks. The cost is that a script that uses them stops on GNU sed.
+- `$-N` is the line with N lines after it (`$-0` is `$`). It is an address and the end of a range (`addr,$-N`). With `-s` and `-i` it counts in its file.
+- `addr,-N` is `addr` and the N lines before it, as `addr,+N` is `addr` and the N lines after it: `10,-3` is `7,10`, and `-0` is one line, as `+0` is. `addr` has to be a line number, `$` or `$-N`: after a regexp or a step the lines before it have gone by, and it is an error.
+- A bare negative line number (`-3,$`) is not accepted: the command line would read it as options before the script is read.
+- `$,-9!d` keeps the last 10 lines, as `tail -10` does, with a lookahead of N records in the input (`RecordSource::records_after`). The chunk executor is told how many records follow a chunk, up to what the script asks to see (`analysis::lookahead`), so these scripts run in parallel too.
+- GNU sed has nothing to compare with, so `tests/from_end.rs` states the answers from a model of the lines, and not a fixture. The fixture `adr-019-invalid-address-forms` no longer has `2,-1p`, which GNU sed rejects and ripgsed accepts.
