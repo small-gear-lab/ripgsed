@@ -166,6 +166,7 @@ fn run_fixture(dir: &Path, scratch: &Path) -> Result<Outcome, String> {
         "RIPGSED_BLOCK",
         "RIPGSED_PARALLEL_MIN_BYTES",
         "RIPGSED_TAIL",
+        "RIPGSED_HEAD",
         "RIPGSED_TAIL_MIN_BYTES",
         "LLVM_PROFILE_FILE",
         "LD_LIBRARY_PATH",

@@ -288,6 +288,7 @@ fn run(program: &Path, args: &[String], stdin: &[u8], cwd: &Path, locale: &str) 
                 "RIPGSED_JOBS",
                 "RIPGSED_BLOCK",
                 "RIPGSED_TAIL",
+                "RIPGSED_HEAD",
                 "RIPGSED_TAIL_MIN_BYTES",
                 "LLVM_PROFILE_FILE",
             ]

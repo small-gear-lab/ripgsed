@@ -629,6 +629,45 @@ fn duplicate_of_stdin() -> Option<std::fs::File> {
     stdin.try_clone_to_owned().ok().map(std::fs::File::from)
 }
 
+/// How many records the run can stop after (`analysis::head_limit`), when it can. It reads on to the end otherwise, and
+/// that is also what it does for what could go wrong there: the files named must all be files that can be read (a file
+/// after the one with the last line that is not there, or a directory, is something the usual run says, and the status
+/// is for it), and standard input must be a file (not a pipe: what is read from a pipe is not the business of a run that
+/// stops, and the process that writes to it sees it).
+///
+/// `RIPGSED_HEAD=0` turns it off. The result is the same either way.
+fn head_limit_for(
+    script: &crate::syntax::Script,
+    options: &Options,
+    files: &[String],
+) -> Option<u64> {
+    if std::env::var("RIPGSED_HEAD").is_ok_and(|v| v == "0") {
+        return None;
+    }
+    let limit = crate::analysis::head_limit(script, options)?;
+    if reads_standard_input(files) {
+        duplicate_of_stdin()?
+            .metadata()
+            .ok()?
+            .is_file()
+            .then_some(())?;
+    } else {
+        for name in files {
+            std::fs::metadata(name).ok().filter(|m| m.is_file())?;
+            std::fs::File::open(name).ok()?;
+        }
+    }
+    Some(limit)
+}
+
+/// Whether the run reads standard input: with no file, or with `-` alone (`-` and files is not for the stop).
+fn reads_standard_input(files: &[String]) -> bool {
+    files.is_empty() || (files.len() == 1 && files[0] == "-")
+}
+
+/// The line number under which a script that quits is run on one thread, whatever the size of the input.
+const EARLY_QUIT_LINE: u64 = 1 << 16;
+
 /// How many workers to use, or `None` to run sequentially.
 ///
 /// A script runs in parallel only if it is record-local (see `analysis`) and either the
@@ -683,6 +722,11 @@ fn parallel_jobs(
     }
     if let Some(n) = forced {
         return Some(n);
+    }
+    // A script that quits at a small line number is over before threads are worth starting, and they read ahead of the
+    // quit (a single record that is huge is read whole by them). The sequential run reads what it needs.
+    if crate::analysis::quit_line(script).is_some_and(|line| line < EARLY_QUIT_LINE) {
+        return None;
     }
     let cores = std::thread::available_parallelism().map_or(1, |n| n.get());
     let min_bytes: u64 = std::env::var("RIPGSED_PARALLEL_MIN_BYTES")
@@ -749,7 +793,14 @@ pub fn main() -> i32 {
     if let Some(status) = run_on_the_tail(&script, &options, &invocation.files, &program) {
         return status;
     }
-    if let Some(jobs) = parallel_jobs(&script, &options, &invocation.files) {
+    // (A script that can stop early reads little: the threads would read all of it.)
+    let stop_after = head_limit_for(&script, &options, &invocation.files);
+    let jobs = if stop_after.is_none() {
+        parallel_jobs(&script, &options, &invocation.files)
+    } else {
+        None
+    };
+    if let Some(jobs) = jobs {
         let block = std::env::var("RIPGSED_BLOCK")
             .ok()
             .and_then(|v| v.parse().ok())
@@ -791,6 +842,7 @@ pub fn main() -> i32 {
         }
         return EXIT_PANIC;
     }
+    let on_stdin = reads_standard_input(&invocation.files);
     let mut inputs = FileInputs::new(invocation.files, options.separator, &program)
         .in_place(options.in_place.is_some())
         .follow_symlinks(options.follow_symlinks)
@@ -799,10 +851,23 @@ pub fn main() -> i32 {
     let mut outputs = Outputs::new(Box::new(BufWriter::new(stdout)), options.separator);
     outputs.unbuffered = options.unbuffered;
 
-    let result = runtime::run(&script, options, &mut inputs, &mut outputs)
-        .and_then(|code| outputs.flush_all().map(|()| code));
+    let result = match stop_after {
+        Some(records) => {
+            let mut limited = crate::io::Limited::new(&mut inputs, records);
+            runtime::run(&script, options, &mut limited, &mut outputs)
+        }
+        None => runtime::run(&script, options, &mut inputs, &mut outputs),
+    }
+    .and_then(|code| outputs.flush_all().map(|()| code));
     inputs.finish();
     crate::io::restore_stdin_offset();
+    if stop_after.is_some() && on_stdin {
+        // A run that reads to the end leaves standard input at the end, for the command that follows.
+        use std::io::Seek;
+        if let Some(mut stdin) = duplicate_of_stdin() {
+            let _ = stdin.seek(std::io::SeekFrom::End(0));
+        }
+    }
     match result {
         Ok(_) if inputs.had_edit_error || inputs.had_read_error => EXIT_PANIC,
         Ok(_) if inputs.had_open_error => EXIT_BAD_INPUT,
