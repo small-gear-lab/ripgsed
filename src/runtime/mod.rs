@@ -462,6 +462,10 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                 (Selector::All, Kind::BlockEnd | Kind::Label(_) | Kind::Version) => None,
                 (Selector::Single(Addr::Line(n)), _) if *n > self.line => Some(*n),
                 (Selector::Single(Addr::Line(_)), _) => None,
+                // `first~step` is true for a line now and then: the next one is where to stop skipping.
+                (Selector::Single(Addr::Step { first, step }), _) => {
+                    next_step(*first, *step, self.line)
+                }
                 (Selector::Range(Addr::Line(a), _), _) => match self.ranges[pc] {
                     RangeState::Inactive if *a > self.line => Some(*a),
                     RangeState::Closed => None,
@@ -1413,5 +1417,48 @@ pub(crate) fn char_len(bytes: &[u8]) -> usize {
         want
     } else {
         1
+    }
+}
+
+/// The first line after `line` that the address `first~step` is true for, if there is one: `first` and every `step`
+/// lines after it (a step of 0 is the line `first` only, and `0~step` is the multiples of `step`, not the line 0).
+fn next_step(first: u64, step: u64, line: u64) -> Option<u64> {
+    if step == 0 {
+        return (first > line).then_some(first);
+    }
+    let from = (line + 1).max(first);
+    let rest = (from - first) % step;
+    if rest == 0 {
+        Some(from)
+    } else {
+        from.checked_add(step - rest)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::next_step;
+
+    #[test]
+    fn the_next_line_that_a_step_is_true_for() {
+        // 2~3: the lines 2, 5, 8, ...
+        assert_eq!(next_step(2, 3, 1), Some(2));
+        assert_eq!(next_step(2, 3, 2), Some(5));
+        assert_eq!(next_step(2, 3, 4), Some(5));
+        assert_eq!(next_step(2, 3, 5), Some(8));
+        assert_eq!(next_step(2, 3, 100), Some(101));
+        // 0~4: the multiples of 4, not the line 0.
+        assert_eq!(next_step(0, 4, 0), Some(4));
+        assert_eq!(next_step(0, 4, 3), Some(4));
+        assert_eq!(next_step(0, 4, 4), Some(8));
+        // 5~1 is every line from the 5th.
+        assert_eq!(next_step(5, 1, 1), Some(5));
+        assert_eq!(next_step(5, 1, 7), Some(8));
+        // A step of 0 is the one line.
+        assert_eq!(next_step(7, 0, 3), Some(7));
+        assert_eq!(next_step(7, 0, 7), None);
+        assert_eq!(next_step(7, 0, 9), None);
+        // Beyond what a line number can hold there is none.
+        assert_eq!(next_step(1, u64::MAX, 2), None);
     }
 }
