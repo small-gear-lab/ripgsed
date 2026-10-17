@@ -2,7 +2,7 @@
 //! error. Scripts come from a fixed-seed generator mixing random bytes with sed tokens.
 //! `RIPGSED_FUZZ_CASES=1000000 cargo test --test parser_fuzz` runs more cases.
 
-use ripgsed::syntax::{parse, Chunk, ChunkSource, ParseOptions};
+use ripgsed::syntax::{Chunk, ChunkSource, ParseOptions, parse};
 
 /// xorshift64*: a tiny deterministic generator.
 struct Rng(u64);
@@ -21,10 +21,84 @@ impl Rng {
 }
 
 const TOKENS: &[&str] = &[
-    "s", "y", "/", "\\", "a", "i", "c", "b", "t", "T", ":", "{", "}", ";", "\n", "!", ",", "$", "1", "0", "2", "~", "+",
-    "p", "d", "D", "n", "N", "g", "G", "h", "H", "x", "q", "Q", "l", "=", "r", "w", "R", "W", "e", "v", "z", "F", "#",
-    "[", "]", "[:alpha:]", "\\(", "\\)", "\\{", "\\}", "*", ".", "^", "&", "\\1", "\\n", "\\t", "I", "M", " ", "g", "5",
-    "label", "file.txt", "é", "\u{0}", "\\c", "\\x41", "\\d065", "\\o101", "|", "?", "(", ")", "{2}",
+    "s",
+    "y",
+    "/",
+    "\\",
+    "a",
+    "i",
+    "c",
+    "b",
+    "t",
+    "T",
+    ":",
+    "{",
+    "}",
+    ";",
+    "\n",
+    "!",
+    ",",
+    "$",
+    "1",
+    "0",
+    "2",
+    "~",
+    "+",
+    "p",
+    "d",
+    "D",
+    "n",
+    "N",
+    "g",
+    "G",
+    "h",
+    "H",
+    "x",
+    "q",
+    "Q",
+    "l",
+    "=",
+    "r",
+    "w",
+    "R",
+    "W",
+    "e",
+    "v",
+    "z",
+    "F",
+    "#",
+    "[",
+    "]",
+    "[:alpha:]",
+    "\\(",
+    "\\)",
+    "\\{",
+    "\\}",
+    "*",
+    ".",
+    "^",
+    "&",
+    "\\1",
+    "\\n",
+    "\\t",
+    "I",
+    "M",
+    " ",
+    "g",
+    "5",
+    "label",
+    "file.txt",
+    "é",
+    "\u{0}",
+    "\\c",
+    "\\x41",
+    "\\d065",
+    "\\o101",
+    "|",
+    "?",
+    "(",
+    ")",
+    "{2}",
 ];
 
 fn script(rng: &mut Rng) -> Vec<u8> {
@@ -42,7 +116,10 @@ fn script(rng: &mut Rng) -> Vec<u8> {
 #[test]
 fn parsing_never_panics() {
     let mut rng = Rng(0x9E37_79B9_7F4A_7C15);
-    let cases: usize = std::env::var("RIPGSED_FUZZ_CASES").ok().and_then(|v| v.parse().ok()).unwrap_or(20_000);
+    let cases: usize = std::env::var("RIPGSED_FUZZ_CASES")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(20_000);
     for i in 0..cases {
         let chunks: Vec<_> = (0..1 + rng.below(3))
             .map(|n| {
@@ -53,13 +130,30 @@ fn parsing_never_panics() {
                     sandbox: rng.below(8) == 0,
                     ..ParseOptions::default()
                 };
-                let source = if rng.below(4) == 0 { ChunkSource::File("f.sed".into()) } else { ChunkSource::Expression(n + 1) };
-                (Chunk { source, text: script(&mut rng) }, options)
+                let source = if rng.below(4) == 0 {
+                    ChunkSource::File("f.sed".into())
+                } else {
+                    ChunkSource::Expression(n + 1)
+                };
+                (
+                    Chunk {
+                        source,
+                        text: script(&mut rng),
+                    },
+                    options,
+                )
             })
             .collect();
         let result = std::panic::catch_unwind(|| {
             let _ = parse(&chunks);
         });
-        assert!(result.is_ok(), "parser panicked on case {i}: {:?}", chunks.iter().map(|(c, _)| String::from_utf8_lossy(&c.text).into_owned()).collect::<Vec<_>>());
+        assert!(
+            result.is_ok(),
+            "parser panicked on case {i}: {:?}",
+            chunks
+                .iter()
+                .map(|(c, _)| String::from_utf8_lossy(&c.text).into_owned())
+                .collect::<Vec<_>>()
+        );
     }
 }

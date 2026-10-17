@@ -76,9 +76,9 @@ pub fn word_byte_high(b: u8) -> bool {
 mod sys {
     use std::cell::{Cell, RefCell};
     use std::collections::HashMap;
-    use std::ffi::{c_char, c_int, CStr};
+    use std::ffi::{CStr, c_char, c_int};
     use std::hash::{BuildHasherDefault, Hasher};
-    
+
     use super::{ASCII_IDENT, BAD_SINGLE, HIGH_ONLY, RESYNC, WORD_HIGH};
     use crate::regex::Locale;
     use std::sync::atomic::Ordering::Relaxed;
@@ -107,7 +107,13 @@ mod sys {
         safe fn towlower(wc: u32) -> u32;
         safe fn iswalnum(wc: u32) -> c_int;
         fn regcomp(preg: *mut RegexBuf, pattern: *const c_char, cflags: c_int) -> c_int;
-        fn regexec(preg: *const RegexBuf, string: *const c_char, nmatch: usize, pmatch: *mut RegMatch, eflags: c_int) -> c_int;
+        fn regexec(
+            preg: *const RegexBuf,
+            string: *const c_char,
+            nmatch: usize,
+            pmatch: *mut RegMatch,
+            eflags: c_int,
+        ) -> c_int;
         fn regfree(preg: *mut RegexBuf);
         fn __ctype_get_mb_cur_max() -> usize;
         fn mbrtowc(pwc: *mut u32, s: *const c_char, n: usize, ps: *mut MbState) -> usize;
@@ -142,20 +148,29 @@ mod sys {
             // Only the two categories the matcher reads stay switched on: the messages of the C
             // library (`strerror`) and the number formats must not change with the locale.
             setlocale(LC_ALL, c"C".as_ptr());
-            let (Some(ctype), Some(collate)) = (ctype, collate) else { return Locale::C };
+            let (Some(ctype), Some(collate)) = (ctype, collate) else {
+                return Locale::C;
+            };
             let utf8 = codeset.eq_ignore_ascii_case("UTF-8");
             // `C` and `POSIX` (and a name that fails to load, handled above) have the codeset of ASCII.
             if codeset.is_empty() || codeset == "ANSI_X3.4-1968" {
                 return Locale::C;
             }
-            let builtin = utf8 && is_c_utf8(&ctype) && (is_c_utf8(&collate) || collate == "C" || collate == "POSIX");
+            let builtin = utf8
+                && is_c_utf8(&ctype)
+                && (is_c_utf8(&collate) || collate == "C" || collate == "POSIX");
             if builtin {
                 return Locale::Utf8;
             }
-            let (Ok(c1), Ok(c2)) = (std::ffi::CString::new(ctype), std::ffi::CString::new(collate)) else {
+            let (Ok(c1), Ok(c2)) = (
+                std::ffi::CString::new(ctype),
+                std::ffi::CString::new(collate),
+            ) else {
                 return Locale::C;
             };
-            if setlocale(LC_CTYPE, c1.as_ptr()).is_null() || setlocale(LC_COLLATE, c2.as_ptr()).is_null() {
+            if setlocale(LC_CTYPE, c1.as_ptr()).is_null()
+                || setlocale(LC_COLLATE, c2.as_ptr()).is_null()
+            {
                 setlocale(LC_ALL, c"C".as_ptr());
                 return Locale::C;
             }
@@ -181,7 +196,8 @@ mod sys {
 
     /// Finds out whether ASCII bytes are characters of their own in this multibyte character set.
     fn probe_multibyte() {
-        let ident = (0..0x80u32).all(|b| decode_raw(&[b as u8]).is_some_and(|(c, l)| c == b && l == 1));
+        let ident =
+            (0..0x80u32).all(|b| decode_raw(&[b as u8]).is_some_and(|(c, l)| c == b && l == 1));
         // A byte of 0x80 or more followed by an ASCII byte: the pair is never (the start of) a
         // character, the first byte stands alone or is invalid.
         let high_only = (0x80..=0xffu32).all(|b| {
@@ -229,7 +245,10 @@ mod sys {
             }
         }
         for b in 0..0x80usize {
-            RESYNC[b].store(!trail[b] && decode_raw(&[b as u8]).is_some_and(|(_, l)| l == 1), Relaxed);
+            RESYNC[b].store(
+                !trail[b] && decode_raw(&[b as u8]).is_some_and(|(_, l)| l == 1),
+                Relaxed,
+            );
         }
         ASCII_IDENT.store(ident, Relaxed);
         HIGH_ONLY.store(high_only, Relaxed);
@@ -265,7 +284,9 @@ mod sys {
             return 0;
         }
         let max = bytes.len().min(4);
-        let key = bytes[..max].iter().fold(max as u64, |k, &b| k << 8 | b as u64);
+        let key = bytes[..max]
+            .iter()
+            .fold(max as u64, |k, &b| k << 8 | b as u64);
         if let Some(n) = MEMO.with(|m| m.borrow().get(&key).copied()) {
             return n;
         }
@@ -402,9 +423,25 @@ mod sys {
             pat.extend_from_slice(b"$\0");
             let mut re = Box::new(RegexBuf([0; 32]));
             // SAFETY: `re` is large enough for a `regex_t` and `pat` is NUL-terminated.
-            let rc = unsafe { regcomp(&mut *re, pat.as_ptr().cast(), if icase { REG_ICASE } else { 0 }) };
+            let rc = unsafe {
+                regcomp(
+                    &mut *re,
+                    pat.as_ptr().cast(),
+                    if icase { REG_ICASE } else { 0 },
+                )
+            };
             match rc {
-                0 => Ok(LibSet { re, known: Cell::new(0), member: Cell::new(0), others: RefCell::default(), text: text.to_vec(), icase, prefix: RefCell::new(None), partials: RefCell::default(), seqs: RefCell::default() }),
+                0 => Ok(LibSet {
+                    re,
+                    known: Cell::new(0),
+                    member: Cell::new(0),
+                    others: RefCell::default(),
+                    text: text.to_vec(),
+                    icase,
+                    prefix: RefCell::new(None),
+                    partials: RefCell::default(),
+                    seqs: RefCell::default(),
+                }),
                 3 => Err(LibError::Collate),
                 4 => Err(LibError::CType),
                 7 => Err(LibError::Bracket),
@@ -480,14 +517,27 @@ mod sys {
                 pat.push(0);
                 let mut re = Box::new(RegexBuf([0; 32]));
                 // SAFETY: `re` is large enough for a `regex_t` and `pat` is NUL-terminated.
-                let rc = unsafe { regcomp(&mut *re, pat.as_ptr().cast(), if self.icase { REG_ICASE } else { 0 }) };
+                let rc = unsafe {
+                    regcomp(
+                        &mut *re,
+                        pat.as_ptr().cast(),
+                        if self.icase { REG_ICASE } else { 0 },
+                    )
+                };
                 (rc == 0).then_some(re)
             });
             let Some(re) = re else { return 0 };
-            let mut m = RegMatch { so: 0, eo: s.len() as c_int };
+            let mut m = RegMatch {
+                so: 0,
+                eo: s.len() as c_int,
+            };
             // SAFETY: as in `ask_bytes`.
             let hit = unsafe { regexec(&**re, s.as_ptr().cast(), 1, &mut m, REG_STARTEND) == 0 };
-            if hit && m.so == 0 && m.eo > 0 && (m.eo as usize) < s.len() { m.eo as usize } else { 0 }
+            if hit && m.so == 0 && m.eo > 0 && (m.eo as usize) < s.len() {
+                m.eo as usize
+            } else {
+                0
+            }
         }
 
         /// Whether the library's set holds the single byte `b` (a single-byte locale).
@@ -508,7 +558,10 @@ mod sys {
         }
 
         fn ask_bytes(&self, s: &[u8]) -> bool {
-            let mut m = RegMatch { so: 0, eo: s.len() as c_int };
+            let mut m = RegMatch {
+                so: 0,
+                eo: s.len() as c_int,
+            };
             // SAFETY: the regex was compiled by `regcomp`; with `REG_STARTEND` the string is
             // read from `so` to `eo` and needs no terminator.
             unsafe { regexec(&*self.re, s.as_ptr().cast(), 0, &mut m, REG_STARTEND) == 0 }
@@ -540,7 +593,11 @@ mod sys {
             .find_map(|k| std::env::var(k).ok().filter(|v| !v.is_empty()))
             .unwrap_or_default()
             .to_ascii_lowercase();
-        if value.contains("utf-8") || value.contains("utf8") { Locale::Utf8 } else { Locale::C }
+        if value.contains("utf-8") || value.contains("utf8") {
+            Locale::Utf8
+        } else {
+            Locale::C
+        }
     }
 
     pub fn upper(c: char) -> char {

@@ -1,7 +1,8 @@
 //! `--debug`: the canonical form of a program and the annotations of its execution.
 
 use crate::syntax::{
-    Addr, Addr2, CaseConversion, Command, Kind, Pattern, ReplacementPart, Script, Selector, Substitute,
+    Addr, Addr2, CaseConversion, Command, Kind, Pattern, ReplacementPart, Script, Selector,
+    Substitute,
 };
 
 /// The program in canonical form, one command per line, with two spaces of indentation
@@ -57,7 +58,9 @@ fn selector_text(selector: &Selector, out: &mut Vec<u8>) {
                 Addr2::Last => out.push(b'$'),
                 Addr2::FromEnd(n) => out.extend_from_slice(format!("${}", -(*n as i64)).as_bytes()),
                 Addr2::Regex(p) => pattern_text(p, out),
-                Addr2::Step { first, step } => out.extend_from_slice(format!("{first}~{step}").as_bytes()),
+                Addr2::Step { first, step } => {
+                    out.extend_from_slice(format!("{first}~{step}").as_bytes())
+                }
                 Addr2::Plus(0) | Addr2::Multiple(0) => out.extend_from_slice(b"[ADDR-NULL]"),
                 Addr2::Plus(n) => out.extend_from_slice(format!("+{n}").as_bytes()),
                 Addr2::Multiple(n) => out.extend_from_slice(format!("~{n}").as_bytes()),
@@ -178,8 +181,9 @@ fn kind_text(kind: &Kind, utf8: bool, out: &mut Vec<u8>) {
                         table[f as usize] = Some(t);
                     }
                 }
-                let changed: Vec<(u8, u8)> =
-                    (0..=255u8).filter_map(|b| table[b as usize].filter(|&t| t != b).map(|t| (b, t))).collect();
+                let changed: Vec<(u8, u8)> = (0..=255u8)
+                    .filter_map(|b| table[b as usize].filter(|&t| t != b).map(|t| (b, t)))
+                    .collect();
                 out.extend(changed.iter().map(|&(f, _)| f));
                 out.push(b'/');
                 out.extend(changed.iter().map(|&(_, t)| t));
@@ -252,7 +256,13 @@ fn replacement_text(parts: &[ReplacementPart], out: &mut Vec<u8>) {
     let mut shown: State = (None, None);
     let mut prefix: Vec<u8> = Vec::new();
 
-    fn close(current: State, shown: &mut State, prefix: &mut Vec<u8>, reference: Option<&[u8]>, out: &mut Vec<u8>) {
+    fn close(
+        current: State,
+        shown: &mut State,
+        prefix: &mut Vec<u8>,
+        reference: Option<&[u8]>,
+        out: &mut Vec<u8>,
+    ) {
         if *shown != current {
             if current == (None, None) {
                 out.extend_from_slice(b"\\E");
@@ -280,7 +290,11 @@ fn replacement_text(parts: &[ReplacementPart], out: &mut Vec<u8>) {
         match part {
             ReplacementPart::Literal(text) => prefix.extend_from_slice(text),
             ReplacementPart::Group(n) => {
-                let reference = if *n == 0 { b"&".to_vec() } else { format!("\\{n}").into_bytes() };
+                let reference = if *n == 0 {
+                    b"&".to_vec()
+                } else {
+                    format!("\\{n}").into_bytes()
+                };
                 close(current, &mut shown, &mut prefix, Some(&reference), out);
                 current.1 = None;
             }

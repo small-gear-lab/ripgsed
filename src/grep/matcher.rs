@@ -72,7 +72,11 @@ impl Matcher {
         let mut plain = Vec::new();
         let mut warnings: Vec<String> = Vec::new();
         for pattern in &options.patterns {
-            let text = if options.kind == Kind::Fixed { escape_fixed(pattern) } else { pattern.clone() };
+            let text = if options.kind == Kind::Fixed {
+                escape_fixed(pattern)
+            } else {
+                pattern.clone()
+            };
             // The C library reads the patterns first: its mistakes come first.
             if wrap != Wrap::None {
                 match Regex::compile(&text, &syntax(Wrap::None)) {
@@ -88,16 +92,32 @@ impl Matcher {
                 Err(e) => return Err(PatternError(e.message)),
             }
         }
-        Ok(Matcher { select, plain, word: wrap == Wrap::Word, both: options.word && options.line, perl: None, perl_enabled: false, perl_error: Default::default(), multibyte: locale.is_chars(), utf8: locale.is_utf8(), libc: matches!(locale, Locale::Libc | Locale::Mb), warnings })
+        Ok(Matcher {
+            select,
+            plain,
+            word: wrap == Wrap::Word,
+            both: options.word && options.line,
+            perl: None,
+            perl_enabled: false,
+            perl_error: Default::default(),
+            multibyte: locale.is_chars(),
+            utf8: locale.is_utf8(),
+            libc: matches!(locale, Locale::Libc | Locale::Mb),
+            warnings,
+        })
     }
 
     /// `-P`: a single pattern, wrapped for `-x` and `-w` as GNU grep does.
     fn new_perl(options: &Options, locale: Locale) -> Result<Matcher, PatternError> {
         if options.patterns.len() > 1 {
-            return Err(PatternError("the -P option only supports a single pattern".to_string()));
+            return Err(PatternError(
+                "the -P option only supports a single pattern".to_string(),
+            ));
         }
         if locale.is_chars() && !locale.is_utf8() {
-            return Err(PatternError("-P supports only unibyte and UTF-8 locales".to_string()));
+            return Err(PatternError(
+                "-P supports only unibyte and UTF-8 locales".to_string(),
+            ));
         }
         let mut flags = pcre::DOLLAR_ENDONLY;
         if options.ignore_case {
@@ -123,7 +143,11 @@ impl Matcher {
         } else if options.word {
             text.extend_from_slice(b")(?!\\w)");
         }
-        let perl = if options.patterns.is_empty() { None } else { Some(Pcre::new(&text, flags).map_err(PatternError)?) };
+        let perl = if options.patterns.is_empty() {
+            None
+        } else {
+            Some(Pcre::new(&text, flags).map_err(PatternError)?)
+        };
         Ok(Matcher {
             select: Vec::new(),
             plain: Vec::new(),
@@ -163,7 +187,9 @@ impl Matcher {
         match p.find(line, start) {
             Ok(found) => found,
             Err(e) => {
-                self.perl_error.borrow_mut().get_or_insert_with(|| e.message());
+                self.perl_error
+                    .borrow_mut()
+                    .get_or_insert_with(|| e.message());
                 None
             }
         }
@@ -200,7 +226,11 @@ impl Matcher {
         }
         let mut best: Option<(usize, usize)> = None;
         let mut caps = Captures::default();
-        let regexes = if self.plain.is_empty() { &self.select } else { &self.plain };
+        let regexes = if self.plain.is_empty() {
+            &self.select
+        } else {
+            &self.plain
+        };
         for re in regexes {
             if re.captures_at(line, start, &mut caps) {
                 let (s, e) = caps.whole();
@@ -250,7 +280,11 @@ impl Matcher {
     }
 
     fn word_char(&self, c: char) -> bool {
-        if self.libc { crate::regex::is_word_char_libc(c) } else { crate::regex::is_word_char(c) }
+        if self.libc {
+            crate::regex::is_word_char_libc(c)
+        } else {
+            crate::regex::is_word_char(c)
+        }
     }
 
     /// `-w` with `-x`: only a match that goes to the end of the line counts, and it is reported as
@@ -290,7 +324,9 @@ impl Matcher {
                 let before = self.wordchar_prev(re, line, m);
                 if !after && !before {
                     // A good match: the leftmost, then the longest, of all the patterns.
-                    if m < best_match || best.is_none_or(|(_, bl)| m == best_match && len > bl - best_match) {
+                    if m < best_match
+                        || best.is_none_or(|(_, bl)| m == best_match && len > bl - best_match)
+                    {
                         best_match = m;
                         best = Some((m, m + len));
                     }

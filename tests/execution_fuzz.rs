@@ -33,25 +33,105 @@ impl Rng {
 }
 
 const REGEXES_BRE: &[&str] = &[
-    "a", "b", "ab", "a*", "a\\+", "a\\?", "[ab]", "[^a]", "[a-c]*", ".", ".*", "^a", "b$", "^$", "\\(a\\)", "\\(a*\\)b",
-    "\\(a\\|b\\)\\1", "a\\{2\\}", "a\\{1,\\}", "[[:digit:]]", "[[:alpha:]]\\+", "\\bb", "\\<a", "x\\|y", "\\(.\\)\\1", " ",
-    "[0-9]\\+", "\\w\\+", "\\s", "a.b", "[ab]*c", "\\n", "^\\(.*\\)$", "\\(a\\|ab\\)\\(c\\|bcd\\)\\?", "[[:upper:]]",
-    "[^[:space:]]*", "\\`a", "c\\'", "a\\{0,1\\}b", "\\(b*\\)*", "\\(ab\\)*\\1", "[]a]", "[a-]", "\\Bb", "a\\b", "é", ".\\{2\\}",
+    "a",
+    "b",
+    "ab",
+    "a*",
+    "a\\+",
+    "a\\?",
+    "[ab]",
+    "[^a]",
+    "[a-c]*",
+    ".",
+    ".*",
+    "^a",
+    "b$",
+    "^$",
+    "\\(a\\)",
+    "\\(a*\\)b",
+    "\\(a\\|b\\)\\1",
+    "a\\{2\\}",
+    "a\\{1,\\}",
+    "[[:digit:]]",
+    "[[:alpha:]]\\+",
+    "\\bb",
+    "\\<a",
+    "x\\|y",
+    "\\(.\\)\\1",
+    " ",
+    "[0-9]\\+",
+    "\\w\\+",
+    "\\s",
+    "a.b",
+    "[ab]*c",
+    "\\n",
+    "^\\(.*\\)$",
+    "\\(a\\|ab\\)\\(c\\|bcd\\)\\?",
+    "[[:upper:]]",
+    "[^[:space:]]*",
+    "\\`a",
+    "c\\'",
+    "a\\{0,1\\}b",
+    "\\(b*\\)*",
+    "\\(ab\\)*\\1",
+    "[]a]",
+    "[a-]",
+    "\\Bb",
+    "a\\b",
+    "é",
+    ".\\{2\\}",
 ];
 const REGEXES_ERE: &[&str] = &[
-    "a", "ab", "a*", "a+", "a?", "[ab]", "[^a]", ".*", "^a", "b$", "(a)", "(a|b)\\1", "a{2}", "a{1,}", "(a*)b", "x|y",
-    "(.)\\1", "[[:digit:]]+", "\\w+", "(a|ab)(c|bcd)?", "^(.*)$", "()", "a|", "[ab]+c?", "(a*)*", "(a|b)*c", "((a)|(b))+", "a{0}b", "a{,2}",
-    "(ab|a)(bc|c)?", "\\<a", "b\\>", "x*", "(^|b)a", "a($|b)", "[[:alnum:]_]+", ".{2,3}",
+    "a",
+    "ab",
+    "a*",
+    "a+",
+    "a?",
+    "[ab]",
+    "[^a]",
+    ".*",
+    "^a",
+    "b$",
+    "(a)",
+    "(a|b)\\1",
+    "a{2}",
+    "a{1,}",
+    "(a*)b",
+    "x|y",
+    "(.)\\1",
+    "[[:digit:]]+",
+    "\\w+",
+    "(a|ab)(c|bcd)?",
+    "^(.*)$",
+    "()",
+    "a|",
+    "[ab]+c?",
+    "(a*)*",
+    "(a|b)*c",
+    "((a)|(b))+",
+    "a{0}b",
+    "a{,2}",
+    "(ab|a)(bc|c)?",
+    "\\<a",
+    "b\\>",
+    "x*",
+    "(^|b)a",
+    "a($|b)",
+    "[[:alnum:]_]+",
+    ".{2,3}",
 ];
-const REPLACEMENTS: &[&str] = &["X", "&", "[&]", "\\1", "<\\1>", "", "\\n", "\\U&", "\\L&", "\\u&", "a&b", "\\&", "\\\\"];
+const REPLACEMENTS: &[&str] = &[
+    "X", "&", "[&]", "\\1", "<\\1>", "", "\\n", "\\U&", "\\L&", "\\u&", "a&b", "\\&", "\\\\",
+];
 const TEXTS: &[&str] = &["hello", "x y", "", "a\\tb", "  spaced", "end"];
 const LINES: &[&str] = &[
-    "a", "b", "ab", "abc", "aab", "ba", "abab", "x", "y", "1", "42", "a b", "foo bar", "", "aaa", "bcd", "a1b2", "xyz", " a ", "A",
-    "B", "abcabc", "é", "日本",
+    "a", "b", "ab", "abc", "aab", "ba", "abab", "x", "y", "1", "42", "a b", "foo bar", "", "aaa",
+    "bcd", "a1b2", "xyz", " a ", "A", "B", "abcabc", "é", "日本",
 ];
 
 fn regex(rng: &mut Rng, extended: bool) -> String {
-    rng.pick(if extended { REGEXES_ERE } else { REGEXES_BRE }).to_string()
+    rng.pick(if extended { REGEXES_ERE } else { REGEXES_BRE })
+        .to_string()
 }
 
 fn address(rng: &mut Rng, extended: bool) -> String {
@@ -96,8 +176,26 @@ fn command(rng: &mut Rng, extended: bool, depth: usize) -> String {
         12 => "=".into(),
         13 => "l".into(),
         14..=16 => {
-            let flags = rng.pick(&["", "g", "p", "2", "gp", "I", "2g", "w /dev/null", "M", "Ig", "3", "gI"]);
-            format!("s/{}/{}/{}", regex(rng, extended), rng.pick(REPLACEMENTS), flags)
+            let flags = rng.pick(&[
+                "",
+                "g",
+                "p",
+                "2",
+                "gp",
+                "I",
+                "2g",
+                "w /dev/null",
+                "M",
+                "Ig",
+                "3",
+                "gI",
+            ]);
+            format!(
+                "s/{}/{}/{}",
+                regex(rng, extended),
+                rng.pick(REPLACEMENTS),
+                flags
+            )
         }
         17 => "y/abc/xyz/".into(),
         18 => format!("a {}", rng.pick(TEXTS)),
@@ -105,12 +203,18 @@ fn command(rng: &mut Rng, extended: bool, depth: usize) -> String {
         20 => format!("c {}", rng.pick(TEXTS)),
         21 => rng.pick(&["q", "q5", "Q", "Q3"]).to_string(),
         22 if depth < 2 => {
-            let inner: Vec<String> = (0..1 + rng.below(3)).map(|_| command(rng, extended, depth + 1)).collect();
+            let inner: Vec<String> = (0..1 + rng.below(3))
+                .map(|_| command(rng, extended, depth + 1))
+                .collect();
             format!("{{{}}}", inner.join(";"))
         }
         23 => format!("t{}", rng.pick(&["", " end"])),
         24 => format!("b{}", rng.pick(&["", " end"])),
-        25 => format!("{} {}", rng.pick(&["r", "R", "w", "W"]), rng.pick(&["r.txt", "out1.txt", "out2.txt"])),
+        25 => format!(
+            "{} {}",
+            rng.pick(&["r", "R", "w", "W"]),
+            rng.pick(&["r.txt", "out1.txt", "out2.txt"])
+        ),
         _ => "p".into(),
     };
     // Commands that read the rest of the line must end it with a newline.
@@ -153,7 +257,10 @@ fn tree(dir: &Path) -> std::collections::BTreeMap<String, Vec<u8>> {
         for entry in entries.flatten() {
             let path = entry.path();
             if path.is_file() {
-                out.insert(entry.file_name().to_string_lossy().into_owned(), std::fs::read(&path).unwrap_or_default());
+                out.insert(
+                    entry.file_name().to_string_lossy().into_owned(),
+                    std::fs::read(&path).unwrap_or_default(),
+                );
             }
         }
     }
@@ -176,7 +283,11 @@ fn run(program: &Path, args: &[String], stdin: &[u8], cwd: &Path, locale: &str) 
         .env_clear()
         .env("LC_ALL", locale)
         .env("RIPGSED_GLIBC_COMPAT", "1")
-        .envs(["RIPGSED_JOBS", "RIPGSED_BLOCK", "LLVM_PROFILE_FILE"].iter().filter_map(|k| std::env::var(k).ok().map(|v| (*k, v))))
+        .envs(
+            ["RIPGSED_JOBS", "RIPGSED_BLOCK", "LLVM_PROFILE_FILE"]
+                .iter()
+                .filter_map(|k| std::env::var(k).ok().map(|v| (*k, v))),
+        )
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -200,7 +311,12 @@ fn run(program: &Path, args: &[String], stdin: &[u8], cwd: &Path, locale: &str) 
     };
     let output = child.wait_with_output().unwrap();
     let _ = writer.join();
-    Run { stdout: output.stdout, stderr: output.stderr, status: output.status.code(), timed_out }
+    Run {
+        stdout: output.stdout,
+        stderr: output.stderr,
+        status: output.status.code(),
+        timed_out,
+    }
 }
 
 fn temp_dir(tag: &str) -> PathBuf {
@@ -214,14 +330,26 @@ fn temp_dir(tag: &str) -> PathBuf {
 fn random_scripts_agree_with_gnu_sed() {
     let version = Command::new("sed").arg("--version").output();
     let is_gnu_4_9 = version
-        .map(|o| String::from_utf8_lossy(&o.stdout).lines().next().unwrap_or("").ends_with("(GNU sed) 4.9"))
+        .map(|o| {
+            String::from_utf8_lossy(&o.stdout)
+                .lines()
+                .next()
+                .unwrap_or("")
+                .ends_with("(GNU sed) 4.9")
+        })
         .unwrap_or(false);
     if !is_gnu_4_9 {
         eprintln!("skipped: the sed on PATH is not GNU sed 4.9");
         return;
     }
-    let cases: usize = std::env::var("RIPGSED_FUZZ_EXEC_CASES").ok().and_then(|v| v.parse().ok()).unwrap_or(300);
-    let seed: u64 = std::env::var("RIPGSED_FUZZ_EXEC_SEED").ok().and_then(|v| v.parse().ok()).unwrap_or(1);
+    let cases: usize = std::env::var("RIPGSED_FUZZ_EXEC_CASES")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(300);
+    let seed: u64 = std::env::var("RIPGSED_FUZZ_EXEC_SEED")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(1);
     let mut rng = Rng(seed.wrapping_mul(0x9E37_79B9_7F4A_7C15) | 1);
 
     // Both programs run as `sed`, so that messages carry the same prefix.
@@ -232,7 +360,15 @@ fn random_scripts_agree_with_gnu_sed() {
     let ours = bin.join("ours").join("sed");
     std::fs::create_dir_all(gnu.parent().unwrap()).unwrap();
     std::fs::create_dir_all(ours.parent().unwrap()).unwrap();
-    symlink(Command::new("which").arg("sed").output().map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string()).unwrap(), &gnu).unwrap();
+    symlink(
+        Command::new("which")
+            .arg("sed")
+            .output()
+            .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
+            .unwrap(),
+        &gnu,
+    )
+    .unwrap();
     symlink(env!("CARGO_BIN_EXE_ripgsed"), &ours).unwrap();
 
     let mut failures = Vec::new();
@@ -290,12 +426,18 @@ fn random_scripts_agree_with_gnu_sed() {
         if !same {
             let (tw, tg) = (tree(&work), tree(&work_ours));
             let mut file_diff = String::new();
-            for name in tw.keys().chain(tg.keys()).collect::<std::collections::BTreeSet<_>>() {
+            for name in tw
+                .keys()
+                .chain(tg.keys())
+                .collect::<std::collections::BTreeSet<_>>()
+            {
                 if tw.get(name) != tg.get(name) {
                     file_diff.push_str(&format!(
                         "\n  file {name}: want {:?} got {:?}",
-                        tw.get(name).map(|b| String::from_utf8_lossy(b).into_owned()),
-                        tg.get(name).map(|b| String::from_utf8_lossy(b).into_owned()),
+                        tw.get(name)
+                            .map(|b| String::from_utf8_lossy(b).into_owned()),
+                        tg.get(name)
+                            .map(|b| String::from_utf8_lossy(b).into_owned()),
                     ));
                 }
             }
@@ -320,5 +462,10 @@ fn random_scripts_agree_with_gnu_sed() {
     let _ = std::fs::remove_dir_all(&work);
     let _ = std::fs::remove_dir_all(&work_ours);
     let _ = std::fs::remove_dir_all(&bin);
-    assert!(failures.is_empty(), "{} divergences from GNU sed (seed {seed}):\n{}", failures.len(), failures.join("\n"));
+    assert!(
+        failures.is_empty(),
+        "{} divergences from GNU sed (seed {seed}):\n{}",
+        failures.len(),
+        failures.join("\n")
+    );
 }

@@ -39,7 +39,9 @@ impl Colors {
     pub fn from_env(program: &str) -> Colors {
         let mut colors = Colors::default();
         // GREP_COLOR (obsolete) sets both match colors, if it is made of digits and semicolons.
-        let legacy = std::env::var("GREP_COLOR").ok().filter(|v| !v.is_empty() && v.bytes().all(|b| b.is_ascii_digit() || b == b';'));
+        let legacy = std::env::var("GREP_COLOR")
+            .ok()
+            .filter(|v| !v.is_empty() && v.bytes().all(|b| b.is_ascii_digit() || b == b';'));
         if let Some(value) = &legacy {
             colors.selected_match = value.clone();
             colors.context_match = value.clone();
@@ -50,7 +52,9 @@ impl Colors {
         // It is warned about when it still has an effect after GREP_COLORS was read.
         if let Some(value) = legacy {
             if colors.selected_match == value || colors.context_match == value {
-                eprintln!("{program}: warning: GREP_COLOR='{value}' is deprecated; use GREP_COLORS='mt={value}'");
+                eprintln!(
+                    "{program}: warning: GREP_COLOR='{value}' is deprecated; use GREP_COLORS='mt={value}'"
+                );
             }
         }
         colors
@@ -80,7 +84,9 @@ impl Colors {
                 ("rv", None) => self.reverse = true,
                 ("ne", None) => self.no_erase = true,
                 // A name that is not known is skipped; a known one with a bad value ends the list.
-                ("mt" | "ms" | "mc" | "sl" | "cx" | "fn" | "ln" | "bn" | "se" | "rv" | "ne", _) => return,
+                ("mt" | "ms" | "mc" | "sl" | "cx" | "fn" | "ln" | "bn" | "se" | "rv" | "ne", _) => {
+                    return;
+                }
                 _ => {}
             }
         }

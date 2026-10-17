@@ -98,7 +98,10 @@ fn replacement(groups: usize) -> Vec<u8> {
 }
 
 fn pick_delimiter(pattern: &[u8]) -> Option<u8> {
-    b"/,#%!;~\"'=:_".iter().copied().find(|d| !pattern.contains(d))
+    b"/,#%!;~\"'=:_"
+        .iter()
+        .copied()
+        .find(|d| !pattern.contains(d))
 }
 
 /// Runs GNU sed. `groups` is the number of groups to show.
@@ -153,7 +156,9 @@ fn run_sed(flags: Flags, pattern: &[u8], groups: usize, inputs: &[Vec<u8>]) -> O
         cmd.env("POSIXLY_CORRECT", "1");
     }
     cmd.env("LC_ALL", if flags.utf8 { "C.utf8" } else { "C" });
-    cmd.stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::piped());
+    cmd.stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
     let mut child = cmd.spawn().expect("run sed");
     let mut data = Vec::new();
     for i in inputs {
@@ -172,7 +177,9 @@ fn run_sed(flags: Flags, pattern: &[u8], groups: usize, inputs: &[Vec<u8>]) -> O
     let pid = child.id();
     let (done, waiting) = std::sync::mpsc::channel::<()>();
     let watchdog = std::thread::spawn(move || {
-        if let Err(std::sync::mpsc::RecvTimeoutError::Timeout) = waiting.recv_timeout(std::time::Duration::from_secs(20)) {
+        if let Err(std::sync::mpsc::RecvTimeoutError::Timeout) =
+            waiting.recv_timeout(std::time::Duration::from_secs(20))
+        {
             let _ = Command::new("kill").arg("-9").arg(pid.to_string()).status();
         }
     });
@@ -193,7 +200,10 @@ fn run_sed(flags: Flags, pattern: &[u8], groups: usize, inputs: &[Vec<u8>]) -> O
             Some(_) if text.starts_with("sed: -e expression") => {
                 // sed: -e expression #1, char N: MESSAGE
                 let after = &text["sed: -e expression".len()..];
-                after.split_once(": ").map(|(_, m)| m.to_string()).unwrap_or(text.clone())
+                after
+                    .split_once(": ")
+                    .map(|(_, m)| m.to_string())
+                    .unwrap_or(text.clone())
             }
             Some(k) => text[k + 2..].to_string(),
             None => text.clone(),
@@ -361,13 +371,28 @@ fn known_divergence(flags: Flags, pattern: &[u8]) -> Option<&'static str> {
             };
             let q = quant_len(next);
             quantified_group |= q > 0;
-            if q > 0 && (quant_len(&next[q..]) > 0 || next.starts_with(b"{0,") || next.starts_with(b"\\{0,")) {
+            if q > 0
+                && (quant_len(&next[q..]) > 0
+                    || next.starts_with(b"{0,")
+                    || next.starts_with(b"\\{0,"))
+            {
                 stacked = true;
             }
         }
     }
     let backref = (b'1'..=b'9').any(|d| has(&[b'\\', d]));
-    let assertion = [&b"\\b"[..], b"\\B", b"\\<", b"\\>", b"\\`", b"\\'", b"^", b"$"].iter().any(|n| has(n));
+    let assertion = [
+        &b"\\b"[..],
+        b"\\B",
+        b"\\<",
+        b"\\>",
+        b"\\`",
+        b"\\'",
+        b"^",
+        b"$",
+    ]
+    .iter()
+    .any(|n| has(n));
     if backref && quantified_group {
         return Some("back-reference to a repeated group");
     }
@@ -379,10 +404,15 @@ fn known_divergence(flags: Flags, pattern: &[u8]) -> Option<&'static str> {
     }
     // Under -z, an anchor inside the pattern next to something that can consume a newline
     // (a negated bracket, \W, \S, \s, [:space:], [:cntrl:]) can hold at the newline.
-    let eats_newline = pattern.windows(2).any(|w| w == b"[^" || w == b"\\W" || w == b"\\S" || w == b"\\s")
+    let eats_newline = pattern
+        .windows(2)
+        .any(|w| w == b"[^" || w == b"\\W" || w == b"\\S" || w == b"\\s")
         || pattern.windows(9).any(|w| w == b"[:space:]")
         || pattern.windows(9).any(|w| w == b"[:cntrl:]");
-    let inner_anchor = p.iter().enumerate().any(|(i, &c)| (c == b'^' && i > 0) || (c == b'$' && i + 1 < p.len()));
+    let inner_anchor = p
+        .iter()
+        .enumerate()
+        .any(|(i, &c)| (c == b'^' && i > 0) || (c == b'$' && i + 1 < p.len()));
     if flags.z && eats_newline && inner_anchor {
         return Some("an anchor next to a newline the match consumes under -z");
     }
@@ -435,9 +465,17 @@ fn check(report: &mut Report, flags: Flags, pattern: &[u8], inputs: &[Vec<u8>]) 
         _ => {
             let fmt = |o: &Outcome| match o {
                 Outcome::Error(e) => format!("error `{e}`"),
-                Outcome::Records(r) => r.iter().map(|x| format!("`{}`", show(x))).collect::<Vec<_>>().join(" "),
+                Outcome::Records(r) => r
+                    .iter()
+                    .map(|x| format!("`{}`", show(x)))
+                    .collect::<Vec<_>>()
+                    .join(" "),
             };
-            msg.push_str(&format!("\n    engine {}\n    sed    {}", fmt(&mine), fmt(&theirs)));
+            msg.push_str(&format!(
+                "\n    engine {}\n    sed    {}",
+                fmt(&mine),
+                fmt(&theirs)
+            ));
         }
     }
     match known_divergence(flags, pattern) {
@@ -804,7 +842,11 @@ struct Gen<'r> {
 
 impl Gen<'_> {
     fn op(&self, ere: &str, bre: &str) -> String {
-        if self.ere { ere.to_string() } else { bre.to_string() }
+        if self.ere {
+            ere.to_string()
+        } else {
+            bre.to_string()
+        }
     }
 
     fn regex(&mut self, depth: usize) -> String {
@@ -873,10 +915,16 @@ impl Gen<'_> {
                 let k = 1 + self.rng.below(self.groups as u64) as usize;
                 format!("\\{}", k.min(9))
             }
-            84..=93 if self.gnu || self.rng.chance(30) => {
-                self.rng.pick(&["\\w", "\\W", "\\s", "\\S", "\\b", "\\B", "\\<", "\\>", "\\`", "\\'"]).to_string()
-            }
-            _ => self.rng.pick(&["\\.", "\\*", "a", "b", "-", "\\n"]).to_string(),
+            84..=93 if self.gnu || self.rng.chance(30) => self
+                .rng
+                .pick(&[
+                    "\\w", "\\W", "\\s", "\\S", "\\b", "\\B", "\\<", "\\>", "\\`", "\\'",
+                ])
+                .to_string(),
+            _ => self
+                .rng
+                .pick(&["\\.", "\\*", "a", "b", "-", "\\n"])
+                .to_string(),
         }
     }
 
@@ -891,8 +939,21 @@ impl Gen<'_> {
         let n = 1 + self.rng.below(3);
         for _ in 0..n {
             let e = *self.rng.pick(&[
-                "a", "b", "c", "a-c", "b-c", "[:alpha:]", "[:space:]", "[:upper:]", "[:punct:]", "[.a.]", "[=b=]",
-                " ", "A", "é", "É-é",
+                "a",
+                "b",
+                "c",
+                "a-c",
+                "b-c",
+                "[:alpha:]",
+                "[:space:]",
+                "[:upper:]",
+                "[:punct:]",
+                "[.a.]",
+                "[=b=]",
+                " ",
+                "A",
+                "é",
+                "É-é",
             ]);
             s.push_str(e);
         }
@@ -909,9 +970,23 @@ fn random_input(rng: &mut Rng, utf8: bool) -> Vec<u8> {
     let mut v = Vec::new();
     for _ in 0..n {
         let alphabet: &[&[u8]] = if utf8 {
-            &[b"a", b"b", b"c", b"A", b" ", b"\n", "é".as_bytes(), "É".as_bytes(), "中".as_bytes(), b"\xff", b"_"]
+            &[
+                b"a",
+                b"b",
+                b"c",
+                b"A",
+                b" ",
+                b"\n",
+                "é".as_bytes(),
+                "É".as_bytes(),
+                "中".as_bytes(),
+                b"\xff",
+                b"_",
+            ]
         } else {
-            &[b"a", b"b", b"c", b"a", b"b", b"A", b"B", b" ", b"-", b"\n", b"_", b"*"]
+            &[
+                b"a", b"b", b"c", b"a", b"b", b"A", b"B", b" ", b"-", b"\n", b"_", b"*",
+            ]
         };
         let piece: &&[u8] = rng.pick::<&[u8]>(alphabet);
         v.extend_from_slice(piece);
@@ -933,7 +1008,14 @@ fn random_cases(report: &mut Report, count: usize, seed: u64) {
             utf8: rng.chance(20),
             z: rng.chance(5),
         };
-        let mut g = Gen { rng: &mut rng, ere, gnu: !posix, groups: 0, budget: 8, utf8: flags.utf8 };
+        let mut g = Gen {
+            rng: &mut rng,
+            ere,
+            gnu: !posix,
+            groups: 0,
+            budget: 8,
+            utf8: flags.utf8,
+        };
         let pattern = g.regex(0);
         let inputs: Vec<Vec<u8>> = (0..6).map(|_| random_input(&mut rng, flags.utf8)).collect();
         check(report, flags, pattern.as_bytes(), &inputs);
@@ -946,9 +1028,19 @@ fn regex_matches_gnu_sed() {
         eprintln!("skipping regex differential test: `sed --version` is not GNU sed 4.9");
         return;
     }
-    let count = std::env::var("RIPGSED_REGEX_CASES").ok().and_then(|v| v.parse().ok()).unwrap_or(1500);
-    let seed = std::env::var("RIPGSED_REGEX_SEED").ok().and_then(|v| v.parse().ok()).unwrap_or(0x5eed_1234_u64);
-    let mut report = Report { total: 0, failures: Vec::new(), known: Vec::new() };
+    let count = std::env::var("RIPGSED_REGEX_CASES")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(1500);
+    let seed = std::env::var("RIPGSED_REGEX_SEED")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(0x5eed_1234_u64);
+    let mut report = Report {
+        total: 0,
+        failures: Vec::new(),
+        known: Vec::new(),
+    };
     if let Ok(path) = std::env::var("RIPGSED_REGEX_ONLY") {
         // Investigation mode: cases from a file, one per line:
         // FLAGS<TAB>PATTERN<TAB>INPUT|INPUT... (FLAGS `-` for none).
@@ -958,14 +1050,22 @@ fn regex_matches_gnu_sed() {
             let flags = parts.next().unwrap();
             let flags = Flags::parse(if flags == "-" { "" } else { flags });
             let pattern = parts.next().unwrap_or("");
-            let inputs: Vec<Vec<u8>> =
-                parts.next().unwrap_or("").split('|').map(|s| s.replace("\\n", "\n").into_bytes()).collect();
+            let inputs: Vec<Vec<u8>> = parts
+                .next()
+                .unwrap_or("")
+                .split('|')
+                .map(|s| s.replace("\\n", "\n").into_bytes())
+                .collect();
             check(&mut report, flags, pattern.as_bytes(), &inputs);
         }
         for f in report.failures.iter().chain(&report.known) {
             eprintln!("{f}");
         }
-        eprintln!("{} of {} cases differ", report.failures.len() + report.known.len(), report.total);
+        eprintln!(
+            "{} of {} cases differ",
+            report.failures.len() + report.known.len(),
+            report.total
+        );
         return;
     }
     table_cases(&mut report);
@@ -979,7 +1079,11 @@ fn regex_matches_gnu_sed() {
             "{} of {} cases differ from GNU sed:\n{}",
             report.failures.len(),
             report.total,
-            shown.iter().map(|s| s.as_str()).collect::<Vec<_>>().join("\n")
+            shown
+                .iter()
+                .map(|s| s.as_str())
+                .collect::<Vec<_>>()
+                .join("\n")
         );
     }
     eprintln!(

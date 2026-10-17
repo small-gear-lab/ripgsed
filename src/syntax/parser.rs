@@ -9,8 +9,8 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 use super::{
-    address_complaint, Addr, Addr2, BranchWhen, CaseConversion, Command, Kind, Location, Pattern, ReplacementPart, Script, Selector,
-    Substitute, SyntaxError,
+    Addr, Addr2, BranchWhen, CaseConversion, Command, Kind, Location, Pattern, ReplacementPart,
+    Script, Selector, Substitute, SyntaxError, address_complaint,
 };
 use crate::regex::{Locale, Regex, Syntax};
 
@@ -84,7 +84,12 @@ pub fn parse(chunks: &[(Chunk, ParseOptions)]) -> std::result::Result<Script, Sy
         }
         let start = src.len();
         src.extend_from_slice(&chunk.text);
-        spans.push(Span { start, end: src.len(), source: chunk.source.clone(), options: *options });
+        spans.push(Span {
+            start,
+            end: src.len(),
+            source: chunk.source.clone(),
+            options: *options,
+        });
     }
     let mut parser = Parser {
         src,
@@ -134,11 +139,22 @@ impl Parser {
             },
             ChunkSource::File(name) => {
                 let upto = pos.min(self.src.len());
-                let line = 1 + self.src[span.start..upto.max(span.start)].iter().filter(|&&b| b == b'\n').count();
-                Location::File { name: name.clone(), line }
+                let line = 1 + self.src[span.start..upto.max(span.start)]
+                    .iter()
+                    .filter(|&&b| b == b'\n')
+                    .count();
+                Location::File {
+                    name: name.clone(),
+                    line,
+                }
             }
         };
-        SyntaxError { location, message: message.to_string(), status: 1, touched: self.touched.clone() }
+        SyntaxError {
+            location,
+            message: message.to_string(),
+            status: 1,
+            touched: self.touched.clone(),
+        }
     }
 
     fn error(&self, message: &str) -> SyntaxError {
@@ -181,7 +197,10 @@ impl Parser {
     fn program(&mut self) -> Result<()> {
         loop {
             // Whitespace and stray semicolons separate commands.
-            while self.peek().is_some_and(|b| b == b';' || b.is_ascii_whitespace()) {
+            while self
+                .peek()
+                .is_some_and(|b| b == b';' || b.is_ascii_whitespace())
+            {
                 self.pos += 1;
             }
             if self.peek().is_none() {
@@ -215,7 +234,10 @@ impl Parser {
                     let _ = pos;
                     return Err(SyntaxError {
                         location: Location::Bare,
-                        message: format!("can't find label for jump to `{}'", crate::cli::lossless_bytes(&label)),
+                        message: format!(
+                            "can't find label for jump to `{}'",
+                            crate::cli::lossless_bytes(&label)
+                        ),
                         status: 4,
                         touched: self.touched.clone(),
                     });
@@ -240,7 +262,9 @@ impl Parser {
 
     /// Reads one address, or `None` if the next character does not start one.
     fn address(&mut self, first: bool) -> Result<Option<AddrParsed>> {
-        let Some(ch) = self.peek() else { return Ok(None) };
+        let Some(ch) = self.peek() else {
+            return Ok(None);
+        };
         match ch {
             b'0'..=b'9' => {
                 let n = self.read_number();
@@ -276,7 +300,11 @@ impl Parser {
                 self.pos += 1;
                 self.skip_blanks();
                 let n = self.read_number();
-                Ok(Some(if ch == b'+' { AddrParsed::Plus(n) } else { AddrParsed::Multiple(n) }))
+                Ok(Some(if ch == b'+' {
+                    AddrParsed::Plus(n)
+                } else {
+                    AddrParsed::Multiple(n)
+                }))
             }
             b'+' | b'~' if first && !self.options().posix => {
                 self.pos += 1;
@@ -290,10 +318,17 @@ impl Parser {
             b'$' => {
                 self.pos += 1;
                 // `$-N`: the line with N lines after it (ripgsed only; GNU sed stops at the `-`).
-                if self.peek() == Some(b'-') && !self.options().posix && self.src.get(self.pos + 1).is_some_and(u8::is_ascii_digit) {
+                if self.peek() == Some(b'-')
+                    && !self.options().posix
+                    && self.src.get(self.pos + 1).is_some_and(u8::is_ascii_digit)
+                {
                     self.pos += 1;
                     let n = self.read_number();
-                    return Ok(Some(if n == 0 { AddrParsed::Last } else { AddrParsed::FromEnd(n) }));
+                    return Ok(Some(if n == 0 {
+                        AddrParsed::Last
+                    } else {
+                        AddrParsed::FromEnd(n)
+                    }));
                 }
                 Ok(Some(AddrParsed::Last))
             }
@@ -338,7 +373,12 @@ impl Parser {
             if icase || multiline {
                 return Err(self.error("cannot specify modifiers on empty regexp"));
             }
-            return Ok(Pattern { regex: None, source: Vec::new(), icase: false, multiline: false });
+            return Ok(Pattern {
+                regex: None,
+                source: Vec::new(),
+                icase: false,
+                multiline: false,
+            });
         }
         let o = self.options();
         let syntax = Syntax {
@@ -354,11 +394,24 @@ impl Parser {
             grep: false,
             regex_semantic: false,
         };
-        let compiled = if o.pcre { Regex::compile_pcre(text, &syntax) } else { Regex::compile(&normalize_escapes(text, o.posixly_correct), &syntax) };
+        let compiled = if o.pcre {
+            Regex::compile_pcre(text, &syntax)
+        } else {
+            Regex::compile(&normalize_escapes(text, o.posixly_correct), &syntax)
+        };
         match compiled {
             Ok(re) => {
-                let source = if o.pcre { text.to_vec() } else { normalize_escapes_for_debug(text, o.posixly_correct) };
-                Ok(Pattern { regex: Some(Rc::new(re)), source, icase, multiline })
+                let source = if o.pcre {
+                    text.to_vec()
+                } else {
+                    normalize_escapes_for_debug(text, o.posixly_correct)
+                };
+                Ok(Pattern {
+                    regex: Some(Rc::new(re)),
+                    source,
+                    icase,
+                    multiline,
+                })
             }
             Err(e) if !e.has_location() => Err(SyntaxError {
                 location: Location::Bare,
@@ -519,7 +572,11 @@ impl Parser {
         if self.zero_address {
             // GNU sed reports line address 0 after reading the character that follows the address,
             // except for `r`, which accepts it (insert a file before the first line).
-            let is_read = self.peek() == Some(b'r') && matches!(selector, Selector::Single(Addr::Line(0) | Addr::Step { first: 0, step: 0 }));
+            let is_read = self.peek() == Some(b'r')
+                && matches!(
+                    selector,
+                    Selector::Single(Addr::Line(0) | Addr::Step { first: 0, step: 0 })
+                );
             if !is_read || self.options().posix {
                 self.next();
                 return Err(self.error("invalid usage of line address 0"));
@@ -543,8 +600,13 @@ impl Parser {
         };
         let _ = start_of_command;
 
-        if self.options().posix && matches!(ch, b'F' | b'e' | b'Q' | b'T' | b'z' | b'v' | b'W' | b'R') {
-            return Err(self.error(&format!("unknown command: `{}'", crate::cli::lossless_bytes(&[ch]))));
+        if self.options().posix
+            && matches!(ch, b'F' | b'e' | b'Q' | b'T' | b'z' | b'v' | b'W' | b'R')
+        {
+            return Err(self.error(&format!(
+                "unknown command: `{}'",
+                crate::cli::lossless_bytes(&[ch])
+            )));
         }
         if ch == b'}' && self.blocks.is_empty() {
             return Err(self.error("unexpected `}'"));
@@ -569,7 +631,10 @@ impl Parser {
                 Kind::BlockStart(0)
             }
             b'}' => {
-                let open = self.blocks.pop().expect("blocks is not empty: checked above");
+                let open = self
+                    .blocks
+                    .pop()
+                    .expect("blocks is not empty: checked above");
                 self.block_positions.pop();
                 let end = self.script.commands.len();
                 if let Kind::BlockStart(e) = &mut self.script.commands[open].kind {
@@ -583,7 +648,8 @@ impl Parser {
                 if label.is_empty() {
                     return Err(self.error("\":\" lacks a label"));
                 }
-                self.labels.insert(label.clone(), self.script.commands.len());
+                self.labels
+                    .insert(label.clone(), self.script.commands.len());
                 Kind::Label(label)
             }
             b'b' | b't' | b'T' => {
@@ -594,9 +660,14 @@ impl Parser {
                     _ => BranchWhen::IfNotSubstituted,
                 };
                 if !label.is_empty() {
-                    self.pending_jumps.push((self.script.commands.len(), label.clone(), self.pos));
+                    self.pending_jumps
+                        .push((self.script.commands.len(), label.clone(), self.pos));
                 }
-                Kind::Branch { when, label, target: None }
+                Kind::Branch {
+                    when,
+                    label,
+                    target: None,
+                }
             }
             b'a' | b'i' | b'c' => {
                 let text = self.read_text()?;
@@ -622,29 +693,39 @@ impl Parser {
             b'F' => self.simple(Kind::FileName)?,
             b'l' => {
                 self.skip_blanks();
-                let width = if !self.options().posix && self.peek().is_some_and(|b| b.is_ascii_digit()) {
-                    int_argument(self.read_number())
-                } else {
-                    None
-                };
+                let width =
+                    if !self.options().posix && self.peek().is_some_and(|b| b.is_ascii_digit()) {
+                        int_argument(self.read_number())
+                    } else {
+                        None
+                    };
                 self.end_of_command()?;
                 Kind::List(width)
             }
             b'L' if !self.options().posix => {
                 self.skip_blanks();
-                let width = if self.peek().is_some_and(|b| b.is_ascii_digit()) { int_argument(self.read_number()) } else { None };
-                self.end_of_command()?;
-                Kind::Removed(width)
-            }
-            b'q' | b'Q' => {
-                self.skip_blanks();
-                let code = if !self.options().posix && self.peek().is_some_and(|b| b.is_ascii_digit()) {
+                let width = if self.peek().is_some_and(|b| b.is_ascii_digit()) {
                     int_argument(self.read_number())
                 } else {
                     None
                 };
                 self.end_of_command()?;
-                if ch == b'q' { Kind::Quit(code) } else { Kind::QuitSilent(code) }
+                Kind::Removed(width)
+            }
+            b'q' | b'Q' => {
+                self.skip_blanks();
+                let code =
+                    if !self.options().posix && self.peek().is_some_and(|b| b.is_ascii_digit()) {
+                        int_argument(self.read_number())
+                    } else {
+                        None
+                    };
+                self.end_of_command()?;
+                if ch == b'q' {
+                    Kind::Quit(code)
+                } else {
+                    Kind::QuitSilent(code)
+                }
             }
             b'r' | b'R' | b'w' | b'W' => {
                 // `--sandbox` has rejected these commands already (see above).
@@ -662,7 +743,11 @@ impl Parser {
             b'e' => {
                 self.skip_blanks();
                 // The command is read like the text of `a`, `i` and `c`, newline included.
-                if self.peek().is_none_or(|b| b == b'\n') { Kind::Execute(Vec::new()) } else { Kind::Execute(self.read_text()?) }
+                if self.peek().is_none_or(|b| b == b'\n') {
+                    Kind::Execute(Vec::new())
+                } else {
+                    Kind::Execute(self.read_text()?)
+                }
             }
             b's' => self.substitute()?,
             b'y' => self.transliterate()?,
@@ -674,16 +759,24 @@ impl Parser {
                 Kind::Version
             }
             other => {
-                return Err(self.error(&format!("unknown command: `{}'", crate::cli::lossless_bytes(&[other]))));
+                return Err(self.error(&format!(
+                    "unknown command: `{}'",
+                    crate::cli::lossless_bytes(&[other])
+                )));
             }
         };
         let (selector, kind) = match (selector, kind) {
-            (Selector::Single(Addr::Line(0) | Addr::Step { first: 0, step: 0 }), Kind::ReadFile(name)) => {
-                (Selector::Single(Addr::Line(1)), Kind::ReadFileNow(name))
-            }
+            (
+                Selector::Single(Addr::Line(0) | Addr::Step { first: 0, step: 0 }),
+                Kind::ReadFile(name),
+            ) => (Selector::Single(Addr::Line(1)), Kind::ReadFileNow(name)),
             (selector, kind) => (selector, kind),
         };
-        self.script.commands.push(Command { selector, negate, kind });
+        self.script.commands.push(Command {
+            selector,
+            negate,
+            kind,
+        });
         Ok(())
     }
 
@@ -722,7 +815,9 @@ impl Parser {
             AddrParsed::Step { first, step } => Ok(Selector::Single(Addr::Step { first, step })),
             AddrParsed::Null => Ok(Selector::Single(Addr::Null)),
             AddrParsed::Regex(p) => Ok(Selector::Single(Addr::Regex(p))),
-            AddrParsed::Plus(_) | AddrParsed::Multiple(_) | AddrParsed::Back(_) => unreachable!("rejected as a first address"),
+            AddrParsed::Plus(_) | AddrParsed::Multiple(_) | AddrParsed::Back(_) => {
+                unreachable!("rejected as a first address")
+            }
         }
     }
 
@@ -734,9 +829,20 @@ impl Parser {
         let (first, last) = match a1 {
             AddrParsed::Line(0) => return Err(self.error("invalid usage of line address 0")),
             AddrParsed::Line(m) => (Addr::Line(m.saturating_sub(before).max(1)), Addr2::Line(m)),
-            AddrParsed::Last => (if before == 0 { Addr::Last } else { Addr::FromEnd(before) }, Addr2::Last),
+            AddrParsed::Last => (
+                if before == 0 {
+                    Addr::Last
+                } else {
+                    Addr::FromEnd(before)
+                },
+                Addr2::Last,
+            ),
             AddrParsed::FromEnd(k) => (Addr::FromEnd(k.saturating_add(before)), Addr2::FromEnd(k)),
-            _ => return Err(self.error("invalid usage of -N after a regexp or a step as first address")),
+            _ => {
+                return Err(
+                    self.error("invalid usage of -N after a regexp or a step as first address")
+                );
+            }
         };
         Ok(Selector::Range(first, last))
     }
@@ -759,7 +865,9 @@ impl Parser {
             AddrParsed::Step { first, step } => Addr::Step { first, step },
             AddrParsed::Null => Addr::Null,
             AddrParsed::Regex(p) => Addr::Regex(p),
-            AddrParsed::Plus(_) | AddrParsed::Multiple(_) | AddrParsed::Back(_) => unreachable!("rejected as a first address"),
+            AddrParsed::Plus(_) | AddrParsed::Multiple(_) | AddrParsed::Back(_) => {
+                unreachable!("rejected as a first address")
+            }
         };
         let second = match a2 {
             AddrParsed::Line(n) => Addr2::Line(n),
@@ -785,7 +893,10 @@ impl Parser {
         }
         let start = self.pos;
         // Only a space, a tab, a newline, `;` or `#` ends a label (not a carriage return or a form feed).
-        while self.peek().is_some_and(|b| !matches!(b, b' ' | b'\t' | b'\n' | b';' | b'}') && b != b'#') {
+        while self
+            .peek()
+            .is_some_and(|b| !matches!(b, b' ' | b'\t' | b'\n' | b';' | b'}') && b != b'#')
+        {
             self.pos += 1;
         }
         self.src[start..self.pos].to_vec()
@@ -898,7 +1009,9 @@ impl Parser {
     /// In a UTF-8 locale the byte that starts a multibyte character cannot delimit a regexp.
     fn check_delimiter(&self, delim: u8) -> Result<()> {
         let locale = self.options().locale;
-        if (locale.is_utf8() && (0xc2..=0xfd).contains(&delim)) || (locale == Locale::Mb && crate::locale::starts_multibyte(delim)) {
+        if (locale.is_utf8() && (0xc2..=0xfd).contains(&delim))
+            || (locale == Locale::Mb && crate::locale::starts_multibyte(delim))
+        {
             return Err(self.error("delimiter character is not a single-byte character"));
         }
         Ok(())
@@ -947,7 +1060,9 @@ impl Parser {
                     break;
                 }
                 Some(b' ') | Some(b'\t') | Some(b'\r') => {}
-                Some(b'i') | Some(b'I') | Some(b'm') | Some(b'M') | Some(b'e') if self.options().posix => {
+                Some(b'i') | Some(b'I') | Some(b'm') | Some(b'M') | Some(b'e')
+                    if self.options().posix =>
+                {
                     return Err(self.error("unknown option to `s'"));
                 }
                 Some(b'i') | Some(b'I') => icase = true,
@@ -959,7 +1074,11 @@ impl Parser {
                     eval = true;
                 }
                 Some(b'p') => {
-                    let seen = if eval { &mut print_after } else { &mut print_before };
+                    let seen = if eval {
+                        &mut print_after
+                    } else {
+                        &mut print_before
+                    };
                     if *seen {
                         return Err(self.error("multiple `p' options to `s' command"));
                     }
@@ -1042,7 +1161,9 @@ impl Parser {
                         b'0'..=b'9' => {
                             let g = (n - b'0') as usize;
                             if g > 0 && !self.options().posix && groups.is_some_and(|c| g > c) {
-                                return Err(self.error(&format!("invalid reference \\{g} on `s' command's RHS")));
+                                return Err(self.error(&format!(
+                                    "invalid reference \\{g} on `s' command's RHS"
+                                )));
                             }
                             flush(&mut parts, &mut literal);
                             parts.push(ReplacementPart::Group(g));
@@ -1094,7 +1215,9 @@ impl Parser {
             return Err(self.error("strings for `y' command are different lengths"));
         }
         self.end_of_command()?;
-        Ok(Kind::Translate(src_chars.into_iter().zip(dst_chars).collect()))
+        Ok(Kind::Translate(
+            src_chars.into_iter().zip(dst_chars).collect(),
+        ))
     }
 }
 
@@ -1105,13 +1228,20 @@ fn has_recursive_control_escape(text: &[u8]) -> bool {
     while i + 1 < text.len() {
         if text[i] != b'\\' {
             i += 1;
-        } else if text[i + 1] == b'c' && text.get(i + 2) == Some(&b'\\') && text.get(i + 3).is_some() {
+        } else if text[i + 1] == b'c'
+            && text.get(i + 2) == Some(&b'\\')
+            && text.get(i + 3).is_some()
+        {
             if text[i + 3] != b'\\' {
                 return true;
             }
             i += 4;
         } else {
-            i += if text[i + 1] == b'c' && i + 2 < text.len() { 3 } else { 2 };
+            i += if text[i + 1] == b'c' && i + 2 < text.len() {
+                3
+            } else {
+                2
+            };
         }
     }
     false
@@ -1121,7 +1251,10 @@ enum AddrParsed {
     Line(u64),
     Last,
     FromEnd(u64),
-    Step { first: u64, step: u64 },
+    Step {
+        first: u64,
+        step: u64,
+    },
     /// `-N` as a second address: the first address and the N lines before it.
     Back(u64),
     Regex(Pattern),
@@ -1177,7 +1310,12 @@ fn normalize_escapes_for_debug(text: &[u8], posixly_correct: bool) -> Vec<u8> {
 /// bytes they stand for. Other escapes are kept for the next stage. Inside a
 /// bracket expression they are left alone under POSIXLY_CORRECT. In a replacement
 /// a produced `&` or backslash stays literal.
-fn normalize_escapes_for(text: &[u8], posixly_correct: bool, replacement: bool, debug: bool) -> Vec<u8> {
+fn normalize_escapes_for(
+    text: &[u8],
+    posixly_correct: bool,
+    replacement: bool,
+    debug: bool,
+) -> Vec<u8> {
     normalize_escapes_mode(text, posixly_correct, replacement, debug, false)
 }
 
@@ -1187,7 +1325,13 @@ fn normalize_escapes_text(text: &[u8]) -> Vec<u8> {
     normalize_escapes_mode(text, false, false, false, true)
 }
 
-fn normalize_escapes_mode(text: &[u8], posixly_correct: bool, replacement: bool, debug: bool, text_mode: bool) -> Vec<u8> {
+fn normalize_escapes_mode(
+    text: &[u8],
+    posixly_correct: bool,
+    replacement: bool,
+    debug: bool,
+    text_mode: bool,
+) -> Vec<u8> {
     let mut out = Vec::with_capacity(text.len());
     let mut i = 0;
     let mut in_bracket = false;
@@ -1234,7 +1378,10 @@ fn normalize_escapes_mode(text: &[u8], posixly_correct: bool, replacement: bool,
                 // `[:class:]`, `[.symbol.]` and `[=class=]` run to their own end, which is not
                 // the end of the bracket expression.
                 if let Some(&kind @ (b':' | b'.' | b'=')) = text.get(i + 1) {
-                    if let Some(len) = text[i + 2..].windows(2).position(|w| w[0] == kind && w[1] == b']') {
+                    if let Some(len) = text[i + 2..]
+                        .windows(2)
+                        .position(|w| w[0] == kind && w[1] == b']')
+                    {
                         out.extend_from_slice(&text[i..i + 2 + len + 2]);
                         i += 2 + len + 2;
                         continue;
@@ -1299,7 +1446,8 @@ fn normalize_escapes_mode(text: &[u8], posixly_correct: bool, replacement: bool,
                     i += 2;
                 } else {
                     let produced = (value & 0xff) as u8;
-                    let opens_escape = out.iter().rev().take_while(|&&c| c == b'\\').count() % 2 == 0;
+                    let opens_escape =
+                        out.iter().rev().take_while(|&&c| c == b'\\').count() % 2 == 0;
                     // (After a backslash that is already there, the last byte of a multibyte
                     // character, a produced backslash pairs with it and is literal as it is.)
                     if replacement && (produced == b'&' || (produced == b'\\' && opens_escape)) {
@@ -1314,7 +1462,8 @@ fn normalize_escapes_mode(text: &[u8], posixly_correct: bool, replacement: bool,
                     // letters sed itself converts are not converted again, so `\x5cn` and
                     // `\x5ct` match a plain `n` and `t`.
                     if !replacement && !debug && !text_mode && produced == b'\\' && opens_escape {
-                        if let Some(&next @ (b'n' | b't' | b'a' | b'f' | b'v' | b'r')) = text.get(i) {
+                        if let Some(&next @ (b'n' | b't' | b'a' | b'f' | b'v' | b'r')) = text.get(i)
+                        {
                             out.pop();
                             out.push(next);
                             i += 1;
@@ -1356,8 +1505,16 @@ fn version_compare(a: &[u8], b: &[u8]) -> std::cmp::Ordering {
             while j < b.len() && b[j].is_ascii_digit() {
                 j += 1;
             }
-            let da = a[si..i].iter().skip_while(|&&c| c == b'0').copied().collect::<Vec<_>>();
-            let db = b[sj..j].iter().skip_while(|&&c| c == b'0').copied().collect::<Vec<_>>();
+            let da = a[si..i]
+                .iter()
+                .skip_while(|&&c| c == b'0')
+                .copied()
+                .collect::<Vec<_>>();
+            let db = b[sj..j]
+                .iter()
+                .skip_while(|&&c| c == b'0')
+                .copied()
+                .collect::<Vec<_>>();
             let order = da.len().cmp(&db.len()).then_with(|| da.cmp(&db));
             if order != Ordering::Equal {
                 return order;

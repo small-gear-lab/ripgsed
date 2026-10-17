@@ -2,11 +2,11 @@
 
 use std::io::{self, BufWriter};
 
-use crate::io::{strerror, FileInputs, Outputs};
+use crate::Fatal;
+use crate::io::{FileInputs, Outputs, strerror};
 use crate::regex::Locale;
 use crate::runtime::{self, Options};
-use crate::syntax::{parse, Chunk, ChunkSource, ParseOptions};
-use crate::Fatal;
+use crate::syntax::{Chunk, ChunkSource, ParseOptions, parse};
 
 const EXIT_BAD_USAGE: i32 = 1;
 const EXIT_BAD_INPUT: i32 = 2;
@@ -78,7 +78,11 @@ pub fn argument_bytes(arg: &str) -> Vec<u8> {
 pub fn program_name() -> String {
     std::env::args_os()
         .next()
-        .and_then(|a| std::path::Path::new(&a).file_name().map(|n| n.to_string_lossy().into_owned()))
+        .and_then(|a| {
+            std::path::Path::new(&a)
+                .file_name()
+                .map(|n| n.to_string_lossy().into_owned())
+        })
         .unwrap_or_else(|| "sed".to_string())
 }
 
@@ -207,13 +211,19 @@ fn find_long(name: &str, program: &str) -> Result<(&'static str, Arg, Opt), Stri
     if let Some(&(n, a, o)) = LONG_OPTIONS.iter().find(|(n, ..)| *n == name) {
         return Ok((n, a, o));
     }
-    let candidates: Vec<_> = LONG_OPTIONS.iter().filter(|(n, ..)| n.starts_with(name)).collect();
+    let candidates: Vec<_> = LONG_OPTIONS
+        .iter()
+        .filter(|(n, ..)| n.starts_with(name))
+        .collect();
     match candidates.as_slice() {
         [] => Err(format!("{program}: unrecognized option '--{name}'")),
         [(n, a, o)] => Ok((n, *a, *o)),
         many => {
             let list: Vec<String> = many.iter().map(|(n, ..)| format!("'--{n}'")).collect();
-            Err(format!("{program}: option '--{name}' is ambiguous; possibilities: {}", list.join(" ")))
+            Err(format!(
+                "{program}: option '--{name}' is ambiguous; possibilities: {}",
+                list.join(" ")
+            ))
         }
     }
 }
@@ -271,14 +281,29 @@ impl State {
             Opt::Expression => {
                 self.expressions += 1;
                 let text = argument_bytes(&value.unwrap_or_default());
-                self.chunks.push((Chunk { source: ChunkSource::Expression(self.expressions), text }, self.parse_base));
+                self.chunks.push((
+                    Chunk {
+                        source: ChunkSource::Expression(self.expressions),
+                        text,
+                    },
+                    self.parse_base,
+                ));
             }
             Opt::File => {
                 let name = value.unwrap_or_default();
                 match read_script_file(&name) {
-                    Ok(text) => self.chunks.push((Chunk { source: ChunkSource::File(name), text }, self.parse_base)),
+                    Ok(text) => self.chunks.push((
+                        Chunk {
+                            source: ChunkSource::File(name),
+                            text,
+                        },
+                        self.parse_base,
+                    )),
                     Err(e) => {
-                        eprint_message(&format!("{program}: couldn't open file {name}: {}", strerror(&e)));
+                        eprint_message(&format!(
+                            "{program}: couldn't open file {name}: {}",
+                            strerror(&e)
+                        ));
                         return Err(EXIT_PANIC);
                     }
                 }
@@ -292,8 +317,16 @@ fn parse_args(args: Vec<String>, program: &str) -> Result<Result<Invocation, ()>
     let posixly_correct = std::env::var_os("POSIXLY_CORRECT").is_some();
     let locale = locale_from_env();
     // GNU sed takes the default wrap width of `l` from COLS (one less than the terminal width).
-    let mut options = Options { posixly_correct, locale, ..Options::default() };
-    if let Some(cols) = std::env::var("COLS").ok().map(|c| atoi(&c)).filter(|&c| c > 0) {
+    let mut options = Options {
+        posixly_correct,
+        locale,
+        ..Options::default()
+    };
+    if let Some(cols) = std::env::var("COLS")
+        .ok()
+        .map(|c| atoi(&c))
+        .filter(|&c| c > 0)
+    {
         options.line_length = cols - 1;
     }
     let mut state = State {
@@ -301,7 +334,8 @@ fn parse_args(args: Vec<String>, program: &str) -> Result<Result<Invocation, ()>
         parse_base: ParseOptions {
             posixly_correct,
             locale,
-            glibc_compat: std::env::var_os("RIPGSED_GLIBC_COMPAT").is_some_and(|v| !v.is_empty() && v != "0"),
+            glibc_compat: std::env::var_os("RIPGSED_GLIBC_COMPAT")
+                .is_some_and(|v| !v.is_empty() && v != "0"),
             ..ParseOptions::default()
         },
         chunks: Vec::new(),
@@ -340,11 +374,17 @@ fn parse_args(args: Vec<String>, program: &str) -> Result<Result<Invocation, ()>
             let (full, kind, opt) = find_long(name, program).map_err(usage_error)?;
             let value = match (kind, inline) {
                 (Arg::No, Some(_)) => {
-                    return Err(usage_error(format!("{program}: option '--{full}' doesn't allow an argument")));
+                    return Err(usage_error(format!(
+                        "{program}: option '--{full}' doesn't allow an argument"
+                    )));
                 }
                 (Arg::Required, None) => match it.next() {
                     Some(v) => Some(v),
-                    None => return Err(usage_error(format!("{program}: option '--{full}' requires an argument"))),
+                    None => {
+                        return Err(usage_error(format!(
+                            "{program}: option '--{full}' requires an argument"
+                        )));
+                    }
                 },
                 (_, v) => v,
             };
@@ -370,7 +410,11 @@ fn parse_args(args: Vec<String>, program: &str) -> Result<Result<Invocation, ()>
                     } else if kind == Arg::Required {
                         match it.next() {
                             Some(v) => Some(v),
-                            None => return Err(usage_error(format!("{program}: option requires an argument -- '{c}'"))),
+                            None => {
+                                return Err(usage_error(format!(
+                                    "{program}: option requires an argument -- '{c}'"
+                                )));
+                            }
                         }
                     } else {
                         None
@@ -390,7 +434,10 @@ fn parse_args(args: Vec<String>, program: &str) -> Result<Result<Invocation, ()>
         }
         return Ok(Err(()));
     }
-    crate::io::GLIBC_COMPAT.store(state.parse_base.glibc_compat, std::sync::atomic::Ordering::Relaxed);
+    crate::io::GLIBC_COMPAT.store(
+        state.parse_base.glibc_compat,
+        std::sync::atomic::Ordering::Relaxed,
+    );
     let _ = state.posix_mode;
 
     if state.chunks.is_empty() {
@@ -400,9 +447,19 @@ fn parse_args(args: Vec<String>, program: &str) -> Result<Result<Invocation, ()>
         }
         state.expressions += 1;
         let text = argument_bytes(&operands.remove(0));
-        state.chunks.push((Chunk { source: ChunkSource::Expression(state.expressions), text }, state.parse_base));
+        state.chunks.push((
+            Chunk {
+                source: ChunkSource::Expression(state.expressions),
+                text,
+            },
+            state.parse_base,
+        ));
     }
-    Ok(Ok(Invocation { options: state.options, chunks: state.chunks, files: operands }))
+    Ok(Ok(Invocation {
+        options: state.options,
+        chunks: state.chunks,
+        files: operands,
+    }))
 }
 
 /// The version text names this project; it is the one deliberate difference
@@ -412,7 +469,9 @@ fn version_text(program: &str) -> String {
     if program == "ripgsed" {
         format!("ripgsed {version}")
     } else {
-        format!("{program} (ripgsed) {version}\nBehavior target: GNU sed 4.9 (experimental, see https://github.com/small-gear-lab/ripgsed)")
+        format!(
+            "{program} (ripgsed) {version}\nBehavior target: GNU sed 4.9 (experimental, see https://github.com/small-gear-lab/ripgsed)"
+        )
     }
 }
 
@@ -441,7 +500,8 @@ const SIG_DFL: usize = 0;
 
 /// The SIGPIPE disposition the process was started with, saved before Rust's runtime
 /// replaces it with "ignore".
-static INHERITED_SIGPIPE: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(SIG_DFL);
+static INHERITED_SIGPIPE: std::sync::atomic::AtomicUsize =
+    std::sync::atomic::AtomicUsize::new(SIG_DFL);
 
 /// Runs before `main` (and before the Rust runtime changes SIGPIPE) on Linux.
 extern "C" fn save_inherited_sigpipe() {
@@ -451,12 +511,21 @@ extern "C" fn save_inherited_sigpipe() {
         signal(SIGPIPE, old);
         INHERITED_SIGPIPE.store(old, std::sync::atomic::Ordering::Relaxed);
     }
-    crate::io::STDOUT_WAS_CLOSED.store(crate::io::fd_is_closed(1), std::sync::atomic::Ordering::Relaxed);
-    crate::io::STDIN_WAS_CLOSED.store(crate::io::fd_is_closed(0), std::sync::atomic::Ordering::Relaxed);
+    crate::io::STDOUT_WAS_CLOSED.store(
+        crate::io::fd_is_closed(1),
+        std::sync::atomic::Ordering::Relaxed,
+    );
+    crate::io::STDIN_WAS_CLOSED.store(
+        crate::io::fd_is_closed(0),
+        std::sync::atomic::Ordering::Relaxed,
+    );
 }
 
 #[used]
-#[cfg_attr(target_vendor = "apple", unsafe(link_section = "__DATA,__mod_init_func"))]
+#[cfg_attr(
+    target_vendor = "apple",
+    unsafe(link_section = "__DATA,__mod_init_func")
+)]
 #[cfg_attr(not(target_vendor = "apple"), unsafe(link_section = ".init_array"))]
 static SAVE_SIGPIPE: extern "C" fn() = save_inherited_sigpipe;
 
@@ -497,8 +566,14 @@ fn open_files_limit() -> Option<u64> {
 /// A script runs in parallel only if it is record-local (see `analysis`) and either the
 /// input is large regular files or `RIPGSED_JOBS` forces it (also for standard input). The
 /// result is identical either way; only the speed differs.
-fn parallel_jobs(script: &crate::syntax::Script, options: &Options, files: &[String]) -> Option<usize> {
-    let forced: Option<usize> = std::env::var("RIPGSED_JOBS").ok().and_then(|v| v.parse().ok());
+fn parallel_jobs(
+    script: &crate::syntax::Script,
+    options: &Options,
+    files: &[String],
+) -> Option<usize> {
+    let forced: Option<usize> = std::env::var("RIPGSED_JOBS")
+        .ok()
+        .and_then(|v| v.parse().ok());
     if forced.is_some_and(|n| n < 2) {
         return None;
     }
@@ -542,7 +617,10 @@ fn parallel_jobs(script: &crate::syntax::Script, options: &Options, files: &[Str
         return Some(n);
     }
     let cores = std::thread::available_parallelism().map_or(1, |n| n.get());
-    let min_bytes: u64 = std::env::var("RIPGSED_PARALLEL_MIN_BYTES").ok().and_then(|v| v.parse().ok()).unwrap_or(8 << 20);
+    let min_bytes: u64 = std::env::var("RIPGSED_PARALLEL_MIN_BYTES")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(8 << 20);
     // Standard input counts when it is a regular file (`sed ... < big.txt`); a pipe or a
     // terminal has no known size, and stays sequential.
     let reads_stdin = files.is_empty() || files.iter().any(|n| n == "-");
@@ -562,7 +640,10 @@ pub fn main() -> i32 {
     // The grep mode: the program is run as `grep`, `egrep` or `fgrep`, or the first argument is `--grep`.
     {
         use std::os::unix::ffi::OsStrExt;
-        let raw: Vec<Vec<u8>> = std::env::args_os().skip(1).map(|a| a.as_bytes().to_vec()).collect();
+        let raw: Vec<Vec<u8>> = std::env::args_os()
+            .skip(1)
+            .map(|a| a.as_bytes().to_vec())
+            .collect();
         if let Some(kind) = crate::grep::kind_for_name(&program) {
             // (`egrep` and `fgrep` are `grep -E` and `grep -F` to GNU grep, and its messages say `grep`.)
             return crate::grep::main("grep", raw, kind);
@@ -598,7 +679,10 @@ pub fn main() -> i32 {
 
     let options = invocation.options;
     if let Some(jobs) = parallel_jobs(&script, &options, &invocation.files) {
-        let block = std::env::var("RIPGSED_BLOCK").ok().and_then(|v| v.parse().ok()).unwrap_or(1 << 20);
+        let block = std::env::var("RIPGSED_BLOCK")
+            .ok()
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(1 << 20);
         let stdout = io::stdout().lock();
         let mut outputs = Outputs::new(Box::new(BufWriter::new(stdout)), options.separator);
         // The sequential run opens the files of `w` before it opens its input, and fails there if it can't.
@@ -608,8 +692,15 @@ pub fn main() -> i32 {
                 return status;
             }
         }
-        let result = crate::parallel::run(invocation.chunks.clone(), &options, &invocation.files, jobs, block, &mut outputs)
-            .and_then(|status| outputs.flush_all().map(|()| status));
+        let result = crate::parallel::run(
+            invocation.chunks.clone(),
+            &options,
+            &invocation.files,
+            jobs,
+            block,
+            &mut outputs,
+        )
+        .and_then(|status| outputs.flush_all().map(|()| status));
         return match result {
             Ok(status) => status,
             Err(Fatal { message, status }) => {
@@ -624,7 +715,8 @@ pub fn main() -> i32 {
         if options.debug {
             // GNU sed has listed the program by then.
             use std::io::Write;
-            let _ = io::stdout().write_all(&crate::debug::program(&script, options.locale.is_chars()));
+            let _ =
+                io::stdout().write_all(&crate::debug::program(&script, options.locale.is_chars()));
         }
         return EXIT_PANIC;
     }

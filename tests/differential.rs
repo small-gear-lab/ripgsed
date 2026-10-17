@@ -36,7 +36,12 @@ use std::time::{Duration, Instant};
 /// How long one fixture may run. `RIPGSED_FIXTURE_TIMEOUT` (seconds) raises it, for instrumented
 /// builds (coverage) that are much slower.
 fn timeout() -> Duration {
-    Duration::from_secs(std::env::var("RIPGSED_FIXTURE_TIMEOUT").ok().and_then(|v| v.parse().ok()).unwrap_or(15))
+    Duration::from_secs(
+        std::env::var("RIPGSED_FIXTURE_TIMEOUT")
+            .ok()
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(15),
+    )
 }
 
 fn root() -> PathBuf {
@@ -56,7 +61,11 @@ fn load_matrix() -> BTreeMap<String, String> {
             let cols: Vec<&str> = line.split('\t').collect();
             assert!(cols.len() == 6, "bad matrix row: {line}");
             let previous = map.insert(cols[0].to_string(), cols[3].to_string());
-            assert!(previous.is_none(), "{file}: item {} is in two matrices", cols[0]);
+            assert!(
+                previous.is_none(),
+                "{file}: item {} is in two matrices",
+                cols[0]
+            );
         }
     }
     map
@@ -68,7 +77,9 @@ fn load_matrix() -> BTreeMap<String, String> {
 /// `\0special` (never opened, so a FIFO cannot block the runner).
 fn read_tree(dir: &Path) -> BTreeMap<PathBuf, Vec<u8>> {
     fn walk(base: &Path, dir: &Path, out: &mut BTreeMap<PathBuf, Vec<u8>>) {
-        let Ok(entries) = fs::read_dir(dir) else { return };
+        let Ok(entries) = fs::read_dir(dir) else {
+            return;
+        };
         for entry in entries {
             let path = entry.unwrap().path();
             let rel = path.strip_prefix(base).unwrap().to_path_buf();
@@ -120,7 +131,8 @@ fn run_fixture(dir: &Path, scratch: &Path) -> Result<Outcome, String> {
         copy_tree(&dir.join("files"), &cwd);
     }
     // Run as plain `sed` so that messages carry the same `sed:` prefix as GNU sed.
-    let program = std::env::var("RIPGSED_BIN").unwrap_or_else(|_| env!("CARGO_BIN_EXE_ripgsed").to_string());
+    let program =
+        std::env::var("RIPGSED_BIN").unwrap_or_else(|_| env!("CARGO_BIN_EXE_ripgsed").to_string());
     symlink(&program, bin.join("sed")).unwrap();
     // The grep mode is chosen by the name the program runs under, and its messages carry it.
     for name in ["grep", "egrep", "fgrep"] {
@@ -132,21 +144,38 @@ fn run_fixture(dir: &Path, scratch: &Path) -> Result<Outcome, String> {
         .current_dir(&cwd)
         .env_clear()
         // RIPGSED_EXTRA_PATH: where the GNU tools are, on a system whose tools are not (macOS with Homebrew).
-        .env("PATH", format!("{}:{}/usr/bin:/bin", bin.display(), std::env::var("RIPGSED_EXTRA_PATH").map(|p| p + ":").unwrap_or_default()))
+        .env(
+            "PATH",
+            format!(
+                "{}:{}/usr/bin:/bin",
+                bin.display(),
+                std::env::var("RIPGSED_EXTRA_PATH")
+                    .map(|p| p + ":")
+                    .unwrap_or_default()
+            ),
+        )
         .env("HOME", "/nonexistent")
         .env("LC_ALL", "C")
         // The fixtures hold GNU sed's results, glibc's quirks included.
         .env("RIPGSED_GLIBC_COMPAT", "1");
     // Lets the whole suite run through the parallel executor, e.g.
     // `RIPGSED_JOBS=4 RIPGSED_BLOCK=16 cargo test`.
-    for key in ["RIPGSED_JOBS", "RIPGSED_BLOCK", "RIPGSED_PARALLEL_MIN_BYTES", "LLVM_PROFILE_FILE", "LD_LIBRARY_PATH"] {
+    for key in [
+        "RIPGSED_JOBS",
+        "RIPGSED_BLOCK",
+        "RIPGSED_PARALLEL_MIN_BYTES",
+        "LLVM_PROFILE_FILE",
+        "LD_LIBRARY_PATH",
+    ] {
         if let Ok(value) = std::env::var(key) {
             cmd.env(key, value);
         }
     }
     if let Ok(text) = fs::read_to_string(dir.join("env")) {
         for line in text.lines().filter(|l| !l.is_empty()) {
-            let (k, v) = line.split_once('=').ok_or(format!("{name}: bad env line {line:?}"))?;
+            let (k, v) = line
+                .split_once('=')
+                .ok_or(format!("{name}: bad env line {line:?}"))?;
             cmd.env(k, v);
         }
     }
@@ -222,13 +251,21 @@ fn show(bytes: &[u8]) -> String {
 
 /// The two byte strings around their first difference, for long outputs.
 fn show_pair(want: &[u8], got: &[u8]) -> String {
-    let at = want.iter().zip(got).position(|(a, b)| a != b).unwrap_or(want.len().min(got.len()));
+    let at = want
+        .iter()
+        .zip(got)
+        .position(|(a, b)| a != b)
+        .unwrap_or(want.len().min(got.len()));
     if want.len() <= 400 && got.len() <= 400 {
         return format!("\n    want {}\n    got  {}", show(want), show(got));
     }
     let from = at.saturating_sub(120);
     let window = |b: &[u8]| show(&b[from.min(b.len())..(at + 160).min(b.len())]);
-    format!("\n    first difference at byte {at}\n    want …{}\n    got  …{}", window(want), window(got))
+    format!(
+        "\n    first difference at byte {at}\n    want …{}\n    got  …{}",
+        window(want),
+        window(got)
+    )
 }
 
 fn compare(want: &Outcome, got: &Outcome) -> Vec<String> {
@@ -332,7 +369,12 @@ fn fixtures_match_gnu_sed() {
         .ok()
         .map(|v| v.split(',').map(str::to_string).collect());
     let skip: Vec<String> = std::env::var("RIPGSED_SKIP")
-        .map(|v| v.split(',').filter(|s| !s.is_empty()).map(str::to_string).collect())
+        .map(|v| {
+            v.split(',')
+                .filter(|s| !s.is_empty())
+                .map(str::to_string)
+                .collect()
+        })
         .unwrap_or_default();
     let show_pending = std::env::var("RIPGSED_SHOW_PENDING").is_ok_and(|v| v == "1");
     let show_failures = std::env::var("RIPGSED_SHOW_FAILURES").is_ok_and(|v| v == "1");
@@ -343,7 +385,8 @@ fn fixtures_match_gnu_sed() {
         .filter(|p| p.is_dir())
         .filter(|p| {
             let name = p.file_name().unwrap().to_string_lossy().to_string();
-            only.as_ref().is_none_or(|o| o.contains(&name)) && !skip.iter().any(|s| name.starts_with(s.as_str()))
+            only.as_ref().is_none_or(|o| o.contains(&name))
+                && !skip.iter().any(|s| name.starts_with(s.as_str()))
         })
         .collect();
     dirs.sort();
@@ -358,8 +401,13 @@ fn fixtures_match_gnu_sed() {
     let workers = std::thread::available_parallelism().map_or(4, |n| n.get());
     let handles: Vec<_> = (0..workers)
         .map(|_| {
-            let (queue, results, matrix, ratchet, scratch) =
-                (queue.clone(), results.clone(), matrix.clone(), ratchet.clone(), scratch.clone());
+            let (queue, results, matrix, ratchet, scratch) = (
+                queue.clone(),
+                results.clone(),
+                matrix.clone(),
+                ratchet.clone(),
+                scratch.clone(),
+            );
             std::thread::spawn(move || {
                 loop {
                     let next = queue.lock().unwrap().next();
@@ -416,7 +464,10 @@ fn fixtures_match_gnu_sed() {
         failures.len()
     );
     if show_pending && !promotable.is_empty() {
-        eprintln!("pending fixtures that already pass: {}", promotable.join(", "));
+        eprintln!(
+            "pending fixtures that already pass: {}",
+            promotable.join(", ")
+        );
     }
     if std::env::var("RIPGSED_UPDATE_MATRIX").is_ok_and(|v| v == "1") {
         assert!(only.is_none(), "RIPGSED_UPDATE_MATRIX needs a full run");
@@ -424,14 +475,20 @@ fn fixtures_match_gnu_sed() {
     }
     if std::env::var("RIPGSED_UPDATE_PASSING").is_ok_and(|v| v == "1") {
         assert!(only.is_none(), "RIPGSED_UPDATE_PASSING needs a full run");
-        let mut text = String::from("# Fixtures that must pass. Updated with RIPGSED_UPDATE_PASSING=1 cargo test.\n");
+        let mut text = String::from(
+            "# Fixtures that must pass. Updated with RIPGSED_UPDATE_PASSING=1 cargo test.\n",
+        );
         for name in &all_passing {
             text.push_str(name);
             text.push('\n');
         }
         fs::write(root().join("tests/passing.txt"), text).unwrap();
     }
-    assert!(failures.is_empty(), "fixture failures:\n{}", failures.join("\n"));
+    assert!(
+        failures.is_empty(),
+        "fixture failures:\n{}",
+        failures.join("\n")
+    );
 }
 
 /// Rewrites the `status` column of the matrices from the fixture results.
@@ -477,5 +534,8 @@ fn verified_items_have_fixtures() {
         .filter(|(id, status)| status.as_str() == "verified" && !covered.contains(*id))
         .map(|(id, _)| id.as_str())
         .collect();
-    assert!(missing.is_empty(), "verified items without fixtures: {missing:?}");
+    assert!(
+        missing.is_empty(),
+        "verified items without fixtures: {missing:?}"
+    );
 }

@@ -19,7 +19,11 @@ pub fn memchr(needle: u8, hay: &[u8]) -> Option<usize> {
         if hay.len() >= 16 {
             // SAFETY: the CPU features are checked or are part of the x86_64 baseline.
             return unsafe {
-                if avx2() && hay.len() >= 32 { x86::memchr_avx2(needle, hay) } else { x86::memchr_sse2(needle, hay) }
+                if avx2() && hay.len() >= 32 {
+                    x86::memchr_avx2(needle, hay)
+                } else {
+                    x86::memchr_sse2(needle, hay)
+                }
             };
         }
     }
@@ -92,7 +96,10 @@ pub struct FoldFinder {
 impl FoldFinder {
     /// `needle` must be lower case.
     pub fn new(needle: &[u8]) -> FoldFinder {
-        FoldFinder { needle: Finder::new(needle), scratch: Default::default() }
+        FoldFinder {
+            needle: Finder::new(needle),
+            scratch: Default::default(),
+        }
     }
 
     pub fn needle(&self) -> &[u8] {
@@ -131,8 +138,16 @@ pub struct Finder {
 
 impl Finder {
     pub fn new(needle: &[u8]) -> Finder {
-        let (i1, i2) = if needle.len() >= 2 { rare_pair(needle) } else { (0, 0) };
-        Finder { needle: needle.to_vec(), i1, i2 }
+        let (i1, i2) = if needle.len() >= 2 {
+            rare_pair(needle)
+        } else {
+            (0, 0)
+        };
+        Finder {
+            needle: needle.to_vec(),
+            i1,
+            i2,
+        }
     }
 
     pub fn needle(&self) -> &[u8] {
@@ -354,7 +369,8 @@ mod x86 {
                     blocks += 1;
                 }
                 let sums = _mm_sad_epu8(acc, _mm_setzero_si128());
-                total += _mm_cvtsi128_si64(sums) as usize + _mm_cvtsi128_si64(_mm_srli_si128(sums, 8)) as usize;
+                total += _mm_cvtsi128_si64(sums) as usize
+                    + _mm_cvtsi128_si64(_mm_srli_si128(sums, 8)) as usize;
             }
             total + hay[i..].iter().filter(|&&b| b == needle).count()
         }
@@ -373,7 +389,9 @@ mod x86 {
             while j + 16 <= last_start + 1 {
                 let a = _mm_loadu_si128(p.add(j + i1) as *const __m128i);
                 let b = _mm_loadu_si128(p.add(j + i2) as *const __m128i);
-                let mut m = _mm_movemask_epi8(_mm_and_si128(_mm_cmpeq_epi8(a, v1), _mm_cmpeq_epi8(b, v2))) as u32;
+                let mut m =
+                    _mm_movemask_epi8(_mm_and_si128(_mm_cmpeq_epi8(a, v1), _mm_cmpeq_epi8(b, v2)))
+                        as u32;
                 while m != 0 {
                     let k = m.trailing_zeros() as usize;
                     if &hay[j + k..j + k + n] == needle {
@@ -399,8 +417,10 @@ mod x86 {
             while j + 32 <= last_start + 1 {
                 let a = _mm256_loadu_si256(p.add(j + i1) as *const __m256i);
                 let b = _mm256_loadu_si256(p.add(j + i2) as *const __m256i);
-                let mut m =
-                    _mm256_movemask_epi8(_mm256_and_si256(_mm256_cmpeq_epi8(a, v1), _mm256_cmpeq_epi8(b, v2))) as u32;
+                let mut m = _mm256_movemask_epi8(_mm256_and_si256(
+                    _mm256_cmpeq_epi8(a, v1),
+                    _mm256_cmpeq_epi8(b, v2),
+                )) as u32;
                 while m != 0 {
                     let k = m.trailing_zeros() as usize;
                     if &hay[j + k..j + k + n] == needle {
@@ -425,7 +445,11 @@ mod arm {
     #[inline]
     #[target_feature(enable = "neon")]
     unsafe fn mask(cmp: uint8x16_t) -> u64 {
-        unsafe { vget_lane_u64::<0>(vreinterpret_u64_u8(vshrn_n_u16::<4>(vreinterpretq_u16_u8(cmp)))) }
+        unsafe {
+            vget_lane_u64::<0>(vreinterpret_u64_u8(vshrn_n_u16::<4>(vreinterpretq_u16_u8(
+                cmp,
+            ))))
+        }
     }
 
     #[target_feature(enable = "neon")]
@@ -516,7 +540,8 @@ mod arm {
                 let a = vld1q_u8(p.add(j + i1));
                 let b = vld1q_u8(p.add(j + i2));
                 // One bit per byte (the lowest of its four), so that `m &= m - 1` steps over a candidate.
-                let mut m = mask(vandq_u8(vceqq_u8(a, v1), vceqq_u8(b, v2))) & 0x1111_1111_1111_1111;
+                let mut m =
+                    mask(vandq_u8(vceqq_u8(a, v1), vceqq_u8(b, v2))) & 0x1111_1111_1111_1111;
                 while m != 0 {
                     let k = (m.trailing_zeros() / 4) as usize;
                     if &hay[j + k..j + k + n] == needle {
@@ -570,9 +595,21 @@ mod tests {
                 let alphabet = 1 + rng.below(4);
                 let hay: Vec<u8> = (0..len).map(|_| b'a' + rng.below(alphabet) as u8).collect();
                 let needle = b'a' + rng.below(5) as u8;
-                assert_eq!(memchr(needle, &hay), hay.iter().position(|&b| b == needle), "memchr len {len}");
-                assert_eq!(memrchr(needle, &hay), hay.iter().rposition(|&b| b == needle), "memrchr len {len}");
-                assert_eq!(count(needle, &hay), hay.iter().filter(|&&b| b == needle).count(), "count len {len}");
+                assert_eq!(
+                    memchr(needle, &hay),
+                    hay.iter().position(|&b| b == needle),
+                    "memchr len {len}"
+                );
+                assert_eq!(
+                    memrchr(needle, &hay),
+                    hay.iter().rposition(|&b| b == needle),
+                    "memrchr len {len}"
+                );
+                assert_eq!(
+                    count(needle, &hay),
+                    hay.iter().filter(|&&b| b == needle).count(),
+                    "count len {len}"
+                );
             }
         }
     }
@@ -592,8 +629,14 @@ mod tests {
                 let alphabet = 1 + rng.below(3);
                 let hay: Vec<u8> = (0..len).map(|_| b'a' + rng.below(alphabet) as u8).collect();
                 let nlen = rng.below(9);
-                let needle: Vec<u8> = (0..nlen).map(|_| b'a' + rng.below(alphabet + 1) as u8).collect();
-                assert_eq!(memmem(&hay, &needle), naive_memmem(&hay, &needle), "len {len} needle {needle:?}");
+                let needle: Vec<u8> = (0..nlen)
+                    .map(|_| b'a' + rng.below(alphabet + 1) as u8)
+                    .collect();
+                assert_eq!(
+                    memmem(&hay, &needle),
+                    naive_memmem(&hay, &needle),
+                    "len {len} needle {needle:?}"
+                );
             }
         }
     }

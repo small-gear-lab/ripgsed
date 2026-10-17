@@ -4,7 +4,11 @@ use super::*;
 
 fn syn(ere: bool) -> Syntax {
     // The expected values were observed with GNU sed, quirks included.
-    Syntax { extended: ere, glibc_compat: true, ..Syntax::default() }
+    Syntax {
+        extended: ere,
+        glibc_compat: true,
+        ..Syntax::default()
+    }
 }
 
 /// Applies `s/pat/<&>[\1]...[\n]/g` the way GNU sed does and returns the result.
@@ -169,7 +173,10 @@ fn compile_errors() {
     assert_eq!(err("[z-a]", &b), "Invalid range end");
     assert_eq!(err("[[:foo:]]", &b), "Invalid character class name");
     assert_eq!(err("[[.ab.]]", &b), "Invalid collation character");
-    assert_eq!(err("[:alpha:]", &b), "character class syntax is [[:space:]], not [:space:]");
+    assert_eq!(
+        err("[:alpha:]", &b),
+        "character class syntax is [[:space:]], not [:space:]"
+    );
     assert_eq!(err("a\\", &b), "Trailing backslash");
 }
 
@@ -179,7 +186,10 @@ fn anchors_and_words() {
     assert_eq!(sub_g("\\b", "ab cd", &b), "<>ab<> <>cd<>");
     assert_eq!(sub_g("a^b", "a^b", &b), "<a^b>");
     assert_eq!(sub_g("^*", "*a", &b), "<*>a");
-    let m = Syntax { multiline: true, ..b };
+    let m = Syntax {
+        multiline: true,
+        ..b
+    };
     assert_eq!(sub_g("^.", "ab\ncd", &m), "<a>b\n<c>d");
 }
 
@@ -195,7 +205,10 @@ fn no_exponential_blowup() {
 
 #[test]
 fn address_semantics() {
-    let m = Syntax { multiline: true, ..syn(false) };
+    let m = Syntax {
+        multiline: true,
+        ..syn(false)
+    };
     let re = Regex::compile(b"\\`b", &m).unwrap();
     assert!(re.is_match(b"a\nb\nc"));
     let mut caps = Captures::default();
@@ -208,7 +221,11 @@ fn address_semantics() {
 
 #[test]
 fn null_data() {
-    let z = Syntax { multiline: true, null_data: true, ..syn(false) };
+    let z = Syntax {
+        multiline: true,
+        null_data: true,
+        ..syn(false)
+    };
     assert_eq!(sub_g("^.", "ab\ncd", &z), "<a>b\ncd");
     assert_eq!(sub_g("^.", "ab\0cd", &z), "<a>b\0<c>d");
     assert_eq!(sub_g("..", "b\n_ A", &z), "b\n<_ >A");
@@ -216,7 +233,10 @@ fn null_data() {
 
 #[test]
 fn utf8() {
-    let u = Syntax { locale: Locale::Utf8, ..syn(false) };
+    let u = Syntax {
+        locale: Locale::Utf8,
+        ..syn(false)
+    };
     assert_eq!(sub_g(".", "é中a", &u), "<é><中><a>");
     assert_eq!(sub_g("\\w\\+", "é中x «x»", &u), "<é中x> «<x>»");
     let ui = Syntax { icase: true, ..u };
@@ -237,7 +257,12 @@ fn long_lines_are_fast() {
     let mut hay = "ab".repeat(20000);
     hay.push('c');
     let mut caps = Captures::default();
-    for (pat, ere) in [("(a|b)*c", true), ("\\(.*\\)c", false), ("([ab]+)+x", true), ("[a-z]*$", false)] {
+    for (pat, ere) in [
+        ("(a|b)*c", true),
+        ("\\(.*\\)c", false),
+        ("([ab]+)+x", true),
+        ("[a-z]*$", false),
+    ] {
         let re = Regex::compile(pat.as_bytes(), &syn(ere)).unwrap();
         re.captures_at(hay.as_bytes(), 0, &mut caps);
     }
@@ -247,10 +272,42 @@ fn long_lines_are_fast() {
 #[test]
 fn dfa_agrees_with_simulation() {
     let atoms = [
-        "a", "b", "c", ".", "[ab]", "[^a]", "a*", "b+", "c?", "(a|b)", "(ab|a)", "x*", "^", "$", "\\b", "\\<", "\\>", "\\w", "\\W",
-        "a{2}", "[a-c]*", "(a*)b", "()", "(abc|c)", "(a*c|b)", "(ab|bca|c)", "(a)(b)", "(a(b))c", "((a)b)(c)", "()a", ".(b)",
+        "a",
+        "b",
+        "c",
+        ".",
+        "[ab]",
+        "[^a]",
+        "a*",
+        "b+",
+        "c?",
+        "(a|b)",
+        "(ab|a)",
+        "x*",
+        "^",
+        "$",
+        "\\b",
+        "\\<",
+        "\\>",
+        "\\w",
+        "\\W",
+        "a{2}",
+        "[a-c]*",
+        "(a*)b",
+        "()",
+        "(abc|c)",
+        "(a*c|b)",
+        "(ab|bca|c)",
+        "(a)(b)",
+        "(a(b))c",
+        "((a)b)(c)",
+        "()a",
+        ".(b)",
     ];
-    let hays = ["", "a", "ab", "abc", "aab b", "cab ab", "xx a_b", "b a", "  ab", "abcabc", "a b", "bbbaaa", "ca"];
+    let hays = [
+        "", "a", "ab", "abc", "aab b", "cab ab", "xx a_b", "b a", "  ab", "abcabc", "a b",
+        "bbbaaa", "ca",
+    ];
     let mut seed = 0x2545f4914f6cdd1du64;
     let mut next = move |n: usize| {
         seed ^= seed << 13;
@@ -264,11 +321,23 @@ fn dfa_agrees_with_simulation() {
         let mut pat = String::new();
         for _ in 0..k {
             let a = atoms[next(atoms.len())];
-            pat.push_str(&if ere { a.to_string() } else { a.replace('(', "\\(").replace(')', "\\)").replace('|', "\\|").replace('{', "\\{").replace('}', "\\}").replace('+', "\\+").replace('?', "\\?") });
+            pat.push_str(&if ere {
+                a.to_string()
+            } else {
+                a.replace('(', "\\(")
+                    .replace(')', "\\)")
+                    .replace('|', "\\|")
+                    .replace('{', "\\{")
+                    .replace('}', "\\}")
+                    .replace('+', "\\+")
+                    .replace('?', "\\?")
+            });
         }
         let mut s = syn(ere);
         s.icase = next(5) == 0;
-        let Ok(mut re) = Regex::compile(pat.as_bytes(), &s) else { continue };
+        let Ok(mut re) = Regex::compile(pat.as_bytes(), &s) else {
+            continue;
+        };
         for hay in hays {
             for start in 0..=hay.len() {
                 re.use_dfa = true;
@@ -281,7 +350,11 @@ fn dfa_agrees_with_simulation() {
                 let rb = re.captures_at(hay.as_bytes(), start, &mut b);
                 let eb = re.is_match(hay.as_bytes());
                 re.fixed = fixed;
-                assert_eq!((ra, &a.groups, ea), (rb, &b.groups, eb), "pattern {pat:?} ere={ere} hay {hay:?} start {start}");
+                assert_eq!(
+                    (ra, &a.groups, ea),
+                    (rb, &b.groups, eb),
+                    "pattern {pat:?} ere={ere} hay {hay:?} start {start}"
+                );
             }
         }
     }
@@ -300,12 +373,46 @@ fn dfa_is_used_for_plain_patterns() {
 #[test]
 fn dfa_agrees_with_simulation_in_utf8() {
     let atoms = [
-        "a", "é", "中", ".", "[^a]", "[é中a]", "[^é]", "[[:alpha:]]", "[[:upper:]]", "[[:punct:]]", "[a-é]", "(é|a)", "é*", "中+", ".*", "x?",
-        "^", "$", "(é)(a)", "(中)", "[^[:space:]]", "\\w", "\\W", "\\<",
+        "a",
+        "é",
+        "中",
+        ".",
+        "[^a]",
+        "[é中a]",
+        "[^é]",
+        "[[:alpha:]]",
+        "[[:upper:]]",
+        "[[:punct:]]",
+        "[a-é]",
+        "(é|a)",
+        "é*",
+        "中+",
+        ".*",
+        "x?",
+        "^",
+        "$",
+        "(é)(a)",
+        "(中)",
+        "[^[:space:]]",
+        "\\w",
+        "\\W",
+        "\\<",
     ];
     let hays: [&[u8]; 14] = [
-        b"", b"a", "é".as_bytes(), "aéa".as_bytes(), "中中é a".as_bytes(), b"\xff", b"a\xc3", b"\xe4\xb8a", "Éa é".as_bytes(), "x中Y".as_bytes(),
-        b"\xc3\xa9\xc3", "é!é".as_bytes(), "ÿ中\u{1f600}a".as_bytes(), b"\xed\xa0\x80a",
+        b"",
+        b"a",
+        "é".as_bytes(),
+        "aéa".as_bytes(),
+        "中中é a".as_bytes(),
+        b"\xff",
+        b"a\xc3",
+        b"\xe4\xb8a",
+        "Éa é".as_bytes(),
+        "x中Y".as_bytes(),
+        b"\xc3\xa9\xc3",
+        "é!é".as_bytes(),
+        "ÿ中\u{1f600}a".as_bytes(),
+        b"\xed\xa0\x80a",
     ];
     let mut seed = 0x9e3779b97f4a7c15u64;
     let mut next = move |n: usize| {
@@ -323,8 +430,14 @@ fn dfa_agrees_with_simulation_in_utf8() {
         let mut s = syn(round % 2 == 0);
         s.locale = Locale::Utf8;
         s.icase = next(8) == 0;
-        let pat = if round % 2 == 0 { pat } else { pat.replace('(', "\\(").replace(')', "\\)") };
-        let Ok(mut re) = Regex::compile(pat.as_bytes(), &s) else { continue };
+        let pat = if round % 2 == 0 {
+            pat
+        } else {
+            pat.replace('(', "\\(").replace(')', "\\)")
+        };
+        let Ok(mut re) = Regex::compile(pat.as_bytes(), &s) else {
+            continue;
+        };
         for hay in hays {
             for start in 0..=hay.len() {
                 re.use_dfa = true;
@@ -337,7 +450,11 @@ fn dfa_agrees_with_simulation_in_utf8() {
                 let rb = re.captures_at(hay, start, &mut b);
                 let eb = re.is_match(hay);
                 re.fixed = fixed;
-                assert_eq!((ra, &a.groups, ea), (rb, &b.groups, eb), "pattern {pat:?} hay {hay:?} start {start}");
+                assert_eq!(
+                    (ra, &a.groups, ea),
+                    (rb, &b.groups, eb),
+                    "pattern {pat:?} hay {hay:?} start {start}"
+                );
             }
         }
     }
@@ -347,10 +464,15 @@ fn dfa_agrees_with_simulation_in_utf8() {
 #[test]
 fn glibc_quirks_are_opt_in() {
     fn span(pat: &str, text: &str, compat: bool) -> Option<(usize, usize)> {
-        let s = Syntax { extended: true, glibc_compat: compat, ..Syntax::default() };
+        let s = Syntax {
+            extended: true,
+            glibc_compat: compat,
+            ..Syntax::default()
+        };
         let re = Regex::compile(pat.as_bytes(), &s).unwrap();
         let mut caps = Captures::default();
-        re.captures_at(text.as_bytes(), 0, &mut caps).then(|| caps.whole())
+        re.captures_at(text.as_bytes(), 0, &mut caps)
+            .then(|| caps.whole())
     }
     // Back-references to a variable-width group in a repetition: the longest match by default.
     for (pat, text, definition, glibc) in [
@@ -358,22 +480,39 @@ fn glibc_quirks_are_opt_in() {
         ("(a+)+\\1b", "aaab", Some((0, 4)), Some((1, 4))),
         ("(a*)+\\1", "aaa", Some((0, 3)), Some((0, 2))),
         ("(a*){2}\\1", "aaaaaa", Some((0, 6)), None),
-        ("(ab*){1,9}\\1", "abbbabbabbbbb", Some((0, 10)), Some((4, 10))),
+        (
+            "(ab*){1,9}\\1",
+            "abbbabbabbbbb",
+            Some((0, 10)),
+            Some((4, 10)),
+        ),
         // `\B` after a leading repetition: the empty match where `\B` holds, not after the run.
         ("b*\\B", "ab", Some((1, 1)), Some((2, 2))),
     ] {
-        assert_eq!(span(pat, text, false), definition, "default: {pat} on {text}");
-        assert_eq!(span(pat, text, true), glibc, "glibc_compat: {pat} on {text}");
+        assert_eq!(
+            span(pat, text, false),
+            definition,
+            "default: {pat} on {text}"
+        );
+        assert_eq!(
+            span(pat, text, true),
+            glibc,
+            "glibc_compat: {pat} on {text}"
+        );
     }
 }
 
 fn utf8_syntax(ere: bool) -> Syntax {
-    Syntax { locale: Locale::Utf8, ..syn(ere) }
+    Syntax {
+        locale: Locale::Utf8,
+        ..syn(ere)
+    }
 }
 
 /// Whether the DFA path and the simulation path give the same answer for every start.
 fn assert_dfa_agrees(pat: &[u8], s: &Syntax, hay: &[u8]) {
-    let mut re = Regex::compile(pat, s).unwrap_or_else(|e| panic!("{}: {e}", String::from_utf8_lossy(pat)));
+    let mut re =
+        Regex::compile(pat, s).unwrap_or_else(|e| panic!("{}: {e}", String::from_utf8_lossy(pat)));
     for start in 0..=hay.len() {
         re.use_dfa = true;
         let mut a = Captures::default();
@@ -385,7 +524,13 @@ fn assert_dfa_agrees(pat: &[u8], s: &Syntax, hay: &[u8]) {
         let rb = re.captures_at(hay, start, &mut b);
         let eb = re.is_match(hay);
         re.fixed = fixed;
-        assert_eq!((ra, &a.groups, ea), (rb, &b.groups, eb), "pattern {:?} hay {:?} start {start}", String::from_utf8_lossy(pat), String::from_utf8_lossy(hay));
+        assert_eq!(
+            (ra, &a.groups, ea),
+            (rb, &b.groups, eb),
+            "pattern {:?} hay {:?} start {start}",
+            String::from_utf8_lossy(pat),
+            String::from_utf8_lossy(hay)
+        );
     }
 }
 
@@ -423,11 +568,17 @@ fn an_invalid_byte_in_a_bracket_expression() {
     assert_eq!(pat(b"[a-\xff]"), Ok(()));
     assert_eq!(pat(b"[\xff-\xff]"), Ok(()));
     assert_eq!(pat(b"[\xff-z]"), Err("Invalid range end".to_string()));
-    assert_eq!(pat("[é-\u{ff}]".as_bytes()), Err("Invalid collation character".to_string()));
+    assert_eq!(
+        pat("[é-\u{ff}]".as_bytes()),
+        Err("Invalid collation character".to_string())
+    );
     assert_eq!(pat(b"[[:alpha:]-z]"), Err("Invalid range end".to_string()));
     assert_eq!(pat(b"[a-c-e]"), Err("Invalid range end".to_string()));
     assert_eq!(pat(b"[a-c-]"), Ok(()));
-    assert_eq!(pat(b"[[:alpha]"), Err("Unmatched [, [^, [:, [., or [=".to_string()));
+    assert_eq!(
+        pat(b"[[:alpha]"),
+        Err("Unmatched [, [^, [:, [., or [=".to_string())
+    );
     assert_eq!(pat(b"[a-[:alpha:]]"), Err("Invalid range end".to_string()));
     assert_eq!(pat(b"[a-[=b=]]"), Err("Invalid range end".to_string()));
     // Matching: the range a-\xff holds ASCII letters and Latin-1 characters, never the invalid byte.
@@ -443,7 +594,10 @@ fn an_invalid_byte_in_a_bracket_expression() {
 #[test]
 fn a_regex_that_is_too_big() {
     let e = syn(true);
-    assert_eq!(err("((a{1000}){1000}){10}", &e), "Regular expression too big");
+    assert_eq!(
+        err("((a{1000}){1000}){10}", &e),
+        "Regular expression too big"
+    );
 }
 
 #[test]
@@ -475,9 +629,15 @@ fn dfa_slot_is_a_cache() {
     // Back-references are out of the DFA's reach.
     let with = Regex::compile(b"(a)\\1", &syn(true)).unwrap();
     let mut slot = dfa::DfaSlot::default();
-    assert!(slot.get(&with.prog, &with.node, false, false, b'\n').is_none());
+    assert!(
+        slot.get(&with.prog, &with.node, false, false, b'\n')
+            .is_none()
+    );
     assert!(format!("{slot:?}").contains("DfaSlot::Disabled"));
-    assert!(slot.get(&with.prog, &with.node, false, false, b'\n').is_none());
+    assert!(
+        slot.get(&with.prog, &with.node, false, false, b'\n')
+            .is_none()
+    );
 }
 
 /// A pattern with more than 2000 DFA states: the DFA gives up and the simulation answers.
@@ -529,11 +689,29 @@ fn dfa_stops_at_bytes_it_cannot_follow() {
 #[test]
 fn utf8_sets_in_the_dfa() {
     // Word assertions and large or empty sets are not spelled out as bytes.
-    let mut hays: Vec<&[u8]> = vec![b"", b"a b", "é a ü".as_bytes(), "中文 abc".as_bytes(), b"\xff a"];
+    let mut hays: Vec<&[u8]> = vec![
+        b"",
+        b"a b",
+        "é a ü".as_bytes(),
+        "中文 abc".as_bytes(),
+        b"\xff a",
+    ];
     hays.push("\u{1f600}x".as_bytes());
     for pat in [
-        "\\bé", "\\<a", "a\\>", "\\Bb", "[[:graph:]]+", "[[:alpha:][:punct:][:digit:]]+", "[^a]", "[^é]+", "\\W+", "[\u{ff}]", "[\u{ff}-\u{ff}]",
-        "[a-\u{ff}]+", "[^[:alpha:]]", ".",
+        "\\bé",
+        "\\<a",
+        "a\\>",
+        "\\Bb",
+        "[[:graph:]]+",
+        "[[:alpha:][:punct:][:digit:]]+",
+        "[^a]",
+        "[^é]+",
+        "\\W+",
+        "[\u{ff}]",
+        "[\u{ff}-\u{ff}]",
+        "[a-\u{ff}]+",
+        "[^[:alpha:]]",
+        ".",
     ] {
         for ere in [true, false] {
             let s = utf8_syntax(ere);
@@ -592,7 +770,12 @@ fn case_insensitive_back_references_in_utf8() {
 /// limit is lowered here so that a short input takes that path.
 #[test]
 fn large_programs_use_a_hashed_memo() {
-    for (pat, hay) in [("(a+)(b*)c", "xaabbc"), ("(a|ab)(c|bcd)(d*)", "abcd"), ("(a*)*b", "aab"), ("((a)|b)+c", "abac")] {
+    for (pat, hay) in [
+        ("(a+)(b*)c", "xaabbc"),
+        ("(a|ab)(c|bcd)(d*)", "abcd"),
+        ("(a*)*b", "aab"),
+        ("((a)|b)+c", "abac"),
+    ] {
         let e = syn(true);
         let re = Regex::compile(pat.as_bytes(), &e).unwrap();
         let mut normal = Captures::default();
@@ -608,7 +791,11 @@ fn large_programs_use_a_hashed_memo() {
 /// A thread that started later than the best match is dropped when the best one is found.
 #[test]
 fn later_starts_are_dropped_once_a_match_is_found() {
-    for (pat, hay, want) in [("ab|bcd", "abcd", "<ab>cd"), ("abc|b", "abc", "<abc>"), ("a.c|bcd|cde", "abcde", "<abc>de")] {
+    for (pat, hay, want) in [
+        ("ab|bcd", "abcd", "<ab>cd"),
+        ("abc|b", "abc", "<abc>"),
+        ("a.c|bcd|cde", "abcde", "<abc>de"),
+    ] {
         assert_eq!(sub_g(pat, hay, &syn(true)), want, "{pat}");
         assert_dfa_agrees(pat.as_bytes(), &syn(true), hay.as_bytes());
         let mut re = Regex::compile(pat.as_bytes(), &syn(true)).unwrap();
@@ -621,9 +808,19 @@ fn later_starts_are_dropped_once_a_match_is_found() {
 /// A repetition of an empty-matching group meets the loop guard in the back-reference search.
 #[test]
 fn empty_iterations_with_back_references() {
-    for (pat, hay) in [("(a*)*\\1", "aab"), ("(|a)*\\1", "aab"), ("(()|a)+\\1", "aab"), ("(a?)*\\1b", "aab"), ("((a*)*)*\\1x", "aax"), ("(a*|b)*\\1c", "abc")] {
+    for (pat, hay) in [
+        ("(a*)*\\1", "aab"),
+        ("(|a)*\\1", "aab"),
+        ("(()|a)+\\1", "aab"),
+        ("(a?)*\\1b", "aab"),
+        ("((a*)*)*\\1x", "aax"),
+        ("(a*|b)*\\1c", "abc"),
+    ] {
         for glibc in [false, true] {
-            let s = Syntax { glibc_compat: glibc, ..syn(true) };
+            let s = Syntax {
+                glibc_compat: glibc,
+                ..syn(true)
+            };
             let re = Regex::compile(pat.as_bytes(), &s).unwrap();
             let mut caps = Captures::default();
             let _ = re.captures_at(hay.as_bytes(), 0, &mut caps);
@@ -635,7 +832,12 @@ fn empty_iterations_with_back_references() {
 fn back_reference_after_invalid_bytes_with_case_folding() {
     let mut s = utf8_syntax(true);
     s.icase = true;
-    for hay in [&b"a\xc3\xa9a\xc3"[..], b"a\xc3\xa9a\xc3\xa8", "aéAÉ".as_bytes(), b"a\xc3\xa9A"] {
+    for hay in [
+        &b"a\xc3\xa9a\xc3"[..],
+        b"a\xc3\xa9a\xc3\xa8",
+        "aéAÉ".as_bytes(),
+        b"a\xc3\xa9A",
+    ] {
         let re = Regex::compile(b"(a.)\\1", &s).unwrap();
         let mut caps = Captures::default();
         let found = re.captures_at(hay, 0, &mut caps);
@@ -648,11 +850,19 @@ fn the_dfa_leaves_unspellable_sets_to_the_simulation() {
     let s = utf8_syntax(true);
     let hay = "aé中 \u{1f600}b".repeat(3);
     // The sets are too large to be written out as byte sequences all at once.
-    for pat in ["[[:print:]][[:graph:]][[:alpha:]]+", "[[:alpha:]][[:alpha:]][[:alpha:]]", "[[:print:]]+[[:alnum:]]+[[:graph:]]+"] {
+    for pat in [
+        "[[:print:]][[:graph:]][[:alpha:]]+",
+        "[[:alpha:]][[:alpha:]][[:alpha:]]",
+        "[[:print:]]+[[:alnum:]]+[[:graph:]]+",
+    ] {
         assert_dfa_agrees(pat.as_bytes(), &s, hay.as_bytes());
     }
     let many = "[[:alpha:]]".repeat(12);
-    assert_dfa_agrees(many.as_bytes(), &s, "aéb中c\u{1f600}dé".repeat(2).as_bytes());
+    assert_dfa_agrees(
+        many.as_bytes(),
+        &s,
+        "aéb中c\u{1f600}dé".repeat(2).as_bytes(),
+    );
     // Case folding leaves a set to the simulation; so does an invalid byte next to a match.
     let mut f = utf8_syntax(true);
     f.icase = true;

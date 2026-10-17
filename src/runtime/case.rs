@@ -10,7 +10,13 @@ enum Mode {
     Lower,
 }
 
-pub fn append_replacement(out: &mut Vec<u8>, parts: &[ReplacementPart], subject: &[u8], caps: &Captures, locale: Locale) {
+pub fn append_replacement(
+    out: &mut Vec<u8>,
+    parts: &[ReplacementPart],
+    subject: &[u8],
+    caps: &Captures,
+    locale: Locale,
+) {
     let mut mode = Mode::None;
     let mut next = Mode::None;
     for part in parts {
@@ -61,7 +67,11 @@ fn push(out: &mut Vec<u8>, text: &[u8], mode: &mut Mode, next: &mut Mode, locale
             return;
         }
         let ch = &text[i..i + len];
-        let how = if *next != Mode::None { std::mem::replace(next, Mode::None) } else { *mode };
+        let how = if *next != Mode::None {
+            std::mem::replace(next, Mode::None)
+        } else {
+            *mode
+        };
         convert(out, ch, how, locale);
         i += len;
     }
@@ -75,12 +85,20 @@ fn convert(out: &mut Vec<u8>, ch: &[u8], how: Mode, locale: Locale) {
     }
     if locale == Locale::Sb && how != Mode::None {
         let b = ch[0];
-        out.push(if how == Mode::Upper { crate::locale::byte_upper(b) } else { crate::locale::byte_lower(b) });
+        out.push(if how == Mode::Upper {
+            crate::locale::byte_upper(b)
+        } else {
+            crate::locale::byte_lower(b)
+        });
         return;
     }
     if locale == Locale::Mb && how != Mode::None {
         let (c, _) = crate::locale::mb_decode(ch, 0).expect("a valid character");
-        let c = if how == Mode::Upper { crate::locale::upper(c) } else { crate::locale::lower(c) };
+        let c = if how == Mode::Upper {
+            crate::locale::upper(c)
+        } else {
+            crate::locale::lower(c)
+        };
         let mut buf = [0u8; 16];
         match crate::locale::mb_encode(c, &mut buf) {
             Some(n) => out.extend_from_slice(&buf[..n]),
@@ -98,8 +116,15 @@ fn convert(out: &mut Vec<u8>, ch: &[u8], how: Mode, locale: Locale) {
     }
     if locale == Locale::Libc && how != Mode::None {
         // The C library decides, also for ASCII (in Turkish `i` becomes `İ`).
-        let c = std::str::from_utf8(ch).ok().and_then(|s| s.chars().next()).expect("a valid UTF-8 character");
-        let c = if how == Mode::Upper { crate::locale::upper(c) } else { crate::locale::lower(c) };
+        let c = std::str::from_utf8(ch)
+            .ok()
+            .and_then(|s| s.chars().next())
+            .expect("a valid UTF-8 character");
+        let c = if how == Mode::Upper {
+            crate::locale::upper(c)
+        } else {
+            crate::locale::lower(c)
+        };
         let mut buf = [0u8; 4];
         out.extend_from_slice(c.encode_utf8(&mut buf).as_bytes());
         return;
@@ -117,7 +142,10 @@ fn convert(out: &mut Vec<u8>, ch: &[u8], how: Mode, locale: Locale) {
     }
     // One character maps to one character (like towupper): `ß` stays `ß`, not `SS`.
     // `char_len` hands out whole, valid characters when it gives more than one byte.
-    let c = std::str::from_utf8(ch).ok().and_then(|s| s.chars().next()).expect("a valid UTF-8 character");
+    let c = std::str::from_utf8(ch)
+        .ok()
+        .and_then(|s| s.chars().next())
+        .expect("a valid UTF-8 character");
     let c = match how {
         Mode::Upper => crate::regex::simple_upper(c),
         Mode::Lower => crate::regex::simple_lower(c),

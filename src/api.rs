@@ -5,11 +5,11 @@ use std::io::{self, BufReader, Read, Write};
 use std::str::FromStr;
 use std::sync::OnceLock;
 
+use crate::Fatal;
 use crate::io::{Outputs, ReaderSource};
 use crate::regex::Locale;
 use crate::runtime::{self, Options};
 use crate::syntax::{self, Chunk, ChunkSource, ParseOptions};
-use crate::Fatal;
 
 /// What went wrong: a script that does not parse, a mistake in how a script was built, or a
 /// failure while running (reading, writing, a command that cannot run).
@@ -34,7 +34,11 @@ pub enum ErrorKind {
 
 impl Error {
     pub(crate) fn build(message: impl Into<String>) -> Error {
-        Error { message: message.into(), status: 1, kind: ErrorKind::Build }
+        Error {
+            message: message.into(),
+            status: 1,
+            kind: ErrorKind::Build,
+        }
     }
 
     /// The message, without the program name.
@@ -62,13 +66,21 @@ impl std::error::Error for Error {}
 
 impl From<syntax::SyntaxError> for Error {
     fn from(e: syntax::SyntaxError) -> Error {
-        Error { message: e.to_string(), status: e.status, kind: ErrorKind::Syntax }
+        Error {
+            message: e.to_string(),
+            status: e.status,
+            kind: ErrorKind::Syntax,
+        }
     }
 }
 
 impl From<Fatal> for Error {
     fn from(e: Fatal) -> Error {
-        Error { message: e.message, status: e.status, kind: ErrorKind::Run }
+        Error {
+            message: e.message,
+            status: e.status,
+            kind: ErrorKind::Run,
+        }
     }
 }
 
@@ -132,8 +144,18 @@ impl Script {
     }
 
     pub(crate) fn chunks(&self, options: &ParseOptions) -> Vec<(Chunk, ParseOptions)> {
-        let options = ParseOptions { extended: self.dialect == Dialect::Extended, pcre: self.dialect == Dialect::Perl, ..*options };
-        vec![(Chunk { source: ChunkSource::Expression(1), text: self.text.clone().into_bytes() }, options)]
+        let options = ParseOptions {
+            extended: self.dialect == Dialect::Extended,
+            pcre: self.dialect == Dialect::Perl,
+            ..*options
+        };
+        vec![(
+            Chunk {
+                source: ChunkSource::Expression(1),
+                text: self.text.clone().into_bytes(),
+            },
+            options,
+        )]
     }
 }
 
@@ -210,7 +232,15 @@ fn environment_locale() -> Locale {
 
 impl Run {
     pub fn new() -> Run {
-        Run { quiet: false, null_data: false, line_length: 70, encoding: Encoding::Environment, glibc_compat: false, sandbox: false, jobs: 1 }
+        Run {
+            quiet: false,
+            null_data: false,
+            line_length: 70,
+            encoding: Encoding::Environment,
+            glibc_compat: false,
+            sandbox: false,
+            jobs: 1,
+        }
     }
 
     /// `-n`: do not print the lines at the end of each cycle (only `p` and the like print).
@@ -261,7 +291,13 @@ impl Run {
     }
 
     fn threads(&self) -> usize {
-        if self.jobs == 0 { std::thread::available_parallelism().map_or(1, |n| n.get()).min(16) } else { self.jobs }
+        if self.jobs == 0 {
+            std::thread::available_parallelism()
+                .map_or(1, |n| n.get())
+                .min(16)
+        } else {
+            self.jobs
+        }
     }
 
     fn locale(&self) -> Locale {
@@ -303,17 +339,25 @@ impl Run {
     ///
     /// The input is read and the output is written as the run goes on, so a stream of any size
     /// is fine. The output is flushed when the run ends.
-    pub fn run<R: Read, W: Write>(&self, script: &Script, input: R, mut output: W) -> Result<Outcome, Error> {
+    pub fn run<R: Read, W: Write>(
+        &self,
+        script: &Script,
+        input: R,
+        mut output: W,
+    ) -> Result<Outcome, Error> {
         crate::io::GLIBC_COMPAT.store(self.glibc_compat, std::sync::atomic::Ordering::Relaxed);
         let parsed = script.parsed(&self.parse_options())?;
-        let mut source = ReaderSource::new(BufReader::with_capacity(1 << 16, input), self.separator());
+        let mut source =
+            ReaderSource::new(BufReader::with_capacity(1 << 16, input), self.separator());
         let writer: &mut dyn Write = &mut output;
         // SAFETY: the writer is borrowed for this call only. `Outputs` wants a `'static` box, but
         // it (with every alias of the stream) is dropped before `run` returns, so the reference
         // is never used after the borrow ends.
-        let writer: &'static mut dyn Write = unsafe { std::mem::transmute::<&mut dyn Write, &'static mut dyn Write>(writer) };
+        let writer: &'static mut dyn Write =
+            unsafe { std::mem::transmute::<&mut dyn Write, &'static mut dyn Write>(writer) };
         let mut outputs = Outputs::new(Box::new(Forward(writer)), self.separator());
-        let result = runtime::run(&parsed, self.options(), &mut source, &mut outputs).and_then(|code| outputs.flush_all().map(|()| code));
+        let result = runtime::run(&parsed, self.options(), &mut source, &mut outputs)
+            .and_then(|code| outputs.flush_all().map(|()| code));
         drop(outputs);
         match result {
             Ok(exit_status) => Ok(Outcome { exit_status }),
@@ -337,11 +381,18 @@ impl Run {
     /// of [`jobs`](Run::jobs) when the script allows it, and runs on the calling thread when it
     /// does not. A script that reads ahead cannot be spread. A `q` or `Q` can: the output stops at the
     /// first record that reaches it and the exit status is the one it asked for, as in [`run`](Run::run).
-    pub fn run_parallel<R: Read + Send, W: Write>(&self, script: &Script, input: R, mut output: W) -> Result<Outcome, Error> {
+    pub fn run_parallel<R: Read + Send, W: Write>(
+        &self,
+        script: &Script,
+        input: R,
+        mut output: W,
+    ) -> Result<Outcome, Error> {
         let threads = self.threads();
         let parsed = script.parsed(&self.parse_options())?;
         // (A script that writes files is run on the calling thread: the files are the sequential run's to open.)
-        let spread = threads >= 2 && parsed.write_files.is_empty() && crate::analysis::record_local(&parsed, &self.options()).is_ok();
+        let spread = threads >= 2
+            && parsed.write_files.is_empty()
+            && crate::analysis::record_local(&parsed, &self.options()).is_ok();
         if !spread {
             return self.run(script, input, output);
         }
@@ -352,11 +403,22 @@ impl Run {
             Box::new(input),
             threads,
             PARALLEL_BLOCK,
-            &mut |bytes: &[u8], _unterminated: bool| output.write_all(bytes).map_err(|e| crate::io::write_error("output", &e)),
+            &mut |bytes: &[u8], _unterminated: bool| {
+                output
+                    .write_all(bytes)
+                    .map_err(|e| crate::io::write_error("output", &e))
+            },
         )
-        .and_then(|status| output.flush().map(|()| status).map_err(|e| crate::io::write_error("output", &e)));
+        .and_then(|status| {
+            output
+                .flush()
+                .map(|()| status)
+                .map_err(|e| crate::io::write_error("output", &e))
+        });
         match result {
-            Ok(status) => Ok(Outcome { exit_status: status }),
+            Ok(status) => Ok(Outcome {
+                exit_status: status,
+            }),
             Err(e) => Err(e.into()),
         }
     }

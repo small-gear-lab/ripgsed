@@ -3,7 +3,7 @@
 //! with GNU sed 4.9 (see tests/regex_differential.rs), not from its source.
 
 use super::ast::{Assert, Node, Unit};
-use super::charset::{decode_utf8, ByteSet, CharSet, Class, LibHandle};
+use super::charset::{ByteSet, CharSet, Class, LibHandle, decode_utf8};
 use super::{CompileError, Locale, Syntax};
 use crate::locale::{LibError, LibSet};
 
@@ -29,7 +29,9 @@ pub const E_EESCAPE: &str = "Trailing backslash";
 pub const E_CLASS_SYNTAX: &str = "character class syntax is [[:space:]], not [:space:]";
 
 fn err(msg: &str) -> CompileError {
-    CompileError { message: msg.to_string() }
+    CompileError {
+        message: msg.to_string(),
+    }
 }
 
 pub struct Parsed {
@@ -62,7 +64,12 @@ pub fn parse_filter(pattern: &[u8], syntax: &Syntax, delim: u8) -> Result<Parsed
     parse_with(pattern, syntax, delim, true)
 }
 
-fn parse_with(pattern: &[u8], syntax: &Syntax, delim: u8, digit_exact: bool) -> Result<Parsed, CompileError> {
+fn parse_with(
+    pattern: &[u8],
+    syntax: &Syntax,
+    delim: u8,
+    digit_exact: bool,
+) -> Result<Parsed, CompileError> {
     let mut p = Parser {
         digit_exact,
         digit_sets: false,
@@ -105,17 +112,36 @@ fn parse_with(pattern: &[u8], syntax: &Syntax, delim: u8, digit_exact: bool) -> 
     let char_starts = p.mb || (p.utf8 && p.icase);
     let node = match syntax.wrap {
         super::Wrap::None => node,
-        super::Wrap::Word => Node::Concat(vec![Node::Assert(Assert::NoWordBefore), node, Node::Assert(Assert::NoWordAfter)]),
-        super::Wrap::Line => Node::Concat(vec![Node::Assert(Assert::BufStart), node, Node::Assert(Assert::BufEnd)]),
+        super::Wrap::Word => Node::Concat(vec![
+            Node::Assert(Assert::NoWordBefore),
+            node,
+            Node::Assert(Assert::NoWordAfter),
+        ]),
+        super::Wrap::Line => Node::Concat(vec![
+            Node::Assert(Assert::BufStart),
+            node,
+            Node::Assert(Assert::BufEnd),
+        ]),
     };
-    Ok(Parsed { node, divergent: p.divergent, warnings: p.warnings, ngroups: p.ngroups, referenced, char_starts, utf8: p.utf8, digit_sets: p.digit_sets })
+    Ok(Parsed {
+        node,
+        divergent: p.divergent,
+        warnings: p.warnings,
+        ngroups: p.ngroups,
+        referenced,
+        char_starts,
+        utf8: p.utf8,
+        digit_sets: p.digit_sets,
+    })
 }
 
 /// How an interval is read (see `classify_interval`).
 enum Interval {
     Valid,
     /// Not an interval; `ended` is whether the pattern ended before its closing brace.
-    Literal { ended: bool },
+    Literal {
+        ended: bool,
+    },
     Error(&'static str),
 }
 
@@ -179,7 +205,11 @@ struct Parser<'a> {
 impl<'a> Parser<'a> {
     /// The character of the pattern at `pos`: UTF-8 or the character set of the locale.
     fn dec(&self, pos: usize) -> Option<(char, usize)> {
-        if self.mb { crate::locale::mb_decode(self.pat, pos) } else { decode_utf8(self.pat, pos) }
+        if self.mb {
+            crate::locale::mb_decode(self.pat, pos)
+        } else {
+            decode_utf8(self.pat, pos)
+        }
     }
 
     fn at(&self, k: usize) -> Option<u8> {
@@ -225,7 +255,11 @@ impl<'a> Parser<'a> {
             break;
         }
         self.completed = accumulated;
-        Ok(if branches.len() == 1 { branches.pop().unwrap() } else { Node::Alt(branches) })
+        Ok(if branches.len() == 1 {
+            branches.pop().unwrap()
+        } else {
+            Node::Alt(branches)
+        })
     }
 
     fn parse_branch(&mut self, depth: usize) -> Result<Node, CompileError> {
@@ -239,12 +273,18 @@ impl<'a> Parser<'a> {
                 break;
             }
             let (node, quantifiable) = self.parse_atom(first)?;
-            let only_assertions = items.iter().all(|i| matches!(i, Node::Assert(_) | Node::Empty));
+            let only_assertions = items
+                .iter()
+                .all(|i| matches!(i, Node::Assert(_) | Node::Empty));
             first = false;
             let mut node = node;
             // GNU grep's DFA lets a BRE operator repeat an assertion unless the expression starts
             // there (the C library reads the operator as a character).
-            let assertion_repeatable = self.grep && !self.regex_semantic && !self.ere && matches!(node, Node::Assert(_)) && !only_assertions;
+            let assertion_repeatable = self.grep
+                && !self.regex_semantic
+                && !self.ere
+                && matches!(node, Node::Assert(_))
+                && !only_assertions;
             if quantifiable || assertion_repeatable {
                 if assertion_repeatable && self.peek_quant().is_some() {
                     self.divergent = true;
@@ -259,13 +299,21 @@ impl<'a> Parser<'a> {
                                 self.literal_brace = Some(self.pos);
                                 break;
                             }
-                            Interval::Literal { ended } => return Err(err(if ended { E_EBRACE } else { E_BADBR })),
+                            Interval::Literal { ended } => {
+                                return Err(err(if ended { E_EBRACE } else { E_BADBR }));
+                            }
                             // (After an assertion the interval is not read by the C library.)
-                            Interval::Error(_) if self.ere && matches!(node, Node::Assert(_)) => break,
+                            Interval::Error(_) if self.ere && matches!(node, Node::Assert(_)) => {
+                                break;
+                            }
                             Interval::Error(e) => return Err(err(e)),
                         }
                     }
-                    if !self.ere && !self.grep && count > 0 && matches!(q, Quant::Star | Quant::Brace) {
+                    if !self.ere
+                        && !self.grep
+                        && count > 0
+                        && matches!(q, Quant::Star | Quant::Brace)
+                    {
                         return Err(err(E_BADRPT));
                     }
                     if self.grep && self.ere && matches!(node, Node::Assert(_)) {
@@ -283,7 +331,11 @@ impl<'a> Parser<'a> {
                         self.warnings.push(text.into());
                     }
                     self.pos += len;
-                    if self.grep && self.ere && matches!(node, Node::Assert(_)) && self.at(0) == Some(b')') {
+                    if self.grep
+                        && self.ere
+                        && matches!(node, Node::Assert(_))
+                        && self.at(0) == Some(b')')
+                    {
                         self.literal_paren = Some(self.pos);
                     }
                     let (min, max) = match q {
@@ -341,7 +393,9 @@ impl<'a> Parser<'a> {
     /// library sees characters): `m`, `m,`, `,n`, `m,n`, then `\}`; anything else is the one
     /// mistake the DFA knows. The `\{` is consumed.
     fn dfa_interval(&mut self) -> Result<(u32, Option<u32>), CompileError> {
-        let bad = || CompileError { message: "invalid content of \\{\\}".to_string() };
+        let bad = || CompileError {
+            message: "invalid content of \\{\\}".to_string(),
+        };
         let rest = &self.pat[self.pos..];
         let mut i = 0;
         let digits = |i: &mut usize| -> Option<u64> {
@@ -445,7 +499,9 @@ impl<'a> Parser<'a> {
             };
         }
         if start == -2 || end == -2 {
-            return Interval::Literal { ended: last == End::Eof };
+            return Interval::Literal {
+                ended: last == End::Eof,
+            };
         }
         if (end != -1 && start > end) || last != End::Close {
             return Interval::Error(E_BADBR);
@@ -513,11 +569,17 @@ impl<'a> Parser<'a> {
                 // (In GNU grep's ERE a repetition operator may follow an anchor: it repeats the anchor.)
                 b'^' => {
                     self.pos += 1;
-                    return Ok((Node::Assert(Assert::LineStart), self.grep && !self.regex_semantic));
+                    return Ok((
+                        Node::Assert(Assert::LineStart),
+                        self.grep && !self.regex_semantic,
+                    ));
                 }
                 b'$' => {
                     self.pos += 1;
-                    return Ok((Node::Assert(Assert::LineEnd), self.grep && !self.regex_semantic));
+                    return Ok((
+                        Node::Assert(Assert::LineEnd),
+                        self.grep && !self.regex_semantic,
+                    ));
                 }
                 b'*' | b'+' | b'?' | b'{' if self.grep => {
                     // GNU grep warns and goes on as if the operator were not there.
@@ -551,7 +613,8 @@ impl<'a> Parser<'a> {
                         self.warnings.push("{...} at start of expression".into());
                     } else {
                         self.pos += 1;
-                        self.warnings.push(format!("{} at start of expression", c as char));
+                        self.warnings
+                            .push(format!("{} at start of expression", c as char));
                     }
                     if self.at(0) == Some(b')') {
                         self.literal_paren = Some(self.pos);
@@ -651,7 +714,10 @@ impl<'a> Parser<'a> {
             };
             if let Some(a) = assert {
                 self.pos += 2;
-                return Ok((Node::Assert(a), self.grep && self.ere && !self.regex_semantic));
+                return Ok((
+                    Node::Assert(a),
+                    self.grep && self.ere && !self.regex_semantic,
+                ));
             }
             let class = match e {
                 b'w' => Some((false, true)),
@@ -666,15 +732,19 @@ impl<'a> Parser<'a> {
             }
         }
         // Escapes that GNU sed converts before compiling; accepted here too (GNU grep has none).
-        let simple = if self.grep { None } else { match e {
-            b'n' => Some(b'\n'),
-            b't' => Some(b'\t'),
-            b'a' => Some(0x07),
-            b'f' => Some(0x0c),
-            b'v' => Some(0x0b),
-            b'r' => Some(b'\r'),
-            _ => None,
-        } };
+        let simple = if self.grep {
+            None
+        } else {
+            match e {
+                b'n' => Some(b'\n'),
+                b't' => Some(b'\t'),
+                b'a' => Some(0x07),
+                b'f' => Some(0x0c),
+                b'v' => Some(0x0b),
+                b'r' => Some(b'\r'),
+                _ => None,
+            }
+        };
         if let Some(b) = simple {
             self.pos += 2;
             return Ok((self.literal_byte(b), true));
@@ -752,7 +822,10 @@ impl<'a> Parser<'a> {
             })));
         }
         let u = c as u32;
-        Node::Unit(Unit::Chars(Box::new(CharSet { ranges: vec![(u, u)], ..CharSet::default() })))
+        Node::Unit(Unit::Chars(Box::new(CharSet {
+            ranges: vec![(u, u)],
+            ..CharSet::default()
+        })))
     }
 
     /// A character that is read under `I` in a locale of the C library: the set of characters the
@@ -779,7 +852,9 @@ impl<'a> Parser<'a> {
             // The library knows which bytes this one stands for under `I`.
             if let Ok(set) = LibSet::new(&[b], true) {
                 let mut bytes = ByteSet::single(b);
-                (0..=255u8).filter(|&x| set.contains_byte(x)).for_each(|x| bytes.insert(x));
+                (0..=255u8)
+                    .filter(|&x| set.contains_byte(x))
+                    .for_each(|x| bytes.insert(x));
                 return Node::Unit(Unit::Byte(bytes));
             }
         }
@@ -814,7 +889,9 @@ impl<'a> Parser<'a> {
 
     fn dot(&self) -> Unit {
         if self.utf8 {
-            Unit::Any { exclude: self.multiline.then_some(self.delim) }
+            Unit::Any {
+                exclude: self.multiline.then_some(self.delim),
+            }
         } else {
             let mut set = ByteSet::full();
             if self.multiline {
@@ -838,7 +915,13 @@ impl<'a> Parser<'a> {
                 (false, false) => b"[[:space:]]",
                 (false, true) => b"[^[:space:]]",
             };
-            let lib = if self.libc { LibSet::new(text, false).ok().map(|s| std::rc::Rc::new(LibHandle(s))) } else { None };
+            let lib = if self.libc {
+                LibSet::new(text, false)
+                    .ok()
+                    .map(|s| std::rc::Rc::new(LibHandle(s)))
+            } else {
+                None
+            };
             return Unit::Chars(Box::new(CharSet {
                 negated,
                 ranges,
@@ -849,7 +932,11 @@ impl<'a> Parser<'a> {
             }));
         }
         let lib = if self.sb {
-            let text: &[u8] = if word { b"[_[:alnum:]]" } else { b"[[:space:]]" };
+            let text: &[u8] = if word {
+                b"[_[:alnum:]]"
+            } else {
+                b"[[:space:]]"
+            };
             LibSet::new(text, false).ok()
         } else {
             None
@@ -858,7 +945,11 @@ impl<'a> Parser<'a> {
         for b in 0..=255u8 {
             let hit = if let Some(lib) = &lib {
                 lib.contains_byte(b)
-            } else if word { super::charset::is_word_byte(b) } else { Class::Space.contains_byte(b) };
+            } else if word {
+                super::charset::is_word_byte(b)
+            } else {
+                Class::Space.contains_byte(b)
+            };
             if hit {
                 set.insert(b);
             }
@@ -906,7 +997,8 @@ impl<'a> Parser<'a> {
             first = false;
             let elem_start = self.pos;
             let elem = self.parse_elem()?;
-            let is_range = self.at(0) == Some(b'-') && self.at(1).is_some() && self.at(1) != Some(b']');
+            let is_range =
+                self.at(0) == Some(b'-') && self.at(1).is_some() && self.at(1) != Some(b']');
             if is_range {
                 self.pos += 1;
                 // An invalid byte in a range stands for the character of the same number (as
@@ -940,7 +1032,9 @@ impl<'a> Parser<'a> {
                     // A class or an equivalence class ends a range only in a pattern that was
                     // rejected above.
                     Elem::Lib => 0,
-                    Elem::Class(_) | Elem::Equiv(_) => unreachable!("rejected as the end of a range"),
+                    Elem::Class(_) | Elem::Equiv(_) => {
+                        unreachable!("rejected as the end of a range")
+                    }
                 };
                 // In a locale of the C library its collation decides (below, when the whole set is
                 // compiled), not the code points.
@@ -971,7 +1065,9 @@ impl<'a> Parser<'a> {
             kept.push((elem_start, self.pos));
             // In a single-byte locale GNU sed's first matcher reads a class itself (`isalpha`), so
             // it is exact there; in UTF-8 it leaves a class to the library.
-            code_point_set &= matches!(elem, Elem::Ch(_) | Elem::Raw(_) | Elem::Class(Class::Digit)) || (self.sb && matches!(elem, Elem::Class(_)));
+            code_point_set &=
+                matches!(elem, Elem::Ch(_) | Elem::Raw(_) | Elem::Class(Class::Digit))
+                    || (self.sb && matches!(elem, Elem::Class(_)));
             match elem {
                 Elem::Lib => needs_lib = true,
                 Elem::Ch(c) | Elem::Equiv(c) => {
@@ -1000,26 +1096,31 @@ impl<'a> Parser<'a> {
                 }
             }
         }
-        cs.mb = negated || range_written || !cs.classes.is_empty() || cs.ranges.iter().any(|&(lo, hi)| lo != hi || hi > 0x7f);
+        cs.mb = negated
+            || range_written
+            || !cs.classes.is_empty()
+            || cs.ranges.iter().any(|&(lo, hi)| lo != hi || hi > 0x7f);
         let mut sb_bytes = None;
         if (self.libc || self.sb) && needs_lib && !raw_seen {
             // The library compiles the whole bracket expression, as GNU sed does, and decides
             // the range ends, the classes and the case rules.
-            let set = LibSet::new(&self.pat[bracket_start..=self.pos], self.icase).map_err(|e| {
-                err(match e {
-                    LibError::Collate => E_ECOLLATE,
-                    LibError::CType => E_ECTYPE,
-                    LibError::Bracket => E_EBRACK,
-                    LibError::Range => E_ERANGE,
-                    LibError::Other => E_BADPAT,
-                })
-            })?;
+            let set =
+                LibSet::new(&self.pat[bracket_start..=self.pos], self.icase).map_err(|e| {
+                    err(match e {
+                        LibError::Collate => E_ECOLLATE,
+                        LibError::CType => E_ECTYPE,
+                        LibError::Bracket => E_EBRACK,
+                        LibError::Range => E_ERANGE,
+                        LibError::Other => E_BADPAT,
+                    })
+                })?;
             if self.sb {
                 // One byte at a time, from the library's answer.
                 let digit_set = code_point_set && !negated && !digit_ranges.is_empty();
                 self.digit_sets |= digit_set;
                 let mut text = vec![b'['];
-                kept.iter().for_each(|&(a, b)| text.extend_from_slice(&self.pat[a..b]));
+                kept.iter()
+                    .for_each(|&(a, b)| text.extend_from_slice(&self.pat[a..b]));
                 text.push(b']');
                 let mut set_bytes = ByteSet::empty();
                 if digit_set && self.digit_exact {
@@ -1028,14 +1129,20 @@ impl<'a> Parser<'a> {
                     }
                     if !kept.is_empty() {
                         if let Ok(rest) = LibSet::new(&text, self.icase) {
-                            (0..=255u8).filter(|&x| rest.contains_byte(x)).for_each(|x| set_bytes.insert(x));
+                            (0..=255u8)
+                                .filter(|&x| rest.contains_byte(x))
+                                .for_each(|x| set_bytes.insert(x));
                         } else {
                             set_bytes = ByteSet::empty();
-                            (0..=255u8).filter(|&x| set.contains_byte(x)).for_each(|x| set_bytes.insert(x));
+                            (0..=255u8)
+                                .filter(|&x| set.contains_byte(x))
+                                .for_each(|x| set_bytes.insert(x));
                         }
                     }
                 } else {
-                    (0..=255u8).filter(|&x| set.contains_byte(x)).for_each(|x| set_bytes.insert(x));
+                    (0..=255u8)
+                        .filter(|&x| set.contains_byte(x))
+                        .for_each(|x| set_bytes.insert(x));
                 }
                 if negated && self.multiline {
                     set_bytes.remove(self.delim);
@@ -1044,14 +1151,19 @@ impl<'a> Parser<'a> {
                 sb_bytes = Some(set_bytes);
             }
             cs.mb = true;
-            cs.icase_singles = self.icase && !negated && cs.classes.is_empty() && cs.ranges.iter().all(|&(lo, hi)| lo == hi) && kept.len() == cs.ranges.len();
+            cs.icase_singles = self.icase
+                && !negated
+                && cs.classes.is_empty()
+                && cs.ranges.iter().all(|&(lo, hi)| lo == hi)
+                && kept.len() == cs.ranges.len();
             let digit_set = code_point_set && !negated && !digit_ranges.is_empty();
             self.digit_sets |= digit_set;
             if digit_set && self.digit_exact {
                 // The digit ranges are code points; the rest is the library's.
                 cs.lib_or = digit_ranges;
                 let mut text = vec![b'['];
-                kept.iter().for_each(|&(a, b)| text.extend_from_slice(&self.pat[a..b]));
+                kept.iter()
+                    .for_each(|&(a, b)| text.extend_from_slice(&self.pat[a..b]));
                 text.push(b']');
                 if kept.is_empty() {
                     cs.lib = None;
@@ -1119,14 +1231,22 @@ impl<'a> Parser<'a> {
                     };
                 }
                 if self.libc || self.sb {
-                    return Ok(if kind == b'.' { Elem::Lib } else { Elem::Equiv(0) });
+                    return Ok(if kind == b'.' {
+                        Elem::Lib
+                    } else {
+                        Elem::Equiv(0)
+                    });
                 }
                 // A collating symbol or equivalence class: one single-byte character.
                 if name.len() != 1 || (self.utf8 && name[0] > 0x7f) {
                     return Err(err(E_ECOLLATE));
                 }
                 let ch = name[0] as u32;
-                return Ok(if kind == b'.' { Elem::Ch(ch) } else { Elem::Equiv(ch) });
+                return Ok(if kind == b'.' {
+                    Elem::Ch(ch)
+                } else {
+                    Elem::Equiv(ch)
+                });
             }
         }
         if self.utf8 {

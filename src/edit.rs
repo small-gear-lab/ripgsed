@@ -26,17 +26,32 @@ pub struct Pattern {
 impl Pattern {
     /// A basic regular expression (`\(`, `\{`, `\+` and `\|` are the operators).
     pub fn basic(text: impl Into<String>) -> Pattern {
-        Pattern { text: text.into(), dialect: Dialect::Basic, ignore_case: false, multiline: false }
+        Pattern {
+            text: text.into(),
+            dialect: Dialect::Basic,
+            ignore_case: false,
+            multiline: false,
+        }
     }
 
     /// An extended regular expression (`(`, `{`, `+` and `|` are the operators).
     pub fn extended(text: impl Into<String>) -> Pattern {
-        Pattern { text: text.into(), dialect: Dialect::Extended, ignore_case: false, multiline: false }
+        Pattern {
+            text: text.into(),
+            dialect: Dialect::Extended,
+            ignore_case: false,
+            multiline: false,
+        }
     }
 
     /// A Perl-style regular expression, read by the PCRE2 library (`sed -P`).
     pub fn perl(text: impl Into<String>) -> Pattern {
-        Pattern { text: text.into(), dialect: Dialect::Perl, ignore_case: false, multiline: false }
+        Pattern {
+            text: text.into(),
+            dialect: Dialect::Perl,
+            ignore_case: false,
+            multiline: false,
+        }
     }
 
     /// Matches without regard to case (the `I` flag).
@@ -107,16 +122,34 @@ pub struct Address {
 
 impl Address {
     fn single(text: String) -> Address {
-        Address { text, shape: Shape::Single, negated: false, dialect: None, error: None }
+        Address {
+            text,
+            shape: Shape::Single,
+            negated: false,
+            dialect: None,
+            error: None,
+        }
     }
 
     fn failed(message: &str) -> Address {
-        Address { text: String::new(), shape: Shape::All, negated: false, dialect: None, error: Some(message.into()) }
+        Address {
+            text: String::new(),
+            shape: Shape::All,
+            negated: false,
+            dialect: None,
+            error: Some(message.into()),
+        }
     }
 
     /// Every line.
     pub fn all() -> Address {
-        Address { text: String::new(), shape: Shape::All, negated: false, dialect: None, error: None }
+        Address {
+            text: String::new(),
+            shape: Shape::All,
+            negated: false,
+            dialect: None,
+            error: None,
+        }
     }
 
     /// Line number `n` (the first line is 1).
@@ -152,7 +185,11 @@ impl Address {
         if let Some(error) = first.error.clone().or_else(|| last.error.clone()) {
             return Address::failed(&error);
         }
-        if first.shape != Shape::Single || last.shape != Shape::Single || first.negated || last.negated {
+        if first.shape != Shape::Single
+            || last.shape != Shape::Single
+            || first.negated
+            || last.negated
+        {
             return Address::failed("a range needs two single addresses that are not negated");
         }
         let dialect = match (first.dialect, last.dialect) {
@@ -186,7 +223,13 @@ impl Address {
         if first.shape != Shape::Single || first.negated {
             return Address::failed("a range needs a single address that is not negated");
         }
-        Address { text: format!("{},{end}", first.text), shape: Shape::Range, negated: false, dialect: first.dialect, error: None }
+        Address {
+            text: format!("{},{end}", first.text),
+            shape: Shape::Range,
+            negated: false,
+            dialect: first.dialect,
+            error: None,
+        }
     }
 
     /// The lines this address does not select (`!`). Applying it twice gives the address back.
@@ -198,7 +241,11 @@ impl Address {
     }
 
     fn prefix(&self) -> String {
-        if self.negated { format!("{}!", self.text) } else { self.text.clone() }
+        if self.negated {
+            format!("{}!", self.text)
+        } else {
+            self.text.clone()
+        }
     }
 }
 
@@ -220,7 +267,10 @@ struct Command {
 
 impl Command {
     fn plain(text: String) -> Command {
-        Command { text, substitute: None }
+        Command {
+            text,
+            substitute: None,
+        }
     }
 
     fn render(&self) -> String {
@@ -321,12 +371,20 @@ impl Edit {
 
     /// `q`: print the line, then stop with this exit status.
     pub fn quit(self, exit_status: u8) -> Edit {
-        self.push(if exit_status == 0 { "q".into() } else { format!("q{exit_status}") })
+        self.push(if exit_status == 0 {
+            "q".into()
+        } else {
+            format!("q{exit_status}")
+        })
     }
 
     /// `Q`: stop with this exit status without printing the line.
     pub fn quit_silently(self, exit_status: u8) -> Edit {
-        self.push(if exit_status == 0 { "Q".into() } else { format!("Q{exit_status}") })
+        self.push(if exit_status == 0 {
+            "Q".into()
+        } else {
+            format!("Q{exit_status}")
+        })
     }
 
     /// `a`: print the text after the line. A newline in the text starts another line.
@@ -403,8 +461,18 @@ impl Edit {
 
     fn substitution(mut self, pattern: Pattern, replacement: String) -> Edit {
         self.note_dialect(Some(pattern.dialect));
-        let text = format!("{}s/{}/{replacement}/", self.address_text(), pattern.delimited());
-        self.commands.push(Command { text, substitute: Some(Flags { pattern: pattern.flags(), ..Flags::default() }) });
+        let text = format!(
+            "{}s/{}/{replacement}/",
+            self.address_text(),
+            pattern.delimited()
+        );
+        self.commands.push(Command {
+            text,
+            substitute: Some(Flags {
+                pattern: pattern.flags(),
+                ..Flags::default()
+            }),
+        });
         self
     }
 

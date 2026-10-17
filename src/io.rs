@@ -9,8 +9,8 @@ use std::os::fd::FromRawFd;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use crate::stream::ChunkReader;
 use crate::Fatal;
+use crate::stream::ChunkReader;
 
 /// How much is read at a time: large enough to keep system calls rare, small enough to stay in
 /// cache. With `-u` input is read a byte at a time so that nothing is taken past the last record.
@@ -107,7 +107,13 @@ pub struct ChunkedSource<R: Read> {
 
 impl<R: Read> ChunkedSource<R> {
     pub fn new(reader: R, separator: u8, block: usize) -> Self {
-        ChunkedSource { reader: ChunkReader::new(reader, separator, block), separator, chunk: Vec::new(), pos: 0, consumed: 0 }
+        ChunkedSource {
+            reader: ChunkReader::new(reader, separator, block),
+            separator,
+            chunk: Vec::new(),
+            pos: 0,
+            consumed: 0,
+        }
     }
 
     pub fn reader_mut(&mut self) -> &mut R {
@@ -143,7 +149,8 @@ impl<R: Read> ChunkedSource<R> {
             } else {
                 let mut off = 0;
                 for _ in 0..n - done {
-                    off += crate::search::memchr(self.separator, &rest[off..]).expect("counted") + 1;
+                    off +=
+                        crate::search::memchr(self.separator, &rest[off..]).expect("counted") + 1;
                 }
                 done = n;
                 self.pos += off;
@@ -199,7 +206,10 @@ pub struct Record {
 }
 
 /// Reads one record terminated by `separator`. Returns `None` at end of input.
-pub fn read_record<R: BufRead + ?Sized>(reader: &mut R, separator: u8) -> io::Result<Option<Record>> {
+pub fn read_record<R: BufRead + ?Sized>(
+    reader: &mut R,
+    separator: u8,
+) -> io::Result<Option<Record>> {
     let mut body = Vec::new();
     let n = reader.read_until(separator, &mut body)?;
     if n == 0 {
@@ -338,11 +348,17 @@ impl FileInputs {
                 match follow_link_chain(std::path::Path::new(&name)) {
                     Ok(resolved) => resolved.to_string_lossy().into_owned(),
                     Err(FollowError::Link(shown, e)) => {
-                        self.fatal = Some(Fatal::new(format!("couldn't readlink {}: {}", shown.display(), strerror(&e)), 4));
+                        self.fatal = Some(Fatal::new(
+                            format!("couldn't readlink {}: {}", shown.display(), strerror(&e)),
+                            4,
+                        ));
                         return false;
                     }
                     Err(FollowError::Loop(e)) => {
-                        self.fatal = Some(Fatal::new(format!("couldn't follow symlink {}: {}", name, strerror(&e)), 4));
+                        self.fatal = Some(Fatal::new(
+                            format!("couldn't follow symlink {}: {}", name, strerror(&e)),
+                            4,
+                        ));
                         return false;
                     }
                 }
@@ -356,19 +372,30 @@ impl FileInputs {
                     if self.in_place {
                         if let Ok(m) = f.metadata() {
                             if !m.is_file() {
-                                let why = if std::io::IsTerminal::is_terminal(&f) { "is a terminal" } else { "not a regular file" };
-                                self.fatal = Some(Fatal::new(format!("couldn't edit {}: {}", name, why), 4));
+                                let why = if std::io::IsTerminal::is_terminal(&f) {
+                                    "is a terminal"
+                                } else {
+                                    "not a regular file"
+                                };
+                                self.fatal =
+                                    Some(Fatal::new(format!("couldn't edit {}: {}", name, why), 4));
                                 return false;
                             }
                         }
                     }
                     let source = ChunkedSource::new(f, self.separator, BLOCK);
-                    self.current = Some((Source::Chunked(Box::new(source)), Rc::from(name.as_str())));
+                    self.current =
+                        Some((Source::Chunked(Box::new(source)), Rc::from(name.as_str())));
                     self.started_file = false;
                     return true;
                 }
                 Err(e) => {
-                    crate::cli::eprint_message(&format!("{}: can't read {}: {}", self.program, given, strerror(&e)));
+                    crate::cli::eprint_message(&format!(
+                        "{}: can't read {}: {}",
+                        self.program,
+                        given,
+                        strerror(&e)
+                    ));
                     self.had_open_error = true;
                 }
             }
@@ -390,13 +417,21 @@ impl FileInputs {
             let (source, name) = self.current.as_mut().unwrap();
             let read = match source {
                 Source::Chunked(source) => source.next_record_into(std::mem::take(&mut self.spare)),
-                Source::Stdin => stdin_record_into(std::mem::take(&mut self.spare), self.separator, self.unbuffered),
+                Source::Stdin => stdin_record_into(
+                    std::mem::take(&mut self.spare),
+                    self.separator,
+                    self.unbuffered,
+                ),
             };
             match read {
                 Ok(Some(record)) => {
                     let new_file = !self.started_file;
                     self.started_file = true;
-                    self.peeked.push_back(Fetched { record, new_file, file_name: name.clone() });
+                    self.peeked.push_back(Fetched {
+                        record,
+                        new_file,
+                        file_name: name.clone(),
+                    });
                 }
                 Ok(None) => self.current = None,
                 Err(e) => {
@@ -404,7 +439,10 @@ impl FileInputs {
                         self.current = None;
                         continue;
                     }
-                    return Err(Fatal::new(format!("read error on {}: {}", display_name(name), strerror(&e)), 4));
+                    return Err(Fatal::new(
+                        format!("read error on {}: {}", display_name(name), strerror(&e)),
+                        4,
+                    ));
                 }
             }
         }
@@ -434,7 +472,11 @@ impl RecordSource for FileInputs {
             let (source, name) = self.current.as_mut().unwrap();
             let skipped = match source {
                 Source::Chunked(source) => source.skip_records(n),
-                Source::Stdin => with_stdin(|s| s.source.skip_records(n), self.unbuffered, self.separator),
+                Source::Stdin => with_stdin(
+                    |s| s.source.skip_records(n),
+                    self.unbuffered,
+                    self.separator,
+                ),
             };
             match skipped {
                 Ok(k) => {
@@ -447,7 +489,12 @@ impl RecordSource for FileInputs {
                         self.current = None;
                     }
                 }
-                Err(e) => return Err(Fatal::new(format!("read error on {}: {}", display_name(name), strerror(&e)), 4)),
+                Err(e) => {
+                    return Err(Fatal::new(
+                        format!("read error on {}: {}", display_name(name), strerror(&e)),
+                        4,
+                    ));
+                }
             }
         }
         Ok(done)
@@ -472,16 +519,26 @@ impl RecordSource for FileInputs {
             }
             // Only the current file matters: the next one is not opened (nor its errors found)
             // before sed gets there.
-            let Some((source, name)) = self.current.as_mut() else { return Ok(same) };
+            let Some((source, name)) = self.current.as_mut() else {
+                return Ok(same);
+            };
             let read = match source {
                 Source::Chunked(source) => source.next_record_into(std::mem::take(&mut self.spare)),
-                Source::Stdin => stdin_record_into(std::mem::take(&mut self.spare), self.separator, self.unbuffered),
+                Source::Stdin => stdin_record_into(
+                    std::mem::take(&mut self.spare),
+                    self.separator,
+                    self.unbuffered,
+                ),
             };
             match read {
                 Ok(Some(record)) => {
                     let new_file = !self.started_file;
                     self.started_file = true;
-                    self.peeked.push_back(Fetched { record, new_file, file_name: name.clone() });
+                    self.peeked.push_back(Fetched {
+                        record,
+                        new_file,
+                        file_name: name.clone(),
+                    });
                 }
                 // The end of the file, or an error that only shows once sed reads on.
                 Ok(None) | Err(_) => {
@@ -503,12 +560,19 @@ pub struct ReaderSource<R: BufRead> {
 
 impl<R: BufRead> ReaderSource<R> {
     pub fn new(reader: R, separator: u8) -> Self {
-        ReaderSource { reader, separator, first: true, peeked: std::collections::VecDeque::new() }
+        ReaderSource {
+            reader,
+            separator,
+            first: true,
+            peeked: std::collections::VecDeque::new(),
+        }
     }
 
     fn fill_to(&mut self, count: usize) -> Result<(), Fatal> {
         while self.peeked.len() < count {
-            match read_record(&mut self.reader, self.separator).map_err(|e| Fatal::new(strerror(&e), 4))? {
+            match read_record(&mut self.reader, self.separator)
+                .map_err(|e| Fatal::new(strerror(&e), 4))?
+            {
                 Some(record) => self.peeked.push_back(record),
                 None => break,
             }
@@ -522,7 +586,11 @@ impl<R: BufRead> RecordSource for ReaderSource<R> {
         self.fill_to(1)?;
         let new_file = self.first;
         self.first = false;
-        Ok(self.peeked.pop_front().map(|record| Fetched { record, new_file, file_name: Rc::from("-") }))
+        Ok(self.peeked.pop_front().map(|record| Fetched {
+            record,
+            new_file,
+            file_name: Rc::from("-"),
+        }))
     }
 
     fn records_after(&mut self, _separate: bool, cap: usize) -> Result<usize, Fatal> {
@@ -560,7 +628,12 @@ pub struct Output {
 
 impl Output {
     pub fn new(inner: Box<dyn Write>, separator: u8, name: &str) -> Self {
-        Output { inner: Rc::new(RefCell::new(inner)), separator, missing_separator: false, name: name.to_string() }
+        Output {
+            inner: Rc::new(RefCell::new(inner)),
+            separator,
+            missing_separator: false,
+            name: name.to_string(),
+        }
     }
 
     /// Another output onto the same stream with its own missing-newline state, like
@@ -628,7 +701,6 @@ impl Output {
 /// The bytes the files named by `w` got in a chunk, by file name (see `Outputs::capturing`).
 type Captured = Vec<(Vec<u8>, Rc<RefCell<Vec<u8>>>)>;
 
-
 /// Every output the script writes to: standard output, standard error, and the
 /// files named by `w`, `W`, and `s///w` (created or truncated before the first
 /// input line is read, and shared by all commands that name the same file).
@@ -684,7 +756,10 @@ impl Outputs {
         let captured = self.captured.take().unwrap_or_default();
         let mut taken = Vec::new();
         for (name, buffer) in captured {
-            let unterminated = self.files.get(&name).is_some_and(|out| out.ends_unterminated());
+            let unterminated = self
+                .files
+                .get(&name)
+                .is_some_and(|out| out.ends_unterminated());
             let bytes = std::mem::take(&mut *buffer.borrow_mut());
             if !bytes.is_empty() || unterminated {
                 taken.push((name, bytes, unterminated));
@@ -733,7 +808,12 @@ impl Outputs {
                 n ^= n << 7;
             }
             let temp = dir.join(name);
-            match std::fs::OpenOptions::new().write(true).create_new(true).mode(0o600).open(&temp) {
+            match std::fs::OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .mode(0o600)
+                .open(&temp)
+            {
                 Ok(file) => {
                     // The mode and the owner of the file are taken when it is opened, as GNU sed
                     // does, so they are the same if the original goes away during the run. The
@@ -744,13 +824,25 @@ impl Outputs {
                         let _ = std::fs::set_permissions(&temp, meta.permissions());
                         let _ = std::os::unix::fs::chown(&temp, Some(meta.uid()), Some(meta.gid()));
                     }
-                    let output = Output::new(Box::new(io::BufWriter::new(file)), self.separator, path);
-                    self.in_place = Some(InPlaceFile { output, original, temp });
+                    let output =
+                        Output::new(Box::new(io::BufWriter::new(file)), self.separator, path);
+                    self.in_place = Some(InPlaceFile {
+                        output,
+                        original,
+                        temp,
+                    });
                     return Ok(());
                 }
                 Err(e) if e.kind() == io::ErrorKind::AlreadyExists => continue,
                 Err(e) => {
-                    return Err(Fatal::new(format!("couldn't open temporary file {}: {}", temp.display(), strerror(&e)), 4));
+                    return Err(Fatal::new(
+                        format!(
+                            "couldn't open temporary file {}: {}",
+                            temp.display(),
+                            strerror(&e)
+                        ),
+                        4,
+                    ));
                 }
             }
         }
@@ -769,11 +861,18 @@ impl Outputs {
     /// Finishes the file being edited: flushes the temporary file, keeps a backup
     /// when `backup_suffix` is given, and moves the temporary file over the original.
     pub fn finish_in_place(&mut self, backup_suffix: Option<&str>) -> Result<(), Fatal> {
-        let Some(mut file) = self.in_place.take() else { return Ok(()) };
-        file.output.flush().map_err(|e| write_error(&file.output.name, &e))?;
+        let Some(mut file) = self.in_place.take() else {
+            return Ok(());
+        };
+        file.output
+            .flush()
+            .map_err(|e| write_error(&file.output.name, &e))?;
         drop(file.output);
         let rename_error = |name: &std::path::Path, e: io::Error| {
-            Fatal::new(format!("cannot rename {}: {}", name.display(), strerror(&e)), 4)
+            Fatal::new(
+                format!("cannot rename {}: {}", name.display(), strerror(&e)),
+                4,
+            )
         };
         if let Some(suffix) = backup_suffix.filter(|s| !s.is_empty()) {
             // A `*` stands for the input file name exactly as it was given (with its directory);
@@ -809,7 +908,11 @@ impl Outputs {
             b"/dev/stdout" => Ok(()),
             b"/dev/stderr" => {
                 if self.stderr.is_none() {
-                    self.stderr = Some(Output::new(Box::new(io::stderr()), self.separator, "stderr"));
+                    self.stderr = Some(Output::new(
+                        Box::new(io::stderr()),
+                        self.separator,
+                        "stderr",
+                    ));
                 }
                 Ok(())
             }
@@ -821,15 +924,24 @@ impl Outputs {
                 if let Some(captured) = self.captured.as_mut() {
                     let buffer = Rc::new(RefCell::new(Vec::new()));
                     captured.push((name.to_vec(), buffer.clone()));
-                    self.files.insert(name.to_vec(), Output::new(Box::new(SharedBuffer(buffer)), self.separator, &path));
+                    self.files.insert(
+                        name.to_vec(),
+                        Output::new(Box::new(SharedBuffer(buffer)), self.separator, &path),
+                    );
                     return Ok(());
                 }
                 match File::create(bytes_path(name)) {
                     Ok(f) => {
-                        self.files.insert(name.to_vec(), Output::new(Box::new(io::BufWriter::new(f)), self.separator, &path));
+                        self.files.insert(
+                            name.to_vec(),
+                            Output::new(Box::new(io::BufWriter::new(f)), self.separator, &path),
+                        );
                         Ok(())
                     }
-                    Err(e) => Err(Fatal::new(format!("couldn't open file {}: {}", path, strerror(&e)), 4)),
+                    Err(e) => Err(Fatal::new(
+                        format!("couldn't open file {}: {}", path, strerror(&e)),
+                        4,
+                    )),
                 }
             }
         }
@@ -891,7 +1003,10 @@ fn flush_error(name: &str, e: &io::Error) -> Fatal {
 }
 
 pub fn write_error(name: &str, e: &io::Error) -> Fatal {
-    Fatal::new(format!("couldn't write 1 item to {}: {}", name, strerror(e)), 4)
+    Fatal::new(
+        format!("couldn't write 1 item to {}: {}", name, strerror(e)),
+        4,
+    )
 }
 
 /// How GNU sed names an input in its read errors: standard input is `stdin`, not `-`.
@@ -934,7 +1049,11 @@ pub static GLIBC_COMPAT: AtomicBool = AtomicBool::new(false);
 /// is read next (not the first one, which the buffer is made for). Only with `--glibc-compat`:
 /// by default the whole path is used. The buffer holds 121 bytes, or 185 when the directory part is longer than
 /// that, or just the directory part when that is longer still.
-fn join_link_target(link: &std::path::Path, target: &std::path::Path, bounded: bool) -> std::path::PathBuf {
+fn join_link_target(
+    link: &std::path::Path,
+    target: &std::path::Path,
+    bounded: bool,
+) -> std::path::PathBuf {
     let bounded = bounded && GLIBC_COMPAT.load(std::sync::atomic::Ordering::Relaxed);
     use std::os::unix::ffi::{OsStrExt, OsStringExt};
     let link = link.as_os_str().as_bytes();
@@ -963,7 +1082,9 @@ pub enum FollowError {
 /// A file name given on the command line, as the path it stands for.
 pub fn os_path(name: &str) -> std::path::PathBuf {
     use std::os::unix::ffi::OsStringExt;
-    std::path::PathBuf::from(std::ffi::OsString::from_vec(crate::cli::argument_bytes(name)))
+    std::path::PathBuf::from(std::ffi::OsString::from_vec(crate::cli::argument_bytes(
+        name,
+    )))
 }
 
 /// A file name from the script, as the path it stands for.
@@ -994,9 +1115,27 @@ mod tests {
     fn reads_records_and_keeps_missing_terminator() {
         let mut input: &[u8] = b"a\n\nlast";
         let r = |i: &mut &[u8]| read_record(i, b'\n').unwrap();
-        assert_eq!(r(&mut input), Some(Record { body: b"a".to_vec(), terminated: true }));
-        assert_eq!(r(&mut input), Some(Record { body: Vec::new(), terminated: true }));
-        assert_eq!(r(&mut input), Some(Record { body: b"last".to_vec(), terminated: false }));
+        assert_eq!(
+            r(&mut input),
+            Some(Record {
+                body: b"a".to_vec(),
+                terminated: true
+            })
+        );
+        assert_eq!(
+            r(&mut input),
+            Some(Record {
+                body: Vec::new(),
+                terminated: true
+            })
+        );
+        assert_eq!(
+            r(&mut input),
+            Some(Record {
+                body: b"last".to_vec(),
+                terminated: false
+            })
+        );
         assert_eq!(r(&mut input), None);
     }
 
@@ -1014,7 +1153,10 @@ mod tests {
         let (a, b) = (dir.join("a"), dir.join("b"));
         std::fs::write(&a, "a1\na2\na3\n").unwrap();
         std::fs::write(&b, "b1\nb2\nb3\n").unwrap();
-        let names = vec![a.to_string_lossy().into_owned(), b.to_string_lossy().into_owned()];
+        let names = vec![
+            a.to_string_lossy().into_owned(),
+            b.to_string_lossy().into_owned(),
+        ];
         let mut input = FileInputs::new(names, b'\n', "sed");
         assert_eq!(input.next_record().unwrap().unwrap().record.body, b"a1");
         assert!(!input.is_last(false).unwrap());
@@ -1032,7 +1174,10 @@ mod tests {
         let dir = temp_dir("skip-missing");
         let a = dir.join("a");
         std::fs::write(&a, "a1\na2\n").unwrap();
-        let names = vec![a.to_string_lossy().into_owned(), dir.join("nosuch").to_string_lossy().into_owned()];
+        let names = vec![
+            a.to_string_lossy().into_owned(),
+            dir.join("nosuch").to_string_lossy().into_owned(),
+        ];
         let mut input = FileInputs::new(names, b'\n', "sed");
         assert_eq!(input.skip_records(5).unwrap(), 2);
         assert!(input.had_open_error);
@@ -1041,10 +1186,22 @@ mod tests {
 
     #[test]
     fn error_texts() {
-        assert_eq!(strerror(&io::Error::from_raw_os_error(2)), "No such file or directory");
-        assert_eq!(strerror(&io::Error::other("a plain message")), "a plain message");
-        assert_eq!(flush_error("stdout", &io::Error::from_raw_os_error(9)).message, "couldn't close stdout: Bad file descriptor");
-        assert_eq!(flush_error("stdout", &io::Error::from_raw_os_error(28)).message, "couldn't flush stdout: No space left on device");
+        assert_eq!(
+            strerror(&io::Error::from_raw_os_error(2)),
+            "No such file or directory"
+        );
+        assert_eq!(
+            strerror(&io::Error::other("a plain message")),
+            "a plain message"
+        );
+        assert_eq!(
+            flush_error("stdout", &io::Error::from_raw_os_error(9)).message,
+            "couldn't close stdout: Bad file descriptor"
+        );
+        assert_eq!(
+            flush_error("stdout", &io::Error::from_raw_os_error(28)).message,
+            "couldn't flush stdout: No space left on device"
+        );
     }
 
     #[test]
@@ -1052,7 +1209,10 @@ mod tests {
         let mut outputs = Outputs::new(Box::new(io::sink()), b'\n');
         let error = outputs.open(b"/nonexistent-directory/out").unwrap_err();
         assert_eq!(error.status, 4);
-        assert_eq!(error.message, "couldn't open file /nonexistent-directory/out: No such file or directory");
+        assert_eq!(
+            error.message,
+            "couldn't open file /nonexistent-directory/out: No such file or directory"
+        );
         assert!(outputs.open(b"/dev/stdout").is_ok() && outputs.open(b"/dev/stderr").is_ok());
     }
 

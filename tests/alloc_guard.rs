@@ -4,7 +4,7 @@
 use std::alloc::{GlobalAlloc, Layout};
 use std::process::Command;
 
-use ripgsed::alloc::{set_program_name, Guarded};
+use ripgsed::alloc::{Guarded, set_program_name};
 
 /// More than any system gives: the allocation must fail.
 fn huge() -> Layout {
@@ -36,11 +36,23 @@ fn a_failed_allocation_says_memory_exhausted() {
     }
     for kind in ["alloc", "zeroed", "realloc"] {
         let out = Command::new(std::env::current_exe().unwrap())
-            .args(["a_failed_allocation_says_memory_exhausted", "--exact", "--nocapture"])
+            .args([
+                "a_failed_allocation_says_memory_exhausted",
+                "--exact",
+                "--nocapture",
+            ])
             .env("RIPGSED_ALLOC_GUARD_CHILD", kind)
             .output()
             .expect("run the test binary");
-        assert_eq!(out.status.code(), Some(1), "{kind}: {}", String::from_utf8_lossy(&out.stderr));
-        assert!(String::from_utf8_lossy(&out.stderr).contains("sed: memory exhausted"), "{kind}");
+        assert_eq!(
+            out.status.code(),
+            Some(1),
+            "{kind}: {}",
+            String::from_utf8_lossy(&out.stderr)
+        );
+        assert!(
+            String::from_utf8_lossy(&out.stderr).contains("sed: memory exhausted"),
+            "{kind}"
+        );
     }
 }

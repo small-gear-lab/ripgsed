@@ -12,7 +12,10 @@
 use std::collections::{HashMap, HashSet};
 
 use super::ast::{Assert, Unit};
-use super::charset::{decode_utf8, decode_utf8_before, ext_level, is_word_byte, is_word_char, is_word_char_libc, simple_upper, surrogate_len};
+use super::charset::{
+    decode_utf8, decode_utf8_before, ext_level, is_word_byte, is_word_char, is_word_char_libc,
+    simple_upper, surrogate_len,
+};
 use super::compile::{GroupCopy, Inst, Program};
 
 const NONE: usize = usize::MAX;
@@ -164,7 +167,11 @@ impl<'a> Searcher<'a> {
     #[inline]
     fn dec(&self, pos: usize) -> Option<(char, usize)> {
         if self.mb {
-            if self.tails && pos > 0 && pos < self.hay.len() && !crate::locale::is_resync_byte(self.hay[pos]) {
+            if self.tails
+                && pos > 0
+                && pos < self.hay.len()
+                && !crate::locale::is_resync_byte(self.hay[pos])
+            {
                 // Inside a character a new one is read only from the bytes that are left of it.
                 if let Some(end) = self.mb_scan_end(pos).0 {
                     return crate::locale::mb_decode(&self.hay[..end], pos);
@@ -196,7 +203,16 @@ impl<'a> Searcher<'a> {
         // A position known to be a boundary before `pos`: where an earlier query ended or, for a
         // character that starts the search, nothing (the character before is not known). Reading
         // forward from it keeps a long line linear.
-        let base = self.seen.borrow().before(pos).unwrap_or(0).max(if self.boundary < pos { self.boundary } else { 0 });
+        let base = self
+            .seen
+            .borrow()
+            .before(pos)
+            .unwrap_or(0)
+            .max(if self.boundary < pos {
+                self.boundary
+            } else {
+                0
+            });
         let mut start = pos;
         let floor = start.saturating_sub(4096);
         loop {
@@ -236,15 +252,27 @@ impl<'a> Searcher<'a> {
 
     /// The character that ends exactly at `pos`, if there is one.
     fn dec_before(&self, pos: usize) -> Option<(char, usize)> {
-        if self.mb { self.mb_scan(pos).1 } else { decode_utf8_before(self.hay, pos) }
+        if self.mb {
+            self.mb_scan(pos).1
+        } else {
+            decode_utf8_before(self.hay, pos)
+        }
     }
 
     fn word_char(&self, c: char) -> bool {
-        if self.libc { is_word_char_libc(c) } else { is_word_char(c) }
+        if self.libc {
+            is_word_char_libc(c)
+        } else {
+            is_word_char(c)
+        }
     }
 
     fn upper(&self, c: char) -> char {
-        if self.libc { crate::locale::upper(c) } else { simple_upper(c) }
+        if self.libc {
+            crate::locale::upper(c)
+        } else {
+            simple_upper(c)
+        }
     }
 
     #[inline]
@@ -255,7 +283,11 @@ impl<'a> Searcher<'a> {
             Unit::Any { exclude } => {
                 let Some((c, len)) = self.dec(pos) else {
                     // (At level 2 of `with_ext`: `.` takes an encoded surrogate whole.)
-                    return if self.utf8 && !self.mb && exclude.is_none_or(|e| e != b) { surrogate_len(self.hay, pos) } else { None };
+                    return if self.utf8 && !self.mb && exclude.is_none_or(|e| e != b) {
+                        surrogate_len(self.hay, pos)
+                    } else {
+                        None
+                    };
                 };
 
                 (exclude.is_none_or(|b| c as u32 != b as u32 && c != '\n')).then_some(len)
@@ -264,7 +296,11 @@ impl<'a> Searcher<'a> {
                 // An invalid byte matches no set (`--glibc-compat`: but a negated set under `I`
                 // takes some pairs of bytes that the library reads as one character).
                 let Some((c, len)) = self.dec(pos) else {
-                    let n = if self.glibc && self.mb && cs.negated && cs.icase && cs.lib.is_some() { crate::locale::icase_seq(&self.hay[pos..]) } else { 0 };
+                    let n = if self.glibc && self.mb && cs.negated && cs.icase && cs.lib.is_some() {
+                        crate::locale::icase_seq(&self.hay[pos..])
+                    } else {
+                        0
+                    };
                     return (n > 0).then_some(n);
                 };
                 // `--glibc-compat`: the matcher of the library takes the first byte(s) of some
@@ -279,7 +315,10 @@ impl<'a> Searcher<'a> {
                 }
                 // (A sequence beyond Unicode belongs to no class: a negated set of the library takes it,
                 // whatever the library says of the stand-in character.)
-                let hit = if c == super::charset::BEYOND_UNICODE && self.hay[pos] >= 0xf4 && cs.lib.is_some() {
+                let hit = if c == super::charset::BEYOND_UNICODE
+                    && self.hay[pos] >= 0xf4
+                    && cs.lib.is_some()
+                {
                     cs.negated && cs.exclude.is_none_or(|b| b != self.hay[pos])
                 } else if self.mb {
                     cs.matches_seq(c, &self.hay[pos..pos + len])
@@ -353,7 +392,9 @@ impl<'a> Searcher<'a> {
             Assert::BufStart if self.address && self.multiline => {
                 self.assert_check(Assert::LineStart, pos, start)
             }
-            Assert::BufEnd if self.address && self.multiline => self.assert_check(Assert::LineEnd, pos, start),
+            Assert::BufEnd if self.address && self.multiline => {
+                self.assert_check(Assert::LineEnd, pos, start)
+            }
             Assert::BufStart | Assert::BufEnd => hold(self.assert_ok(a, pos)),
             // Word assertions never hold inside a multibyte character.
             _ => hold(!self.inside_char(pos) && self.assert_ok(a, pos)),
@@ -363,7 +404,9 @@ impl<'a> Searcher<'a> {
     fn assert_ok(&self, a: Assert, pos: usize) -> bool {
         let len = self.hay.len();
         match a {
-            Assert::LineStart | Assert::LineEnd => unreachable!("`assert_check` decides `^` and `$`"),
+            Assert::LineStart | Assert::LineEnd => {
+                unreachable!("`assert_check` decides `^` and `$`")
+            }
             Assert::BufStart => pos == 0,
             Assert::BufEnd => pos == len,
             Assert::WordBoundary => self.word_before(pos) != self.word_after(pos),
@@ -447,12 +490,21 @@ impl<'a> Searcher<'a> {
         // The earliest end of any match, then the leftmost start of a match ending there. A match
         // that starts earlier must end later: try those starts one by one (within a budget).
         let hay = self.hay;
-        let Ok(first) = set.unanchored.first_end(hay, from) else { return None };
+        let Ok(first) = set.unanchored.first_end(hay, from) else {
+            return None;
+        };
         let Some(e1) = first else { return Some(None) };
-        let Ok(Some(s1)) = set.reverse.leftmost_start(hay, from, e1) else { return None };
+        let Ok(Some(s1)) = set.reverse.leftmost_start(hay, from, e1) else {
+            return None;
+        };
         let mut budget = 256 + 4 * (e1 - from);
         for s in from..s1 {
-            if self.prog.first_bytes.as_ref().is_some_and(|fb| !fb.contains(hay[s])) {
+            if self
+                .prog
+                .first_bytes
+                .as_ref()
+                .is_some_and(|fb| !fb.contains(hay[s]))
+            {
                 continue;
             }
             match set.forward.longest_from(hay, s, &mut budget) {
@@ -471,7 +523,10 @@ impl<'a> Searcher<'a> {
     /// The empty match glibc reports instead of one at `s` when a leading repetition could consume
     /// a character there: it is put after that character (see `star_before_not_word_boundary`).
     fn end_of_star_run(&self, s: usize) -> (usize, usize) {
-        let l = self.unit_len(0, s).filter(|&l| l > 0).expect("the caller saw a character here");
+        let l = self
+            .unit_len(0, s)
+            .filter(|&l| l > 0)
+            .expect("the caller saw a character here");
         (s + l, s + l)
     }
 
@@ -487,7 +542,10 @@ impl<'a> Searcher<'a> {
             }
         }
         loop {
-            debug_assert!(from <= len, "a search starts inside the haystack and steps by whole characters");
+            debug_assert!(
+                from <= len,
+                "a search starts inside the haystack and steps by whole characters"
+            );
             let (s, e) = if self.prog.has_backrefs {
                 let mut bt = Backtracker::new(self, false);
                 let mut s = from;
@@ -497,7 +555,11 @@ impl<'a> Searcher<'a> {
                             // With an assertion in the pattern glibc loses the whole search when
                             // a path through an unset group that can be empty also reaches the end
                             // (`(\<()|())\2` on `b`).
-                            if s == start && e == s && bt.hit_unset && self.prog.insts.iter().any(|i| matches!(i, Inst::Assert(_))) {
+                            if s == start
+                                && e == s
+                                && bt.hit_unset
+                                && self.prog.insts.iter().any(|i| matches!(i, Inst::Assert(_)))
+                            {
                                 return None;
                             }
                             break (s, e);
@@ -519,8 +581,15 @@ impl<'a> Searcher<'a> {
                     None => self.longest(from)?,
                 }
             };
-            let shifted = self.quirk_stars > 0 && s == e && s > 0 && self.unit_len(0, s).is_some_and(|l| l > 0);
-            let (s, e) = if shifted { self.end_of_star_run(s) } else { (s, e) };
+            let shifted = self.quirk_stars > 0
+                && s == e
+                && s > 0
+                && self.unit_len(0, s).is_some_and(|l| l > 0);
+            let (s, e) = if shifted {
+                self.end_of_star_run(s)
+            } else {
+                (s, e)
+            };
             let mut groups = vec![None; self.prog.ngroups + 1];
             groups[0] = Some((s, e));
             if shifted {
@@ -574,7 +643,15 @@ impl<'a> Searcher<'a> {
         let mut scratch = self.scratch.borrow_mut();
         scratch.prepare(m);
         scratch.reset();
-        let Scratch { ring, slot, stamp, generation, stack, consuming, .. } = &mut *scratch;
+        let Scratch {
+            ring,
+            slot,
+            stamp,
+            generation,
+            stack,
+            consuming,
+            ..
+        } = &mut *scratch;
         let mut pending = 0usize;
         let mut best: Option<(usize, usize)> = None;
         // Closure entries carry whether the path must consume a newline next (in `stack`).
@@ -636,7 +713,9 @@ impl<'a> Searcher<'a> {
                             Check::NeedNewline => stack.push((pc + 1, true)),
                             Check::Fail => {}
                         },
-                        Inst::Backref(_) => unreachable!("the simulation runs only without back-references"),
+                        Inst::Backref(_) => {
+                            unreachable!("the simulation runs only without back-references")
+                        }
                         Inst::Match if nl => {}
                         Inst::Match => match best {
                             None => best = Some((st, p)),
@@ -655,7 +734,9 @@ impl<'a> Searcher<'a> {
                 for &(pc, st) in consuming.iter() {
                     // A seed that started after the best match was dropped above.
                     debug_assert!(best.is_none_or(|(bs, _)| st <= bs));
-                    let Inst::Unit(u) = prog.insts[pc as usize] else { unreachable!() };
+                    let Inst::Unit(u) = prog.insts[pc as usize] else {
+                        unreachable!()
+                    };
                     if let Some(l) = self.unit_len(u, p) {
                         let q = (p + l) % RING;
                         let npc = pc + 1;
@@ -789,8 +870,14 @@ impl<'s, 'a> Backtracker<'s, 'a> {
         // middle copy of a bounded repetition (`Inst::Close`), which instruction closed it, and
         // where and by which instruction an empty iteration closed it (`empty_slot`); and a last
         // register for the shadow mark (see the `Backref` case of `run`).
-        let n = if s.prog.quirks { 6 * (s.prog.ngroups + 1) + 1 } else { 4 * (s.prog.ngroups + 1) };
-        let keyed = (1..=s.prog.ngroups).filter(|&g| s.prog.referenced[g]).collect();
+        let n = if s.prog.quirks {
+            6 * (s.prog.ngroups + 1) + 1
+        } else {
+            4 * (s.prog.ngroups + 1)
+        };
+        let keyed = (1..=s.prog.ngroups)
+            .filter(|&g| s.prog.referenced[g])
+            .collect();
         let (mut caps, mut snap, mut stamp, mut trail, mut stack) = {
             let mut sc = s.scratch.borrow_mut();
             (
@@ -951,7 +1038,9 @@ impl<'s, 'a> Backtracker<'s, 'a> {
                 while let Some(q) = work.pop() {
                     for &p in &preds[q as usize] {
                         let k = row + p as usize;
-                        if Self::bit(&self.free_b, k) || matches!(prog.insts[p as usize], Inst::Assert(_)) {
+                        if Self::bit(&self.free_b, k)
+                            || matches!(prog.insts[p as usize], Inst::Assert(_))
+                        {
                             continue;
                         }
                         Self::set_bit(&mut self.free_b, k);
@@ -978,7 +1067,11 @@ impl<'s, 'a> Backtracker<'s, 'a> {
                         _ => false,
                     };
                     if ok {
-                        let t = if table == 0 { &mut self.viable } else { &mut self.free_a };
+                        let t = if table == 0 {
+                            &mut self.viable
+                        } else {
+                            &mut self.free_a
+                        };
                         Self::set_bit(t, row + pc);
                         work.push(pc as u32);
                     }
@@ -986,7 +1079,11 @@ impl<'s, 'a> Backtracker<'s, 'a> {
                 while let Some(q) = work.pop() {
                     for &p in &preds[q as usize] {
                         let k = row + p as usize;
-                        let t = if table == 0 { &self.viable } else { &self.free_a };
+                        let t = if table == 0 {
+                            &self.viable
+                        } else {
+                            &self.free_a
+                        };
                         if Self::bit(t, k) {
                             continue;
                         }
@@ -995,7 +1092,11 @@ impl<'s, 'a> Backtracker<'s, 'a> {
                                 continue;
                             }
                         }
-                        let t = if table == 0 { &mut self.viable } else { &mut self.free_a };
+                        let t = if table == 0 {
+                            &mut self.viable
+                        } else {
+                            &mut self.free_a
+                        };
                         Self::set_bit(t, k);
                         work.push(p);
                     }
@@ -1074,8 +1175,16 @@ impl<'s, 'a> Backtracker<'s, 'a> {
         if copies.is_empty() || copies.len() > MAX_COPIES {
             return true;
         }
-        let (mut s, mut e, mut closer) = (self.caps[2 * g], self.caps[2 * g + 1], self.caps[self.closer_slot(g)]);
-        let ep = if prog.quirks { self.caps[self.empty_slot(g)] } else { NONE };
+        let (mut s, mut e, mut closer) = (
+            self.caps[2 * g],
+            self.caps[2 * g + 1],
+            self.caps[self.closer_slot(g)],
+        );
+        let ep = if prog.quirks {
+            self.caps[self.empty_slot(g)]
+        } else {
+            NONE
+        };
         if ep != NONE {
             (s, e, closer) = (ep, ep, self.caps[self.empty_closer_slot(g)]);
         }
@@ -1088,7 +1197,12 @@ impl<'s, 'a> Backtracker<'s, 'a> {
             self.reach = Some(self.simulate(start, start, limit, 0, None, words));
         }
         let closer = closer as u32;
-        let mandatory = |q: u32| copies.iter().find(|c| c.close == q).is_none_or(|c| c.mandatory);
+        let mandatory = |q: u32| {
+            copies
+                .iter()
+                .find(|c| c.close == q)
+                .is_none_or(|c| c.mandatory)
+        };
         let nullable = copies[0].nullable;
         for c in copies {
             if c.close == closer {
@@ -1104,7 +1218,9 @@ impl<'s, 'a> Backtracker<'s, 'a> {
                     continue;
                 }
                 let conflict = if c.close < closer {
-                    open_pos < s || (open_pos == s && !(!nullable && mandatory(c.close) && !mandatory(closer)))
+                    open_pos < s
+                        || (open_pos == s
+                            && !(!nullable && mandatory(c.close) && !mandatory(closer)))
                 } else {
                     open_pos > s && !(nullable && mandatory(closer) && !mandatory(c.close))
                 };
@@ -1129,13 +1245,23 @@ impl<'s, 'a> Backtracker<'s, 'a> {
                 .collect();
             self.body_closes.insert((c.close, open_pos), closes);
         }
-        self.body_closes[&(c.close, open_pos)].binary_search(&e).is_ok()
+        self.body_closes[&(c.close, open_pos)]
+            .binary_search(&e)
+            .is_ok()
     }
 
     /// Which instructions can be reached from `entry` at `from`, at each position up to `limit`
     /// (row `p - from`, one bit per instruction). Back-references and `Match` lead nowhere, and
     /// a path does not go past `stop`.
-    fn simulate(&self, start: usize, from: usize, limit: usize, entry: u32, stop: Option<u32>, words: usize) -> Vec<u64> {
+    fn simulate(
+        &self,
+        start: usize,
+        from: usize,
+        limit: usize,
+        entry: u32,
+        stop: Option<u32>,
+        words: usize,
+    ) -> Vec<u64> {
         let s = self.s;
         let prog = s.prog;
         let rows = limit - from + 1;
@@ -1219,12 +1345,16 @@ impl<'s, 'a> Backtracker<'s, 'a> {
         }
         if self.s.sb {
             let end = pos + sub.len();
-            let same = |x: &u8, y: &u8| x == y || crate::locale::byte_upper(*x) == crate::locale::byte_upper(*y);
-            return (end <= hay.len() && hay[pos..end].iter().zip(sub).all(|(x, y)| same(x, y))).then_some(sub.len());
+            let same = |x: &u8, y: &u8| {
+                x == y || crate::locale::byte_upper(*x) == crate::locale::byte_upper(*y)
+            };
+            return (end <= hay.len() && hay[pos..end].iter().zip(sub).all(|(x, y)| same(x, y)))
+                .then_some(sub.len());
         }
         if !self.s.utf8 {
             let end = pos + sub.len();
-            return (end <= hay.len() && hay[pos..end].eq_ignore_ascii_case(sub)).then_some(sub.len());
+            return (end <= hay.len() && hay[pos..end].eq_ignore_ascii_case(sub))
+                .then_some(sub.len());
         }
         // `--glibc-compat`: glibc does not match a back-reference under `I` to a group of one
         // letter whose capital takes more bytes than the letter, when the text is the same letter
@@ -1250,7 +1380,10 @@ impl<'s, 'a> Backtracker<'s, 'a> {
             match (self.s.dec(i), self.s.dec(j)) {
                 (Some((c1, l1)), Some((c2, l2))) => {
                     // (Two sequences beyond Unicode are one stand-in character each: compare the bytes.)
-                    if c1 == super::charset::BEYOND_UNICODE && hay[i..i + l1] != hay[j..j + l2] && hay[i] >= 0xf4 {
+                    if c1 == super::charset::BEYOND_UNICODE
+                        && hay[i..i + l1] != hay[j..j + l2]
+                        && hay[i] >= 0xf4
+                    {
                         return None;
                     }
                     if c1 != c2 && self.s.upper(c1) != self.s.upper(c2) {
@@ -1305,7 +1438,14 @@ impl<'s, 'a> Backtracker<'s, 'a> {
         let mut best: Option<usize> = None;
         self.new_segment();
         self.memo(0, start);
-        self.stack.push(Choice { pc: 0, pos: start, trail: 0, seg: self.seg, nl: false, c: false });
+        self.stack.push(Choice {
+            pc: 0,
+            pos: start,
+            trail: 0,
+            seg: self.seg,
+            nl: false,
+            c: false,
+        });
         while let Some(ch) = self.stack.pop() {
             self.undo(ch.trail);
             self.seg = ch.seg;
@@ -1336,7 +1476,14 @@ impl<'s, 'a> Backtracker<'s, 'a> {
                             }
                             pc = b;
                         } else {
-                            self.stack.push(Choice { pc: b, pos, trail: self.trail.len(), seg: self.seg, nl, c });
+                            self.stack.push(Choice {
+                                pc: b,
+                                pos,
+                                trail: self.trail.len(),
+                                seg: self.seg,
+                                nl,
+                                c,
+                            });
                             pc = a;
                         }
                     }
@@ -1350,7 +1497,11 @@ impl<'s, 'a> Backtracker<'s, 'a> {
                     Inst::Close(g, opt, mid, lk) => {
                         let g = g as usize;
                         let slot = self.mid_slot(g);
-                        if self.no_empty && lk == 3 && self.caps[2 * g] == pos && self.snap[2 * g] != NONE {
+                        if self.no_empty
+                            && lk == 3
+                            && self.caps[2 * g] == pos
+                            && self.snap[2 * g] != NONE
+                        {
                             break;
                         }
                         if self.caps[2 * g] == pos {
@@ -1398,7 +1549,9 @@ impl<'s, 'a> Backtracker<'s, 'a> {
                         // A group that can be empty but was left unset by another alternative:
                         // at the start of the match glibc refuses it, and the search fails as it
                         // does for an empty group refused by `copy_ok`.
-                        let unset_empty = prog.nullable_refs.get(g as usize).copied().unwrap_or(false) && self.caps[2 * g as usize] == NONE;
+                        let unset_empty =
+                            prog.nullable_refs.get(g as usize).copied().unwrap_or(false)
+                                && self.caps[2 * g as usize] == NONE;
                         if unset_empty {
                             self.refused = pos == start;
                             self.unset_path = pos == start;
@@ -1417,7 +1570,11 @@ impl<'s, 'a> Backtracker<'s, 'a> {
                                 self.set_cap(sh, 1);
                             }
                         }
-                        match if unset_empty { Some(0) } else { self.backref_len(g as usize, pos) } {
+                        match if unset_empty {
+                            Some(0)
+                        } else {
+                            self.backref_len(g as usize, pos)
+                        } {
                             Some(l) => {
                                 pos += l;
                                 pc += 1;

@@ -5,7 +5,7 @@ mod parser;
 use std::fmt;
 use std::rc::Rc;
 
-pub use parser::{parse, Chunk, ChunkSource, ParseOptions};
+pub use parser::{Chunk, ChunkSource, ParseOptions, parse};
 
 use crate::regex::Regex;
 
@@ -43,7 +43,10 @@ pub enum Addr {
     /// `$-N` (N > 0): the line with N lines after it. A ripgsed extension: GNU sed rejects it.
     FromEnd(u64),
     /// `first~step`
-    Step { first: u64, step: u64 },
+    Step {
+        first: u64,
+        step: u64,
+    },
     Regex(Pattern),
     /// `+0`, `~0`, or a sign alone as a first address: every line.
     Null,
@@ -57,7 +60,10 @@ pub enum Addr2 {
     FromEnd(u64),
     Regex(Pattern),
     /// `addr1,first~step`: ends at the first line from `first` on that is `step` lines apart.
-    Step { first: u64, step: u64 },
+    Step {
+        first: u64,
+        step: u64,
+    },
     /// `addr1,+N`
     Plus(u64),
     /// `addr1,~N`
@@ -83,7 +89,11 @@ pub enum Kind {
     /// `:label`
     Label(Vec<u8>),
     /// `b`, `t`, `T`: the label, and the target command index (`None`: the end of the script).
-    Branch { when: BranchWhen, label: Vec<u8>, target: Option<usize> },
+    Branch {
+        when: BranchWhen,
+        label: Vec<u8>,
+        target: Option<usize>,
+    },
     Append(Vec<u8>),
     Insert(Vec<u8>),
     Change(Vec<u8>),
@@ -229,13 +239,17 @@ impl Kind {
                 }
             }
             Kind::DeleteFirst | Kind::Next | Kind::NextAppend => Reach::OtherRecords("D, n or N"),
-            Kind::Get | Kind::GetAppend | Kind::Hold | Kind::HoldAppend | Kind::Exchange => Reach::HoldSpace,
+            Kind::Get | Kind::GetAppend | Kind::Hold | Kind::HoldAppend | Kind::Exchange => {
+                Reach::HoldSpace
+            }
             Kind::FileName => Reach::Record,
             // A file the script writes gets the bytes in order (a chunk keeps them and the writer puts them
             // there); standard output and standard error do not wait for that. `r` streams its file (which
             // may never end, or be as big as the output is not meant to hold) and `R` keeps its place in it.
             Kind::WriteFile(name) | Kind::WriteFirstLine(name) => written_file(name),
-            Kind::ReadFile(_) | Kind::ReadFileNow(_) | Kind::ReadLine(_) => Reach::Outside("a file command"),
+            Kind::ReadFile(_) | Kind::ReadFileNow(_) | Kind::ReadLine(_) => {
+                Reach::Outside("a file command")
+            }
             Kind::Execute(_) => Reach::Outside("e"),
             Kind::Removed(_) => Reach::Outside("L"),
         }
@@ -324,8 +338,14 @@ pub struct SyntaxError {
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Location {
-    Expression { number: usize, position: usize },
-    File { name: String, line: usize },
+    Expression {
+        number: usize,
+        position: usize,
+    },
+    File {
+        name: String,
+        line: usize,
+    },
     /// No location: the message is printed as it is.
     Bare,
 }
@@ -334,7 +354,11 @@ impl fmt::Display for SyntaxError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match &self.location {
             Location::Expression { number, position } => {
-                write!(f, "-e expression #{number}, char {position}: {}", self.message)
+                write!(
+                    f,
+                    "-e expression #{number}, char {position}: {}",
+                    self.message
+                )
             }
             Location::File { name, line } => write!(f, "file {name} line {line}: {}", self.message),
             Location::Bare => f.write_str(&self.message),
@@ -353,21 +377,36 @@ mod tests {
         let range = Selector::Range(Addr::Line(1), Addr2::Line(2));
         // No address is always fine.
         for letter in *b"#:}qQ=aird{" {
-            assert_eq!(address_complaint(letter, &none, false), None, "{}", letter as char);
+            assert_eq!(
+                address_complaint(letter, &none, false),
+                None,
+                "{}",
+                letter as char
+            );
         }
         // `#`, `:` and `}` take none.
-        for (letter, message) in [(b'#', "comments don't accept any addresses"), (b':', ": doesn't want any addresses"), (b'}', "`}' doesn't want any addresses")] {
+        for (letter, message) in [
+            (b'#', "comments don't accept any addresses"),
+            (b':', ": doesn't want any addresses"),
+            (b'}', "`}' doesn't want any addresses"),
+        ] {
             assert_eq!(address_complaint(letter, &one, false), Some(message));
         }
         // `q` and `Q` take one; a range is too many.
         for letter in *b"qQ" {
             assert_eq!(address_complaint(letter, &one, false), None);
-            assert_eq!(address_complaint(letter, &range, false), Some("command only uses one address"));
+            assert_eq!(
+                address_complaint(letter, &range, false),
+                Some("command only uses one address")
+            );
         }
         // `=`, `a`, `i`, `r` and `l` take a range, unless `--posix`.
         for letter in *b"=air" {
             assert_eq!(address_complaint(letter, &range, false), None);
-            assert_eq!(address_complaint(letter, &range, true), Some("command only uses one address"));
+            assert_eq!(
+                address_complaint(letter, &range, true),
+                Some("command only uses one address")
+            );
             assert_eq!(address_complaint(letter, &one, true), None);
         }
         assert_eq!(address_complaint(b'd', &range, true), None);
@@ -376,7 +415,10 @@ mod tests {
     #[test]
     fn reach_of_a_command_is_the_wider_of_its_address_and_operation() {
         let parse = |text: &str| {
-            let chunk = Chunk { source: ChunkSource::Expression(1), text: text.as_bytes().to_vec() };
+            let chunk = Chunk {
+                source: ChunkSource::Expression(1),
+                text: text.as_bytes().to_vec(),
+            };
             super::parse(&[(chunk, ParseOptions::default())]).expect("parses")
         };
         let reach = |text: &str| parse(text).commands.first().expect("a command").reach();
@@ -390,7 +432,10 @@ mod tests {
         assert_eq!(reach("$q"), Reach::Record);
         assert_eq!(reach("s/a/b/w out"), Reach::Record);
         assert_eq!(reach("w out"), Reach::Record);
-        assert_eq!(reach("s/a/b/w /dev/stdout"), Reach::Outside("w to /dev/stdout or /dev/stderr"));
+        assert_eq!(
+            reach("s/a/b/w /dev/stdout"),
+            Reach::Outside("w to /dev/stdout or /dev/stderr")
+        );
         assert_eq!(reach("r in"), Reach::Outside("a file command"));
         assert_eq!(reach("0,/a/d"), Reach::Record);
     }
