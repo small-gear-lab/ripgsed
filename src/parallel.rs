@@ -46,6 +46,8 @@ enum Work {
 struct Ran {
     output: ChunkOutput,
     stdin_offset: Option<u64>,
+    /// The input, when the chunk starts a file that is a stream of its own.
+    new_file: Option<Arc<str>>,
 }
 
 /// What a worker returns for a chunk. A script with ranges is run on a guess of the state the chunk
@@ -65,7 +67,8 @@ fn run_job(script: &Script, options: &Options, job: &Job, carry: Option<&Carry>)
         (Some(quit), Some(end)) => Some(end - (job.input.data.len() - quit.consumed) as u64),
         _ => None,
     };
-    Ok(Ran { output, stdin_offset })
+    let new_file = job.input.first_of_file.then(|| Arc::clone(&job.input.name));
+    Ok(Ran { output, stdin_offset, new_file })
 }
 
 /// Where the output of a chunk goes.
@@ -74,6 +77,12 @@ pub enum Target<'a> {
     Main,
     /// The file named by `w`.
     File(&'a [u8]),
+    /// The writer starts the output for the input of that name (`-i`: the file that replaces it).
+    NewFile(&'a str),
+    /// The writer has taken the last chunk: the file edited in place is finished.
+    EndFile,
+    /// The run failed: the file edited in place is left as it was.
+    Abort,
 }
 
 /// What a run leaves behind: the exit status (a `q` or `Q` may ask for one) and where to put the offset
@@ -128,12 +137,24 @@ pub fn run(
         };
         Some(Ok(Input { name, reader, stdin_start }))
     });
+    // (`-i`: the writer begins and finishes the file that replaces each input, as the sequential run does.)
+    let backup = options.in_place.clone();
+    let follow_symlinks = options.follow_symlinks;
     let finish = run_inputs(script_chunks, options, open, jobs, block, &mut |target: Target, bytes: &[u8], unterminated: bool| {
         let output = match target {
-            Target::Main => &mut outputs.stdout,
+            Target::Main => outputs.main(),
             Target::File(name) => {
                 outputs.open(name)?;
                 outputs.get(name)
+            }
+            Target::NewFile(name) => {
+                outputs.finish_in_place(backup.as_deref())?;
+                return outputs.begin_in_place(name, follow_symlinks);
+            }
+            Target::EndFile => return outputs.finish_in_place(backup.as_deref()),
+            Target::Abort => {
+                outputs.abort_in_place();
+                return Ok(());
             }
         };
         output.write_raw(bytes).map_err(|e| crate::io::write_error("stdout", &e))?;
@@ -164,7 +185,7 @@ pub fn run_reader<'a>(
     // (A script that writes files does not come here: see `Run::run_parallel`.)
     let mut write_main = |target: Target, bytes: &[u8], unterminated: bool| match target {
         Target::Main => write(bytes, unterminated),
-        Target::File(_) => Ok(()),
+        Target::File(_) | Target::NewFile(_) | Target::EndFile | Target::Abort => Ok(()),
     };
     run_inputs(script_chunks, options, open, jobs, block, &mut write_main).map(|finish| finish.status)
 }
@@ -195,6 +216,8 @@ fn run_inputs<'a>(
     let stdin_start = Arc::new(Mutex::new(None::<u64>));
 
     let separator = options.separator;
+    let separate = options.separate;
+    let in_place = options.in_place.is_some();
     // How many records after a chunk the script has to see before the chunk is run (at least one, for `$`).
     let needed = parse(&script_chunks).map_or(1, |script| crate::analysis::lookahead(&script));
     let mut result = Ok(Finish { status: 0, stdin_offset: None });
@@ -206,6 +229,7 @@ fn run_inputs<'a>(
             move || {
                 let mut seq = 0u64;
                 let mut first_line = 1u64;
+                let per_file = separate || in_place;
                 // A chunk is held back until `needed` records are read after it (or the inputs end), so that it
                 // can say how many records follow it: `$` is the last record of everything that is read, not of
                 // one input, and `$-N` needs to see N records ahead. `behind` is how many records the held
@@ -246,6 +270,15 @@ fn run_inputs<'a>(
                     if let Some(start) = start {
                         stdin_start.lock().expect("stdin start").get_or_insert(start);
                     }
+                    // Each file is a stream of its own with `-s` and `-i`: the chunks held from the one before know
+                    // all that follows them, and the numbers of the lines start again.
+                    if per_file {
+                        if !release(&mut held, &mut behind, true) {
+                            return;
+                        }
+                        first_line = 1;
+                    }
+                    let mut first_of_file = per_file;
                     let name: Arc<str> = Arc::from(name);
                     let mut stdin_end = start;
                     let mut chunks = ChunkReader::new(reader, separator, block);
@@ -257,7 +290,8 @@ fn run_inputs<'a>(
                         match chunks.next_chunk() {
                             Ok(Some(chunk)) => {
                                 stdin_end = stdin_end.map(|end| end + chunk.data.len() as u64);
-                                let input = ChunkInput { data: chunk.data, first_line, records: chunk.records, after: 0, name: Arc::clone(&name) };
+                                let input = ChunkInput { data: chunk.data, first_line, first_of_file, records: chunk.records, after: 0, name: Arc::clone(&name) };
+                                first_of_file = false;
                                 first_line += chunk.records;
                                 seq += 1;
                                 if !held.is_empty() {
@@ -302,11 +336,11 @@ fn run_inputs<'a>(
                         // The writer never gets to a chunk after a quit: leave it empty.
                         Work::Chunk { seq, .. } if quit_seq.load(Ordering::Relaxed) < seq => {
                             let output = ChunkOutput { bytes: Vec::new(), unterminated: false, quit: None, carry: None, files: Vec::new() };
-                            Done { seq, ran: Ok(Ran { output, stdin_offset: None }), guess: None, redo: None }
+                            Done { seq, ran: Ok(Ran { output, stdin_offset: None, new_file: None }), guess: None, redo: None }
                         }
                         Work::Chunk { seq, job } => {
                             // The state the chunk before it ended in, as far as anyone knows.
-                            let guess = if spread_ranges { hint.lock().expect("carry hint").clone() } else { None };
+                            let guess = if spread_ranges && !job.input.first_of_file { hint.lock().expect("carry hint").clone() } else { None };
                             let ran = run_job(&script, &options, &job, guess.as_ref());
                             // (A quit under a wrong guess is not one: only the writer knows.)
                             if !spread_ranges && ran.as_ref().is_ok_and(|ran| ran.output.quit.is_some()) {
@@ -340,6 +374,10 @@ fn run_inputs<'a>(
                         break 'receive;
                     }
                 };
+                if ran.new_file.is_some() {
+                    // A file that is a stream of its own starts from the state of the start of an input.
+                    carry = None;
+                }
                 if let Some(job) = redo {
                     if guess != carry {
                         let script = match &own_script {
@@ -363,7 +401,13 @@ fn run_inputs<'a>(
                     carry = ran.output.carry.clone();
                     *hint.lock().expect("carry hint") = carry.clone();
                 }
-                let Ran { output: chunk, stdin_offset } = ran;
+                let Ran { output: chunk, stdin_offset, new_file } = ran;
+                if let (Some(name), true) = (&new_file, in_place) {
+                    if let Err(e) = write(Target::NewFile(name), &[], false) {
+                        result = Err(e);
+                        break 'receive;
+                    }
+                }
                 if !chunk.bytes.is_empty() {
                     if let Err(e) = write(Target::Main, &chunk.bytes, chunk.unterminated) {
                         result = Err(e);
@@ -384,6 +428,13 @@ fn run_inputs<'a>(
                     break 'receive;
                 }
                 let _ = credit_tx.send(());
+            }
+        }
+        // The file edited in place is finished, or left as it was if the run failed.
+        if in_place {
+            let end = write(if result.is_ok() { Target::EndFile } else { Target::Abort }, &[], false);
+            if let (Ok(_), Err(e)) = (&result, end) {
+                result = Err(e);
             }
         }
         // Dropping the receivers ends the reader and the workers.

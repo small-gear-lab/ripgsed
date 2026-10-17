@@ -44,7 +44,7 @@ It is developed and tested on Linux (Ubuntu, glibc), where the compatibility wit
 
 - Times are medians of 7 runs, in seconds, on an Intel Core i7-1260P (16 threads), Linux, release build.
 - The locale is `LC_ALL=C.UTF-8`, a UTF-8 locale and the harder case. `BENCH_LOCALE=ja_JP.UTF-8 tools/bench.sh` measures a locale that goes through the C library: the Japanese workloads that use `\w` take about twice as long there and are still faster than GNU sed.
-- "Auto" is the default mode: scripts proven record-local by static analysis run in parallel on large regular files.
+- "Auto" is the default mode: scripts proven record-local by static analysis run in parallel on large regular files, with `-s` and `-i` too (each file is a stream of its own, and the files are edited on several threads).
 
 | workload | GNU sed | ripgsed, 1 thread | ratio | ripgsed, auto | ratio |
 |---|---:|---:|---:|---:|---:|

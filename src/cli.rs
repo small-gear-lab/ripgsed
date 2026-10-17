@@ -484,6 +484,14 @@ fn create_write_files(names: &[Vec<u8>]) -> Result<(), String> {
     Ok(())
 }
 
+/// The soft limit of open files of this process, where the system says (Linux).
+fn open_files_limit() -> Option<u64> {
+    let limits = std::fs::read_to_string("/proc/self/limits").ok()?;
+    let line = limits.lines().find(|l| l.starts_with("Max open files"))?;
+    // ("Max open files", then the soft limit, the hard limit and the unit.)
+    line.split_whitespace().nth(3)?.parse().ok()
+}
+
 /// How many workers to use, or `None` to run sequentially.
 ///
 /// A script runs in parallel only if it is record-local (see `analysis`) and either the
@@ -495,6 +503,34 @@ fn parallel_jobs(script: &crate::syntax::Script, options: &Options, files: &[Str
         return None;
     }
     crate::analysis::record_local(script, options).ok()?;
+    // Each file is edited in its own right (`-i`), and what is read must be what the file was: the sequential
+    // run reads a file named twice as it was left the first time, and a file that the script writes as it is
+    // written. That is not what chunks read ahead of the writer see, so those runs stay sequential.
+    if options.in_place.is_some() {
+        use std::os::unix::fs::MetadataExt;
+        // The names are resolved by the sequential run before it opens them, and it keeps the input open while it
+        // makes the file that replaces it: with so few descriptors that makes a difference, it has to be that run.
+        if options.follow_symlinks || open_files_limit().is_some_and(|limit| limit < 64) {
+            return None;
+        }
+        if files.is_empty() || files.iter().any(|n| n == "-") {
+            return None;
+        }
+        let mut seen = std::collections::HashSet::new();
+        for name in files {
+            let meta = std::fs::metadata(name).ok()?;
+            if !seen.insert((meta.dev(), meta.ino())) {
+                return None;
+            }
+        }
+        for name in &script.write_files {
+            if let Ok(meta) = std::fs::metadata(crate::io::bytes_path(name)) {
+                if seen.contains(&(meta.dev(), meta.ino())) {
+                    return None;
+                }
+            }
+        }
+    }
     // Every named file must be a readable regular file, or the sequential run reports the errors.
     let mut total = 0u64;
     for name in files.iter().filter(|n| *n != "-") {

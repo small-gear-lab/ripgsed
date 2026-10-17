@@ -20,12 +20,7 @@ pub fn record_local(script: &Script, options: &Options) -> Result<(), Reason> {
     if options.debug {
         return Err(Reason::Construct("--debug"));
     }
-    if options.in_place.is_some() {
-        return Err(Reason::Construct("-i"));
-    }
-    if options.separate {
-        return Err(Reason::Construct("-s"));
-    }
+    // (`-s` and `-i` are fine: the files are independent, and a chunk is told when it starts one.)
     if options.unbuffered {
         return Err(Reason::Construct("-u"));
     }
@@ -133,5 +128,18 @@ mod tests {
         assert_eq!(ahead("$-2p"), 3);
         assert_eq!(ahead("2,$-4p"), 5);
         assert_eq!(ahead("$-3,$-1p;$-9d"), 10);
+    }
+
+    #[test]
+    fn files_that_are_separate_or_edited_in_place_run_chunk_by_chunk_too() {
+        let chunk = Chunk { source: ChunkSource::Expression(1), text: b"$!s/a/b/;2,4p".to_vec() };
+        let script = parse(&[(chunk, ParseOptions::default())]).expect("parses");
+        let separate = Options { separate: true, ..Options::default() };
+        let in_place = Options { in_place: Some(String::new()), separate: true, ..Options::default() };
+        assert_eq!(record_local(&script, &separate), Ok(()));
+        assert_eq!(record_local(&script, &in_place), Ok(()));
+        // What is written at once stays out.
+        let unbuffered = Options { unbuffered: true, ..Options::default() };
+        assert_eq!(record_local(&script, &unbuffered), Err(Reason::Construct("-u")));
     }
 }
