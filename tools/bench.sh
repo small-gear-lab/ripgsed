@@ -3,6 +3,7 @@
 #
 #   tools/bench.sh            run every workload (5 runs each, median)
 #   RUNS=9 SIZE=2000000 tools/bench.sh
+#   ONLY='y/' tools/bench.sh   only the rows whose name has that text (every row if it is not set)
 #
 # Inputs are generated deterministically (fixed seed) in a scratch directory. For every
 # workload the two programs must print identical output (compared by hash) or the row is
@@ -25,7 +26,17 @@ if [ -z "${OURS:-}" ]; then
   cargo build --release --manifest-path "$root/Cargo.toml" > /dev/null 2>&1
 fi
 ours=${OURS:-$root/target/release/ripgsed}
-gnu=$(command -v sed)
+# GNU_SED=path names the sed to compare with (it must be GNU sed: a sed on the PATH that leads to ripgsed makes the
+# table a comparison of ripgsed with itself, with every ratio 1.00).
+gnu=${GNU_SED:-$(command -v sed)}
+if "$gnu" --version 2> /dev/null | head -n 1 | grep -qi ripgsed; then
+  echo "bench.sh: $gnu is ripgsed, not GNU sed: put GNU sed first on the PATH (PATH=/usr/bin:\$PATH) or set GNU_SED=/usr/bin/sed" >&2
+  exit 2
+fi
+if ! "$gnu" --version 2> /dev/null | head -n 1 | grep -q "GNU sed"; then
+  echo "bench.sh: $gnu does not say that it is GNU sed (set GNU_SED=)" >&2
+  exit 2
+fi
 
 # Deterministic input: mixed log-like lines, about $size lines.
 awk -v n="$size" 'BEGIN {
@@ -81,6 +92,9 @@ measure_inplace() { # program args... -> "median_seconds rss_mib hash"; edits fo
 
 table_row() { # name measure-function arguments-of-the-function...: the function gets the program first
   local name=$1 fn=$2; shift 2
+  if [ -n "${ONLY:-}" ] && [[ "$name" != *"$ONLY"* ]]; then
+    return
+  fi
   read -r gt gr gh <<< "$(JOBS= "$fn" "$gnu" "$@")"
   read -r st sr sh <<< "$(JOBS=1 "$fn" "$ours" "$@")"
   read -r ot or oh <<< "$(JOBS= "$fn" "$ours" "$@")"
@@ -135,3 +149,16 @@ row_inplace '-i s/alpha/X/g (4 files)'          -i 's/alpha/X/g'
 row_inplace '-i $!s/alpha/X/ (4 files)'         -i '$!s/alpha/X/'
 row_inplace '-i ranges /ERROR/,/WARN/ (4 files)' -i '/ERROR/,/WARN/s/alpha/X/'
 row_inplace '-i.bak 1d;$d (4 files)'            -i.bak '1d;$d'
+
+# Scripts that read only a part of the input: the end of a file (read from its end), the lines up to the last number
+# of the script (and a quit that comes early), the two ends, and every Nth line. Each is compared with GNU sed, which
+# reads it all. ($-N is not here: GNU sed does not take it, so there is nothing to compare the output with.)
+row "-n '\$p' (last line)"            log.txt -n '$p'
+row "\$!d (last line)"                log.txt '$!d'
+row "-n 1,10p (first lines)"         log.txt -n '1,10p'
+row "-n 500000p (half way)"          log.txt -n '500000p'
+row "-n '1p;\$p' (both ends)"         log.txt -n '1p;$p'
+row "10q (quits at once)"            log.txt '10q'
+row "-n 0~1000p (every 1000th)"      log.txt -n '0~1000p'
+row "-n 2~7p (every 7th)"            log.txt -n '2~7p'
+row 'y/a-z/A-Z/ (26 letters)'         log.txt 'y/abcdefghijklmnopqrstuvwxyz/ABCDEFGHIJKLMNOPQRSTUVWXYZ/'
