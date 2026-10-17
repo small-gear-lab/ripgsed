@@ -32,6 +32,10 @@ RIPGSED_FIXTURE_TIMEOUT=300 cargo test    # all of it, in the DEBUG build: CI ru
 - **Run the tests in the debug build before pushing**, not only `--release`: integer overflow panics only there, and a
   line-number subtraction passed every release run and failed CI.
 - Run the long things in the background and wait for them with a marker file or a monitor; do not block on them.
+- `git config core.hooksPath .githooks`, once in each clone, turns on `.githooks/pre-commit`: it runs
+  `cargo clippy --all-targets -- -D warnings` when a Rust file is part of the commit and stops the commit if it fails.
+  It looks at the working tree, not only at what is staged. `git commit --no-verify` skips it (work in progress on a
+  `research/*` branch); the tests stay for before a push.
 - One fixture or a few: `RIPGSED_FIXTURES=name1,name2 RIPGSED_SHOW_FAILURES=1 cargo test --test differential fixtures_match -- --nocapture`.
   `RIPGSED_SKIP=prefix,...` leaves some out. `RIPGSED_UPDATE_PASSING=1` and `RIPGSED_UPDATE_MATRIX=1` (full runs only)
   rewrite `tests/passing.txt` and the `status` column. `RIPGSED_JOBS=1` runs the grep and the sed mode on one thread.
