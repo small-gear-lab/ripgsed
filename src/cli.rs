@@ -561,8 +561,9 @@ fn open_files_limit() -> Option<u64> {
     line.split_whitespace().nth(3)?.parse().ok()
 }
 
-/// When the script needs only the last records of the input (`analysis::tail_window`) and the input is one file
-/// that can be searched, runs it on those records, read from the end of the file, and gives the exit status.
+/// When the script needs only the last records of the input (`analysis::tail_window`), or only the first ones and the
+/// last ones (`analysis::head_tail_plan`), and the input is one file that can be searched, runs it on those records,
+/// read from the ends of the file, and gives the exit status.
 /// `None` when this does not apply: nothing has been written then, and the run goes on as it would.
 ///
 /// `RIPGSED_TAIL=0` turns it off, and `RIPGSED_TAIL_MIN_BYTES` is the size under which a file is read whole
@@ -599,9 +600,18 @@ fn run_on_the_tail(
         .ok()
         .and_then(|v| v.parse().ok())
         .unwrap_or(1 << 20);
-    let window = crate::analysis::tail_window(script, options)?;
+    // The last records alone, or the first ones and the last ones when a script is for both ends.
+    let (head, window) = match crate::analysis::tail_window(script, options) {
+        Some(window) => (0, window),
+        None => crate::analysis::head_tail_plan(script, options)?,
+    };
     // (A file that cannot be read is the business of the run that reports it.)
-    let bytes = crate::io::read_tail(&file, options.separator, window, min_bytes, from).ok()??;
+    let bytes = if head == 0 {
+        crate::io::read_tail(&file, options.separator, window, min_bytes, from)
+    } else {
+        crate::io::read_head_tail(&file, options.separator, head, window, min_bytes, from)
+    }
+    .ok()??;
     let mut source = crate::io::TailSource::new(bytes, options.separator, name);
     let stdout = io::stdout().lock();
     let mut outputs = Outputs::new(Box::new(BufWriter::new(stdout)), options.separator);

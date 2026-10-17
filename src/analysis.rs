@@ -158,6 +158,68 @@ pub fn head_limit(script: &Script, options: &Options) -> Option<u64> {
     leaves_nothing(commands, quiet, late).then_some(last)
 }
 
+/// The records at the start and at the end that are all that the script needs, when the ones between them leave nothing
+/// behind: `(first, last)`, the number of the last line that an address names and the number of records that the
+/// addresses counted from the end need (see `head_limit` and `tail_window`, which are for a script that has only
+/// one of them). The ones in the middle are past every line number and have more after them than any address
+/// counts, so every address is false for them but the ones that depend on what the record holds.
+///
+/// What is not let through is what `head_limit` and `tail_window` do not take, and what reads on (`n`, `N`, `D`),
+/// quits, or prints the number of the line: the records at the end are not numbered as they are in the input (they
+/// come after the first ones, which is all that the line numbers of the script need to know).
+pub fn head_tail_plan(script: &Script, options: &Options) -> Option<(u64, u64)> {
+    if options.debug
+        || options.unbuffered
+        || options.in_place.is_some()
+        || options.separate
+        || options.follow_symlinks
+    {
+        return None;
+    }
+    let commands = &script.commands;
+    let mut last = 0;
+    let mut from_the_end = false;
+    for command in commands {
+        match &command.selector {
+            Selector::All | Selector::Single(Addr::Null) => {}
+            Selector::Single(Addr::Regex(pattern)) if pattern.regex.is_some() => {}
+            Selector::Single(Addr::Line(n)) => last = last.max(*n),
+            Selector::Range(Addr::Line(from), Addr2::Line(to)) => last = last.max(*from).max(*to),
+            Selector::Single(Addr::Last | Addr::FromEnd(_))
+            | Selector::Range(Addr::Last | Addr::FromEnd(_), _) => {
+                if !tail_selector_is_fine(&command.selector) {
+                    return None;
+                }
+                from_the_end = true;
+            }
+            _ => return None,
+        }
+        match &command.kind {
+            Kind::Next | Kind::NextAppend | Kind::DeleteFirst => return None,
+            Kind::Quit(_) | Kind::QuitSilent(_) | Kind::LineNumber => return None,
+            Kind::Substitute(sub) if sub.pattern.regex.is_none() => return None,
+            _ => {}
+        }
+    }
+    if last == 0 || !from_the_end {
+        return None;
+    }
+    let quiet = options.quiet || script.quiet;
+    leaves_nothing(commands, quiet, middle).then(|| (last, lookahead(script)))
+}
+
+/// What an address says about a record that is past every line number and has more records after it than any address
+/// counts.
+fn middle(selector: &Selector) -> Early {
+    match selector {
+        Selector::All | Selector::Single(Addr::Null) => Early::Yes,
+        Selector::Single(Addr::Line(_) | Addr::Last | Addr::FromEnd(_))
+        | Selector::Range(Addr::Line(_) | Addr::Last | Addr::FromEnd(_), _) => Early::No,
+        // (A regexp; the others are not let through by `head_tail_plan`.)
+        _ => Early::Maybe,
+    }
+}
+
 /// Whether a record that no address of the script is true for, but for the ones that depend on what it holds,
 /// leaves nothing behind. The commands that can run for it are followed from the first, and each has to be one
 /// that leaves nothing, until the record is deleted or the script ends (and then it must be quiet).
@@ -714,5 +776,95 @@ mod tests {
         assert_eq!(quit_line_of("$q"), None);
         assert_eq!(quit_line_of("q"), None);
         assert_eq!(quit_line_of("s/a/b/;p"), None);
+    }
+
+    fn both(text: &str, quiet: bool) -> Option<(u64, u64)> {
+        let chunk = Chunk {
+            source: ChunkSource::Expression(1),
+            text: text.as_bytes().to_vec(),
+        };
+        let script = parse(&[(chunk, ParseOptions::default())]).expect("parses");
+        head_tail_plan(
+            &script,
+            &Options {
+                quiet,
+                ..Options::default()
+            },
+        )
+    }
+
+    #[test]
+    fn scripts_that_do_nothing_between_their_first_and_their_last_lines_need_only_those() {
+        // The records at the start and at the end: the first number, and the lookahead of the addresses from the end.
+        assert_eq!(both("1p;$p", true), Some((1, 1)));
+        assert_eq!(both("1,2p;$-1,$p", true), Some((2, 2)));
+        assert_eq!(both("3p;$-3,$-1{p;p}", true), Some((3, 4)));
+        assert_eq!(both("2{s/a/b/;p};$p", true), Some((2, 1)));
+        assert_eq!(both("1p;$,-2p", true), Some((1, 3)));
+        // What deletes the records between them (and, with them, the ones at the end that are not the last).
+        assert_eq!(both("1,2!d;$!d", false), Some((2, 1)));
+        assert_eq!(both("/a/d;1p;$p", true), Some((1, 1)));
+    }
+
+    #[test]
+    fn scripts_that_are_not_both_at_the_start_and_at_the_end_are_for_the_others() {
+        // Only a line number, or only the end: `head_limit` and `tail_window` have them.
+        assert_eq!(both("1p", true), None);
+        assert_eq!(both("$p", true), None);
+        // The records between are printed, or written, or kept.
+        assert_eq!(both("1p;$p", false), None, "without -n");
+        assert_eq!(both("1p;$p;/a/p", true), None);
+        assert_eq!(both("1p;$p;x", true), None);
+        // A range that goes from the start to the end, or does not end, or depends on the number of the line.
+        assert_eq!(both("2,$p", true), None);
+        assert_eq!(both("1,/a/p;$p", true), None);
+        assert_eq!(both("0~2p;$p", true), None);
+        assert_eq!(both("1p;$=", true), None);
+        assert_eq!(both("1p;$-2,5p", true), None);
+        // What reads the next record, and what quits.
+        assert_eq!(both("1{N;p};$p", true), None);
+        assert_eq!(both("1p;$p;q", true), None);
+        assert_eq!(both("1q;$p", true), None);
+        assert_eq!(both("s//x/;1p;$p", true), None);
+    }
+
+    #[test]
+    fn the_options_that_edit_in_place_or_count_the_lines_of_each_file_keep_the_whole_input_for_both_ends_too()
+     {
+        let chunk = Chunk {
+            source: ChunkSource::Expression(1),
+            text: b"1p;$p".to_vec(),
+        };
+        let script = parse(&[(chunk, ParseOptions::default())]).expect("parses");
+        let quiet = Options {
+            quiet: true,
+            ..Options::default()
+        };
+        assert_eq!(head_tail_plan(&script, &quiet), Some((1, 1)));
+        for options in [
+            Options {
+                in_place: Some(String::new()),
+                separate: true,
+                ..quiet.clone()
+            },
+            Options {
+                separate: true,
+                ..quiet.clone()
+            },
+            Options {
+                unbuffered: true,
+                ..quiet.clone()
+            },
+            Options {
+                debug: true,
+                ..quiet.clone()
+            },
+            Options {
+                follow_symlinks: true,
+                ..quiet.clone()
+            },
+        ] {
+            assert_eq!(head_tail_plan(&script, &options), None);
+        }
     }
 }

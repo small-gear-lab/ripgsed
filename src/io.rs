@@ -665,20 +665,85 @@ pub fn read_tail(
     min_bytes: u64,
     from: u64,
 ) -> io::Result<Option<Vec<u8>>> {
-    use std::os::unix::fs::FileExt;
-    const BLOCK: u64 = 1 << 16;
     let meta = file.metadata()?;
     let len = meta.len();
     if !meta.is_file() || len <= from || len - from < min_bytes || records == 0 {
         return Ok(None);
     }
+    Ok(Some(scan_tail(file, len, separator, records, from)?.0))
+}
+
+/// The first `head` records and the last `tail` records of a file that can be searched, one after the other, when
+/// there are more than that: the bytes of the first ones from the offset `from` (see `read_tail`), then those of the
+/// last ones, which start after the end of the first ones. Nothing else is read. `None` when it does not apply:
+/// the file is not a regular file, or is small, or the records are not more than the two ends hold (what would be
+/// between them is nothing, and the usual run is as good).
+pub fn read_head_tail(
+    file: &File,
+    separator: u8,
+    head: u64,
+    tail: u64,
+    min_bytes: u64,
+    from: u64,
+) -> io::Result<Option<Vec<u8>>> {
+    use std::os::unix::fs::FileExt;
+    const BLOCK: u64 = 1 << 16;
+    let meta = file.metadata()?;
+    let len = meta.len();
+    if !meta.is_file() || len <= from || len - from < min_bytes || head == 0 || tail == 0 {
+        return Ok(None);
+    }
+    // The end of the first `head` records: after the `head`th separator.
+    let mut pos = from;
+    let mut found = 0u64;
+    let end_of_head = 'search: loop {
+        if pos >= len {
+            return Ok(None);
+        }
+        let n = BLOCK.min(len - pos);
+        let mut block = vec![0u8; n as usize];
+        file.read_exact_at(&mut block, pos)?;
+        let mut at = 0;
+        while let Some(i) = crate::search::memchr(separator, &block[at..]) {
+            at += i + 1;
+            found += 1;
+            if found == head {
+                break 'search pos + at as u64;
+            }
+        }
+        pos += n;
+    };
+    // The last `tail` records, which must start after them: a file that has not as many more is the usual run's.
+    let (window, enough) = scan_tail(file, len, separator, tail, end_of_head)?;
+    if !enough {
+        return Ok(None);
+    }
+    let mut both = vec![0u8; (end_of_head - from) as usize];
+    file.read_exact_at(&mut both, from)?;
+    both.extend_from_slice(&window);
+    Ok(Some(both))
+}
+
+/// The bytes from the start of the last `records` records of a file, whose length is `len`, to its end, and whether
+/// there were that many after `lower` (if not, they are all that is after it). The blocks are read from the end of
+/// the file backwards, without moving the position of the file.
+fn scan_tail(
+    file: &File,
+    len: u64,
+    separator: u8,
+    records: u64,
+    lower: u64,
+) -> io::Result<(Vec<u8>, bool)> {
+    use std::os::unix::fs::FileExt;
+    const BLOCK: u64 = 1 << 16;
     // The blocks from the end of the file backwards, and where the window starts in the last one read.
     let mut blocks: Vec<Vec<u8>> = Vec::new();
     let mut pos = len;
     let mut found = 0u64;
     let mut start_in_block = 0usize;
-    'blocks: while pos > from {
-        let n = BLOCK.min(pos - from);
+    let mut enough = false;
+    'blocks: while pos > lower {
+        let n = BLOCK.min(pos - lower);
         pos -= n;
         let mut block = vec![0u8; n as usize];
         file.read_exact_at(&mut block, pos)?;
@@ -691,6 +756,7 @@ pub fn read_tail(
             found += 1;
             if found == records {
                 start_in_block = i + 1;
+                enough = true;
                 blocks.push(block);
                 break 'blocks;
             }
@@ -698,13 +764,17 @@ pub fn read_tail(
         }
         blocks.push(block);
     }
+    // (Nothing after `lower`: no block was read, and there is no window.)
+    if blocks.is_empty() {
+        return Ok((Vec::new(), false));
+    }
     let mut window =
         Vec::with_capacity(blocks.iter().map(Vec::len).sum::<usize>() - start_in_block);
     window.extend_from_slice(&blocks.last().expect("a block")[start_in_block..]);
     for block in blocks.iter().rev().skip(1) {
         window.extend_from_slice(block);
     }
-    Ok(Some(window))
+    Ok((window, enough))
 }
 
 /// A record source that ends after `left` records, as if the input did: what is not read is not asked of the input
