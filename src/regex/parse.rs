@@ -387,14 +387,14 @@ impl<'a> Parser<'a> {
         enum End {
             Close,
             Comma,
-            End,
+            Eof,
         }
         // `fetch_number`: digits up to `}` or `,`; anything else makes the number invalid (-2).
         let fetch = |i: &mut usize| -> (i64, End) {
             let mut num: i64 = -1;
             loop {
                 if *i >= rest.len() {
-                    return (-2, End::End);
+                    return (-2, End::Eof);
                 }
                 let c = rest[*i];
                 *i += 1;
@@ -441,11 +441,11 @@ impl<'a> Parser<'a> {
                     last = t;
                     e
                 }
-                End::End => -2,
+                End::Eof => -2,
             };
         }
         if start == -2 || end == -2 {
-            return Interval::Literal { ended: last == End::End };
+            return Interval::Literal { ended: last == End::Eof };
         }
         if (end != -1 && start > end) || last != End::Close {
             return Interval::Error(E_BADBR);
@@ -763,7 +763,7 @@ impl<'a> Parser<'a> {
             let n = crate::locale::mb_encode(c, &mut buf)?;
             &buf[..n]
         } else {
-            c.encode_utf8((&mut buf[..4]).try_into().ok()?).as_bytes()
+            c.encode_utf8(&mut buf[..4]).as_bytes()
         };
         let set = LibSet::new(text, true).ok()?;
         Some(Node::Unit(Unit::Chars(Box::new(CharSet {

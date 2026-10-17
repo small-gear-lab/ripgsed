@@ -21,7 +21,7 @@ fn child(kind: &str) {
             _ => {
                 let small = Layout::from_size_align(16, 1).unwrap();
                 let p = Guarded.alloc(small);
-                drop(Guarded.realloc(p, small, usize::MAX / 2));
+                let _ = Guarded.realloc(p, small, usize::MAX / 2);
             }
         }
     }

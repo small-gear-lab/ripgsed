@@ -190,6 +190,8 @@ impl Address {
     }
 
     /// The lines this address does not select (`!`). Applying it twice gives the address back.
+    // (The name is the one of sed's `!` in the builder, and a method of its own: `Not` would need an import.)
+    #[allow(clippy::should_implement_trait)]
     pub fn not(mut self) -> Address {
         self.negated = !self.negated;
         self
