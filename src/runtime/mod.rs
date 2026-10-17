@@ -105,6 +105,8 @@ struct Machine<'a, S: RecordSource + ?Sized> {
     line: u64,
     file_name: Rc<str>,
     ranges: Vec<RangeState>,
+    /// What each `y` has made of its list (by the index of the command).
+    y_plans: Vec<YPlan>,
     last_regex: Option<Rc<Regex>>,
     /// The regexp last used was written in an address (`s//\N/` is checked against it).
     last_regex_from_address: bool,
@@ -338,6 +340,7 @@ fn run_from<S: RecordSource + ?Sized>(
         line: line_before,
         file_name: Rc::from("-"),
         ranges: vec![RangeState::Inactive; script.commands.len()],
+        y_plans: (0..script.commands.len()).map(|_| YPlan::Unbuilt).collect(),
         last_regex: None,
         last_regex_from_address: false,
         substituted: false,
@@ -1118,7 +1121,7 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                         self.executed_e.insert(pc);
                     }
                 }
-                Kind::Translate(pairs) => self.translate(pairs),
+                Kind::Translate(pairs) => self.translate(pc, pairs),
                 Kind::Substitute(sub) => self.substitute(sub)?,
             }
             if self.options.debug {
@@ -1223,33 +1226,26 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
         out
     }
 
-    fn translate(&mut self, pairs: &[(Vec<u8>, Vec<u8>)]) {
-        let mut out = Vec::with_capacity(self.pattern.len());
-        let mut i = 0;
+    /// `y`: with a table of the bytes where the characters are bytes (and the text is ASCII in UTF-8), and by looking
+    /// for each character in the list where they are not.
+    fn translate(&mut self, pc: usize, pairs: &[(Vec<u8>, Vec<u8>)]) {
         let locale = self.options.locale;
-        let utf8 = locale.is_chars();
-        while i < self.pattern.len() {
-            let len = locale.char_len(&self.pattern[i..]);
-            let ch = &self.pattern[i..i + len];
-            // A single-byte locale keeps a table, so the last of two equal characters wins; a
-            // multibyte locale searches the list, so the first does.
-            // A byte that is not a character of its own (a lead byte without its continuation
-            // bytes, or a stray one) is compared with the start of each character instead.
-            let partial = utf8 && len == 1 && !locale.is_valid_char(ch);
-            let found = if partial {
-                pairs.iter().find(|(from, _)| from.starts_with(ch))
-            } else if utf8 {
-                pairs.iter().find(|(from, _)| from == ch)
-            } else {
-                pairs.iter().rev().find(|(from, _)| from == ch)
-            };
-            match found {
-                Some((_, to)) => out.extend_from_slice(to),
-                None => out.extend_from_slice(ch),
+        // (The plan is taken out of the machine for the time of the change of the pattern space, and put back.)
+        let plan = std::mem::replace(&mut self.y_plans[pc], YPlan::Characters);
+        let plan = match plan {
+            YPlan::Unbuilt => match YTable::new(pairs, locale) {
+                Some(table) => YPlan::Table(Box::new(table)),
+                None => YPlan::Characters,
+            },
+            built => built,
+        };
+        match &plan {
+            YPlan::Table(table) if !locale.is_utf8() || self.pattern.is_ascii() => {
+                table.apply(&mut self.pattern, pairs);
             }
-            i += len;
+            _ => self.pattern = translate_chars(locale, &self.pattern, pairs),
         }
-        self.pattern = out;
+        self.y_plans[pc] = plan;
     }
 
     /// `e command`: runs it and writes its output now. `e`: runs the pattern space
@@ -1435,9 +1431,115 @@ fn next_step(first: u64, step: u64, line: u64) -> Option<u64> {
     }
 }
 
+/// `y` on a text, character by character: each is looked for in the list.
+fn translate_chars(locale: Locale, text: &[u8], pairs: &[(Vec<u8>, Vec<u8>)]) -> Vec<u8> {
+    let mut out = Vec::with_capacity(text.len());
+    let mut i = 0;
+    let utf8 = locale.is_chars();
+    while i < text.len() {
+        let len = locale.char_len(&text[i..]);
+        let ch = &text[i..i + len];
+        // A single-byte locale keeps a table, so the last of two equal characters wins; a
+        // multibyte locale searches the list, so the first does.
+        // A byte that is not a character of its own (a lead byte without its continuation
+        // bytes, or a stray one) is compared with the start of each character instead.
+        let partial = utf8 && len == 1 && !locale.is_valid_char(ch);
+        let found = if partial {
+            pairs.iter().find(|(from, _)| from.starts_with(ch))
+        } else if utf8 {
+            pairs.iter().find(|(from, _)| from == ch)
+        } else {
+            pairs.iter().rev().find(|(from, _)| from == ch)
+        };
+        match found {
+            Some((_, to)) => out.extend_from_slice(to),
+            None => out.extend_from_slice(ch),
+        }
+        i += len;
+    }
+    out
+}
+
+/// What `y` does with the bytes of a text in which every character is one byte: which byte is changed, and into what.
+/// In a single-byte locale that is every byte; in UTF-8 it is the text that is ASCII (a byte that is not ASCII is a part
+/// of a character there, and the list is looked through for it).
+struct YTable {
+    /// The pair that changes the byte (an index of the list), or `NONE`.
+    pair: [u32; 256],
+    /// What every byte becomes, when no byte is changed into more than one: the text is then changed where it is.
+    one_byte: Option<[u8; 256]>,
+}
+
+impl YTable {
+    const NONE: u32 = u32::MAX;
+
+    /// The table of a list, or `None` where the characters are more than bytes and are not UTF-8 (they are looked
+    /// for in the list).
+    fn new(pairs: &[(Vec<u8>, Vec<u8>)], locale: Locale) -> Option<YTable> {
+        if locale == Locale::Mb {
+            return None;
+        }
+        let mut pair = [Self::NONE; 256];
+        for (index, (from, _)) in pairs.iter().enumerate() {
+            // (A character that is more than one byte is not in a text that is ASCII or in bytes.)
+            let [byte] = from[..] else { continue };
+            if locale.is_utf8() {
+                // The list is searched from the first: the first of two equal characters wins.
+                if byte < 0x80 && pair[byte as usize] == Self::NONE {
+                    pair[byte as usize] = index as u32;
+                }
+            } else {
+                // A table is made from the list: the last of two equal characters wins.
+                pair[byte as usize] = index as u32;
+            }
+        }
+        let one_byte = pair
+            .iter()
+            .all(|&index| index == Self::NONE || pairs[index as usize].1.len() == 1)
+            .then(|| {
+                let mut bytes = [0u8; 256];
+                for (byte, slot) in bytes.iter_mut().enumerate() {
+                    *slot = match pair[byte] {
+                        Self::NONE => byte as u8,
+                        index => pairs[index as usize].1[0],
+                    };
+                }
+                bytes
+            });
+        Some(YTable { pair, one_byte })
+    }
+
+    fn apply(&self, text: &mut Vec<u8>, pairs: &[(Vec<u8>, Vec<u8>)]) {
+        if let Some(bytes) = &self.one_byte {
+            for byte in text.iter_mut() {
+                *byte = bytes[*byte as usize];
+            }
+            return;
+        }
+        let mut out = Vec::with_capacity(text.len());
+        for &byte in text.iter() {
+            match self.pair[byte as usize] {
+                Self::NONE => out.push(byte),
+                index => out.extend_from_slice(&pairs[index as usize].1),
+            }
+        }
+        *text = out;
+    }
+}
+
+/// What a `y` command has made of its list, when it is first run.
+enum YPlan {
+    Unbuilt,
+    /// A table of the bytes.
+    Table(Box<YTable>),
+    /// Each character is looked for in the list.
+    Characters,
+}
+
 #[cfg(test)]
 mod tests {
-    use super::next_step;
+    use super::{YTable, next_step, translate_chars};
+    use crate::regex::Locale;
 
     #[test]
     fn the_next_line_that_a_step_is_true_for() {
@@ -1460,5 +1562,74 @@ mod tests {
         assert_eq!(next_step(7, 0, 9), None);
         // Beyond what a line number can hold there is none.
         assert_eq!(next_step(1, u64::MAX, 2), None);
+    }
+    /// A small generator of numbers, so that the test does not depend on a crate for them.
+    struct Numbers(u64);
+
+    impl Numbers {
+        fn next(&mut self, below: u64) -> u64 {
+            self.0 = self
+                .0
+                .wrapping_mul(6364136223846793005)
+                .wrapping_add(1442695040888963407);
+            (self.0 >> 33) % below
+        }
+    }
+
+    /// `y` on a table gives what `y` on the characters gives, for texts of the bytes of the locale (any byte in a
+    /// single-byte locale, and ASCII in UTF-8, where a byte that is not ASCII is a part of a character), and for the
+    /// lists in which a character is twice (the last one wins in a single-byte locale, the first in UTF-8).
+    #[test]
+    fn y_on_a_table_gives_what_y_on_the_characters_gives() {
+        let mut numbers = Numbers(7);
+        let from_alphabet = [
+            b'a', b'b', b'c', b'x', b'y', b'z', b' ', b'\n', b'0', b'9', b'A', b'~', 0xe9, 0xff,
+        ];
+        for locale in [Locale::C, Locale::Sb, Locale::Utf8, Locale::Libc] {
+            for _ in 0..400 {
+                // The list: single characters, some twice, and (in UTF-8) a replacement that is more than a byte.
+                let pairs_len = 1 + numbers.next(8) as usize;
+                let mut pairs: Vec<(Vec<u8>, Vec<u8>)> = Vec::new();
+                for _ in 0..pairs_len {
+                    let mut from = from_alphabet[numbers.next(from_alphabet.len() as u64) as usize];
+                    if locale.is_utf8() && from >= 0x80 {
+                        from = b'q';
+                    }
+                    let to: Vec<u8> = if locale.is_utf8() && numbers.next(4) == 0 {
+                        "é".as_bytes().to_vec()
+                    } else {
+                        vec![
+                            from_alphabet[numbers.next(from_alphabet.len() as u64) as usize]
+                                & if locale.is_utf8() { 0x7f } else { 0xff },
+                        ]
+                    };
+                    pairs.push((vec![from], to));
+                }
+                let table = YTable::new(&pairs, locale).expect("a table for this locale");
+                for _ in 0..20 {
+                    let len = numbers.next(40) as usize;
+                    let text: Vec<u8> = (0..len)
+                        .map(|_| {
+                            let b =
+                                from_alphabet[numbers.next(from_alphabet.len() as u64) as usize];
+                            if locale.is_utf8() { b & 0x7f } else { b }
+                        })
+                        .collect();
+                    let mut on_the_table = text.clone();
+                    table.apply(&mut on_the_table, &pairs);
+                    assert_eq!(
+                        on_the_table,
+                        translate_chars(locale, &text, &pairs),
+                        "{locale:?} {pairs:?} {text:?}"
+                    );
+                }
+            }
+        }
+    }
+
+    /// Where the characters are more than bytes and are not UTF-8, the characters have to be looked at: no table.
+    #[test]
+    fn there_is_no_table_for_a_multibyte_locale_that_is_not_utf8() {
+        assert!(YTable::new(&[(b"a".to_vec(), b"b".to_vec())], Locale::Mb).is_none());
     }
 }
