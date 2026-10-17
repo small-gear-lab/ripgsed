@@ -180,6 +180,7 @@ Each worker returns its chunk's results in input order. Deletions are empty outp
 | `$`, `$-N` | parallel | each chunk is told how many records follow it, up to what the script looks ahead |
 | `F`, `s//x/` after a known regexp | parallel | the chunk knows its input; the regexp is the one just tried |
 | `q` / `Q` | parallel | record-local; the first quit in input order wins and the chunks after it are dropped |
+| `-s`, `-i` | parallel | each file is a stream of its own: the first chunk of a file starts from the state of the start of an input, its `$` and `$-N` stop at its end, and with `-i` the writer begins and finishes the file that replaces each input; a file named twice, `-`, and a file that the script writes and that is an input stay sequential |
 | `w`, `W`, `s///w` | parallel | each chunk keeps what it writes to each file and the writer puts it there in order; `/dev/stdout` and `/dev/stderr` stay sequential |
 | `r`, `R`, `e` | sequential | `r` streams a file that may never end, `R` keeps its place in its file, `e` runs commands |
 | unknown extensions | rejected or known sequential VM | never run unknown semantics |
