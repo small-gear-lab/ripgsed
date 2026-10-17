@@ -30,6 +30,42 @@ pub fn record_local(script: &Script, options: &Options) -> Result<(), Reason> {
     Ok(())
 }
 
+/// The line by which a script quits, when an address that is a line number says so: a `q` or `Q` that has one, or that
+/// is in a block that has one (the smallest of them). The run is over by then, which is something to know before
+/// the input is read on several threads: they read ahead of a quit that comes early.
+pub fn quit_line(script: &Script) -> Option<u64> {
+    let commands = &script.commands;
+    let line_of = |command: &Command| match &command.selector {
+        Selector::Single(Addr::Line(n)) | Selector::Range(Addr::Line(n), _) => Some(*n),
+        _ => None,
+    };
+    let mut known: Option<u64> = None;
+    for (index, command) in commands.iter().enumerate() {
+        if !matches!(command.kind, Kind::Quit(_) | Kind::QuitSilent(_)) {
+            continue;
+        }
+        // Its own address, and those of the blocks that it is in: the run reaches it no sooner than the largest
+        // line that is an address on the way, and quits there (the smallest line that it can quit on is the first
+        // one that all of them hold, which is the largest of the starts).
+        let mut here = line_of(command);
+        for outer in commands.iter().take(index) {
+            if let Kind::BlockStart(end) = outer.kind {
+                if end > index {
+                    here = match (here, line_of(outer)) {
+                        (Some(a), Some(b)) => Some(a.max(b)),
+                        (a, b) => a.or(b),
+                    };
+                }
+            }
+        }
+        known = match (known, here) {
+            (Some(a), Some(b)) => Some(a.min(b)),
+            (a, b) => a.or(b),
+        };
+    }
+    known
+}
+
 /// How many records after the current one the script has to see: one for `$`, N+1 for `$-N` (the most of
 /// the addresses that look ahead).
 pub fn lookahead(script: &Script) -> u64 {
@@ -75,15 +111,67 @@ pub fn tail_window(script: &Script, options: &Options) -> Option<u64> {
         return None;
     }
     let quiet = options.quiet || script.quiet;
+    leaves_nothing(commands, quiet, early).then(|| lookahead(script))
+}
+
+/// How many records at the start of the input are all that the script needs, if the records after them leave
+/// nothing behind, as `tail_window` does for the end: they are what the commands of the script, followed from the
+/// first for a record whose number is more than any line number in an address, print, write and change nothing
+/// for. The run can stop after that many records. `None` if that cannot be shown, or if the script has no line
+/// number to tell where to stop.
+///
+/// What reads the next record (`n`, `N`, `D`) may need one after the limit, and `q` and `Q` stop the run by themselves; the addresses that go on (a step, a range
+/// that ends on a regexp, a count of lines after the start) or that need the end (`$`) leave nothing to stop at.
+/// `-s` and `-i` number the lines of each file again, so they have no limit for the input.
+pub fn head_limit(script: &Script, options: &Options) -> Option<u64> {
+    if options.debug
+        || options.unbuffered
+        || options.in_place.is_some()
+        || options.separate
+        || options.follow_symlinks
+    {
+        return None;
+    }
+    let commands = &script.commands;
+    let mut last = 0;
+    for command in commands {
+        match &command.selector {
+            Selector::All | Selector::Single(Addr::Null) => {}
+            Selector::Single(Addr::Regex(pattern)) if pattern.regex.is_some() => {}
+            Selector::Single(Addr::Line(n)) => last = last.max(*n),
+            Selector::Range(Addr::Line(from), Addr2::Line(to)) => last = last.max(*from).max(*to),
+            _ => return None,
+        }
+        match &command.kind {
+            Kind::Next | Kind::NextAppend | Kind::DeleteFirst => return None,
+            // A script that quits stops by itself, and leaves standard input where it stops: not to be moved to the
+            // end after a run that stopped sooner than the input.
+            Kind::Quit(_) | Kind::QuitSilent(_) => return None,
+            Kind::Substitute(sub) if sub.pattern.regex.is_none() => return None,
+            _ => {}
+        }
+    }
+    if last == 0 {
+        return None;
+    }
+    let quiet = options.quiet || script.quiet;
+    leaves_nothing(commands, quiet, late).then_some(last)
+}
+
+/// Whether a record that no address of the script is true for, but for the ones that depend on what it holds,
+/// leaves nothing behind. The commands that can run for it are followed from the first, and each has to be one
+/// that leaves nothing, until the record is deleted or the script ends (and then it must be quiet).
+fn leaves_nothing(commands: &[Command], quiet: bool, address: impl Fn(&Selector) -> Early) -> bool {
     let mut pc = 0;
     while pc < commands.len() {
         let command = &commands[pc];
-        let run = match early(&command.selector) {
+        let value = address(&command.selector);
+        let run = match value {
             Early::Yes => !command.negate,
             Early::No => command.negate,
             Early::Maybe => true,
         };
-        let sure = !matches!(early(&command.selector), Early::Maybe);
+        let sure = value != Early::Maybe;
         if !run {
             // (A block that is not entered is jumped over.)
             pc = match command.kind {
@@ -94,7 +182,7 @@ pub fn tail_window(script: &Script, options: &Options) -> Option<u64> {
         }
         match &command.kind {
             // The record is gone: nothing more happens for it.
-            Kind::Delete if sure => return Some(lookahead(script)),
+            Kind::Delete if sure => return true,
             Kind::Delete => {}
             Kind::BlockStart(_)
             | Kind::BlockEnd
@@ -105,12 +193,24 @@ pub fn tail_window(script: &Script, options: &Options) -> Option<u64> {
             Kind::Substitute(sub)
                 if !sub.eval && sub.write.is_none() && !sub.print_before && !sub.print_after => {}
             // A record that is printed, written, read from, kept for later or that reads another record.
-            _ => return None,
+            _ => return false,
         }
         pc += 1;
     }
     // The end of the script: the record is printed, unless the script is quiet.
-    quiet.then(|| lookahead(script))
+    quiet
+}
+
+/// What an address says about a record that is past the last line number of the script.
+fn late(selector: &Selector) -> Early {
+    match selector {
+        Selector::All | Selector::Single(Addr::Null) => Early::Yes,
+        Selector::Single(Addr::Line(_)) | Selector::Range(Addr::Line(_), Addr2::Line(_)) => {
+            Early::No
+        }
+        // (A regexp; the others are not let through by `head_limit`.)
+        _ => Early::Maybe,
+    }
 }
 
 /// What an address says about a record that is far from the end.
@@ -474,5 +574,145 @@ mod tests {
         ] {
             assert_eq!(tail_window(&script, &options), None);
         }
+    }
+
+    fn limit(text: &str, quiet: bool) -> Option<u64> {
+        let chunk = Chunk {
+            source: ChunkSource::Expression(1),
+            text: text.as_bytes().to_vec(),
+        };
+        let script = parse(&[(chunk, ParseOptions::default())]).expect("parses");
+        head_limit(
+            &script,
+            &Options {
+                quiet,
+                ..Options::default()
+            },
+        )
+    }
+
+    #[test]
+    fn scripts_that_do_nothing_after_their_last_line_number_need_only_the_records_up_to_it() {
+        assert_eq!(limit("5p", true), Some(5));
+        assert_eq!(limit("2,4p", true), Some(4));
+        assert_eq!(
+            limit("4,2p", true),
+            Some(4),
+            "a range that ends before it starts is its first line"
+        );
+        assert_eq!(limit("1p;3p", true), Some(3));
+        // A first command that deletes every record after them (the 1,3!d of head).
+        assert_eq!(limit("1,3!d", false), Some(3));
+        assert_eq!(limit("3!d", false), Some(3));
+        assert_eq!(limit("3!d;s/a/b/;=", false), Some(3));
+        // A regexp is for the records that it holds, and what follows is no matter if it leaves nothing.
+        assert_eq!(limit("2,3p;/a/d", true), Some(3));
+    }
+
+    #[test]
+    fn scripts_that_do_something_after_the_last_line_number_need_the_whole_input() {
+        // The records after the last number are printed, or written, or kept.
+        assert_eq!(limit("5p", false), None, "without -n they are printed");
+        assert_eq!(limit("5d", false), None);
+        assert_eq!(limit("p", true), None);
+        assert_eq!(limit("/a/p;2p", true), None);
+        assert_eq!(limit("2p;s/a/b/w out", true), None);
+        assert_eq!(limit("2p;x", true), None);
+        assert_eq!(limit("2q;i x", true), None);
+        // Something that goes on or that is not a line number.
+        assert_eq!(limit("$p", true), None);
+        assert_eq!(limit("2p;$p", true), None);
+        assert_eq!(limit("$-1,$p", true), None);
+        assert_eq!(limit("0~3p", true), None, "a step does not end");
+        assert_eq!(limit("2,/a/p", true), None);
+        assert_eq!(limit("/a/,/b/p;2p", true), None);
+        assert_eq!(limit("2,+3p", true), None);
+        assert_eq!(limit("2,~4p", true), None);
+        assert_eq!(limit("0,/a/p", true), None);
+        assert_eq!(limit("s//x/;2p", true), None);
+        // What quits stops by itself, and leaves standard input where it stops.
+        assert_eq!(limit("3q", true), None);
+        assert_eq!(limit("3q7", true), None);
+        assert_eq!(limit("2{s/a/b/;p;q}", true), None);
+        // What reads the next record, which may be one after the limit.
+        assert_eq!(limit("2{N;p}", true), None);
+        assert_eq!(limit("2n;3p", true), None);
+        assert_eq!(limit("2{N;P;D}", true), None);
+        // No line number at all: nothing says where to stop.
+        assert_eq!(limit("/a/q", true), None);
+        assert_eq!(limit("s/a/b/", true), None);
+    }
+
+    #[test]
+    fn the_options_that_edit_in_place_or_count_the_lines_of_each_file_keep_the_whole_input() {
+        let chunk = Chunk {
+            source: ChunkSource::Expression(1),
+            text: b"3p".to_vec(),
+        };
+        let script = parse(&[(chunk, ParseOptions::default())]).expect("parses");
+        let quiet = Options {
+            quiet: true,
+            ..Options::default()
+        };
+        assert_eq!(head_limit(&script, &quiet), Some(3));
+        for options in [
+            Options {
+                in_place: Some(String::new()),
+                separate: true,
+                ..quiet.clone()
+            },
+            Options {
+                separate: true,
+                ..quiet.clone()
+            },
+            Options {
+                unbuffered: true,
+                ..quiet.clone()
+            },
+            Options {
+                debug: true,
+                ..quiet.clone()
+            },
+            Options {
+                follow_symlinks: true,
+                ..quiet.clone()
+            },
+        ] {
+            assert_eq!(head_limit(&script, &options), None);
+        }
+    }
+
+    fn quit_line_of(text: &str) -> Option<u64> {
+        let chunk = Chunk {
+            source: ChunkSource::Expression(1),
+            text: text.as_bytes().to_vec(),
+        };
+        let script = parse(&[(chunk, ParseOptions::default())]).expect("parses");
+        quit_line(&script)
+    }
+
+    #[test]
+    fn the_line_at_which_a_script_quits_is_known_when_the_address_is_a_number() {
+        assert_eq!(quit_line_of("5q"), Some(5));
+        assert_eq!(quit_line_of("5Q"), Some(5));
+        assert_eq!(quit_line_of("5q3"), Some(5));
+        assert_eq!(quit_line_of("p"), None);
+        assert_eq!(quit_line_of("3{p;q}"), Some(3), "the block is for the 3");
+        assert_eq!(quit_line_of("2,6{s/a/b/;q}"), Some(2));
+        assert_eq!(
+            quit_line_of("/a/{4{q}}"),
+            Some(4),
+            "the blocks that hold it: the inner one is for the 4"
+        );
+        assert_eq!(quit_line_of("/a/{p;q}"), None);
+        assert_eq!(
+            quit_line_of("10q;4q"),
+            Some(4),
+            "the first one to be reached"
+        );
+        assert_eq!(quit_line_of("/a/q"), None);
+        assert_eq!(quit_line_of("$q"), None);
+        assert_eq!(quit_line_of("q"), None);
+        assert_eq!(quit_line_of("s/a/b/;p"), None);
     }
 }

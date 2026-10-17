@@ -673,6 +673,50 @@ pub fn read_tail(
     Ok(Some(window))
 }
 
+/// A record source that ends after `left` records, as if the input did: what is not read is not asked of the input
+/// (see `analysis::head_limit`).
+pub struct Limited<'a, S: RecordSource + ?Sized> {
+    inner: &'a mut S,
+    left: u64,
+}
+
+impl<'a, S: RecordSource + ?Sized> Limited<'a, S> {
+    pub fn new(inner: &'a mut S, records: u64) -> Self {
+        Limited {
+            inner,
+            left: records,
+        }
+    }
+}
+
+impl<S: RecordSource + ?Sized> RecordSource for Limited<'_, S> {
+    fn next_record(&mut self) -> Result<Option<Fetched>, Fatal> {
+        if self.left == 0 {
+            return Ok(None);
+        }
+        let fetched = self.inner.next_record()?;
+        if fetched.is_some() {
+            self.left -= 1;
+        }
+        Ok(fetched)
+    }
+
+    fn skip_records(&mut self, n: u64) -> Result<u64, Fatal> {
+        let skipped = self.inner.skip_records(n.min(self.left))?;
+        self.left -= skipped;
+        Ok(skipped)
+    }
+
+    fn recycle(&mut self, buf: Vec<u8>) {
+        self.inner.recycle(buf);
+    }
+
+    fn records_after(&mut self, separate: bool, cap: usize) -> Result<usize, Fatal> {
+        let after = self.inner.records_after(separate, cap)?;
+        Ok(after.min(usize::try_from(self.left).unwrap_or(usize::MAX)))
+    }
+}
+
 /// The records of a window read from the end of a file (see `read_tail`) as a record source.
 pub struct TailSource {
     data: Vec<u8>,
