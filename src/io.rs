@@ -125,8 +125,13 @@ impl<R: Read> ChunkedSource<R> {
         self.next_record_into(Vec::new())
     }
 
-    /// Skips up to `n` records without building them; returns how many there were.
+    /// Skips up to `n` records without building them; returns how many there were. What it costs is what it skips,
+    /// not the size of the chunk it is in: a few records are found one by one, and many are counted a window at a time.
     pub fn skip_records(&mut self, n: u64) -> io::Result<u64> {
+        /// The bytes that are counted at once when many records are skipped.
+        const WINDOW: usize = 1 << 16;
+        /// The number of records up to which their ends are found one by one.
+        const FEW: u64 = 256;
         let mut done = 0u64;
         while done < n {
             if self.pos >= self.chunk.len() {
@@ -140,22 +145,51 @@ impl<R: Read> ChunkedSource<R> {
                 continue;
             }
             let rest = &self.chunk[self.pos..];
-            let separators = crate::search::count(self.separator, rest) as u64;
-            let records = separators + u64::from(rest.last() != Some(&self.separator));
-            if records <= n - done {
-                done += records;
-                self.consumed += rest.len() as u64;
-                self.pos = self.chunk.len();
-            } else {
-                let mut off = 0;
-                for _ in 0..n - done {
-                    off +=
-                        crate::search::memchr(self.separator, &rest[off..]).expect("counted") + 1;
+            let want = n - done;
+            let mut off = 0usize;
+            if want <= FEW {
+                let mut found = 0;
+                while found < want {
+                    match crate::search::memchr(self.separator, &rest[off..]) {
+                        Some(i) => {
+                            off += i + 1;
+                            found += 1;
+                        }
+                        None => break,
+                    }
                 }
-                done = n;
-                self.pos += off;
-                self.consumed += off as u64;
+                if found < want {
+                    // Not that many in this chunk: all of it goes, and a last record that has no terminator is one.
+                    off = rest.len();
+                    done += found + u64::from(rest.last() != Some(&self.separator));
+                } else {
+                    done = n;
+                }
+            } else {
+                while off < rest.len() && done < n {
+                    let window = &rest[off..(off + WINDOW).min(rest.len())];
+                    let at_end = off + window.len() == rest.len();
+                    let separators = crate::search::count(self.separator, window) as u64;
+                    let records =
+                        separators + u64::from(at_end && window.last() != Some(&self.separator));
+                    if records <= n - done {
+                        done += records;
+                        off += window.len();
+                    } else {
+                        // Enough in this window: the ends of the records that are wanted, one by one.
+                        let mut inside = 0;
+                        for _ in 0..n - done {
+                            inside += crate::search::memchr(self.separator, &window[inside..])
+                                .expect("counted")
+                                + 1;
+                        }
+                        done = n;
+                        off += inside;
+                    }
+                }
             }
+            self.pos += off;
+            self.consumed += off as u64;
         }
         Ok(done)
     }
@@ -1402,5 +1436,77 @@ mod tests {
         assert!(!src.is_last(false).unwrap());
         assert!(src.next_record().unwrap().is_some());
         assert!(src.is_last(false).unwrap());
+    }
+
+    /// What `next_record` gives from the position that `skip_records` stopped at, and how many it skipped.
+    fn after_skipping(data: &[u8], separator: u8, block: usize, skip: u64) -> (u64, Vec<Record>) {
+        let mut source = ChunkedSource::new(data, separator, block);
+        let skipped = source.skip_records(skip).unwrap();
+        let mut rest = Vec::new();
+        while let Some(record) = source.next_record().unwrap() {
+            rest.push(record);
+        }
+        (skipped, rest)
+    }
+
+    #[test]
+    fn skipping_records_is_the_same_as_reading_them() {
+        for separator in [b'\n', 0u8] {
+            for terminated in [true, false] {
+                for count in [0usize, 1, 2, 5, 40, 300] {
+                    let mut data = Vec::new();
+                    for i in 0..count {
+                        // (Records of different lengths, and empty ones, so that block ends fall anywhere.)
+                        data.extend(std::iter::repeat_n(b'a' + (i % 26) as u8, i % 7));
+                        if i + 1 < count || terminated {
+                            data.push(separator);
+                        }
+                    }
+                    for block in [1usize, 2, 3, 7, 64, 100_000] {
+                        for skip in (0..=count as u64 + 3).chain([70_000, 1_000_000]) {
+                            let (skipped, rest) = after_skipping(&data, separator, block, skip);
+                            let (_, all) = after_skipping(&data, separator, block, 0);
+                            // (What is there is what reading gives: a last record that is empty and has no terminator is not one.)
+                            let skipped_expected = skip.min(all.len() as u64);
+                            assert_eq!(
+                                skipped, skipped_expected,
+                                "{count} records, block {block}, skip {skip}"
+                            );
+                            assert_eq!(
+                                rest.as_slice(),
+                                &all[skipped_expected as usize..],
+                                "{count} records, last terminated {terminated}, block {block}, skip {skip}"
+                            );
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /// Skipping a few records, many times over a large input, costs what is skipped and not the size of the chunk that
+    /// is being cut: a script that is for every seventh line skips six records at a time.
+    #[test]
+    fn skipping_a_few_records_does_not_count_the_whole_chunk_each_time() {
+        let mut data = Vec::new();
+        for i in 0..400_000u32 {
+            data.extend_from_slice(format!("{i}\n").as_bytes());
+        }
+        let mut source = ChunkedSource::new(&data[..], b'\n', 1 << 20);
+        let start = std::time::Instant::now();
+        let mut skipped = 0;
+        for _ in 0..50_000 {
+            skipped += source.skip_records(6).unwrap();
+            source
+                .next_record()
+                .unwrap()
+                .expect("a record after the six");
+        }
+        assert_eq!(skipped, 300_000);
+        assert!(
+            start.elapsed() < std::time::Duration::from_millis(2500),
+            "{:?} for 50,000 skips of six records",
+            start.elapsed()
+        );
     }
 }
