@@ -185,16 +185,11 @@ fn memmem_scalar(hay: &[u8], needle: &[u8], from: usize) -> Option<usize> {
     let last_start = hay.len() - n;
     let mut i = from;
     while i <= last_start {
-        match hay[i..=last_start].iter().position(|&b| b == first) {
-            None => return None,
-            Some(k) => {
-                i += k;
-                if &hay[i..i + n] == needle {
-                    return Some(i);
-                }
-                i += 1;
-            }
+        i += hay[i..=last_start].iter().position(|&b| b == first)?;
+        if &hay[i..i + n] == needle {
+            return Some(i);
         }
+        i += 1;
     }
     None
 }

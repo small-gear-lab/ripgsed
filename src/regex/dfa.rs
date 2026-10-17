@@ -298,8 +298,8 @@ impl Dfa {
     pub fn first_end(&mut self, hay: &[u8], from: usize) -> Result<Option<usize>, GiveUp> {
         let prev = self.neighbour(hay, from)?;
         let mut state = self.start(prev)?;
-        for p in from..hay.len() {
-            let t = self.step(state, hay[p])?;
+        for (p, &byte) in hay.iter().enumerate().skip(from) {
+            let t = self.step(state, byte)?;
             if t & ACCEPT != 0 {
                 return Ok(Some(p));
             }

@@ -193,7 +193,7 @@ pub fn main(program: &str, args: Vec<Vec<u8>>, kind: Kind) -> i32 {
         }
     }
     if run.printer.flush().is_err() {
-        eprintln!("{program}: write error: {}", "Broken pipe");
+        eprintln!("{program}: write error: Broken pipe");
         return 2;
     }
     if run.error_seen {

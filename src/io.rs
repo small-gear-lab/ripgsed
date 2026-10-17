@@ -960,6 +960,32 @@ pub enum FollowError {
     Loop(io::Error),
 }
 
+/// A file name given on the command line, as the path it stands for.
+pub fn os_path(name: &str) -> std::path::PathBuf {
+    use std::os::unix::ffi::OsStringExt;
+    std::path::PathBuf::from(std::ffi::OsString::from_vec(crate::cli::argument_bytes(name)))
+}
+
+/// A file name from the script, as the path it stands for.
+pub fn bytes_path(name: &[u8]) -> std::path::PathBuf {
+    use std::os::unix::ffi::OsStrExt;
+    std::path::PathBuf::from(std::ffi::OsStr::from_bytes(name))
+}
+
+/// An output sink that several `Output`s can share and that the caller can read back.
+pub struct SharedBuffer(pub Rc<RefCell<Vec<u8>>>);
+
+impl Write for SharedBuffer {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        self.0.borrow_mut().extend_from_slice(buf);
+        Ok(buf.len())
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1037,32 +1063,5 @@ mod tests {
         assert!(!src.is_last(false).unwrap());
         assert!(src.next_record().unwrap().is_some());
         assert!(src.is_last(false).unwrap());
-    }
-}
-
-
-/// A file name given on the command line, as the path it stands for.
-pub fn os_path(name: &str) -> std::path::PathBuf {
-    use std::os::unix::ffi::OsStringExt;
-    std::path::PathBuf::from(std::ffi::OsString::from_vec(crate::cli::argument_bytes(name)))
-}
-
-/// A file name from the script, as the path it stands for.
-pub fn bytes_path(name: &[u8]) -> std::path::PathBuf {
-    use std::os::unix::ffi::OsStrExt;
-    std::path::PathBuf::from(std::ffi::OsStr::from_bytes(name))
-}
-
-/// An output sink that several `Output`s can share and that the caller can read back.
-pub struct SharedBuffer(pub Rc<RefCell<Vec<u8>>>);
-
-impl Write for SharedBuffer {
-    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        self.0.borrow_mut().extend_from_slice(buf);
-        Ok(buf.len())
-    }
-
-    fn flush(&mut self) -> io::Result<()> {
-        Ok(())
     }
 }

@@ -95,7 +95,7 @@ fn command(rng: &mut Rng, extended: bool, depth: usize) -> String {
         11 => "z".into(),
         12 => "=".into(),
         13 => "l".into(),
-        14 | 15 | 16 => {
+        14..=16 => {
             let flags = rng.pick(&["", "g", "p", "2", "gp", "I", "2g", "w /dev/null", "M", "Ig", "3", "gI"]);
             format!("s/{}/{}/{}", regex(rng, extended), rng.pick(REPLACEMENTS), flags)
         }
@@ -103,7 +103,7 @@ fn command(rng: &mut Rng, extended: bool, depth: usize) -> String {
         18 => format!("a {}", rng.pick(TEXTS)),
         19 => format!("i {}", rng.pick(TEXTS)),
         20 => format!("c {}", rng.pick(TEXTS)),
-        21 => format!("{}", rng.pick(&["q", "q5", "Q", "Q3"])),
+        21 => rng.pick(&["q", "q5", "Q", "Q3"]).to_string(),
         22 if depth < 2 => {
             let inner: Vec<String> = (0..1 + rng.below(3)).map(|_| command(rng, extended, depth + 1)).collect();
             format!("{{{}}}", inner.join(";"))

@@ -85,6 +85,12 @@ pub enum Target<'a> {
     Abort,
 }
 
+/// What takes the output of a run, a piece at a time and in order: the piece, with whether it ends without a terminator.
+type Sink<'a> = dyn FnMut(Target, &[u8], bool) -> Result<(), Fatal> + 'a;
+
+/// The same, for a run that has standard output to write to and nothing else.
+type MainSink<'a> = dyn FnMut(&[u8], bool) -> Result<(), Fatal> + 'a;
+
 /// What a run leaves behind: the exit status (a `q` or `Q` may ask for one) and where to put the offset
 /// of standard input back to, when it quit early.
 pub struct Finish {
@@ -178,7 +184,7 @@ pub fn run_reader<'a>(
     reader: Reader<'a>,
     jobs: usize,
     block: usize,
-    write: &mut dyn FnMut(&[u8], bool) -> Result<(), Fatal>,
+    write: &mut MainSink<'_>,
 ) -> Result<i32, Fatal> {
     let mut reader = Some(reader);
     let open: Open<'a> = Box::new(move || reader.take().map(|reader| Ok(Input { name: "-".to_string(), reader, stdin_start: None })));
@@ -196,7 +202,7 @@ fn run_inputs<'a>(
     mut open: Open<'a>,
     jobs: usize,
     block: usize,
-    write: &mut dyn FnMut(Target, &[u8], bool) -> Result<(), Fatal>,
+    write: &mut Sink<'_>,
 ) -> Result<Finish, Fatal> {
     let jobs = jobs.max(1);
     let script_chunks = Arc::new(script_chunks);
