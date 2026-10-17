@@ -271,3 +271,144 @@ fn files_written_are_the_same_as_in_the_sequential_run() {
     }
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+/// With `-s` each file is a stream of its own: its line numbers, its ranges and its `$` are the file's, whatever
+/// chunk the line is in.
+#[test]
+fn separate_files_are_streams_of_their_own_in_parallel_too() {
+    let dir = std::env::temp_dir().join(format!("ripgsed-parallel-separate-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let a = dir.join("a.txt");
+    let b = dir.join("b.txt");
+    let empty = dir.join("empty.txt");
+    std::fs::write(&a, lines(500, false)).unwrap();
+    std::fs::write(&b, lines(37, true)).unwrap();
+    std::fs::write(&empty, b"").unwrap();
+
+    let scripts: &[&[&str]] = &[
+        &["-s", "$d"],
+        &["-s", "-n", "$p"],
+        &["-s", "1d"],
+        &["-s", "-n", "2,4p;$-1,$p"],
+        &["-s", "-n", "1F;$F"],
+        &["-s", "-n", "$=;1="],
+        &["-s", "/line 3/,/line 5/d"],
+        &["-s", "-n", "/line 30 /,/line 2[0-9][0-9] /p"],
+        &["-s", "/line 3[0-9] /,$d"],
+        &["-s", "0~100s/alpha/X/"],
+        &["-s", "$,-2d"],
+        &["-s", "$!s/a/b/;$a end"],
+        &["-s", "-n", "/line 1[0-9] /,+3p"],
+        &["-s", "20q3"],
+        &["-s", "-n", "$-2,$p;4q"],
+    ];
+    for args in scripts {
+        for files in [vec![a.as_path(), b.as_path()], vec![b.as_path(), a.as_path()], vec![a.as_path(), empty.as_path(), b.as_path(), empty.as_path()], vec![b.as_path(), b.as_path(), a.as_path()]] {
+            let want = run("1", "1048576", args, &files);
+            for (jobs, block) in [("2", "1"), ("3", "50"), ("4", "333"), ("8", "4096")] {
+                let got = run(jobs, block, args, &files);
+                assert_eq!(got, want, "script {args:?} files {files:?} jobs {jobs} block {block}");
+            }
+        }
+    }
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// What `-i` leaves behind: the standard output, the status, and for every name the bytes and the mode of the
+/// file (a file that is not there is `None`).
+type Left = ((Vec<u8>, Vec<u8>, Option<i32>), Vec<(String, Option<(Vec<u8>, u32)>)>);
+
+fn edit_in_place(jobs: &str, block: &str, args: &[&str], names: &[&str], extra: &[&str]) -> Left {
+    use std::os::unix::fs::{symlink, PermissionsExt};
+    static COUNTER: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+    let n = COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let dir = std::env::temp_dir().join(format!("ripgsed-parallel-inplace-{}-{n}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(dir.join("a.txt"), lines(500, false)).unwrap();
+    std::fs::write(dir.join("b.txt"), lines(37, true)).unwrap();
+    std::fs::write(dir.join("c.txt"), lines(120, true)).unwrap();
+    std::fs::write(dir.join("empty.txt"), b"").unwrap();
+    std::fs::set_permissions(dir.join("b.txt"), std::fs::Permissions::from_mode(0o640)).unwrap();
+    symlink("c.txt", dir.join("link.txt")).unwrap();
+    let out = Command::new(BIN)
+        .args(args)
+        .args(names)
+        .env("RIPGSED_JOBS", jobs)
+        .env("RIPGSED_BLOCK", block)
+        .env("LC_ALL", "C")
+        .current_dir(&dir)
+        .output()
+        .expect("run ripgsed");
+    let mut seen: Vec<String> = std::fs::read_dir(&dir).unwrap().map(|e| e.unwrap().file_name().to_string_lossy().into_owned()).collect();
+    seen.sort();
+    let left = seen
+        .into_iter()
+        .map(|name| {
+            let path = dir.join(&name);
+            let state = std::fs::symlink_metadata(&path).ok().map(|m| {
+                let bytes = if m.file_type().is_symlink() { std::fs::read_link(&path).unwrap().to_string_lossy().into_owned().into_bytes() } else { std::fs::read(&path).unwrap_or_default() };
+                (bytes, m.permissions().mode())
+            });
+            (name, state)
+        })
+        .collect();
+    let _ = extra;
+    let _ = std::fs::remove_dir_all(&dir);
+    // (The messages name the directory the files were in: it is not the same twice.)
+    let stderr = String::from_utf8_lossy(&out.stderr).replace(dir.to_string_lossy().as_ref(), "DIR").into_bytes();
+    ((out.stdout, stderr, out.status.code()), left)
+}
+
+#[test]
+fn files_edited_in_place_come_out_as_in_the_sequential_run() {
+    let name_sets: &[&[&str]] = &[
+        &["a.txt", "b.txt", "c.txt"],
+        &["c.txt", "empty.txt", "a.txt"],
+        &["link.txt", "a.txt"],
+    ];
+    let scripts: &[&[&str]] = &[
+        &["-i", "s/alpha/X/g"],
+        &["-i.bak", "s/alpha/X/g"],
+        &["-i", "$d"],
+        &["-i", "1d;$a end"],
+        &["-i", "2,4d;$-1,$s/a/b/"],
+        &["-i", "/line 3/,/line 5/d"],
+        &["-i", "-n", "/7$/p"],
+        &["-i", "-e", "1F;=", "-e", "$,-2d"],
+        &["-i", "20q"],
+        &["-i", "/line 12 /q5"],
+        &["-i", "--follow-symlinks", "s/line/L/"],
+        &["-i", "-n", "2{p;p}"],
+        &["-i", "/9 /w out.txt"],
+        &["-i", "s/alpha/X/w out.txt"],
+    ];
+    for names in name_sets {
+        for args in scripts {
+            let want = edit_in_place("1", "1048576", args, names, &[]);
+            for (jobs, block) in [("2", "1"), ("3", "50"), ("4", "333"), ("8", "4096")] {
+                let got = edit_in_place(jobs, block, args, names, &[]);
+                assert_eq!(got, want, "script {args:?} files {names:?} jobs {jobs} block {block}");
+            }
+        }
+    }
+}
+
+/// A file named twice is read the second time as the first left it, and a file that the script writes is read
+/// as it is written: those runs stay sequential, with the same result.
+#[test]
+fn a_file_that_is_read_after_it_is_written_is_not_read_ahead() {
+    let twice = ["a.txt", "b.txt", "a.txt"];
+    let want = edit_in_place("1", "1048576", &["-i", "1d"], &twice, &[]);
+    for (jobs, block) in [("2", "1"), ("4", "333")] {
+        assert_eq!(edit_in_place(jobs, block, &["-i", "1d"], &twice, &[]), want, "jobs {jobs} block {block}");
+    }
+    // (500 lines minus two firsts)
+    let a = want.1.iter().find(|(name, _)| name == "a.txt").unwrap().1.as_ref().unwrap();
+    assert_eq!(String::from_utf8_lossy(&a.0).lines().count(), 498);
+    let into_input = ["-i", "s/alpha/X/w b.txt"];
+    let want = edit_in_place("1", "1048576", &into_input, &["a.txt", "b.txt"], &[]);
+    for (jobs, block) in [("2", "1"), ("4", "333")] {
+        assert_eq!(edit_in_place(jobs, block, &into_input, &["a.txt", "b.txt"], &[]), want, "jobs {jobs} block {block}");
+    }
+}

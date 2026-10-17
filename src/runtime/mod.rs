@@ -158,6 +158,9 @@ pub struct ChunkInput {
     pub data: Vec<u8>,
     /// The line number of the first record.
     pub first_line: u64,
+    /// Whether the chunk starts a file that is a stream of its own (`-s`, `-i`): its line numbers, its ranges
+    /// and its `$` are those of the file, so it starts from the state of the start of an input.
+    pub first_of_file: bool,
     /// The number of records in the chunk.
     pub records: u64,
     /// How many records follow the chunk in all the inputs: all of them, or as many as the script asks to
