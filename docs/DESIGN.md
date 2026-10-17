@@ -176,9 +176,12 @@ Each worker returns its chunk's results in input order. Deletions are empty outp
 | `s/old/new/g` | parallel candidate | record-local subset |
 | `1h; 2,$G` | sequential | hold space crosses records |
 | `N; P; D` | sequential | reads and cycles cross records |
-| range addresses | generally sequential | start/end state persists |
-| `q` / `Q` | sequential | early exit and observable extent |
-| `r` / `w` / `e` | sequential or rejected | external side effects, ordering, failure point |
+| range addresses | parallel, on a guess | each chunk starts from the state the last chunk the writer took ended in, and is run again if the chunk before it ends in another |
+| `$` | parallel | the chunk that holds the end of every input is told so |
+| `F`, `s//x/` after a known regexp | parallel | the chunk knows its input; the regexp is the one just tried |
+| `q` / `Q` | parallel | record-local; the first quit in input order wins and the chunks after it are dropped |
+| `w`, `W`, `s///w` | parallel | each chunk keeps what it writes to each file and the writer puts it there in order; `/dev/stdout` and `/dev/stderr` stay sequential |
+| `r`, `R`, `e` | sequential | `r` streams a file that may never end, `R` keeps its place in its file, `e` runs commands |
 | unknown extensions | rejected or known sequential VM | never run unknown semantics |
 
 "Fallback" does not mean restarting after partial output has been written. Choose the plan before execution. If adaptive switching is introduced later, its state, side-effect, and re-execution contract needs separate design.

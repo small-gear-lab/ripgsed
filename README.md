@@ -62,7 +62,7 @@ It is developed and tested on Linux (Ubuntu, glibc), where the compatibility wit
 | Japanese text, `s/\w\+/<&>/g` | 2.65 | 0.79 | 0.30 | 0.25 | 0.09 |
 
 - **Memory** use is higher than GNU sed's: 4 to 70 MiB against 2 MiB, and 172 MiB for the Japanese `\w` workload (one 20 MB line takes about 60 MiB in both), because input is read in blocks.
-- **Sequential runs**: a script that reads other records, uses the hold space, or touches files runs sequentially. The sequential path is faster than GNU sed on every workload above.
+- **Sequential runs**: a script that reads other records (`n`, `N`, `D`), uses the hold space, or reads files or runs commands (`r`, `R`, `e`) runs sequentially. The sequential path is faster than GNU sed on every workload above.
 
 ## As a grep
 
