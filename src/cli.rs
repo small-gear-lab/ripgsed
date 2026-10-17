@@ -561,6 +561,53 @@ fn open_files_limit() -> Option<u64> {
     line.split_whitespace().nth(3)?.parse().ok()
 }
 
+/// When the script needs only the last records of the input (`analysis::tail_window`) and the input is one file
+/// that can be searched, runs it on those records, read from the end of the file, and gives the exit status.
+/// `None` when this does not apply: nothing has been written then, and the run goes on as it would.
+///
+/// `RIPGSED_TAIL=0` turns it off, and `RIPGSED_TAIL_MIN_BYTES` is the size under which a file is read whole
+/// (a megabyte; 0 for every file, which the tests use). The result is the same either way.
+fn run_on_the_tail(
+    script: &crate::syntax::Script,
+    options: &Options,
+    files: &[String],
+    program: &str,
+) -> Option<i32> {
+    if std::env::var("RIPGSED_TAIL").is_ok_and(|v| v == "0") {
+        return None;
+    }
+    let [name] = files else { return None };
+    if name == "-" {
+        return None;
+    }
+    let min_bytes: u64 = std::env::var("RIPGSED_TAIL_MIN_BYTES")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(1 << 20);
+    let window = crate::analysis::tail_window(script, options)?;
+    // (A file that cannot be read is the business of the run that reports it.)
+    let bytes = crate::io::read_tail(
+        &crate::io::os_path(name),
+        options.separator,
+        window,
+        min_bytes,
+    )
+    .ok()??;
+    let mut source = crate::io::TailSource::new(bytes, options.separator, name);
+    let stdout = io::stdout().lock();
+    let mut outputs = Outputs::new(Box::new(BufWriter::new(stdout)), options.separator);
+    let result = runtime::run(script, options.clone(), &mut source, &mut outputs)
+        .and_then(|code| outputs.flush_all().map(|()| code));
+    Some(match result {
+        Ok(code) => code,
+        Err(Fatal { message, status }) => {
+            eprint_message(&format!("{program}: {message}"));
+            let _ = outputs.flush_all();
+            status
+        }
+    })
+}
+
 /// How many workers to use, or `None` to run sequentially.
 ///
 /// A script runs in parallel only if it is record-local (see `analysis`) and either the
@@ -678,6 +725,9 @@ pub fn main() -> i32 {
     }
 
     let options = invocation.options;
+    if let Some(status) = run_on_the_tail(&script, &options, &invocation.files, &program) {
+        return status;
+    }
     if let Some(jobs) = parallel_jobs(&script, &options, &invocation.files) {
         let block = std::env::var("RIPGSED_BLOCK")
             .ok()

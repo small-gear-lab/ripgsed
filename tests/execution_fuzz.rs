@@ -284,9 +284,15 @@ fn run(program: &Path, args: &[String], stdin: &[u8], cwd: &Path, locale: &str) 
         .env("LC_ALL", locale)
         .env("RIPGSED_GLIBC_COMPAT", "1")
         .envs(
-            ["RIPGSED_JOBS", "RIPGSED_BLOCK", "LLVM_PROFILE_FILE"]
-                .iter()
-                .filter_map(|k| std::env::var(k).ok().map(|v| (*k, v))),
+            [
+                "RIPGSED_JOBS",
+                "RIPGSED_BLOCK",
+                "RIPGSED_TAIL",
+                "RIPGSED_TAIL_MIN_BYTES",
+                "LLVM_PROFILE_FILE",
+            ]
+            .iter()
+            .filter_map(|k| std::env::var(k).ok().map(|v| (*k, v))),
         )
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())

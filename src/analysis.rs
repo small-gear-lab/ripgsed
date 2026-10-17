@@ -52,6 +52,118 @@ pub fn lookahead(script: &Script) -> u64 {
     most
 }
 
+/// How many records at the end of the input are all that the script needs, if the records before them leave
+/// nothing behind: nothing is printed or written for them, and nothing changes that a later record sees. Such a
+/// script gives the same answer on the last records alone as on the whole input, and a file that can be
+/// searched can be read from its end. `None` if that cannot be shown.
+///
+/// What is shown is about a record that has more records after it than any address counts (so every address
+/// counted from the end is false for it): the commands that can run for it are followed from the first, and each
+/// has to be one that leaves nothing, until the record is deleted or the script ends (and then it must be quiet).
+pub fn tail_window(script: &Script, options: &Options) -> Option<u64> {
+    if options.debug || options.unbuffered || options.in_place.is_some() || options.follow_symlinks
+    {
+        return None;
+    }
+    let commands = &script.commands;
+    // The records of the window are not numbered as they are in the whole input, and what an empty regexp stands
+    // for, or the state of a range that starts on a regexp, comes from the records before.
+    if !commands
+        .iter()
+        .all(|command| tail_selector_is_fine(&command.selector) && tail_kind_is_fine(&command.kind))
+    {
+        return None;
+    }
+    let quiet = options.quiet || script.quiet;
+    let mut pc = 0;
+    while pc < commands.len() {
+        let command = &commands[pc];
+        let run = match early(&command.selector) {
+            Early::Yes => !command.negate,
+            Early::No => command.negate,
+            Early::Maybe => true,
+        };
+        let sure = !matches!(early(&command.selector), Early::Maybe);
+        if !run {
+            // (A block that is not entered is jumped over.)
+            pc = match command.kind {
+                Kind::BlockStart(end) => end + 1,
+                _ => pc + 1,
+            };
+            continue;
+        }
+        match &command.kind {
+            // The record is gone: nothing more happens for it.
+            Kind::Delete if sure => return Some(lookahead(script)),
+            Kind::Delete => {}
+            Kind::BlockStart(_)
+            | Kind::BlockEnd
+            | Kind::Label(_)
+            | Kind::Zap
+            | Kind::Translate(_)
+            | Kind::Version => {}
+            Kind::Substitute(sub)
+                if !sub.eval && sub.write.is_none() && !sub.print_before && !sub.print_after => {}
+            // A record that is printed, written, read from, kept for later or that reads another record.
+            _ => return None,
+        }
+        pc += 1;
+    }
+    // The end of the script: the record is printed, unless the script is quiet.
+    quiet.then(|| lookahead(script))
+}
+
+/// What an address says about a record that is far from the end.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Early {
+    Yes,
+    No,
+    /// It depends on what the record holds.
+    Maybe,
+}
+
+fn early(selector: &Selector) -> Early {
+    match selector {
+        Selector::All => Early::Yes,
+        Selector::Single(Addr::Last | Addr::FromEnd(_))
+        | Selector::Range(Addr::Last | Addr::FromEnd(_), _) => Early::No,
+        Selector::Single(Addr::Null) => Early::Yes,
+        // (The other addresses are not let through by `tail_selector_is_fine`, or are a regexp.)
+        _ => Early::Maybe,
+    }
+}
+
+/// Whether what the selector says is the same on the records of the window as on the whole input.
+fn tail_selector_is_fine(selector: &Selector) -> bool {
+    let regexp_is_written = |pattern: &crate::syntax::Pattern| pattern.regex.is_some();
+    match selector {
+        Selector::All => true,
+        Selector::Single(Addr::Last | Addr::FromEnd(_) | Addr::Null) => true,
+        Selector::Single(Addr::Regex(pattern)) => regexp_is_written(pattern),
+        // The line numbers, or the steps of them, are those of the whole input.
+        Selector::Single(Addr::Line(_) | Addr::Step { .. }) => false,
+        // A range that starts before the window may be going on when the window starts. One that starts in it
+        // starts from nothing, and ends on what it holds, or on the number of lines after its start.
+        Selector::Range(Addr::Last | Addr::FromEnd(_), end) => match end {
+            Addr2::Last | Addr2::FromEnd(_) | Addr2::Plus(_) => true,
+            Addr2::Regex(pattern) => regexp_is_written(pattern),
+            Addr2::Line(_) | Addr2::Step { .. } | Addr2::Multiple(_) => false,
+        },
+        Selector::Range(..) => false,
+    }
+}
+
+/// Whether the command does the same for a record of the window as for the same record of the whole input.
+fn tail_kind_is_fine(kind: &Kind) -> bool {
+    match kind {
+        // The number of the line.
+        Kind::LineNumber => false,
+        // What an empty regexp stands for.
+        Kind::Substitute(sub) => sub.pattern.regex.is_some(),
+        _ => true,
+    }
+}
+
 fn command_local(
     commands: &[Command],
     index: usize,
@@ -249,5 +361,118 @@ mod tests {
             record_local(&script, &unbuffered),
             Err(Reason::Construct("-u"))
         );
+    }
+
+    fn window(text: &str, quiet: bool) -> Option<u64> {
+        let chunk = Chunk {
+            source: ChunkSource::Expression(1),
+            text: text.as_bytes().to_vec(),
+        };
+        let script = parse(&[(chunk, ParseOptions::default())]).expect("parses");
+        tail_window(
+            &script,
+            &Options {
+                quiet,
+                ..Options::default()
+            },
+        )
+    }
+
+    #[test]
+    fn scripts_that_do_nothing_before_the_end_need_only_the_last_records() {
+        // -n and only addresses counted from the end: nothing happens before them.
+        assert_eq!(window("$p", true), Some(1));
+        assert_eq!(window("$-2,$p", true), Some(3));
+        assert_eq!(window("$-3,$-1{p;p}", true), Some(4));
+        assert_eq!(window("$p;$q3", true), Some(1));
+        assert_eq!(window("$-9{s/a/b/;p}", true), Some(10));
+        assert_eq!(window("$,-4p", true), Some(5));
+        // A first command that deletes every record that is not in the window.
+        assert_eq!(window("$!d", false), Some(1));
+        assert_eq!(window("$-2,$!d", false), Some(3));
+        assert_eq!(window("$!d;s/a/b/;$a end", false), Some(1));
+        assert_eq!(window("$-1!d;$q5", false), Some(2));
+        assert_eq!(
+            window("$!d;p;=", false),
+            None,
+            "= needs the number of the line"
+        );
+        // A regexp does not need to know where the line is.
+        assert_eq!(window("$!d;/a/s/b/c/", false), Some(1));
+    }
+
+    #[test]
+    fn scripts_that_do_something_before_the_end_need_all_the_records() {
+        // What is printed, or written, or kept, before the end.
+        assert_eq!(window("p", true), None);
+        assert_eq!(
+            window("$d", false),
+            None,
+            "the records before the end are printed"
+        );
+        assert_eq!(
+            window("$p", false),
+            None,
+            "and so are they here, without -n"
+        );
+        assert_eq!(window("/a/p;$p", true), None);
+        // (A record that is deleted, or that nothing reaches, leaves nothing behind.)
+        assert_eq!(window("/a/d;$p", true), Some(1));
+        assert_eq!(window("s/a/b/w out;$p", true), None);
+        assert_eq!(window("s/a/b/p;$p", true), None);
+        assert_eq!(window("$!{p}", true), None);
+        assert_eq!(window("i x", true), None);
+        assert_eq!(window("/a/w out;$p", true), None);
+        // Line numbers, in an address or printed.
+        assert_eq!(window("2p;$p", true), None);
+        assert_eq!(window("$=", true), None);
+        assert_eq!(window("0~3p;$p", true), None);
+        assert_eq!(window("$-2,5p", true), None);
+        assert_eq!(window("/a/,~4p;$p", true), None);
+        // State that goes from record to record.
+        assert_eq!(window("1!G;h;$!d", false), None);
+        assert_eq!(window("/a/,/b/s/x/y/;$p", true), None);
+        assert_eq!(window("$!N;P;D", false), None);
+        assert_eq!(window("x;$p", true), None);
+        assert_eq!(window(":a;$p;ba", true), None);
+        assert_eq!(window("s//x/;$p", true), None);
+        // Quitting before the end.
+        assert_eq!(window("2q;$p", true), None);
+        assert_eq!(window("/a/q;$p", true), None);
+    }
+
+    #[test]
+    fn the_options_that_write_as_it_goes_or_edit_in_place_keep_the_whole_file() {
+        let chunk = Chunk {
+            source: ChunkSource::Expression(1),
+            text: b"$p".to_vec(),
+        };
+        let script = parse(&[(chunk, ParseOptions::default())]).expect("parses");
+        let quiet = Options {
+            quiet: true,
+            ..Options::default()
+        };
+        assert_eq!(tail_window(&script, &quiet), Some(1));
+        for options in [
+            Options {
+                in_place: Some(String::new()),
+                separate: true,
+                ..quiet.clone()
+            },
+            Options {
+                unbuffered: true,
+                ..quiet.clone()
+            },
+            Options {
+                debug: true,
+                ..quiet.clone()
+            },
+            Options {
+                follow_symlinks: true,
+                ..quiet.clone()
+            },
+        ] {
+            assert_eq!(tail_window(&script, &options), None);
+        }
     }
 }
