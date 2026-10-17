@@ -4,7 +4,6 @@ mod case;
 mod list;
 
 use std::collections::HashMap;
-use std::io::{self, Write};
 use std::process::{Command as Process, Stdio};
 use std::rc::Rc;
 
@@ -68,7 +67,7 @@ enum Flow {
     QuitNow { code: i32 },
 }
 
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum RangeState {
     Inactive,
     /// A range with a numeric start has ended; it cannot start again.
@@ -103,6 +102,8 @@ struct Machine<'a, S: RecordSource + ?Sized> {
     pending: Vec<Pending>,
     read_files: HashMap<Vec<u8>, Option<std::io::BufReader<std::fs::File>>>,
     quit_status: Option<i32>,
+    /// `q` or `Q` ended the run.
+    quit: bool,
     /// `0,/re/` ranges that have already ended; they never restart.
     zero_finished: Vec<usize>,
     /// The indentation of the trace; it follows `{` and `}` as they are visited.
@@ -121,39 +122,71 @@ pub fn run<S: RecordSource + ?Sized>(
     input: &mut S,
     out: &mut Outputs,
 ) -> Result<i32, Fatal> {
-    run_from(script, options, input, out, 0)
+    run_from(script, options, input, out, 0, None).map(|ended| ended.code)
 }
 
-/// The bytes a script produced for one chunk, and whether they end without a terminator.
+/// Where `q` or `Q` ended the run inside a chunk.
+pub struct ChunkQuit {
+    /// The exit status asked for.
+    pub code: i32,
+    /// How many bytes of the chunk the run had read: up to the end of the record it quit on.
+    pub consumed: usize,
+}
+
+/// What goes from one record to the next in a record-local script: the state of its ranges (the
+/// `0,/re/` ranges that have ended are part of it). `None` where a chunk takes it is the state at the
+/// start of the input, and a chunk that ends in that state gives `None`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Carry {
+    ranges: Vec<RangeState>,
+    zero_finished: Vec<usize>,
+}
+
+impl Carry {
+    fn initial(script: &Script) -> Carry {
+        Carry { ranges: vec![RangeState::Inactive; script.commands.len()], zero_finished: Vec::new() }
+    }
+}
+
+/// Whether a script has ranges, that is, whether what a chunk ends in is something the next one needs.
+pub fn uses_ranges(script: &Script) -> bool {
+    script.commands.iter().any(|c| matches!(c.selector, Selector::Range(..)))
+}
+
+/// A run of whole records for [`run_chunk`].
+pub struct ChunkInput {
+    pub data: Vec<u8>,
+    /// The line number of the first record.
+    pub first_line: u64,
+    /// Whether no record follows the chunk in any input.
+    pub last: bool,
+    /// The input the records are from.
+    pub name: std::sync::Arc<str>,
+}
+
+/// The bytes a script produced for one chunk, whether they end without a terminator, where the
+/// run quit, if it did, and what the chunk leaves for the one after it.
 pub struct ChunkOutput {
     pub bytes: Vec<u8>,
     pub unterminated: bool,
-}
-
-/// An output sink that several `Output`s can share and that the caller can read back.
-struct SharedBuffer(Rc<std::cell::RefCell<Vec<u8>>>);
-
-impl Write for SharedBuffer {
-    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        self.0.borrow_mut().extend_from_slice(buf);
-        Ok(buf.len())
-    }
-
-    fn flush(&mut self) -> io::Result<()> {
-        Ok(())
-    }
+    pub quit: Option<ChunkQuit>,
+    pub carry: Option<Carry>,
+    /// What the files named by `w` got: the name, the bytes, and whether they end without a terminator.
+    pub files: Vec<(Vec<u8>, Vec<u8>, bool)>,
 }
 
 /// The records of one chunk, as a record source.
-struct ChunkRecords {
-    data: Vec<u8>,
+struct ChunkRecords<'a> {
+    data: &'a [u8],
     pos: usize,
     separator: u8,
     name: Rc<str>,
     spare: Vec<u8>,
+    /// Whether no record follows the chunk in the input.
+    last: bool,
 }
 
-impl RecordSource for ChunkRecords {
+impl RecordSource for ChunkRecords<'_> {
     fn next_record(&mut self) -> Result<Option<Fetched>, Fatal> {
         if self.pos >= self.data.len() {
             return Ok(None);
@@ -175,23 +208,36 @@ impl RecordSource for ChunkRecords {
     }
 
     fn is_last(&mut self, _separate: bool) -> Result<bool, Fatal> {
-        unreachable!("scripts that ask are not run chunk by chunk (see `analysis`)")
+        // (`-s` and `-i` do not run chunk by chunk, so the end of the chunk is the end of the input or not.)
+        Ok(self.pos >= self.data.len() && self.last)
     }
 }
 
-/// Runs a record-local script (see `analysis`) over the records in `data`, whose first record
-/// is line number `first_line`, and returns what it printed. The script must not read other
-/// records, use the hold space, or touch files.
-pub fn run_chunk(script: &Script, options: &Options, data: Vec<u8>, first_line: u64) -> Result<ChunkOutput, Fatal> {
+/// Runs a record-local script (see `analysis`) over the records of `input`, which start in the state
+/// `carry` (`None`: that of the start of the input), and returns what it printed, whether and where it
+/// quit, the state it ends in, and what it wrote to files. The script must not read other records, use the hold space, or
+/// touch files.
+pub fn run_chunk(script: &Script, options: &Options, input: &ChunkInput, carry: Option<&Carry>) -> Result<ChunkOutput, Fatal> {
+    let data = &input.data;
     let sink = Rc::new(std::cell::RefCell::new(Vec::with_capacity(data.len() + data.len() / 8)));
-    let mut outputs = Outputs::new(Box::new(SharedBuffer(sink.clone())), options.separator);
-    let mut source = ChunkRecords { data, pos: 0, separator: options.separator, name: Rc::from("-"), spare: Vec::new() };
-    run_from(script, options.clone(), &mut source, &mut outputs, first_line.saturating_sub(1))?;
+    let mut outputs = Outputs::capturing(Box::new(crate::io::SharedBuffer(sink.clone())), options.separator);
+    let mut source = ChunkRecords { data, pos: 0, separator: options.separator, name: Rc::from(&*input.name), spare: Vec::new(), last: input.last };
+    let ended = run_from(script, options.clone(), &mut source, &mut outputs, input.first_line.saturating_sub(1), carry)?;
     let unterminated = outputs.stdout.ends_unterminated();
     outputs.flush_all()?;
+    let files = outputs.take_captured();
     drop(outputs);
     let bytes = std::mem::take(&mut *sink.borrow_mut());
-    Ok(ChunkOutput { bytes, unterminated })
+    let quit = ended.quit.then_some(ChunkQuit { code: ended.code, consumed: source.pos });
+    Ok(ChunkOutput { bytes, unterminated, quit, carry: ended.carry, files })
+}
+
+/// How a run ended.
+struct Ended {
+    code: i32,
+    quit: bool,
+    /// The state of the ranges, when the script has any and it is not that of the start.
+    carry: Option<Carry>,
 }
 
 fn run_from<S: RecordSource + ?Sized>(
@@ -200,7 +246,8 @@ fn run_from<S: RecordSource + ?Sized>(
     input: &mut S,
     out: &mut Outputs,
     line_before: u64,
-) -> Result<i32, Fatal> {
+    carry: Option<&Carry>,
+) -> Result<Ended, Fatal> {
     for command in &script.commands {
         match &command.kind {
             Kind::WriteFile(name) | Kind::WriteFirstLine(name) => out.open(name)?,
@@ -230,6 +277,7 @@ fn run_from<S: RecordSource + ?Sized>(
         pending: Vec::new(),
         read_files: HashMap::new(),
         quit_status: None,
+        quit: false,
         zero_finished: Vec::new(),
         debug_depth: 0,
         debug_registers: None,
@@ -239,7 +287,16 @@ fn run_from<S: RecordSource + ?Sized>(
         let listing = debug::program(script, machine.options.locale.is_chars());
         machine.debug_write(&listing)?;
     }
-    machine.cycles()
+    if let Some(carry) = carry {
+        machine.ranges = carry.ranges.clone();
+        machine.zero_finished = carry.zero_finished.clone();
+    }
+    let code = machine.cycles()?;
+    let quit = machine.quit;
+    let carry = uses_ranges(script)
+        .then(|| Carry { ranges: std::mem::take(&mut machine.ranges), zero_finished: std::mem::take(&mut machine.zero_finished) })
+        .filter(|carry| *carry != Carry::initial(script));
+    Ok(Ended { code, quit, carry })
 }
 
 impl<S: RecordSource + ?Sized> Machine<'_, S> {
@@ -391,9 +448,13 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                     if finish_line {
                         self.out.main().finish_line().map_err(|e| write_error("stdout", &e))?;
                     }
+                    self.quit = true;
                     return Ok(code);
                 }
-                Flow::QuitNow { code } => return Ok(code),
+                Flow::QuitNow { code } => {
+                    self.quit = true;
+                    return Ok(code);
+                }
             }
             self.flush_pending()?;
             if self.options.unbuffered {

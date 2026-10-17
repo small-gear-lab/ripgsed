@@ -613,6 +613,9 @@ impl Output {
         self.missing_separator = yes;
     }
 }
+/// The bytes the files named by `w` got in a chunk, by file name (see `Outputs::capturing`).
+type Captured = Vec<(Vec<u8>, Rc<RefCell<Vec<u8>>>)>;
+
 
 /// Every output the script writes to: standard output, standard error, and the
 /// files named by `w`, `W`, and `s///w` (created or truncated before the first
@@ -628,6 +631,9 @@ pub struct Outputs {
     in_place: Option<InPlaceFile>,
     /// Flush after every record (`-u`).
     pub unbuffered: bool,
+    /// When the outputs are those of one chunk of a parallel run: what the files named by `w` got, in the
+    /// order they were opened. The files are not opened then; the run puts the bytes in them in order.
+    captured: Option<Captured>,
 }
 
 /// The file being edited in place: output goes to a temporary file that
@@ -649,7 +655,30 @@ impl Outputs {
             separator,
             in_place: None,
             unbuffered: false,
+            captured: None,
         }
+    }
+
+    /// The outputs of one chunk of a parallel run: the files named by `w` are kept in memory
+    /// (see `take_captured`).
+    pub fn capturing(stdout: Box<dyn Write>, separator: u8) -> Self {
+        let mut outputs = Outputs::new(stdout, separator);
+        outputs.captured = Some(Vec::new());
+        outputs
+    }
+
+    /// What the files named by `w` got in a chunk, with whether each ends without a terminator.
+    pub fn take_captured(&mut self) -> Vec<(Vec<u8>, Vec<u8>, bool)> {
+        let captured = self.captured.take().unwrap_or_default();
+        let mut taken = Vec::new();
+        for (name, buffer) in captured {
+            let unterminated = self.files.get(&name).is_some_and(|out| out.ends_unterminated());
+            let bytes = std::mem::take(&mut *buffer.borrow_mut());
+            if !bytes.is_empty() || unterminated {
+                taken.push((name, bytes, unterminated));
+            }
+        }
+        taken
     }
 
     /// Where the script's normal output goes: the file being edited in place, or standard output.
@@ -777,6 +806,12 @@ impl Outputs {
                     return Ok(());
                 }
                 let path = String::from_utf8_lossy(name).into_owned();
+                if let Some(captured) = self.captured.as_mut() {
+                    let buffer = Rc::new(RefCell::new(Vec::new()));
+                    captured.push((name.to_vec(), buffer.clone()));
+                    self.files.insert(name.to_vec(), Output::new(Box::new(SharedBuffer(buffer)), self.separator, &path));
+                    return Ok(());
+                }
                 match File::create(bytes_path(name)) {
                     Ok(f) => {
                         self.files.insert(name.to_vec(), Output::new(Box::new(io::BufWriter::new(f)), self.separator, &path));
@@ -1004,4 +1039,18 @@ pub fn os_path(name: &str) -> std::path::PathBuf {
 pub fn bytes_path(name: &[u8]) -> std::path::PathBuf {
     use std::os::unix::ffi::OsStrExt;
     std::path::PathBuf::from(std::ffi::OsStr::from_bytes(name))
+}
+
+/// An output sink that several `Output`s can share and that the caller can read back.
+pub struct SharedBuffer(pub Rc<RefCell<Vec<u8>>>);
+
+impl Write for SharedBuffer {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        self.0.borrow_mut().extend_from_slice(buf);
+        Ok(buf.len())
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
+    }
 }

@@ -565,10 +565,17 @@ pub fn main() -> i32 {
         let block = std::env::var("RIPGSED_BLOCK").ok().and_then(|v| v.parse().ok()).unwrap_or(1 << 20);
         let stdout = io::stdout().lock();
         let mut outputs = Outputs::new(Box::new(BufWriter::new(stdout)), options.separator);
+        // The sequential run opens the files of `w` before it opens its input, and fails there if it can't.
+        for name in &script.write_files {
+            if let Err(Fatal { message, status }) = outputs.open(name) {
+                eprint_message(&format!("{program}: {message}"));
+                return status;
+            }
+        }
         let result = crate::parallel::run(invocation.chunks.clone(), &options, &invocation.files, jobs, block, &mut outputs)
-            .and_then(|()| outputs.flush_all());
+            .and_then(|status| outputs.flush_all().map(|()| status));
         return match result {
-            Ok(()) => 0,
+            Ok(status) => status,
             Err(Fatal { message, status }) => {
                 eprint_message(&format!("{program}: {message}"));
                 let _ = outputs.flush_all();
