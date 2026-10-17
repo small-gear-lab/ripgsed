@@ -33,6 +33,8 @@ pub struct ChunkReader<R: Read> {
     seq: u64,
     records: u64,
     eof: bool,
+    /// The reader is a regular file: a block is read in one go without first being filled with zeros.
+    regular: bool,
 }
 
 impl<R: Read> ChunkReader<R> {
@@ -47,11 +49,19 @@ impl<R: Read> ChunkReader<R> {
             seq: 0,
             records: 0,
             eof: false,
+            regular: false,
         }
     }
 
     pub fn get_mut(&mut self) -> &mut R {
         &mut self.reader
+    }
+
+    /// Says that the reader is a regular file. A read of a block then gives a whole block (or what is left of the
+    /// file), so it is read with `read_to_end`, which does not fill what it reads into with zeros first. For a
+    /// pipe that would wait for a whole block, which a reader that gives what it has must not.
+    pub fn set_regular(&mut self) {
+        self.regular = true;
     }
 
     /// The next chunk, or `None` at the end of the input.
@@ -66,19 +76,31 @@ impl<R: Read> ChunkReader<R> {
                 return Ok(Some(self.emit(data, true)));
             }
             let old = self.carry.len();
-            self.carry.resize(old + self.block, 0);
-            let n = match self.reader.read(&mut self.carry[old..]) {
-                Ok(n) => n,
-                Err(e) if e.kind() == io::ErrorKind::Interrupted => {
-                    self.carry.truncate(old);
-                    continue;
-                }
-                Err(e) => {
+            if self.regular {
+                self.carry.reserve(self.block);
+                if let Err(e) = (&mut self.reader)
+                    .take(self.block as u64)
+                    .read_to_end(&mut self.carry)
+                {
                     self.carry.truncate(old);
                     return Err(e);
                 }
-            };
-            self.carry.truncate(old + n);
+            } else {
+                self.carry.resize(old + self.block, 0);
+                let n = match self.reader.read(&mut self.carry[old..]) {
+                    Ok(n) => n,
+                    Err(e) if e.kind() == io::ErrorKind::Interrupted => {
+                        self.carry.truncate(old);
+                        continue;
+                    }
+                    Err(e) => {
+                        self.carry.truncate(old);
+                        return Err(e);
+                    }
+                };
+                self.carry.truncate(old + n);
+            }
+            let n = self.carry.len() - old;
             if n == 0 {
                 self.eof = true;
                 continue;
@@ -206,6 +228,53 @@ mod tests {
                     got.last().unwrap().last,
                     "the unterminated tail ends the input"
                 );
+            }
+        }
+    }
+
+    /// A reader that is a regular file is read with `read_to_end` and not with a block of zeros to read into: the
+    /// chunks are the same records, cut at separators, whatever the sizes of the reads that the file gives.
+    #[test]
+    fn a_regular_file_is_cut_into_the_same_records() {
+        for data in [
+            &b"one\ntwo\n\nthree\nfour"[..],
+            b"",
+            b"\n",
+            b"a\nb\n",
+            b"no separator at all",
+            b"x\n\n\n",
+        ] {
+            for block in [1, 2, 3, 5, 8, 64] {
+                for sizes in [vec![1], vec![2, 3], vec![7], vec![100]] {
+                    let mut reader = ChunkReader::new(
+                        Pieces {
+                            data,
+                            sizes: sizes.clone(),
+                            at: 0,
+                        },
+                        b'\n',
+                        block,
+                    );
+                    reader.set_regular();
+                    let mut got = Vec::new();
+                    while let Some(chunk) = reader.next_chunk().unwrap() {
+                        got.push(chunk);
+                    }
+                    let joined: Vec<u8> = got.iter().flat_map(|c| c.data.clone()).collect();
+                    assert_eq!(joined, data, "block {block} sizes {sizes:?}");
+                    for (i, c) in got.iter().enumerate() {
+                        if i + 1 < got.len() {
+                            assert_eq!(c.data.last(), Some(&b'\n'), "cut inside a record");
+                        }
+                    }
+                    let separators = data.iter().filter(|&&b| b == b'\n').count() as u64;
+                    let unterminated = u64::from(!data.is_empty() && data.last() != Some(&b'\n'));
+                    assert_eq!(
+                        got.iter().map(|c| c.records).sum::<u64>(),
+                        separators + unterminated,
+                        "block {block} sizes {sizes:?}"
+                    );
+                }
             }
         }
     }

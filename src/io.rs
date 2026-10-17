@@ -120,6 +120,11 @@ impl<R: Read> ChunkedSource<R> {
         self.reader.get_mut()
     }
 
+    /// Says that the reader is a regular file (see `ChunkReader::set_regular`).
+    pub fn set_regular(&mut self) {
+        self.reader.set_regular();
+    }
+
     /// The next record, or `None` at the end of the input.
     pub fn next_record(&mut self) -> io::Result<Option<Record>> {
         self.next_record_into(Vec::new())
@@ -417,7 +422,11 @@ impl FileInputs {
                             }
                         }
                     }
-                    let source = ChunkedSource::new(f, self.separator, BLOCK);
+                    let regular = f.metadata().is_ok_and(|m| m.is_file());
+                    let mut source = ChunkedSource::new(f, self.separator, BLOCK);
+                    if regular {
+                        source.set_regular();
+                    }
                     self.current =
                         Some((Source::Chunked(Box::new(source)), Rc::from(name.as_str())));
                     self.started_file = false;
@@ -564,6 +573,36 @@ impl RecordSource for FileInputs {
             if let Some(front) = self.peeked.front() {
                 return Ok(usize::from(!front.new_file));
             }
+            // Nothing is held: the next record of this file, if there is one, is read and held now. (The next file is not
+            // opened: only the current one matters.)
+            let Some((source, name)) = self.current.as_mut() else {
+                return Ok(0);
+            };
+            let read = match source {
+                Source::Chunked(source) => source.next_record_into(std::mem::take(&mut self.spare)),
+                Source::Stdin => stdin_record_into(
+                    std::mem::take(&mut self.spare),
+                    self.separator,
+                    self.unbuffered,
+                ),
+            };
+            return match read {
+                Ok(Some(record)) => {
+                    let new_file = !self.started_file;
+                    self.started_file = true;
+                    self.peeked.push_back(Fetched {
+                        record,
+                        new_file,
+                        file_name: name.clone(),
+                    });
+                    Ok(usize::from(!new_file))
+                }
+                // The end of the file, or an error that only shows once sed reads on.
+                Ok(None) | Err(_) => {
+                    self.current = None;
+                    Ok(0)
+                }
+            };
         }
         loop {
             // The records read ahead that are of the file being read: a record that starts a file is of the next one.

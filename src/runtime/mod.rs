@@ -107,6 +107,8 @@ struct Machine<'a, S: RecordSource + ?Sized> {
     ranges: Vec<RangeState>,
     /// What each `y` has made of its list (by the index of the command).
     y_plans: Vec<YPlan>,
+    /// Whether `skip_ahead` can ever skip: what the script and the options say, which does not change in a run.
+    can_skip: bool,
     last_regex: Option<Rc<Regex>>,
     /// The regexp last used was written in an address (`s//\N/` is checked against it).
     last_regex_from_address: bool,
@@ -341,6 +343,7 @@ fn run_from<S: RecordSource + ?Sized>(
         file_name: Rc::from("-"),
         ranges: vec![RangeState::Inactive; script.commands.len()],
         y_plans: (0..script.commands.len()).map(|_| YPlan::Unbuilt).collect(),
+        can_skip: false,
         last_regex: None,
         last_regex_from_address: false,
         substituted: false,
@@ -357,6 +360,7 @@ fn run_from<S: RecordSource + ?Sized>(
         let listing = debug::program(script, machine.options.locale.is_chars());
         machine.debug_write(&listing)?;
     }
+    machine.can_skip = machine.skipping_is_possible();
     if let Some(carry) = carry {
         machine.ranges = carry.ranges.clone();
         machine.zero_finished = carry.zero_finished.clone();
@@ -444,15 +448,47 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
         }
     }
 
-    /// When no command can act on the next lines (every command is guarded by a line number that
-    /// is still ahead, and nothing is printed by default), skips them without running cycles.
-    fn skip_ahead(&mut self) -> Result<(), Fatal> {
+    /// Whether `skip_ahead` can skip at all in this run: it is quiet, and the commands that it looks at (those that are
+    /// not inside a block that is passed over) are for line numbers that can be ahead, or are labels and ends of
+    /// blocks. When they are not, `skip_ahead` would stop at the first of them at every cycle, which is a thing to
+    /// know once, and not at each record. What goes on in a run (the state of the ranges) is looked at when it
+    /// is called.
+    fn skipping_is_possible(&self) -> bool {
         if !self.quiet()
             || self.options.debug
             || self.options.separate
             || self.options.in_place.is_some()
-            || self.line == 0
         {
+            return false;
+        }
+        let script = self.script;
+        let mut pc = 0;
+        while pc < script.commands.len() {
+            let command = &script.commands[pc];
+            let fine = !command.negate
+                && matches!(
+                    (&command.selector, &command.kind),
+                    (
+                        Selector::All,
+                        Kind::BlockEnd | Kind::Label(_) | Kind::Version
+                    ) | (Selector::Single(Addr::Line(_) | Addr::Step { .. }), _)
+                        | (Selector::Range(Addr::Line(_), _), _)
+                );
+            if !fine {
+                return false;
+            }
+            pc = match command.kind {
+                Kind::BlockStart(end) => end + 1,
+                _ => pc + 1,
+            };
+        }
+        true
+    }
+
+    /// When no command can act on the next lines (every command is guarded by a line number that
+    /// is still ahead, and nothing is printed by default), skips them without running cycles.
+    fn skip_ahead(&mut self) -> Result<(), Fatal> {
+        if !self.can_skip || self.line == 0 {
             return Ok(());
         }
         let script = self.script;
