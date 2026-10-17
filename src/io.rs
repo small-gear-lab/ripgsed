@@ -619,6 +619,119 @@ impl<R: BufRead> RecordSource for ReaderSource<R> {
     }
 }
 
+/// The last `records` records of a file that can be searched, read from its end: the bytes from the start of the
+/// first of them to the end of the file. `None` if the file is not a regular file, is smaller than `min_bytes`,
+/// or is empty; the whole file if it has fewer records. Nothing but the blocks at the end is read.
+pub fn read_tail(
+    path: &std::path::Path,
+    separator: u8,
+    records: u64,
+    min_bytes: u64,
+) -> io::Result<Option<Vec<u8>>> {
+    const BLOCK: u64 = 1 << 16;
+    let mut file = File::open(path)?;
+    let meta = file.metadata()?;
+    let len = meta.len();
+    if !meta.is_file() || len == 0 || len < min_bytes || records == 0 {
+        return Ok(None);
+    }
+    // The blocks from the end of the file backwards, and where the window starts in the last one read.
+    let mut blocks: Vec<Vec<u8>> = Vec::new();
+    let mut pos = len;
+    let mut found = 0u64;
+    let mut start_in_block = 0usize;
+    'blocks: while pos > 0 {
+        let n = BLOCK.min(pos);
+        pos -= n;
+        let mut block = vec![0u8; n as usize];
+        file.seek(SeekFrom::Start(pos))?;
+        file.read_exact(&mut block)?;
+        let mut end = block.len();
+        // The separator that ends the last record does not start another one.
+        if blocks.is_empty() && block[end - 1] == separator {
+            end -= 1;
+        }
+        while let Some(i) = crate::search::memrchr(separator, &block[..end]) {
+            found += 1;
+            if found == records {
+                start_in_block = i + 1;
+                blocks.push(block);
+                break 'blocks;
+            }
+            end = i;
+        }
+        blocks.push(block);
+    }
+    let mut window =
+        Vec::with_capacity(blocks.iter().map(Vec::len).sum::<usize>() - start_in_block);
+    window.extend_from_slice(&blocks.last().expect("a block")[start_in_block..]);
+    for block in blocks.iter().rev().skip(1) {
+        window.extend_from_slice(block);
+    }
+    Ok(Some(window))
+}
+
+/// The records of a window read from the end of a file (see `read_tail`) as a record source.
+pub struct TailSource {
+    data: Vec<u8>,
+    pos: usize,
+    separator: u8,
+    name: Rc<str>,
+    /// How many records the window holds, and how many were handed out.
+    records: usize,
+    consumed: usize,
+    spare: Vec<u8>,
+}
+
+impl TailSource {
+    pub fn new(data: Vec<u8>, separator: u8, name: &str) -> TailSource {
+        let terminated = data.last() == Some(&separator);
+        let records =
+            crate::search::count(separator, &data) + usize::from(!data.is_empty() && !terminated);
+        TailSource {
+            data,
+            pos: 0,
+            separator,
+            name: Rc::from(name),
+            records,
+            consumed: 0,
+            spare: Vec::new(),
+        }
+    }
+}
+
+impl RecordSource for TailSource {
+    fn next_record(&mut self) -> Result<Option<Fetched>, Fatal> {
+        if self.pos >= self.data.len() {
+            return Ok(None);
+        }
+        let rest = &self.data[self.pos..];
+        let (len, used, terminated) = match crate::search::memchr(self.separator, rest) {
+            Some(i) => (i, i + 1, true),
+            None => (rest.len(), rest.len(), false),
+        };
+        let mut body = std::mem::take(&mut self.spare);
+        body.clear();
+        body.extend_from_slice(&rest[..len]);
+        self.pos += used;
+        let new_file = self.consumed == 0;
+        self.consumed += 1;
+        Ok(Some(Fetched {
+            record: Record { body, terminated },
+            new_file,
+            file_name: self.name.clone(),
+        }))
+    }
+
+    fn recycle(&mut self, buf: Vec<u8>) {
+        self.spare = buf;
+    }
+
+    fn records_after(&mut self, _separate: bool, cap: usize) -> Result<usize, Fatal> {
+        Ok((self.records - self.consumed).min(cap))
+    }
+}
+
 /// `ELOOP`, "Too many levels of symbolic links": 40 on Linux, 62 on macOS and the BSDs (the other
 /// numbers this file uses, 9, 21, 22 and 28, are the same on all of them).
 #[cfg(target_os = "linux")]
