@@ -62,16 +62,43 @@ measure() { # program file args... -> "median_seconds rss_mib hash"; JOBS=n forc
   printf '%s\n' "${out[@]}" | sort -n | sed -n "$((runs / 2 + 1))p" | awk -v h="$(md5sum < "$scratch/out" | cut -c1-12)" '{ printf "%s %.0f %s\n", $1, $2 / 1024, h }'
 }
 
-row() { # name file args...
-  local name=$1 file=$2; shift 2
-  read -r gt gr gh <<< "$(JOBS= measure "$gnu" "$scratch/$file" "$@")"
-  read -r st sr sh <<< "$(JOBS=1 measure "$ours" "$scratch/$file" "$@")"
-  read -r ot or oh <<< "$(JOBS= measure "$ours" "$scratch/$file" "$@")"
+measure_inplace() { # program args... -> "median_seconds rss_mib hash"; edits four fresh copies of log.txt in place
+  local prog=$1; shift
+  export RIPGSED_JOBS=${JOBS:-}
+  [ -n "$RIPGSED_JOBS" ] || unset RIPGSED_JOBS
+  local out=() files=() i k
+  mkdir -p "$scratch/inplace"
+  for k in 1 2 3 4; do files+=("$scratch/inplace/f$k.txt"); done
+  for ((i = 0; i < runs; i++)); do
+    # (The copies are made before the clock starts: only the edit is timed.)
+    for k in "${files[@]}"; do cp "$scratch/log.txt" "$k"; done
+    /usr/bin/time -f '%e %M' -o "$scratch/t" "$prog" "$@" "${files[@]}" > /dev/null 2> /dev/null || true
+    out+=("$(cat "$scratch/t")")
+  done
+  # The hash is of the files that the last run left.
+  printf '%s\n' "${out[@]}" | sort -n | sed -n "$((runs / 2 + 1))p" | awk -v h="$(cat "${files[@]}" | md5sum | cut -c1-12)" '{ printf "%s %.0f %s\n", $1, $2 / 1024, h }'
+}
+
+table_row() { # name measure-function arguments-of-the-function...: the function gets the program first
+  local name=$1 fn=$2; shift 2
+  read -r gt gr gh <<< "$(JOBS= "$fn" "$gnu" "$@")"
+  read -r st sr sh <<< "$(JOBS=1 "$fn" "$ours" "$@")"
+  read -r ot or oh <<< "$(JOBS= "$fn" "$ours" "$@")"
   local r1 r2 status=""
   r1=$(awk -v a="$st" -v b="$gt" 'BEGIN { if (b > 0) printf "%.2f", a / b; else print "-" }')
   r2=$(awk -v a="$ot" -v b="$gt" 'BEGIN { if (b > 0) printf "%.2f", a / b; else print "-" }')
   [ "$gh" = "$sh" ] && [ "$gh" = "$oh" ] || status=" MISMATCH"
   printf '| %s | %s | %s | %s%s | %s | %s | %s MiB | %s MiB |\n' "$name" "$gt" "$st" "$r1" "$status" "$ot" "$r2" "$gr" "$or"
+}
+
+row() { # name file args...
+  local name=$1 file=$2; shift 2
+  table_row "$name" measure "$scratch/$file" "$@"
+}
+
+row_inplace() { # name args...: -i on four copies of log.txt, the result is the files
+  local name=$1; shift
+  table_row "$name" measure_inplace "$@"
 }
 
 row 's/literal/X/g'            log.txt 's/alpha/X/g'
@@ -87,3 +114,24 @@ row 'one 20 MB line, s///g'    long.txt 's/alpha/X/g'
 row 'UTF-8: s/ユーザー/U/g'     jp.txt 's/ユーザー/U/g'
 row 'UTF-8: -E s/[0-9]+/N/g'  jp.txt -E 's/[0-9]+/N/g'
 row 'UTF-8: s/\w+/<&>/g'       jp.txt 's/\w\+/<&>/g'
+
+# Scripts that ran only sequentially before the chunk executor took q, Q, $, F, ranges and w files.
+# The w files are written in the scratch directory; only standard output is compared by hash.
+row 'q: 500000q (quits half way)'      log.txt '500000q'
+row 'q: /NEVERMATCH/q (never quits)'   log.txt '/NEVERMATCH/q'
+row '$!s/alpha/X/'                      log.txt '$!s/alpha/X/'
+row 'short ranges /ERROR/,/WARN/'      log.txt '/ERROR/,/WARN/s/alpha/X/'
+row 'long ranges id=1234x..id=5678x'   log.txt '/id=1234[0-9] /,/id=5678[0-9] /s/alpha/X/'
+row 'F every 1000th line'              log.txt '0~1000F'
+row 'w: /ERROR/w file'                 log.txt "/ERROR/w $scratch/w1.out"
+row 's/alpha/X/w file'                 log.txt "s/alpha/X/w $scratch/w2.out"
+
+# -s and -i: each file is a stream of its own, and the files are read on several threads. The second file of
+# -s is log.txt again (the argument comes before the file that every row ends with).
+row '-s $!s/alpha/X/ (2 files)'        log.txt -s '$!s/alpha/X/' "$scratch/log.txt"
+row '-s -n $p (2 files)'               log.txt -s -n '$p' "$scratch/log.txt"
+row '-s ranges /ERROR/,/WARN/ (2 files)' log.txt -s '/ERROR/,/WARN/s/alpha/X/' "$scratch/log.txt"
+row_inplace '-i s/alpha/X/g (4 files)'          -i 's/alpha/X/g'
+row_inplace '-i $!s/alpha/X/ (4 files)'         -i '$!s/alpha/X/'
+row_inplace '-i ranges /ERROR/,/WARN/ (4 files)' -i '/ERROR/,/WARN/s/alpha/X/'
+row_inplace '-i.bak 1d;$d (4 files)'            -i.bak '1d;$d'
