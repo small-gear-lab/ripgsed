@@ -403,15 +403,15 @@ impl FileInputs {
         false
     }
 
-    /// Reads ahead until `count` records are held (fewer at the end of the input). A read error stops the
-    /// run, unless `lookahead` is set: GNU sed does not notice an error while it only looks for the end
-    /// of the input.
-    fn fill_to(&mut self, count: usize, lookahead: bool) -> Result<(), Fatal> {
-        while self.peeked.len() < count {
+    /// Reads the next record of the input, opening the next file when the one being read is done. A read
+    /// error stops the run, unless `lookahead` is set: GNU sed does not notice an error while it only looks
+    /// for the end of the input. `None` at the end of the input.
+    fn read_one(&mut self, lookahead: bool) -> Result<Option<Fetched>, Fatal> {
+        loop {
             if self.current.is_none() && !self.open_next() {
                 return match self.fatal.take() {
                     Some(f) => Err(f),
-                    None => Ok(()),
+                    None => Ok(None),
                 };
             }
             let (source, name) = self.current.as_mut().unwrap();
@@ -427,11 +427,11 @@ impl FileInputs {
                 Ok(Some(record)) => {
                     let new_file = !self.started_file;
                     self.started_file = true;
-                    self.peeked.push_back(Fetched {
+                    return Ok(Some(Fetched {
                         record,
                         new_file,
                         file_name: name.clone(),
-                    });
+                    }));
                 }
                 Ok(None) => self.current = None,
                 Err(e) => {
@@ -446,14 +446,26 @@ impl FileInputs {
                 }
             }
         }
+    }
+
+    /// Reads ahead until `count` records are held (fewer at the end of the input).
+    fn fill_to(&mut self, count: usize, lookahead: bool) -> Result<(), Fatal> {
+        while self.peeked.len() < count {
+            match self.read_one(lookahead)? {
+                Some(fetched) => self.peeked.push_back(fetched),
+                None => break,
+            }
+        }
         Ok(())
     }
 }
 
 impl RecordSource for FileInputs {
     fn next_record(&mut self) -> Result<Option<Fetched>, Fatal> {
-        self.fill_to(1, false)?;
-        Ok(self.peeked.pop_front())
+        if let Some(fetched) = self.peeked.pop_front() {
+            return Ok(Some(fetched));
+        }
+        self.read_one(false)
     }
 
     fn skip_records(&mut self, mut n: u64) -> Result<u64, Fatal> {
@@ -508,8 +520,16 @@ impl RecordSource for FileInputs {
 
     fn records_after(&mut self, separate: bool, cap: usize) -> Result<usize, Fatal> {
         if !separate {
-            self.fill_to(cap, true)?;
+            if self.peeked.len() < cap {
+                self.fill_to(cap, true)?;
+            }
             return Ok(self.peeked.len().min(cap));
+        }
+        // (`$` with `-s`: one record is held, and it is of this file unless it starts the next one.)
+        if cap == 1 {
+            if let Some(front) = self.peeked.front() {
+                return Ok(usize::from(!front.new_file));
+            }
         }
         loop {
             // The records read ahead that are of the file being read: a record that starts a file is of the next one.
