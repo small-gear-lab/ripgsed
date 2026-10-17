@@ -44,6 +44,31 @@ jobs:
       - name: Compatibility summary
         run: tools/compat-summary.sh
 
+  # A script that runs on threads, or on part of the input, must give what the run on all of it gives. The fixtures
+  # (GNU sed's results) and the random scripts are small, so the shortcuts are forced on every file here, and the answer
+  # must still be GNU sed's: on four threads with chunks of 16 bytes (so that every record is near a boundary), and by
+  # reading the ends of every file that the script allows it for (see D16).
+  forced:
+    runs-on: ubuntu-latest
+    env:
+      RIPGSED_FIXTURE_TIMEOUT: "120"
+    steps:
+      - uses: actions/checkout@v7
+      - name: Locale definitions and localedef
+        run: sudo apt-get update && sudo apt-get install -y locales
+      - name: Toolchain
+        run: rustup toolchain install 1.85 --profile minimal && rustup default 1.85
+      - name: The fixtures and the random scripts, reading the ends of every file
+        env:
+          RIPGSED_TAIL_MIN_BYTES: "0"
+        run: python3 -c 'import os,signal,sys; signal.signal(signal.SIGPIPE, signal.SIG_DFL); os.execvp(sys.argv[1], sys.argv[1:])' cargo test --test differential --test execution_fuzz
+      - name: The fixtures on four threads, in chunks of 16 bytes, reading the ends of every file
+        env:
+          RIPGSED_JOBS: "4"
+          RIPGSED_BLOCK: "16"
+          RIPGSED_TAIL_MIN_BYTES: "0"
+        run: python3 -c 'import os,signal,sys; signal.signal(signal.SIGPIPE, signal.SIG_DFL); os.execvp(sys.argv[1], sys.argv[1:])' cargo test --test differential
+
   # Not tested by the fixtures (they need GNU sed and the locales of glibc): only that it builds and that
   # the tests of the program itself pass. The locale is then C or UTF-8 by name (src/locale.rs).
   macos:
