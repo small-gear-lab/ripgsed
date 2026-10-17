@@ -10,14 +10,14 @@ permissions:
 
 jobs:
   # rustfmt and clippy are tools of the people who write the code, not of the least version that builds it: they
-  # run on a recent toolchain that is named (the one that the pre-commit hook has), so that a new release does not
-  # add lints to a run that was green. Change the number on purpose. The tests below keep to 1.85.
+  # run on the latest stable toolchain. A release that adds a lint can turn a run red with no change of the code;
+  # the code is then made to pass it. The tests below keep to 1.85, the version that rust-version names.
   lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
       - name: Toolchain
-        run: rustup toolchain install 1.99 --profile minimal --component rustfmt --component clippy && rustup default 1.99
+        run: rustup toolchain install stable --profile minimal --component rustfmt --component clippy && rustup default stable
       - run: cargo fmt --check
       - run: cargo clippy --all-targets -- -D warnings
 
