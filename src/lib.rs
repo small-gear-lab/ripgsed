@@ -86,6 +86,9 @@ pub struct Fatal {
 
 impl Fatal {
     pub fn new(message: impl Into<String>, status: i32) -> Self {
-        Fatal { message: message.into(), status }
+        Fatal {
+            message: message.into(),
+            status,
+        }
     }
 }

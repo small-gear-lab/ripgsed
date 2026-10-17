@@ -46,7 +46,12 @@ impl Assert {
     pub fn is_word(self) -> bool {
         matches!(
             self,
-            Assert::WordBoundary | Assert::NotWordBoundary | Assert::WordStart | Assert::WordEnd | Assert::NoWordBefore | Assert::NoWordAfter
+            Assert::WordBoundary
+                | Assert::NotWordBoundary
+                | Assert::WordStart
+                | Assert::WordEnd
+                | Assert::NoWordBefore
+                | Assert::NoWordAfter
         )
     }
 }

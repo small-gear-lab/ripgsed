@@ -15,7 +15,9 @@ impl ByteSet {
     }
 
     pub fn full() -> ByteSet {
-        ByteSet { bits: [u64::MAX; 4] }
+        ByteSet {
+            bits: [u64::MAX; 4],
+        }
     }
 
     pub fn single(b: u8) -> ByteSet {
@@ -69,7 +71,6 @@ impl ByteSet {
             }
         }
     }
-
 }
 
 /// The POSIX character classes of `[[:name:]]`.
@@ -221,7 +222,9 @@ pub fn simple_upper(c: char) -> char {
         // The full upper case of a Greek letter with iota subscript has two characters; its
         // simple mapping is the letter with the capital and the subscript.
         _ => match c as u32 {
-            v @ (0x1f80..=0x1f87 | 0x1f90..=0x1f97 | 0x1fa0..=0x1fa7) => char::from_u32(v + 8).unwrap_or(c),
+            v @ (0x1f80..=0x1f87 | 0x1f90..=0x1f97 | 0x1fa0..=0x1fa7) => {
+                char::from_u32(v + 8).unwrap_or(c)
+            }
             0x1fb3 => '\u{1fbc}',
             0x1fc3 => '\u{1fcc}',
             0x1ff3 => '\u{1ffc}',
@@ -278,7 +281,11 @@ impl CharSet {
         }
         self.classes.iter().any(|&cl| {
             // Under `I`, [:upper:] and [:lower:] stand for [:alpha:].
-            let cl = if self.icase && matches!(cl, Class::Upper | Class::Lower) { Class::Alpha } else { cl };
+            let cl = if self.icase && matches!(cl, Class::Upper | Class::Lower) {
+                Class::Alpha
+            } else {
+                cl
+            };
             cl.contains_char(c)
         })
     }
@@ -286,26 +293,39 @@ impl CharSet {
     /// Like `matches_char`, for a character of a multibyte set written as `bytes`: the library is
     /// asked about those bytes.
     pub fn matches_seq(&self, c: char, bytes: &[u8]) -> bool {
-        if self.exclude.is_some_and(|b| c as u32 == b as u32 || c == '\n') {
+        if self
+            .exclude
+            .is_some_and(|b| c as u32 == b as u32 || c == '\n')
+        {
             return false;
         }
         if let Some(lib) = &self.lib {
             let u = c as u32;
-            if self.icase_singles && (0x1c80..=0x1c88).contains(&u) && !self.ranges.iter().any(|&(lo, hi)| lo <= u && u <= hi) {
+            if self.icase_singles
+                && (0x1c80..=0x1c88).contains(&u)
+                && !self.ranges.iter().any(|&(lo, hi)| lo <= u && u <= hi)
+            {
                 return false;
             }
-            return lib.0.contains_seq(bytes) || self.lib_or.iter().any(|&(lo, hi)| lo <= u && u <= hi);
+            return lib.0.contains_seq(bytes)
+                || self.lib_or.iter().any(|&(lo, hi)| lo <= u && u <= hi);
         }
         self.matches_char(c)
     }
 
     pub fn matches_char(&self, c: char) -> bool {
-        if self.exclude.is_some_and(|b| c as u32 == b as u32 || c == '\n') {
+        if self
+            .exclude
+            .is_some_and(|b| c as u32 == b as u32 || c == '\n')
+        {
             return false;
         }
         if let Some(lib) = &self.lib {
             let u = c as u32;
-            if self.icase_singles && (0x1c80..=0x1c88).contains(&u) && !self.ranges.iter().any(|&(lo, hi)| lo <= u && u <= hi) {
+            if self.icase_singles
+                && (0x1c80..=0x1c88).contains(&u)
+                && !self.ranges.iter().any(|&(lo, hi)| lo <= u && u <= hi)
+            {
                 return false;
             }
             return lib.0.contains(c) || self.lib_or.iter().any(|&(lo, hi)| lo <= u && u <= hi);
@@ -326,7 +346,10 @@ impl CharSet {
                 (u == 'I').then_some('\u{131}'),
                 (u == 'S').then_some('\u{17f}'),
             ];
-            hit = others.into_iter().flatten().any(|x| x != c && self.positive(x));
+            hit = others
+                .into_iter()
+                .flatten()
+                .any(|x| x != c && self.positive(x));
         }
         hit != self.negated
     }
@@ -510,10 +533,22 @@ mod tests {
 
     #[test]
     fn titlecase_digraphs() {
-        assert_eq!(titlecase_of(char::from_u32(0x1c4).unwrap()), Some('\u{1c5}'));
-        assert_eq!(titlecase_of(char::from_u32(0x1c7).unwrap()), Some('\u{1c8}'));
-        assert_eq!(titlecase_of(char::from_u32(0x1ca).unwrap()), Some('\u{1cb}'));
-        assert_eq!(titlecase_of(char::from_u32(0x1f1).unwrap()), Some('\u{1f2}'));
+        assert_eq!(
+            titlecase_of(char::from_u32(0x1c4).unwrap()),
+            Some('\u{1c5}')
+        );
+        assert_eq!(
+            titlecase_of(char::from_u32(0x1c7).unwrap()),
+            Some('\u{1c8}')
+        );
+        assert_eq!(
+            titlecase_of(char::from_u32(0x1ca).unwrap()),
+            Some('\u{1cb}')
+        );
+        assert_eq!(
+            titlecase_of(char::from_u32(0x1f1).unwrap()),
+            Some('\u{1f2}')
+        );
         assert_eq!(titlecase_of(char::from_u32(0x41).unwrap()), None);
     }
 

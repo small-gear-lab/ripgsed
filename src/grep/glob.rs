@@ -71,7 +71,12 @@ pub fn fnmatch(pattern: &[u8], text: &[u8]) -> bool {
                 p[i]
             };
             if i + 2 < end && p[i + 1] == b'-' {
-                let hi = if p[i + 2] == b'\\' && i + 3 < end { i += 1; p[i + 2] } else { p[i + 2] };
+                let hi = if p[i + 2] == b'\\' && i + 3 < end {
+                    i += 1;
+                    p[i + 2]
+                } else {
+                    p[i + 2]
+                };
                 if lo <= c && c <= hi {
                     found = true;
                 }
@@ -164,14 +169,19 @@ impl Skip {
     /// given was an include. A name given on the command line (`anchored` false) also matches
     /// through the part of it after any `/`.
     pub fn skips(&self, name: &[u8], anchored: bool) -> bool {
-        let Some(first) = self.patterns.first() else { return false };
+        let Some(first) = self.patterns.first() else {
+            return false;
+        };
         let matches = |pattern: &[u8]| {
             if fnmatch(pattern, name) {
                 return true;
             }
             if !anchored {
                 for (i, &b) in name.iter().enumerate() {
-                    if b == b'/' && name.get(i + 1) != Some(&b'/') && fnmatch(pattern, &name[i + 1..]) {
+                    if b == b'/'
+                        && name.get(i + 1) != Some(&b'/')
+                        && fnmatch(pattern, &name[i + 1..])
+                    {
                         return true;
                     }
                 }

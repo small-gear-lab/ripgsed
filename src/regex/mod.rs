@@ -94,7 +94,9 @@
 
 mod ast;
 mod charset;
-pub use charset::{beyond_len, is_word_byte, is_word_char, is_word_char_libc, simple_lower, simple_upper};
+pub use charset::{
+    beyond_len, is_word_byte, is_word_char, is_word_char_libc, simple_lower, simple_upper,
+};
 mod classes_table;
 mod compile;
 mod dfa;
@@ -154,7 +156,9 @@ impl Locale {
     /// Whether the character at the start of `bytes` is a valid one.
     pub fn is_valid_char(self, bytes: &[u8]) -> bool {
         match self {
-            Locale::Utf8 | Locale::Libc => crate::runtime::char_len(bytes) > 1 || bytes.first().is_some_and(|&b| b < 0x80),
+            Locale::Utf8 | Locale::Libc => {
+                crate::runtime::char_len(bytes) > 1 || bytes.first().is_some_and(|&b| b < 0x80)
+            }
             Locale::Mb => crate::locale::mb_decode(bytes, 0).is_some(),
             Locale::C | Locale::Sb => !bytes.is_empty(),
         }
@@ -308,12 +312,23 @@ impl Regex {
         if syntax.icase {
             flags |= pcre::CASELESS;
         }
-        flags |= if syntax.multiline { pcre::MULTILINE } else { pcre::DOLLAR_ENDONLY };
+        flags |= if syntax.multiline {
+            pcre::MULTILINE
+        } else {
+            pcre::DOLLAR_ENDONLY
+        };
         if syntax.locale.is_utf8() {
             flags |= pcre::UTF | pcre::MATCH_INVALID_UTF | pcre::UCP;
         }
-        let compiled = pcre::Pcre::new(pattern, flags).map_err(|message| CompileError { message })?;
-        let mut re = Regex::compile(b"", &Syntax { locale: syntax.locale, ..Syntax::default() })?;
+        let compiled =
+            pcre::Pcre::new(pattern, flags).map_err(|message| CompileError { message })?;
+        let mut re = Regex::compile(
+            b"",
+            &Syntax {
+                locale: syntax.locale,
+                ..Syntax::default()
+            },
+        )?;
         re.pcre = Some(std::rc::Rc::new(compiled));
         Ok(re)
     }
@@ -327,10 +342,21 @@ impl Regex {
     /// Compiles `pattern` for records delimited by `delim` (`b'\n'`, or
     /// `b'\0'` as under `sed -z`; see `Syntax::null_data`). `compile` derives
     /// the delimiter from `syntax.null_data`.
-    pub fn compile_with_delimiter(pattern: &[u8], syntax: &Syntax, delim: u8) -> Result<Regex, CompileError> {
+    pub fn compile_with_delimiter(
+        pattern: &[u8],
+        syntax: &Syntax,
+        delim: u8,
+    ) -> Result<Regex, CompileError> {
         // GNU grep compiles a pattern with the C library first, so its mistakes are reported first.
-        let alt_syntax = Syntax { regex_semantic: true, ..*syntax };
-        let alt_parsed = if syntax.grep && !syntax.regex_semantic { Some(parse::parse(pattern, &alt_syntax, delim)?) } else { None };
+        let alt_syntax = Syntax {
+            regex_semantic: true,
+            ..*syntax
+        };
+        let alt_parsed = if syntax.grep && !syntax.regex_semantic {
+            Some(parse::parse(pattern, &alt_syntax, delim)?)
+        } else {
+            None
+        };
         let parsed = parse::parse(pattern, syntax, delim)?;
         let warnings = parsed.warnings.clone();
         let divergent = parsed.divergent;
@@ -342,9 +368,15 @@ impl Regex {
         };
         let mut re = Regex::from_parsed(parsed, syntax, delim, filter)?;
         re.warnings = warnings;
-        re.regex_selects = syntax.grep && (re.prog.has_backrefs || (syntax.locale.is_chars() && has_multibyte_set(&re.node)));
+        re.regex_selects = syntax.grep
+            && (re.prog.has_backrefs || (syntax.locale.is_chars() && has_multibyte_set(&re.node)));
         if let Some(alt_parsed) = alt_parsed.filter(|_| divergent) {
-            re.regex_alt = Some(Box::new(Regex::from_parsed(alt_parsed, &alt_syntax, delim, None)?));
+            re.regex_alt = Some(Box::new(Regex::from_parsed(
+                alt_parsed,
+                &alt_syntax,
+                delim,
+                None,
+            )?));
         }
         if syntax.glibc_compat && syntax.locale.is_utf8() {
             let mut again = parse::parse(pattern, syntax, delim)?;
@@ -355,12 +387,60 @@ impl Regex {
         Ok(re)
     }
 
-    fn from_parsed(parsed: parse::Parsed, syntax: &Syntax, delim: u8, filter: Option<Box<Regex>>) -> Result<Regex, CompileError> {
-        let prog = compile::compile(&parsed.node, parsed.ngroups, parsed.referenced, parsed.char_starts, parsed.utf8, syntax.glibc_compat)?;
+    fn from_parsed(
+        parsed: parse::Parsed,
+        syntax: &Syntax,
+        delim: u8,
+        filter: Option<Box<Regex>>,
+    ) -> Result<Regex, CompileError> {
+        let prog = compile::compile(
+            &parsed.node,
+            parsed.ngroups,
+            parsed.referenced,
+            parsed.char_starts,
+            parsed.utf8,
+            syntax.glibc_compat,
+        )?;
         let prog_has_no_backrefs = !prog.has_backrefs;
-        let literals = literal::analyze(&parsed.node, syntax.locale.is_chars(), syntax.locale == Locale::Mb);
-        let prog_has_lone_high_byte = prog.units.iter().any(|u| matches!(u, ast::Unit::Byte(set) if (0x80..=0xffu8).any(|b| set.contains(b))));
-        Ok(Regex { prog, syntax: *syntax, delim, literals, scratch: Default::default(), quirk_stars: if syntax.glibc_compat { star_before_not_word_boundary(&parsed.node) } else { 0 }, fixed: if prog_has_no_backrefs { dfa::fixed_groups(&parsed.node, parsed.ngroups) } else { None }, node: parsed.node, dfa: Default::default(), boundaries: Default::default(), tails: syntax.locale == Locale::Mb && (syntax.glibc_compat || prog_has_lone_high_byte), relaxed: None, warnings: Vec::new(), regex_alt: None, regex_selects: false, use_dfa: syntax.locale != Locale::Mb || (crate::locale::ascii_bytes_are_characters() && !syntax.glibc_compat), filter, pcre: None, pcre_error: Default::default() })
+        let literals = literal::analyze(
+            &parsed.node,
+            syntax.locale.is_chars(),
+            syntax.locale == Locale::Mb,
+        );
+        let prog_has_lone_high_byte = prog
+            .units
+            .iter()
+            .any(|u| matches!(u, ast::Unit::Byte(set) if (0x80..=0xffu8).any(|b| set.contains(b))));
+        Ok(Regex {
+            prog,
+            syntax: *syntax,
+            delim,
+            literals,
+            scratch: Default::default(),
+            quirk_stars: if syntax.glibc_compat {
+                star_before_not_word_boundary(&parsed.node)
+            } else {
+                0
+            },
+            fixed: if prog_has_no_backrefs {
+                dfa::fixed_groups(&parsed.node, parsed.ngroups)
+            } else {
+                None
+            },
+            node: parsed.node,
+            dfa: Default::default(),
+            boundaries: Default::default(),
+            tails: syntax.locale == Locale::Mb && (syntax.glibc_compat || prog_has_lone_high_byte),
+            relaxed: None,
+            warnings: Vec::new(),
+            regex_alt: None,
+            regex_selects: false,
+            use_dfa: syntax.locale != Locale::Mb
+                || (crate::locale::ascii_bytes_are_characters() && !syntax.glibc_compat),
+            filter,
+            pcre: None,
+            pcre_error: Default::default(),
+        })
     }
 
     /// A match the library gave up on counts as no match here, and is kept for `take_error`.
@@ -414,7 +494,9 @@ impl Regex {
             }
             // (glibc takes an encoded surrogate for `.` only in a pattern with no set the first matcher
             // could not decide.)
-            return charset::with_ext(self.surrogate_level(), || self.captures_at_once(haystack, start, caps));
+            return charset::with_ext(self.surrogate_level(), || {
+                self.captures_at_once(haystack, start, caps)
+            });
         }
         self.captures_at_once(haystack, start, caps)
     }
@@ -422,13 +504,19 @@ impl Regex {
     /// `--glibc-compat`, UTF-8: the text has a byte that can start a sequence glibc reads as one
     /// character although it is not one (an encoded surrogate, a value above U+10FFFF).
     fn reads_beyond_unicode(&self, haystack: &[u8]) -> bool {
-        self.syntax.glibc_compat && self.syntax.locale.is_utf8() && haystack.iter().any(|&b| b == 0xed || b >= 0xf4)
+        self.syntax.glibc_compat
+            && self.syntax.locale.is_utf8()
+            && haystack.iter().any(|&b| b == 0xed || b >= 0xf4)
     }
 
     /// The level of `charset::with_ext` for glibc's matcher: 2 (surrogates too) or 1.
     fn surrogate_level(&self) -> u8 {
         // (glibc takes an encoded surrogate for `.` only without such a set, and never under `I`.)
-        if !self.syntax.icase && !has_multibyte_set(&self.node) { 2 } else { 1 }
+        if !self.syntax.icase && !has_multibyte_set(&self.node) {
+            2
+        } else {
+            1
+        }
     }
 
     fn captures_at_once(&self, haystack: &[u8], start: usize, caps: &mut Captures) -> bool {
@@ -438,7 +526,11 @@ impl Regex {
         if start > haystack.len() {
             return false;
         }
-        if self.filter.as_ref().is_some_and(|f| !f.is_match_once(haystack)) {
+        if self
+            .filter
+            .as_ref()
+            .is_some_and(|f| !f.is_match_once(haystack))
+        {
             return false;
         }
         if let Some(lit) = &self.literals.pure {
@@ -455,7 +547,17 @@ impl Regex {
             return match lit.find(&haystack[start..]) {
                 Some(i) => {
                     let s0 = start + i;
-                    caps.groups = offsets.iter().enumerate().map(|(g, &(a, b))| Some(if g == 0 { (s0, s0 + lit.needle().len()) } else { (s0 + a, s0 + b) })).collect();
+                    caps.groups = offsets
+                        .iter()
+                        .enumerate()
+                        .map(|(g, &(a, b))| {
+                            Some(if g == 0 {
+                                (s0, s0 + lit.needle().len())
+                            } else {
+                                (s0 + a, s0 + b)
+                            })
+                        })
+                        .collect();
                     true
                 }
                 None => false,
@@ -561,13 +663,18 @@ impl Regex {
         }
         if self.reads_beyond_unicode(haystack) {
             let first = self.relaxed.as_deref().unwrap_or(self);
-            return first.is_match_once(haystack) && charset::with_ext(self.surrogate_level(), || self.is_match_once(haystack));
+            return first.is_match_once(haystack)
+                && charset::with_ext(self.surrogate_level(), || self.is_match_once(haystack));
         }
         self.is_match_once(haystack)
     }
 
     fn is_match_once(&self, haystack: &[u8]) -> bool {
-        if self.filter.as_ref().is_some_and(|f| !f.is_match_once(haystack)) {
+        if self
+            .filter
+            .as_ref()
+            .is_some_and(|f| !f.is_match_once(haystack))
+        {
             return false;
         }
         if let Some(lit) = &self.literals.pure {
@@ -627,12 +734,25 @@ fn has_multibyte_set(node: &ast::Node) -> bool {
 /// any bytes. Replaces them in the tree; whether anything changed.
 fn relax(node: &mut ast::Node) -> bool {
     use ast::{Node, Unit};
-    let any = || Node::Repeat(Box::new(Node::Unit(Unit::Byte(charset::ByteSet::full()))), 0, None);
+    let any = || {
+        Node::Repeat(
+            Box::new(Node::Unit(Unit::Byte(charset::ByteSet::full()))),
+            0,
+            None,
+        )
+    };
     match node {
         Node::Unit(Unit::Chars(cs)) => {
             // (A set of ASCII digits only is decided exactly: `[0-9]`, `[[:digit:]]`.)
-            let digits = !cs.negated && cs.classes.iter().all(|c| *c == charset::Class::Digit) && cs.ranges.iter().all(|&(lo, hi)| lo >= '0' as u32 && hi <= '9' as u32);
-            if (cs.negated || !cs.classes.is_empty() || cs.ranges.iter().any(|&(lo, hi)| lo != hi)) && !digits {
+            let digits = !cs.negated
+                && cs.classes.iter().all(|c| *c == charset::Class::Digit)
+                && cs
+                    .ranges
+                    .iter()
+                    .all(|&(lo, hi)| lo >= '0' as u32 && hi <= '9' as u32);
+            if (cs.negated || !cs.classes.is_empty() || cs.ranges.iter().any(|&(lo, hi)| lo != hi))
+                && !digits
+            {
                 *node = any();
                 true
             } else {
@@ -649,7 +769,9 @@ fn relax(node: &mut ast::Node) -> bool {
             true
         }
         Node::Group(_, inner) | Node::Repeat(inner, _, _) => relax(inner),
-        Node::Concat(items) | Node::Alt(items) => items.iter_mut().fold(false, |changed, n| relax(n) | changed),
+        Node::Concat(items) | Node::Alt(items) => items
+            .iter_mut()
+            .fold(false, |changed, n| relax(n) | changed),
         _ => false,
     }
 }
@@ -666,7 +788,9 @@ fn star_before_not_word_boundary(node: &ast::Node) -> usize {
     }
     fn star(n: &Node) -> bool {
         match n {
-            Node::Repeat(inner, 0, None) => matches!(**inner, Node::Unit(_)) || star(inner) || group_star(inner),
+            Node::Repeat(inner, 0, None) => {
+                matches!(**inner, Node::Unit(_)) || star(inner) || group_star(inner)
+            }
             // `a*\+`: at least one repetition of a star.
             Node::Repeat(inner, 1, None) => star(inner),
             _ => false,
@@ -674,7 +798,11 @@ fn star_before_not_word_boundary(node: &ast::Node) -> usize {
     }
     let stars = items.iter().take_while(|n| star(n)).count();
     match items.get(stars) {
-        Some(Node::Assert(Assert::NotWordBoundary)) if stars > 0 && items[stars + 1..].iter().all(dfa::nullable) => stars,
+        Some(Node::Assert(Assert::NotWordBoundary))
+            if stars > 0 && items[stars + 1..].iter().all(dfa::nullable) =>
+        {
+            stars
+        }
         _ => 0,
     }
 }

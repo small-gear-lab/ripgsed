@@ -48,13 +48,21 @@ impl ByteSet {
 /// `ascii_only`: in UTF-8 a byte of 0x80 or more may be part of a character, so only ASCII
 /// bytes are used as literals there.
 pub fn analyze(node: &Node, utf8: bool, mb: bool) -> Literals {
-    let ascii_only = if mb { Mode::Mb } else if utf8 { Mode::Utf8 } else { Mode::Bytes };
+    let ascii_only = if mb {
+        Mode::Mb
+    } else if utf8 {
+        Mode::Utf8
+    } else {
+        Mode::Bytes
+    };
     let mut lits = Literals::default();
     if ascii_only == Mode::Mb {
         // Only the necessary literal: a match of literal bytes may be part of another character
         // (the second byte of Shift_JIS, GBK or Big5), so a match is never decided by it, but
         // a text without the bytes of an ASCII character cannot match.
-        lits.required = required(node, ascii_only).filter(|l| !l.is_empty()).map(|l| Finder::new(&l));
+        lits.required = required(node, ascii_only)
+            .filter(|l| !l.is_empty())
+            .map(|l| Finder::new(&l));
         if !crate::locale::ascii_is_identity() {
             // An ASCII byte need not be the ASCII character (Shift_JIS 0x5c): look for nothing.
             lits.required = None;
@@ -71,9 +79,13 @@ pub fn analyze(node: &Node, utf8: bool, mb: bool) -> Literals {
     if let Some(bytes) = literal_of(node, ascii_only).filter(|b| !b.is_empty()) {
         lits.grouped = Some(Finder::new(&bytes));
     }
-    lits.required = required(node, ascii_only).filter(|l| !l.is_empty()).map(|l| Finder::new(&l));
+    lits.required = required(node, ascii_only)
+        .filter(|l| !l.is_empty())
+        .map(|l| Finder::new(&l));
     if lits.required.is_none() {
-        lits.required_fold = required_fold(node, ascii_only).filter(|l| !l.is_empty()).map(|l| FoldFinder::new(&l));
+        lits.required_fold = required_fold(node, ascii_only)
+            .filter(|l| !l.is_empty())
+            .map(|l| FoldFinder::new(&l));
     }
     lits
 }
@@ -85,8 +97,11 @@ fn folded_single(node: &Node, ascii_only: Mode) -> Option<u8> {
             let mut members = (0..=255u8).filter(|&b| set.contains(b));
             let first = members.next()?;
             match (members.next(), members.next()) {
-                (None, _) => (ascii_only == Mode::Bytes || first < 0x80).then_some(first.to_ascii_lowercase()),
-                (Some(second), None) if first.is_ascii_alphabetic() && second == first ^ 0x20 => Some(first.to_ascii_lowercase()),
+                (None, _) => (ascii_only == Mode::Bytes || first < 0x80)
+                    .then_some(first.to_ascii_lowercase()),
+                (Some(second), None) if first.is_ascii_alphabetic() && second == first ^ 0x20 => {
+                    Some(first.to_ascii_lowercase())
+                }
                 _ => None,
             }
         }
@@ -149,7 +164,10 @@ fn required_fold(node: &Node, ascii_only: Mode) -> Option<Vec<u8>> {
 /// non-ASCII character written without `I`, whose encoding cannot start inside another one.
 fn single(node: &Node, ascii_only: Mode) -> Option<Vec<u8>> {
     match node {
-        Node::Unit(Unit::Byte(set)) => set.single_member().filter(|&b| ascii_only == Mode::Bytes || b < 0x80).map(|b| vec![b]),
+        Node::Unit(Unit::Byte(set)) => set
+            .single_member()
+            .filter(|&b| ascii_only == Mode::Bytes || b < 0x80)
+            .map(|b| vec![b]),
         Node::Unit(Unit::Chars(cs)) if ascii_only == Mode::Utf8 => {
             let plain = !cs.negated
                 && cs.classes.is_empty()
@@ -237,4 +255,3 @@ fn required(node: &Node, ascii_only: Mode) -> Option<Vec<u8>> {
         _ => None,
     }
 }
-

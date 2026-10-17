@@ -253,10 +253,18 @@ fn available(opt: Opt) -> bool {
 
 /// Resolves `--name`, accepting an unambiguous prefix as getopt_long does.
 fn find_long(name: &str, program: &str) -> Result<(&'static str, Arg, Opt), String> {
-    if let Some(&(n, a, o)) = LONG_OPTIONS.iter().filter(|e| available(e.2)).find(|(n, ..)| *n == name) {
+    if let Some(&(n, a, o)) = LONG_OPTIONS
+        .iter()
+        .filter(|e| available(e.2))
+        .find(|(n, ..)| *n == name)
+    {
         return Ok((n, a, o));
     }
-    let candidates: Vec<_> = LONG_OPTIONS.iter().filter(|e| available(e.2)).filter(|(n, ..)| n.starts_with(name)).collect();
+    let candidates: Vec<_> = LONG_OPTIONS
+        .iter()
+        .filter(|e| available(e.2))
+        .filter(|(n, ..)| n.starts_with(name))
+        .collect();
     // Names that stand for the same option are not ambiguous.
     let mut distinct: Vec<&(&str, Arg, Opt)> = Vec::new();
     for c in &candidates {
@@ -268,14 +276,22 @@ fn find_long(name: &str, program: &str) -> Result<(&'static str, Arg, Opt), Stri
         [] => Err(format!("{program}: unrecognized option '--{name}'")),
         [(n, a, o)] => Ok((n, *a, *o)),
         _ => {
-            let list: Vec<String> = candidates.iter().map(|(n, ..)| format!("'--{n}'")).collect();
-            Err(format!("{program}: option '--{name}' is ambiguous; possibilities: {}", list.join(" ")))
+            let list: Vec<String> = candidates
+                .iter()
+                .map(|(n, ..)| format!("'--{n}'"))
+                .collect();
+            Err(format!(
+                "{program}: option '--{name}' is ambiguous; possibilities: {}",
+                list.join(" ")
+            ))
         }
     }
 }
 
 pub fn usage_lines(program: &str) -> String {
-    format!("Usage: {program} [OPTION]... PATTERNS [FILE]...\nTry '{program} --help' for more information.\n")
+    format!(
+        "Usage: {program} [OPTION]... PATTERNS [FILE]...\nTry '{program} --help' for more information.\n"
+    )
 }
 
 fn bad_usage(message: Option<String>, program: &str) -> Parsed {
@@ -381,7 +397,9 @@ pub fn parse(args: Vec<Vec<u8>>, program: &str, default_kind: Kind) -> Parsed {
                 Err(m) => usage!(m),
             };
             let value = match (kind, inline) {
-                (Arg::No, Some(_)) => usage!(format!("{program}: option '--{full}' doesn't allow an argument")),
+                (Arg::No, Some(_)) => usage!(format!(
+                    "{program}: option '--{full}' doesn't allow an argument"
+                )),
                 (Arg::Required, None) => match args.next() {
                     Some((_, v)) => Some(v),
                     None => usage!(format!("{program}: option '--{full}' requires an argument")),
@@ -399,7 +417,11 @@ pub fn parse(args: Vec<Vec<u8>>, program: &str, default_kind: Kind) -> Parsed {
                     pending.push((Opt::Digit(c as u8 - b'0'), None, format!("-{c}")));
                     continue;
                 }
-                let Some(&(_, kind, opt)) = SHORT_OPTIONS.iter().filter(|e| available(e.2)).find(|(l, ..)| *l == c) else {
+                let Some(&(_, kind, opt)) = SHORT_OPTIONS
+                    .iter()
+                    .filter(|e| available(e.2))
+                    .find(|(l, ..)| *l == c)
+                else {
                     if super::GNU_GREP_3_12 && c == 'u' {
                         // GNU grep 3.12 still lists `u` among the short options and no longer handles
                         // it, so it gives the usage without saying that the option is invalid.
@@ -417,7 +439,9 @@ pub fn parse(args: Vec<Vec<u8>>, program: &str, default_kind: Kind) -> Parsed {
                         } else if kind == Arg::Required {
                             match args.next() {
                                 Some((_, v)) => Some(v),
-                                None => usage!(format!("{program}: option requires an argument -- '{c}'")),
+                                None => usage!(format!(
+                                    "{program}: option requires an argument -- '{c}'"
+                                )),
                             }
                         } else {
                             None
@@ -433,7 +457,10 @@ pub fn parse(args: Vec<Vec<u8>>, program: &str, default_kind: Kind) -> Parsed {
                 Opt::Digit(d) => {
                     // Digits of one argument make one number: -12 is 12; a digit in another
                     // argument starts a new number.
-                    let mut entry = digit_args.take().filter(|(i, _)| *i == index).unwrap_or((index, String::new()));
+                    let mut entry = digit_args
+                        .take()
+                        .filter(|(i, _)| *i == index)
+                        .unwrap_or((index, String::new()));
                     entry.1.push((b'0' + d) as char);
                     match context_length(&entry.1) {
                         Some(n) => default_context = Some(n),
@@ -526,7 +553,11 @@ pub fn parse(args: Vec<Vec<u8>>, program: &str, default_kind: Kind) -> Parsed {
                         eprintln!("{program}: invalid max count");
                         return Parsed::Error(2);
                     }
-                    o.max_count = if neg { None } else { Some(digits.parse().unwrap_or(u64::MAX)) };
+                    o.max_count = if neg {
+                        None
+                    } else {
+                        Some(digits.parse().unwrap_or(u64::MAX))
+                    };
                 }
                 Opt::ByteOffset => o.byte_offset = true,
                 Opt::LineNumber => o.line_number = true,
@@ -556,7 +587,9 @@ pub fn parse(args: Vec<Vec<u8>>, program: &str, default_kind: Kind) -> Parsed {
                         "skip" => Directories::Skip,
                         other => {
                             eprintln!("{program}: invalid argument '{other}' for '--directories'");
-                            eprintln!("Valid arguments are:\n  - 'read'\n  - 'recurse'\n  - 'skip'");
+                            eprintln!(
+                                "Valid arguments are:\n  - 'read'\n  - 'recurse'\n  - 'skip'"
+                            );
                             eprint!("{}", usage_lines(program));
                             return Parsed::Error(1);
                         }
@@ -584,7 +617,8 @@ pub fn parse(args: Vec<Vec<u8>>, program: &str, default_kind: Kind) -> Parsed {
                 Opt::Exclude => o.file_patterns.push((false, value.unwrap_or_default())),
                 Opt::ExcludeFrom => {
                     let name = value_text.clone();
-                    match std::fs::read(crate::io::bytes_path(value.as_deref().unwrap_or_default())) {
+                    match std::fs::read(crate::io::bytes_path(value.as_deref().unwrap_or_default()))
+                    {
                         Ok(b) => {
                             for line in b.split(|&c| c == b'\n') {
                                 if !line.is_empty() {

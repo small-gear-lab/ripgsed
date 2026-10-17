@@ -6,7 +6,12 @@ use std::process::Command;
 
 const BIN: &str = env!("CARGO_BIN_EXE_ripgsed");
 
-fn run(jobs: &str, block: &str, args: &[&str], files: &[&std::path::Path]) -> (Vec<u8>, Vec<u8>, Option<i32>) {
+fn run(
+    jobs: &str,
+    block: &str,
+    args: &[&str],
+    files: &[&std::path::Path],
+) -> (Vec<u8>, Vec<u8>, Option<i32>) {
     let out = Command::new(BIN)
         .args(args)
         .args(files)
@@ -83,11 +88,28 @@ fn parallel_output_equals_sequential_output() {
     for script in scripts {
         let mut args: Vec<&str> = script[..script.len() - 1].to_vec();
         args.push(script[script.len() - 1]);
-        for files in [vec![a.as_path()], vec![a.as_path(), b.as_path()], vec![a.as_path(), empty.as_path(), b.as_path()], vec![b.as_path(), a.as_path()], vec![a.as_path(), empty.as_path()], vec![b.as_path(), empty.as_path(), empty.as_path()], vec![empty.as_path(), a.as_path(), empty.as_path()]] {
+        for files in [
+            vec![a.as_path()],
+            vec![a.as_path(), b.as_path()],
+            vec![a.as_path(), empty.as_path(), b.as_path()],
+            vec![b.as_path(), a.as_path()],
+            vec![a.as_path(), empty.as_path()],
+            vec![b.as_path(), empty.as_path(), empty.as_path()],
+            vec![empty.as_path(), a.as_path(), empty.as_path()],
+        ] {
             let want = run("1", "1048576", &args, &files);
-            for (jobs, block) in [("2", "1"), ("3", "50"), ("4", "333"), ("8", "4096"), ("5", "100000")] {
+            for (jobs, block) in [
+                ("2", "1"),
+                ("3", "50"),
+                ("4", "333"),
+                ("8", "4096"),
+                ("5", "100000"),
+            ] {
                 let got = run(jobs, block, &args, &files);
-                assert_eq!(got, want, "script {args:?} files {files:?} jobs {jobs} block {block}");
+                assert_eq!(
+                    got, want,
+                    "script {args:?} files {files:?} jobs {jobs} block {block}"
+                );
             }
         }
     }
@@ -98,7 +120,10 @@ fn parallel_output_equals_sequential_output() {
 fn a_missing_file_falls_back_to_the_sequential_messages() {
     let (out, err, status) = run("4", "16", &["s/a/b/", "/nonexistent/file"], &[]);
     assert!(out.is_empty());
-    assert_eq!(String::from_utf8_lossy(&err), "ripgsed: can't read /nonexistent/file: No such file or directory\n");
+    assert_eq!(
+        String::from_utf8_lossy(&err),
+        "ripgsed: can't read /nonexistent/file: No such file or directory\n"
+    );
     assert_eq!(status, Some(2));
 }
 
@@ -173,11 +198,28 @@ fn quit_gives_the_sequential_output_and_status() {
         &["-z", "2q"],
     ];
     for args in scripts {
-        for files in [vec![a.as_path()], vec![a.as_path(), b.as_path()], vec![a.as_path(), empty.as_path(), b.as_path()], vec![b.as_path(), a.as_path()], vec![a.as_path(), empty.as_path()], vec![b.as_path(), empty.as_path(), empty.as_path()], vec![empty.as_path(), a.as_path(), empty.as_path()]] {
+        for files in [
+            vec![a.as_path()],
+            vec![a.as_path(), b.as_path()],
+            vec![a.as_path(), empty.as_path(), b.as_path()],
+            vec![b.as_path(), a.as_path()],
+            vec![a.as_path(), empty.as_path()],
+            vec![b.as_path(), empty.as_path(), empty.as_path()],
+            vec![empty.as_path(), a.as_path(), empty.as_path()],
+        ] {
             let want = run("1", "1048576", args, &files);
-            for (jobs, block) in [("2", "1"), ("3", "50"), ("4", "333"), ("8", "4096"), ("5", "100000")] {
+            for (jobs, block) in [
+                ("2", "1"),
+                ("3", "50"),
+                ("4", "333"),
+                ("8", "4096"),
+                ("5", "100000"),
+            ] {
                 let got = run(jobs, block, args, &files);
-                assert_eq!(got, want, "script {args:?} files {files:?} jobs {jobs} block {block}");
+                assert_eq!(
+                    got, want,
+                    "script {args:?} files {files:?} jobs {jobs} block {block}"
+                );
             }
         }
     }
@@ -187,7 +229,8 @@ fn quit_gives_the_sequential_output_and_status() {
 /// A read error in a chunk after the one where `q` happens is never reported.
 #[test]
 fn quit_before_a_later_read_error_is_not_an_error() {
-    let dir = std::env::temp_dir().join(format!("ripgsed-parallel-quit-err-{}", std::process::id()));
+    let dir =
+        std::env::temp_dir().join(format!("ripgsed-parallel-quit-err-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
     let a = dir.join("a.txt");
     std::fs::write(&a, lines(500, true)).unwrap();
@@ -195,7 +238,10 @@ fn quit_before_a_later_read_error_is_not_an_error() {
     let want = run("1", "1048576", &["3q"], &[a.as_path(), missing.as_path()]);
     assert_eq!(want.2, Some(0));
     // (A named file that cannot be read keeps the run sequential, so this is the same run twice.)
-    assert_eq!(run("4", "64", &["3q"], &[a.as_path(), missing.as_path()]), want);
+    assert_eq!(
+        run("4", "64", &["3q"], &[a.as_path(), missing.as_path()]),
+        want
+    );
     let _ = std::fs::remove_dir_all(&dir);
 }
 
@@ -203,7 +249,10 @@ fn quit_before_a_later_read_error_is_not_an_error() {
 /// so the next process reads the rest.
 #[test]
 fn quit_leaves_standard_input_after_the_last_record_used() {
-    let dir = std::env::temp_dir().join(format!("ripgsed-parallel-quit-stdin-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!(
+        "ripgsed-parallel-quit-stdin-{}",
+        std::process::id()
+    ));
     std::fs::create_dir_all(&dir).unwrap();
     let a = dir.join("a.txt");
     std::fs::write(&a, lines(500, true)).unwrap();
@@ -259,13 +308,21 @@ fn files_written_are_the_same_as_in_the_sequential_run() {
     let read = |p: &std::path::Path| std::fs::read(p).unwrap_or_default();
     for script in &scripts {
         let args: Vec<&str> = script.iter().map(String::as_str).collect();
-        for files in [vec![a.as_path()], vec![a.as_path(), b.as_path()], vec![a.as_path(), empty.as_path(), b.as_path()], vec![b.as_path(), a.as_path()]] {
+        for files in [
+            vec![a.as_path()],
+            vec![a.as_path(), b.as_path()],
+            vec![a.as_path(), empty.as_path(), b.as_path()],
+            vec![b.as_path(), a.as_path()],
+        ] {
             let _ = (std::fs::remove_file(&out1), std::fs::remove_file(&out2));
             let want = (run("1", "1048576", &args, &files), read(&out1), read(&out2));
             for (jobs, block) in [("2", "1"), ("3", "50"), ("4", "333"), ("8", "4096")] {
                 let _ = (std::fs::remove_file(&out1), std::fs::remove_file(&out2));
                 let got = (run(jobs, block, &args, &files), read(&out1), read(&out2));
-                assert_eq!(got, want, "script {args:?} files {files:?} jobs {jobs} block {block}");
+                assert_eq!(
+                    got, want,
+                    "script {args:?} files {files:?} jobs {jobs} block {block}"
+                );
             }
         }
     }
@@ -276,7 +333,8 @@ fn files_written_are_the_same_as_in_the_sequential_run() {
 /// chunk the line is in.
 #[test]
 fn separate_files_are_streams_of_their_own_in_parallel_too() {
-    let dir = std::env::temp_dir().join(format!("ripgsed-parallel-separate-{}", std::process::id()));
+    let dir =
+        std::env::temp_dir().join(format!("ripgsed-parallel-separate-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
     let a = dir.join("a.txt");
     let b = dir.join("b.txt");
@@ -303,11 +361,19 @@ fn separate_files_are_streams_of_their_own_in_parallel_too() {
         &["-s", "-n", "$-2,$p;4q"],
     ];
     for args in scripts {
-        for files in [vec![a.as_path(), b.as_path()], vec![b.as_path(), a.as_path()], vec![a.as_path(), empty.as_path(), b.as_path(), empty.as_path()], vec![b.as_path(), b.as_path(), a.as_path()]] {
+        for files in [
+            vec![a.as_path(), b.as_path()],
+            vec![b.as_path(), a.as_path()],
+            vec![a.as_path(), empty.as_path(), b.as_path(), empty.as_path()],
+            vec![b.as_path(), b.as_path(), a.as_path()],
+        ] {
             let want = run("1", "1048576", args, &files);
             for (jobs, block) in [("2", "1"), ("3", "50"), ("4", "333"), ("8", "4096")] {
                 let got = run(jobs, block, args, &files);
-                assert_eq!(got, want, "script {args:?} files {files:?} jobs {jobs} block {block}");
+                assert_eq!(
+                    got, want,
+                    "script {args:?} files {files:?} jobs {jobs} block {block}"
+                );
             }
         }
     }
@@ -316,13 +382,19 @@ fn separate_files_are_streams_of_their_own_in_parallel_too() {
 
 /// What `-i` leaves behind: the standard output, the status, and for every name the bytes and the mode of the
 /// file (a file that is not there is `None`).
-type Left = ((Vec<u8>, Vec<u8>, Option<i32>), Vec<(String, Option<(Vec<u8>, u32)>)>);
+type Left = (
+    (Vec<u8>, Vec<u8>, Option<i32>),
+    Vec<(String, Option<(Vec<u8>, u32)>)>,
+);
 
 fn edit_in_place(jobs: &str, block: &str, args: &[&str], names: &[&str], extra: &[&str]) -> Left {
-    use std::os::unix::fs::{symlink, PermissionsExt};
+    use std::os::unix::fs::{PermissionsExt, symlink};
     static COUNTER: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
     let n = COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-    let dir = std::env::temp_dir().join(format!("ripgsed-parallel-inplace-{}-{n}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!(
+        "ripgsed-parallel-inplace-{}-{n}",
+        std::process::id()
+    ));
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).unwrap();
     std::fs::write(dir.join("a.txt"), lines(500, false)).unwrap();
@@ -340,14 +412,25 @@ fn edit_in_place(jobs: &str, block: &str, args: &[&str], names: &[&str], extra: 
         .current_dir(&dir)
         .output()
         .expect("run ripgsed");
-    let mut seen: Vec<String> = std::fs::read_dir(&dir).unwrap().map(|e| e.unwrap().file_name().to_string_lossy().into_owned()).collect();
+    let mut seen: Vec<String> = std::fs::read_dir(&dir)
+        .unwrap()
+        .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+        .collect();
     seen.sort();
     let left = seen
         .into_iter()
         .map(|name| {
             let path = dir.join(&name);
             let state = std::fs::symlink_metadata(&path).ok().map(|m| {
-                let bytes = if m.file_type().is_symlink() { std::fs::read_link(&path).unwrap().to_string_lossy().into_owned().into_bytes() } else { std::fs::read(&path).unwrap_or_default() };
+                let bytes = if m.file_type().is_symlink() {
+                    std::fs::read_link(&path)
+                        .unwrap()
+                        .to_string_lossy()
+                        .into_owned()
+                        .into_bytes()
+                } else {
+                    std::fs::read(&path).unwrap_or_default()
+                };
                 (bytes, m.permissions().mode())
             });
             (name, state)
@@ -356,7 +439,9 @@ fn edit_in_place(jobs: &str, block: &str, args: &[&str], names: &[&str], extra: 
     let _ = extra;
     let _ = std::fs::remove_dir_all(&dir);
     // (The messages name the directory the files were in: it is not the same twice.)
-    let stderr = String::from_utf8_lossy(&out.stderr).replace(dir.to_string_lossy().as_ref(), "DIR").into_bytes();
+    let stderr = String::from_utf8_lossy(&out.stderr)
+        .replace(dir.to_string_lossy().as_ref(), "DIR")
+        .into_bytes();
     ((out.stdout, stderr, out.status.code()), left)
 }
 
@@ -388,7 +473,10 @@ fn files_edited_in_place_come_out_as_in_the_sequential_run() {
             let want = edit_in_place("1", "1048576", args, names, &[]);
             for (jobs, block) in [("2", "1"), ("3", "50"), ("4", "333"), ("8", "4096")] {
                 let got = edit_in_place(jobs, block, args, names, &[]);
-                assert_eq!(got, want, "script {args:?} files {names:?} jobs {jobs} block {block}");
+                assert_eq!(
+                    got, want,
+                    "script {args:?} files {names:?} jobs {jobs} block {block}"
+                );
             }
         }
     }
@@ -401,14 +489,29 @@ fn a_file_that_is_read_after_it_is_written_is_not_read_ahead() {
     let twice = ["a.txt", "b.txt", "a.txt"];
     let want = edit_in_place("1", "1048576", &["-i", "1d"], &twice, &[]);
     for (jobs, block) in [("2", "1"), ("4", "333")] {
-        assert_eq!(edit_in_place(jobs, block, &["-i", "1d"], &twice, &[]), want, "jobs {jobs} block {block}");
+        assert_eq!(
+            edit_in_place(jobs, block, &["-i", "1d"], &twice, &[]),
+            want,
+            "jobs {jobs} block {block}"
+        );
     }
     // (500 lines minus two firsts)
-    let a = want.1.iter().find(|(name, _)| name == "a.txt").unwrap().1.as_ref().unwrap();
+    let a = want
+        .1
+        .iter()
+        .find(|(name, _)| name == "a.txt")
+        .unwrap()
+        .1
+        .as_ref()
+        .unwrap();
     assert_eq!(String::from_utf8_lossy(&a.0).lines().count(), 498);
     let into_input = ["-i", "s/alpha/X/w b.txt"];
     let want = edit_in_place("1", "1048576", &into_input, &["a.txt", "b.txt"], &[]);
     for (jobs, block) in [("2", "1"), ("4", "333")] {
-        assert_eq!(edit_in_place(jobs, block, &into_input, &["a.txt", "b.txt"], &[]), want, "jobs {jobs} block {block}");
+        assert_eq!(
+            edit_in_place(jobs, block, &into_input, &["a.txt", "b.txt"], &[]),
+            want,
+            "jobs {jobs} block {block}"
+        );
     }
 }

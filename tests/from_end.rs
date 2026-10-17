@@ -58,11 +58,18 @@ fn run(args: &[&str], files: &[&std::path::Path], parallel: bool) -> (String, St
         command.env("RIPGSED_JOBS", "1");
     }
     let out = command.output().expect("run ripgsed");
-    (String::from_utf8_lossy(&out.stdout).into_owned(), String::from_utf8_lossy(&out.stderr).into_owned(), out.status.code())
+    (
+        String::from_utf8_lossy(&out.stdout).into_owned(),
+        String::from_utf8_lossy(&out.stderr).into_owned(),
+        out.status.code(),
+    )
 }
 
 fn lines_of(selected: &[i64], first: i64) -> String {
-    selected.iter().map(|i| format!("{}\n", i - 1 + first)).collect()
+    selected
+        .iter()
+        .map(|i| format!("{}\n", i - 1 + first))
+        .collect()
 }
 
 #[test]
@@ -83,7 +90,12 @@ fn an_address_counted_back_from_the_end_selects_the_line_the_model_says() {
                         let text = script(kind, k, j);
                         let want = lines_of(&model(kind, n, k, j), 1);
                         let got = run(&["-n", &text], &[&file], parallel);
-                        assert_eq!((got.0, got.2), (want, Some(0)), "script {text} on {n} lines, parallel {parallel}: {}", got.1);
+                        assert_eq!(
+                            (got.0, got.2),
+                            (want, Some(0)),
+                            "script {text} on {n} lines, parallel {parallel}: {}",
+                            got.1
+                        );
                     }
                 }
             }
@@ -104,7 +116,10 @@ fn deleting_and_negating_with_an_address_counted_back() {
         assert_eq!(run(&["$-1,$d"], &[&file], parallel).0, "1\n2\n3\n4\n");
         assert_eq!(run(&["$-0d"], &[&file], parallel).0, "1\n2\n3\n4\n5\n");
         assert_eq!(run(&["-n", "$-2{=;p}"], &[&file], parallel).0, "4\n4\n");
-        assert_eq!(run(&["-n", "$-3,$-1{p;p}"], &[&file], parallel).0, "3\n3\n4\n4\n5\n5\n");
+        assert_eq!(
+            run(&["-n", "$-3,$-1{p;p}"], &[&file], parallel).0,
+            "3\n3\n4\n4\n5\n5\n"
+        );
     }
     let _ = std::fs::remove_dir_all(&dir);
 }
@@ -122,10 +137,19 @@ fn the_count_goes_across_files_and_stops_at_the_end_of_each_one_with_s() {
     for parallel in [false, true] {
         // One stream of 7 lines: the last three are 5, 6 and 7.
         assert_eq!(run(&["-n", "$-2,$p"], &[&a, &b], parallel).0, "5\n6\n7\n");
-        assert_eq!(run(&["-n", "$-2,$p"], &[&a, &empty, &b, &empty], parallel).0, "5\n6\n7\n");
+        assert_eq!(
+            run(&["-n", "$-2,$p"], &[&a, &empty, &b, &empty], parallel).0,
+            "5\n6\n7\n"
+        );
         // With -s each file counts for itself.
-        assert_eq!(run(&["-s", "-n", "$-1,$p"], &[&a, &b], parallel).0, "2\n3\n6\n7\n");
-        assert_eq!(run(&["-s", "-n", "$-0p"], &[&a, &empty, &b], parallel).0, "3\n7\n");
+        assert_eq!(
+            run(&["-s", "-n", "$-1,$p"], &[&a, &b], parallel).0,
+            "2\n3\n6\n7\n"
+        );
+        assert_eq!(
+            run(&["-s", "-n", "$-0p"], &[&a, &empty, &b], parallel).0,
+            "3\n7\n"
+        );
     }
     let _ = std::fs::remove_dir_all(&dir);
 }
@@ -151,21 +175,36 @@ fn a_range_counted_back_from_its_first_address() {
             for m in 1..=8i64 {
                 for back in 0..=4i64 {
                     let extra = back;
-                    let want: Vec<i64> = (1..=n).filter(|&i| i >= (m - extra).max(1) && i <= m).collect();
+                    let want: Vec<i64> = (1..=n)
+                        .filter(|&i| i >= (m - extra).max(1) && i <= m)
+                        .collect();
                     let text = format!("{m},-{back}p");
                     let got = run(&["-n", &text], &[&file], parallel);
-                    assert_eq!((got.0, got.2), (lines_of(&want, 1), Some(0)), "script {text} on {n} lines, parallel {parallel}: {}", got.1);
+                    assert_eq!(
+                        (got.0, got.2),
+                        (lines_of(&want, 1), Some(0)),
+                        "script {text} on {n} lines, parallel {parallel}: {}",
+                        got.1
+                    );
                 }
             }
             for back in 0..=4i64 {
                 let text = format!("$,-{back}p");
                 let got = run(&["-n", &text], &[&file], parallel);
                 let extra = back;
-                assert_eq!(got.0, lines_of(&model("to_end", n, extra, 0), 1), "script {text} on {n} lines, parallel {parallel}");
+                assert_eq!(
+                    got.0,
+                    lines_of(&model("to_end", n, extra, 0), 1),
+                    "script {text} on {n} lines, parallel {parallel}"
+                );
                 for k in 1..=3i64 {
                     let text = format!("$-{k},-{back}p");
                     let got = run(&["-n", &text], &[&file], parallel);
-                    assert_eq!(got.0, lines_of(&model("both", n, k + extra, k), 1), "script {text} on {n} lines, parallel {parallel}");
+                    assert_eq!(
+                        got.0,
+                        lines_of(&model("both", n, k + extra, k), 1),
+                        "script {text} on {n} lines, parallel {parallel}"
+                    );
                 }
             }
         }
@@ -176,8 +215,14 @@ fn a_range_counted_back_from_its_first_address() {
 #[test]
 fn a_range_counted_back_needs_a_line_number_to_count_from() {
     for (text, message) in [
-        ("/x/,-2p", "invalid usage of -N after a regexp or a step as first address"),
-        ("1~2,-2p", "invalid usage of -N after a regexp or a step as first address"),
+        (
+            "/x/,-2p",
+            "invalid usage of -N after a regexp or a step as first address",
+        ),
+        (
+            "1~2,-2p",
+            "invalid usage of -N after a regexp or a step as first address",
+        ),
         ("0,-2p", "invalid usage of line address 0"),
         ("2,-p", "unexpected `,'"),
     ] {

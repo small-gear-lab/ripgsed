@@ -20,7 +20,11 @@ pub fn set_program_name(name: String) {
 fn exhausted() -> ! {
     let p = PROGRAM.load(Ordering::Acquire);
     // SAFETY: the pointer is null or a leaked `String` that is never freed or changed.
-    let name = if p.is_null() { "sed" } else { unsafe { (*p).as_str() } };
+    let name = if p.is_null() {
+        "sed"
+    } else {
+        unsafe { (*p).as_str() }
+    };
     let mut err = std::io::stderr().lock();
     let _ = err.write_all(name.as_bytes());
     let _ = err.write_all(b": memory exhausted\n");

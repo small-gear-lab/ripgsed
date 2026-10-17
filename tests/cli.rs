@@ -6,7 +6,11 @@ const BIN: &str = env!("CARGO_BIN_EXE_ripgsed");
 
 #[test]
 fn version_names_the_project() {
-    let out = Command::new(BIN).arg("--version").env("LC_ALL", "C").output().expect("run ripgsed");
+    let out = Command::new(BIN)
+        .arg("--version")
+        .env("LC_ALL", "C")
+        .output()
+        .expect("run ripgsed");
     assert_eq!(out.status.code(), Some(0));
     let text = String::from_utf8_lossy(&out.stdout);
     assert_eq!(text, format!("ripgsed {}\n", env!("CARGO_PKG_VERSION")));
@@ -23,7 +27,8 @@ mod grep_mode {
     fn run_as(name: &str, args: &[&str], input: &str) -> (String, String, i32) {
         static COUNTER: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
         let n = COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-        let dir = std::env::temp_dir().join(format!("ripgsed-cli-{}-{}-{}", std::process::id(), n, name));
+        let dir =
+            std::env::temp_dir().join(format!("ripgsed-cli-{}-{}-{}", std::process::id(), n, name));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
         let link = dir.join(name);
@@ -40,15 +45,31 @@ mod grep_mode {
         let _ = child.stdin.take().unwrap().write_all(input.as_bytes());
         let out = child.wait_with_output().unwrap();
         let _ = std::fs::remove_dir_all(&dir);
-        (String::from_utf8_lossy(&out.stdout).into_owned(), String::from_utf8_lossy(&out.stderr).into_owned(), out.status.code().unwrap_or(-1))
+        (
+            String::from_utf8_lossy(&out.stdout).into_owned(),
+            String::from_utf8_lossy(&out.stderr).into_owned(),
+            out.status.code().unwrap_or(-1),
+        )
     }
 
     #[test]
     fn the_names_choose_the_patterns() {
-        assert_eq!(run_as("grep", &["a+"], "a+\naa\n"), ("a+\n".to_string(), String::new(), 0));
-        assert_eq!(run_as("egrep", &["a+"], "a+\naa\n"), ("a+\naa\n".to_string(), String::new(), 0));
-        assert_eq!(run_as("fgrep", &["a."], "a.\nab\n"), ("a.\n".to_string(), String::new(), 0));
-        assert_eq!(run_as("rgrep", &["b"], "a\nb\n"), ("b\n".to_string(), String::new(), 0));
+        assert_eq!(
+            run_as("grep", &["a+"], "a+\naa\n"),
+            ("a+\n".to_string(), String::new(), 0)
+        );
+        assert_eq!(
+            run_as("egrep", &["a+"], "a+\naa\n"),
+            ("a+\naa\n".to_string(), String::new(), 0)
+        );
+        assert_eq!(
+            run_as("fgrep", &["a."], "a.\nab\n"),
+            ("a.\n".to_string(), String::new(), 0)
+        );
+        assert_eq!(
+            run_as("rgrep", &["b"], "a\nb\n"),
+            ("b\n".to_string(), String::new(), 0)
+        );
     }
 
     #[test]
@@ -56,7 +77,10 @@ mod grep_mode {
         for name in ["grep", "egrep", "fgrep"] {
             let (out, err, status) = run_as(name, &["-Z"], "");
             assert_eq!(out, "");
-            assert!(err.starts_with("Usage: grep [OPTION]... PATTERNS [FILE]..."), "{name}: {err}");
+            assert!(
+                err.starts_with("Usage: grep [OPTION]... PATTERNS [FILE]..."),
+                "{name}: {err}"
+            );
             assert_eq!(status, 2);
         }
         let (_, err, status) = run_as("egrep", &["-F", "x"], "x\n");
@@ -79,7 +103,10 @@ mod grep_mode {
         let input = format!("{}!\n", "a".repeat(60));
         let (out, err, status) = run_as("grep", &["-P", "^(a|aa)+$"], &input);
         assert_eq!((out.as_str(), status), ("", 2));
-        assert_eq!(err, "grep: (standard input): exceeded PCRE's backtracking limit\n");
+        assert_eq!(
+            err,
+            "grep: (standard input): exceeded PCRE's backtracking limit\n"
+        );
         // Lines before the one that fails are selected, and the status is 2 all the same.
         let input = format!("a\n{}!\nb\n", "a".repeat(60));
         let (out, err, status) = run_as("grep", &["-P", "^(a|aa)+$"], &input);
@@ -102,8 +129,18 @@ mod grep_mode {
         std::fs::write(dir.join("deep.txt"), format!("{}!\n", "a".repeat(60))).unwrap();
         std::fs::write(dir.join("after.txt"), "a\n").unwrap();
         let run = |args: &[&str]| {
-            let out = Command::new(BIN).arg("--grep").args(args).current_dir(&dir).env("LC_ALL", "C").output().unwrap();
-            (String::from_utf8_lossy(&out.stdout).into_owned(), String::from_utf8_lossy(&out.stderr).into_owned(), out.status.code().unwrap())
+            let out = Command::new(BIN)
+                .arg("--grep")
+                .args(args)
+                .current_dir(&dir)
+                .env("LC_ALL", "C")
+                .output()
+                .unwrap();
+            (
+                String::from_utf8_lossy(&out.stdout).into_owned(),
+                String::from_utf8_lossy(&out.stderr).into_owned(),
+                out.status.code().unwrap(),
+            )
         };
         let (out, err, status) = run(&["-P", "^(a|aa)+$", "ok.txt", "deep.txt", "after.txt"]);
         assert_eq!((out.as_str(), status), ("ok.txt:aa\n", 2));
@@ -114,9 +151,19 @@ mod grep_mode {
         assert_eq!((out.as_str(), status), ("", 2));
         assert!(err.contains("exceeded PCRE's backtracking limit"), "{err}");
         // With threads the run ends in the same place.
-        let out = Command::new(BIN).arg("--grep").args(["-rP", "^(a|aa)+$", "."]).current_dir(&dir).env("LC_ALL", "C").env("RIPGSED_JOBS", "4").output().unwrap();
+        let out = Command::new(BIN)
+            .arg("--grep")
+            .args(["-rP", "^(a|aa)+$", "."])
+            .current_dir(&dir)
+            .env("LC_ALL", "C")
+            .env("RIPGSED_JOBS", "4")
+            .output()
+            .unwrap();
         assert_eq!(out.status.code(), Some(2));
-        assert!(String::from_utf8_lossy(&out.stderr).contains("deep.txt: exceeded PCRE's backtracking limit"));
+        assert!(
+            String::from_utf8_lossy(&out.stderr)
+                .contains("deep.txt: exceeded PCRE's backtracking limit")
+        );
         let _ = std::fs::remove_dir_all(&dir);
     }
 
@@ -146,14 +193,31 @@ mod sed_pcre {
         // (A command that fails at once has closed the pipe before the write: not an error.)
         let _ = child.stdin.take().unwrap().write_all(input.as_bytes());
         let out = child.wait_with_output().unwrap();
-        (String::from_utf8_lossy(&out.stdout).into_owned(), String::from_utf8_lossy(&out.stderr).into_owned(), out.status.code().unwrap_or(-1))
+        (
+            String::from_utf8_lossy(&out.stdout).into_owned(),
+            String::from_utf8_lossy(&out.stderr).into_owned(),
+            out.status.code().unwrap_or(-1),
+        )
     }
 
     #[test]
     fn perl_syntax_in_substitution_and_address() {
-        assert_eq!(sed(&["-P", "s/(\\d+)\\s(?=bar)/<\\1>/"], "foo123 bar\n").0, "foo<123>bar\n");
-        assert_eq!(sed(&["--perl-regexp", "-n", "/^(?i)hello/p"], "abc\nHello\n").0, "Hello\n");
-        assert_eq!(sed(&["--perl-regexp", "s/\\b(\\w)(\\w*)/\\U\\1\\E\\2/g"], "ab cd\n").0, "Ab Cd\n");
+        assert_eq!(
+            sed(&["-P", "s/(\\d+)\\s(?=bar)/<\\1>/"], "foo123 bar\n").0,
+            "foo<123>bar\n"
+        );
+        assert_eq!(
+            sed(&["--perl-regexp", "-n", "/^(?i)hello/p"], "abc\nHello\n").0,
+            "Hello\n"
+        );
+        assert_eq!(
+            sed(
+                &["--perl-regexp", "s/\\b(\\w)(\\w*)/\\U\\1\\E\\2/g"],
+                "ab cd\n"
+            )
+            .0,
+            "Ab Cd\n"
+        );
     }
 
     #[test]
@@ -171,7 +235,10 @@ mod sed_pcre {
             let (out, err, status) = sed(&["-P", script], &input);
             assert_eq!(status, 4, "{script}: {err}");
             assert_eq!(out, "", "{script}");
-            assert!(err.starts_with("ripgsed: ") && err.contains("exceeded PCRE's backtracking limit"), "{script}: {err}");
+            assert!(
+                err.starts_with("ripgsed: ") && err.contains("exceeded PCRE's backtracking limit"),
+                "{script}: {err}"
+            );
         }
         // A script that stays within the limits is not touched.
         assert_eq!(sed(&["-P", "s/^(a|aa)+$/X/"], "aaaa\n").0, "X\n");
@@ -181,9 +248,15 @@ mod sed_pcre {
     fn errors_are_reported_like_other_regexp_errors() {
         let (_, err, status) = sed(&["-P", "s/(/x/"], "a\n");
         assert_eq!(status, 1);
-        assert!(err.starts_with("ripgsed: -e expression #1, char 6: "), "{err}");
+        assert!(
+            err.starts_with("ripgsed: -e expression #1, char 6: "),
+            "{err}"
+        );
         let (_, err, status) = sed(&["-P", "s/a/\\2/"], "a\n");
         assert_eq!(status, 1);
-        assert!(err.contains("invalid reference \\2 on `s' command's RHS"), "{err}");
+        assert!(
+            err.contains("invalid reference \\2 on `s' command's RHS"),
+            "{err}"
+        );
     }
 }

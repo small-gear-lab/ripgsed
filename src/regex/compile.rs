@@ -1,8 +1,8 @@
 //! Compilation of the tree into a program for the matchers in `exec`.
 
+use super::CompileError;
 use super::ast::{Assert, Node, Unit};
 use super::charset::ByteSet;
-use super::CompileError;
 
 /// One instruction. Alternatives of `Split` are ordered: the first one has
 /// the higher priority (greedy repetition, left alternative first).
@@ -108,7 +108,9 @@ pub fn compile(
     // In UTF-8, GNU sed starts matches only at character boundaries when
     // the pattern uses a class-like set or a word assertion.
     let char_starts = char_starts
-        || c.units.iter().any(|u| matches!(u, Unit::Chars(cs) if cs.mb))
+        || c.units
+            .iter()
+            .any(|u| matches!(u, Unit::Chars(cs) if cs.mb))
         || (utf8
             && c.insts.iter().any(|i| {
                 matches!(
@@ -132,7 +134,13 @@ pub fn compile(
             *slot = list;
         }
     }
-    let nullable_refs: Vec<bool> = (0..=ngroups).map(|g| glibc && referenced.get(g).copied().unwrap_or(false) && c.groups.iter().any(|e| e.0 == g && e.1.nullable)).collect();
+    let nullable_refs: Vec<bool> = (0..=ngroups)
+        .map(|g| {
+            glibc
+                && referenced.get(g).copied().unwrap_or(false)
+                && c.groups.iter().any(|e| e.0 == g && e.1.nullable)
+        })
+        .collect();
     let quirks = glibc
         && (copies.iter().any(|l| l.iter().any(|c| c.nullable)) || nullable_refs.iter().any(|&b| b))
         || c.insts.iter().any(|i| matches!(*i, Inst::Close(g, _, _, lk) if lk != 0 && referenced.get(g as usize) == Some(&true)));
@@ -176,7 +184,9 @@ impl Compiler {
 
     fn push(&mut self, i: Inst) -> Result<u32, CompileError> {
         if self.insts.len() >= MAX_INSTS {
-            return Err(CompileError { message: super::parse::E_ESIZE.to_string() });
+            return Err(CompileError {
+                message: super::parse::E_ESIZE.to_string(),
+            });
         }
         self.insts.push(i);
         Ok(self.pc() - 1)
@@ -206,11 +216,22 @@ impl Compiler {
                 let lk = std::mem::take(&mut self.loopk);
                 // Body that is a repetition itself (`(a*)*`): with back-references in the
                 // pattern, glibc reports its empty last iteration as it is.
-                let lk = if !self.glibc || lk == 0 || !can_be_empty(inner) { 0 } else if is_loop(inner) { 3 } else { lk };
+                let lk = if !self.glibc || lk == 0 || !can_be_empty(inner) {
+                    0
+                } else if is_loop(inner) {
+                    3
+                } else {
+                    lk
+                };
                 let opt = opt && !(self.backrefs && lk == 3);
                 self.emit(inner, false, dup, mid)?;
                 let close = self.push(Inst::Close(*g as u32, opt, mid, lk))?;
-                let copy = GroupCopy { open, close, mandatory: self.optional == 0, nullable: can_be_empty(inner) };
+                let copy = GroupCopy {
+                    open,
+                    close,
+                    mandatory: self.optional == 0,
+                    nullable: can_be_empty(inner),
+                };
                 self.groups.push((*g, copy));
             }
             Node::Concat(items) => {
@@ -255,7 +276,13 @@ impl Compiler {
                     None => {
                         let l = self.push(Inst::Split(0, 0))?;
                         self.optional += 1;
-                        self.loopk = if !matches!(**body, Node::Group(..)) { 0 } else if *min == 0 { 1 } else { 2 };
+                        self.loopk = if !matches!(**body, Node::Group(..)) {
+                            0
+                        } else if *min == 0 {
+                            1
+                        } else {
+                            2
+                        };
                         self.emit(body, mark, dup || copy > 0, mid)?;
                         self.loopk = 0;
                         self.optional -= 1;
@@ -270,7 +297,12 @@ impl Compiler {
                         for _ in *min..*max {
                             holes.push(self.push(Inst::Split(0, 0))?);
                             self.optional += 1;
-                            self.emit(body, mark && (*min > 0 || copy == 0), dup || copy > 0, self.glibc && (mid || copy + 1 < *max))?;
+                            self.emit(
+                                body,
+                                mark && (*min > 0 || copy == 0),
+                                dup || copy > 0,
+                                self.glibc && (mid || copy + 1 < *max),
+                            )?;
                             self.optional -= 1;
                             copy += 1;
                         }

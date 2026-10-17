@@ -35,7 +35,11 @@ enum Ctx {
 
 impl Ctx {
     fn of(b: u8) -> Ctx {
-        if is_word_byte(b) { Ctx::Word } else { Ctx::Other }
+        if is_word_byte(b) {
+            Ctx::Word
+        } else {
+            Ctx::Other
+        }
     }
 
     fn is_word(self) -> bool {
@@ -178,7 +182,9 @@ impl Dfa {
                         self.stack.push(pc + 1);
                     }
                 }
-                Inst::Backref(_) => unreachable!("`supports` rejects programs with back-references"),
+                Inst::Backref(_) => {
+                    unreachable!("`supports` rejects programs with back-references")
+                }
                 Inst::Match => matched = true,
             }
         }
@@ -238,7 +244,12 @@ impl Dfa {
 
     /// Anchored forward scan: the longest match that starts at `start` (the end offset), if any.
     /// Gives up when the scan would read more than `budget` bytes (which it uses up).
-    pub fn longest_from(&mut self, hay: &[u8], start: usize, budget: &mut usize) -> Result<Option<usize>, GiveUp> {
+    pub fn longest_from(
+        &mut self,
+        hay: &[u8],
+        start: usize,
+        budget: &mut usize,
+    ) -> Result<Option<usize>, GiveUp> {
         let prev = self.neighbour(hay, start)?;
         let mut state = self.start(prev)?;
         let mut last = None;
@@ -267,7 +278,12 @@ impl Dfa {
     /// Backward scan from `to` with the reversed program: the leftmost start `>= from` of a
     /// match that ends at or before `to`. `self` must be built from the reversed pattern,
     /// unanchored.
-    pub fn leftmost_start(&mut self, hay: &[u8], from: usize, to: usize) -> Result<Option<usize>, GiveUp> {
+    pub fn leftmost_start(
+        &mut self,
+        hay: &[u8],
+        from: usize,
+        to: usize,
+    ) -> Result<Option<usize>, GiveUp> {
         let right = if to == hay.len() {
             Ctx::Edge
         } else {
@@ -411,9 +427,17 @@ impl std::fmt::Debug for DfaSlot {
 }
 
 impl DfaSlot {
-    pub fn get(&mut self, prog: &Program, node: &super::ast::Node, utf8: bool, mb: bool, delim: u8) -> Option<&mut DfaSet> {
+    pub fn get(
+        &mut self,
+        prog: &Program,
+        node: &super::ast::Node,
+        utf8: bool,
+        mb: bool,
+        delim: u8,
+    ) -> Option<&mut DfaSet> {
         if matches!(self, DfaSlot::Unbuilt) {
-            *self = Self::build(prog, node, utf8, mb, delim).map_or(DfaSlot::Disabled, |set| DfaSlot::Ready(Box::new(set)));
+            *self = Self::build(prog, node, utf8, mb, delim)
+                .map_or(DfaSlot::Disabled, |set| DfaSlot::Ready(Box::new(set)));
         }
         match self {
             DfaSlot::Ready(set) => Some(set),
@@ -421,12 +445,26 @@ impl DfaSlot {
         }
     }
 
-    fn build(prog: &Program, node: &super::ast::Node, utf8: bool, mb: bool, delim: u8) -> Option<DfaSet> {
+    fn build(
+        prog: &Program,
+        node: &super::ast::Node,
+        utf8: bool,
+        mb: bool,
+        delim: u8,
+    ) -> Option<DfaSet> {
         if !Dfa::supports(prog) {
             return None;
         }
         let compile = |n: &super::ast::Node, utf8: bool| {
-            super::compile::compile(n, prog.ngroups, vec![false; prog.ngroups + 1], prog.char_starts && utf8, utf8, false).ok()
+            super::compile::compile(
+                n,
+                prog.ngroups,
+                vec![false; prog.ngroups + 1],
+                prog.char_starts && utf8,
+                utf8,
+                false,
+            )
+            .ok()
         };
         // In UTF-8, characters are spelled out as byte sequences when the pattern allows it; the
         // DFAs then run on bytes and can pass non-ASCII text. Otherwise they stop at the first
@@ -435,7 +473,9 @@ impl DfaSlot {
             // A pattern that starts only at character boundaries could match empty in the middle
             // of a character here, so those are expanded only if no match can be empty.
             if let Some(bytes) = expand_utf8(node).filter(|b| !prog.char_starts || !nullable(b)) {
-                if let (Some(fwd), Some(rev)) = (compile(&bytes, false), compile(&reverse(&bytes), false)) {
+                if let (Some(fwd), Some(rev)) =
+                    (compile(&bytes, false), compile(&reverse(&bytes), false))
+                {
                     return Some(DfaSet {
                         unanchored: Dfa::new(fwd.clone(), false, delim, true),
                         forward: Dfa::new(fwd, false, delim, false),
@@ -468,9 +508,21 @@ fn expand_utf8(node: &super::ast::Node) -> Option<super::ast::Node> {
                 _ => Node::Assert(*a),
             },
             Node::Group(n, inner) => Node::Group(*n, Box::new(walk(inner, budget)?)),
-            Node::Concat(items) => Node::Concat(items.iter().map(|i| walk(i, budget)).collect::<Option<_>>()?),
-            Node::Alt(items) => Node::Alt(items.iter().map(|i| walk(i, budget)).collect::<Option<_>>()?),
-            Node::Repeat(inner, min, max) => Node::Repeat(Box::new(walk(inner, budget)?), *min, *max),
+            Node::Concat(items) => Node::Concat(
+                items
+                    .iter()
+                    .map(|i| walk(i, budget))
+                    .collect::<Option<_>>()?,
+            ),
+            Node::Alt(items) => Node::Alt(
+                items
+                    .iter()
+                    .map(|i| walk(i, budget))
+                    .collect::<Option<_>>()?,
+            ),
+            Node::Repeat(inner, min, max) => {
+                Node::Repeat(Box::new(walk(inner, budget)?), *min, *max)
+            }
             Node::Unit(Unit::Byte(set)) => {
                 if (0x80..=0xffu8).any(|b| set.contains(b)) {
                     return None;
@@ -569,7 +621,11 @@ fn sequences(ranges: &[(u32, u32)], budget: &mut usize) -> Option<super::ast::No
                     Node::Unit(Unit::Byte(set))
                 })
                 .collect();
-            if units.len() == 1 { units.into_iter().next().unwrap() } else { Node::Concat(units) }
+            if units.len() == 1 {
+                units.into_iter().next().unwrap()
+            } else {
+                Node::Concat(units)
+            }
         })
         .collect();
     Some(match branches.len() {
@@ -594,7 +650,13 @@ fn split_utf8(lo: u32, hi: u32, out: &mut Vec<Vec<(u8, u8)>>) {
         out.push(vec![(lo as u8, hi as u8)]);
         return;
     }
-    let n = if hi < 0x800 { 2 } else if hi < 0x10000 { 3 } else { 4 };
+    let n = if hi < 0x800 {
+        2
+    } else if hi < 0x10000 {
+        3
+    } else {
+        4
+    };
     for i in 1..n {
         let m = (1u32 << (6 * i)) - 1;
         if lo & !m != hi & !m {
@@ -612,7 +674,11 @@ fn split_utf8(lo: u32, hi: u32, out: &mut Vec<Vec<(u8, u8)>>) {
     }
     let encode = |c: u32| {
         let mut buf = [0u8; 4];
-        char::from_u32(c).expect("scalar value").encode_utf8(&mut buf).as_bytes().to_vec()
+        char::from_u32(c)
+            .expect("scalar value")
+            .encode_utf8(&mut buf)
+            .as_bytes()
+            .to_vec()
     };
     let (a, b) = (encode(lo), encode(hi));
     out.push(a.iter().zip(&b).map(|(&x, &y)| (x, y)).collect());
@@ -621,7 +687,10 @@ fn split_utf8(lo: u32, hi: u32, out: &mut Vec<Vec<(u8, u8)>>) {
 /// For a pattern that is a fixed sequence of single bytes, with groups around parts of it, the
 /// offsets (from the match start) of every group: the match length and the sub-matches then need
 /// no search. `None` for anything else.
-pub fn fixed_groups(node: &super::ast::Node, ngroups: usize) -> Option<(usize, Vec<(usize, usize)>)> {
+pub fn fixed_groups(
+    node: &super::ast::Node,
+    ngroups: usize,
+) -> Option<(usize, Vec<(usize, usize)>)> {
     use super::ast::{Node, Unit};
     fn walk(node: &Node, at: usize, groups: &mut [(usize, usize)]) -> Option<usize> {
         match node {
@@ -645,7 +714,11 @@ pub fn fixed_groups(node: &super::ast::Node, ngroups: usize) -> Option<(usize, V
     let mut groups = vec![(usize::MAX, usize::MAX); ngroups + 1];
     let width = walk(node, 0, &mut groups)?;
     // Every group must be placed (a group number the walk never met would be unset).
-    groups.iter().skip(1).all(|g| g.0 != usize::MAX).then_some((width, groups))
+    groups
+        .iter()
+        .skip(1)
+        .all(|g| g.0 != usize::MAX)
+        .then_some((width, groups))
 }
 
 /// Whether the pattern can match the empty string (assertions count as empty).

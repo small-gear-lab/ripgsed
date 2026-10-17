@@ -55,7 +55,9 @@ impl MatchFailure {
 
     /// The message, if the error is one of these.
     pub fn message(e: &io::Error) -> Option<String> {
-        e.get_ref().and_then(|inner| inner.downcast_ref::<MatchFailure>()).map(|f| f.0.clone())
+        e.get_ref()
+            .and_then(|inner| inner.downcast_ref::<MatchFailure>())
+            .map(|f| f.0.clone())
     }
 }
 
@@ -128,11 +130,14 @@ impl State {
             done: false,
             quiet,
             // (With -m, the message is not held back by -l and -L.)
-            originally_quiet: count_only || o.quiet || (list && (o.max_count.is_none() || !super::GNU_GREP_3_12)),
+            originally_quiet: count_only
+                || o.quiet
+                || (list && (o.max_count.is_none() || !super::GNU_GREP_3_12)),
             count_only,
             // (From 3.12 on, with -m, -l and -L do not stop at the first selected line: the
             // whole input is read, so that a binary part after it is noticed.)
-            done_on_match: exit_on_match || (list && (o.max_count.is_none() || !super::GNU_GREP_3_12)),
+            done_on_match: exit_on_match
+                || (list && (o.max_count.is_none() || !super::GNU_GREP_3_12)),
             binary_from: None,
             in_binary: false,
             count_at_binary: None,
@@ -150,7 +155,10 @@ impl State {
         let lower = self.last_out.map_or(0, |l| l.saturating_sub(base) as usize);
         let mut k = 0;
         while k < before && from > lower {
-            from = buf[lower..from - 1].iter().rposition(|&c| c == eol).map_or(lower, |i| lower + i + 1);
+            from = buf[lower..from - 1]
+                .iter()
+                .rposition(|&c| c == eol)
+                .map_or(lower, |i| lower + i + 1);
             k += 1;
         }
         from
@@ -184,7 +192,12 @@ pub struct Printer<'a> {
 }
 
 impl<'a> Printer<'a> {
-    pub fn new(options: &'a Options, colors: Colors, locale: Locale, sink: Box<dyn Write + 'a>) -> Printer<'a> {
+    pub fn new(
+        options: &'a Options,
+        colors: Colors,
+        locale: Locale,
+        sink: Box<dyn Write + 'a>,
+    ) -> Printer<'a> {
         Printer {
             options,
             colors,
@@ -228,7 +241,10 @@ impl<'a> Printer<'a> {
     /// What was kept since the last call.
     pub fn take_events(&mut self) -> Vec<Event> {
         let _ = self.flush();
-        self.capture.as_mut().map(std::mem::take).unwrap_or_default()
+        self.capture
+            .as_mut()
+            .map(std::mem::take)
+            .unwrap_or_default()
     }
 
     /// Whether an error came from reading the input (and not from writing the output, which
@@ -253,7 +269,11 @@ impl<'a> Printer<'a> {
 
     fn maybe_flush(&mut self) -> io::Result<()> {
         if self.capture.is_some() {
-            return if self.out.len() >= (1 << 16) { self.flush() } else { Ok(()) };
+            return if self.out.len() >= (1 << 16) {
+                self.flush()
+            } else {
+                Ok(())
+            };
         }
         if self.out.len() >= (1 << 16) {
             self.sink.write_all(&self.out).map_err(Writing::wrap)?;
@@ -268,13 +288,21 @@ impl<'a> Printer<'a> {
         if !color.is_empty() {
             self.out.extend_from_slice(b"\x1b[");
             self.out.extend_from_slice(color.as_bytes());
-            self.out.extend_from_slice(if self.colors.no_erase { b"m" } else { b"m\x1b[K" });
+            self.out.extend_from_slice(if self.colors.no_erase {
+                b"m"
+            } else {
+                b"m\x1b[K"
+            });
         }
     }
 
     fn sgr_end(&mut self, color: &str) {
         if !color.is_empty() {
-            self.out.extend_from_slice(if self.colors.no_erase { b"\x1b[m" } else { b"\x1b[m\x1b[K" });
+            self.out.extend_from_slice(if self.colors.no_erase {
+                b"\x1b[m"
+            } else {
+                b"\x1b[m\x1b[K"
+            });
         }
     }
 
@@ -309,17 +337,27 @@ impl<'a> Printer<'a> {
     fn print_number(&mut self, n: u64, width: usize, color: String) {
         if self.colored() {
             self.sgr_start(&color);
-            self.out.extend_from_slice(format!("{n:>width$}").as_bytes());
+            self.out
+                .extend_from_slice(format!("{n:>width$}").as_bytes());
             self.sgr_end(&color);
         } else {
-            self.out.extend_from_slice(format!("{n:>width$}").as_bytes());
+            self.out
+                .extend_from_slice(format!("{n:>width$}").as_bytes());
         }
     }
 
     /// The start of an output line: name, line number, byte offset, tab. `false` when the text has
     /// an encoding error, which makes the input binary (nothing more is printed from it).
     #[allow(clippy::too_many_arguments)]
-    fn print_head(&mut self, name: &[u8], line_no: u64, offset: u64, sep: u8, text_len: usize, bad: bool) -> bool {
+    fn print_head(
+        &mut self,
+        name: &[u8],
+        line_no: u64,
+        offset: u64,
+        sep: u8,
+        text_len: usize,
+        bad: bool,
+    ) -> bool {
         if bad {
             return false;
         }
@@ -369,7 +407,16 @@ impl<'a> Printer<'a> {
     /// Prints one line (`text` without its terminator) as selected (`:`) or as context (`-`).
     /// Returns `false` when the line cannot be printed (an encoding error).
     #[allow(clippy::too_many_arguments)]
-    fn print_line(&mut self, m: &Matcher, name: &[u8], text: &[u8], line_no: u64, offset: u64, sep: u8, terminated: bool) -> io::Result<bool> {
+    fn print_line(
+        &mut self,
+        m: &Matcher,
+        name: &[u8],
+        text: &[u8],
+        line_no: u64,
+        offset: u64,
+        sep: u8,
+        terminated: bool,
+    ) -> io::Result<bool> {
         let o = self.options;
         let bad = self.has_encoding_error(text);
         if !o.only_matching && !self.print_head(name, line_no, offset, sep, text.len(), bad) {
@@ -380,17 +427,36 @@ impl<'a> Printer<'a> {
         let mut line_color = String::new();
         if self.colored() {
             let selected = (sep == SEP_SELECTED) ^ (o.invert && self.colors.reverse);
-            line_color = if selected { self.colors.selected_line.clone() } else { self.colors.context_line.clone() };
+            line_color = if selected {
+                self.colors.selected_line.clone()
+            } else {
+                self.colors.context_line.clone()
+            };
         }
         let match_color = if self.colored() {
-            if sep == SEP_SELECTED { self.colors.selected_match.clone() } else { self.colors.context_match.clone() }
+            if sep == SEP_SELECTED {
+                self.colors.selected_match.clone()
+            } else {
+                self.colors.context_match.clone()
+            }
         } else {
             String::new()
         };
         let mut beg = 0usize;
-        if (o.only_matching && matching) || (self.colored() && (!line_color.is_empty() || !match_color.is_empty())) {
+        if (o.only_matching && matching)
+            || (self.colored() && (!line_color.is_empty() || !match_color.is_empty()))
+        {
             if matching && (o.only_matching || !match_color.is_empty()) {
-                match self.print_middle(m, name, text, line_no, offset, &line_color, &match_color, bad)? {
+                match self.print_middle(
+                    m,
+                    name,
+                    text,
+                    line_no,
+                    offset,
+                    &line_color,
+                    &match_color,
+                    bad,
+                )? {
                     Some(b) => beg = b,
                     None => return Ok(false),
                 }
@@ -507,19 +573,37 @@ impl<'a> Printer<'a> {
     /// NUL byte); its output follows from that. A regular file is read in pieces of 96 KiB at
     /// fixed places, so the piece with the first NUL is known from its offset; for a pipe the
     /// pieces are the reads. The lines that end in that piece or later are not printed.
-    pub fn search_stream(&mut self, m: &Matcher, name: &[u8], input: &mut dyn Read, regular: bool) -> io::Result<Found> {
+    pub fn search_stream(
+        &mut self,
+        m: &Matcher,
+        name: &[u8],
+        input: &mut dyn Read,
+        regular: bool,
+    ) -> io::Result<Found> {
         const PIECE: u64 = 98304;
         const READ: usize = 1 << 18;
         let o = self.options;
         let eol = self.eol;
         let mut st = State::new(o, self.exit_on_match);
         if o.max_count == Some(0) {
-            return Ok(Found { count: 0, binary_matches: false, last_selected_end: None, ended_early: false, max_reached: false });
+            return Ok(Found {
+                count: 0,
+                binary_matches: false,
+                last_selected_end: None,
+                ended_early: false,
+                max_reached: false,
+            });
         }
         if !o.invert {
             st.needles = m.needles().map(|n| {
                 n.into_iter()
-                    .map(|(bytes, fold)| if fold { Needle::Fold(crate::search::FoldFinder::new(&bytes)) } else { Needle::Exact(crate::search::Finder::new(&bytes)) })
+                    .map(|(bytes, fold)| {
+                        if fold {
+                            Needle::Fold(crate::search::FoldFinder::new(&bytes))
+                        } else {
+                            Needle::Exact(crate::search::Finder::new(&bytes))
+                        }
+                    })
                     .collect()
             });
         }
@@ -545,7 +629,11 @@ impl<'a> Printer<'a> {
             if check_nul && st.binary_from.is_none() && n > 0 {
                 if let Some(i) = crate::search::memchr(0, &buf[old_len..]) {
                     let at = base + (old_len + i) as u64;
-                    st.binary_from = Some(if regular { at / PIECE * PIECE } else { base + old_len as u64 });
+                    st.binary_from = Some(if regular {
+                        at / PIECE * PIECE
+                    } else {
+                        base + old_len as u64
+                    });
                 }
             }
             self.process(m, name, &mut st, &buf, base, eof)?;
@@ -563,10 +651,17 @@ impl<'a> Printer<'a> {
                 break;
             }
         }
-        let encoding_errors = std::mem::take(&mut self.encoding_errors) && o.binary_files == BinaryFiles::Binary;
+        let encoding_errors =
+            std::mem::take(&mut self.encoding_errors) && o.binary_files == BinaryFiles::Binary;
         let binary_matches = !st.originally_quiet
             && (encoding_errors || st.count_at_binary.is_some_and(|c| st.count > c));
-        Ok(Found { count: st.count, binary_matches, last_selected_end: st.last_selected_end, ended_early: st.done || st.stopped, max_reached: st.stopped })
+        Ok(Found {
+            count: st.count,
+            binary_matches,
+            last_selected_end: st.last_selected_end,
+            ended_early: st.done || st.stopped,
+            max_reached: st.stopped,
+        })
     }
 
     /// Prints trailing context, as GNU grep's `prpending` does: the lines from the one after the
@@ -574,14 +669,33 @@ impl<'a> Printer<'a> {
     /// that cannot be printed is tried again for each line of context that is left. `pos` is where
     /// the line with number `st.line_no` starts.
     #[allow(clippy::too_many_arguments)]
-    fn flush_pending(&mut self, m: &Matcher, name: &[u8], st: &mut State, buf: &[u8], base: u64, pos: usize, upto: usize) -> io::Result<()> {
+    fn flush_pending(
+        &mut self,
+        m: &Matcher,
+        name: &[u8],
+        st: &mut State,
+        buf: &[u8],
+        base: u64,
+        pos: usize,
+        upto: usize,
+    ) -> io::Result<()> {
         let eol = self.eol;
         let mut cur = st.last_out.map_or(0, |l| l.saturating_sub(base) as usize);
         while st.pending > 0 && cur < upto {
             let e = crate::search::memchr(eol, &buf[cur..]).map_or(buf.len(), |i| cur + i);
-            let n = st.line_no.wrapping_sub(crate::search::count(eol, &buf[cur.min(pos)..pos]) as u64);
+            let n = st
+                .line_no
+                .wrapping_sub(crate::search::count(eol, &buf[cur.min(pos)..pos]) as u64);
             let terminated = e < buf.len();
-            if self.print_line(m, name, &buf[cur..e], n, base + cur as u64, SEP_CONTEXT, terminated)? {
+            if self.print_line(
+                m,
+                name,
+                &buf[cur..e],
+                n,
+                base + cur as u64,
+                SEP_CONTEXT,
+                terminated,
+            )? {
                 cur = (e + 1).min(buf.len());
                 st.last_out = Some(base + cur as u64);
             } else if st.last_out.is_none() {
@@ -594,14 +708,26 @@ impl<'a> Printer<'a> {
 
     /// Processes the complete lines of `buf` (all of them, at the end of the input) that are not
     /// done yet; `base` is the offset of `buf[0]` in the input.
-    fn process(&mut self, m: &Matcher, name: &[u8], st: &mut State, buf: &[u8], base: u64, eof: bool) -> io::Result<()> {
+    fn process(
+        &mut self,
+        m: &Matcher,
+        name: &[u8],
+        st: &mut State,
+        buf: &[u8],
+        base: u64,
+        eof: bool,
+    ) -> io::Result<()> {
         let o = self.options;
         let eol = self.eol;
         let before = o.before;
         let after = o.after;
         let context = before.is_some() || after.is_some();
         // (-m does not stop a search that only lists.)
-        let max = if o.list_files != ListFiles::No { None } else { o.max_count };
+        let max = if o.list_files != ListFiles::No {
+            None
+        } else {
+            o.max_count
+        };
         let _ = super::GNU_GREP_3_12;
         let finders_owned: Option<Vec<Needle>> = st.needles.take();
         let finders = &finders_owned;
@@ -641,7 +767,8 @@ impl<'a> Printer<'a> {
                     }
                     break;
                 }
-                let line_start = crate::search::memrchr(eol, &buf[pos..next]).map_or(pos, |i| pos + i + 1);
+                let line_start =
+                    crate::search::memrchr(eol, &buf[pos..next]).map_or(pos, |i| pos + i + 1);
                 if o.line_number {
                     st.line_no += crate::search::count(eol, &buf[pos..line_start]) as u64;
                 }
@@ -697,7 +824,15 @@ impl<'a> Printer<'a> {
                     break;
                 }
                 if !st.quiet {
-                    self.print_line(m, name, text, st.line_no, line_offset, SEP_CONTEXT, terminated)?;
+                    self.print_line(
+                        m,
+                        name,
+                        text,
+                        st.line_no,
+                        line_offset,
+                        SEP_CONTEXT,
+                        terminated,
+                    )?;
                     st.pending -= 1;
                     st.last_out = Some(base + next as u64);
                 }
@@ -720,7 +855,10 @@ impl<'a> Printer<'a> {
                         let mut k = 0;
                         while k < b && first > lower {
                             let prev_end = first - 1;
-                            let prev_start = buf[lower..prev_end].iter().rposition(|&c| c == eol).map_or(lower, |i| lower + i + 1);
+                            let prev_start = buf[lower..prev_end]
+                                .iter()
+                                .rposition(|&c| c == eol)
+                                .map_or(lower, |i| lower + i + 1);
                             first = prev_start;
                             // (The line numbers are kept only for -n; they wrap otherwise.)
                             first_no = first_no.wrapping_sub(1);
@@ -729,7 +867,9 @@ impl<'a> Printer<'a> {
                     }
                     let adjacent = st.last_out == Some(base + first as u64);
                     if context && self.used && !adjacent {
-                        if let Some(Some(sep)) = Some(o.group_separator.clone().unwrap_or(Some(b"--".to_vec()))) {
+                        if let Some(Some(sep)) =
+                            Some(o.group_separator.clone().unwrap_or(Some(b"--".to_vec())))
+                        {
                             if self.colored() {
                                 let c = self.colors.separator.clone();
                                 self.sgr_start(&c);
@@ -746,11 +886,27 @@ impl<'a> Printer<'a> {
                     let mut n = first_no;
                     while p < pos {
                         let e = crate::search::memchr(eol, &buf[p..]).map_or(buf.len(), |i| p + i);
-                        self.print_line(m, name, &buf[p..e], n, base + p as u64, SEP_CONTEXT, true)?;
+                        self.print_line(
+                            m,
+                            name,
+                            &buf[p..e],
+                            n,
+                            base + p as u64,
+                            SEP_CONTEXT,
+                            true,
+                        )?;
                         p = e + 1;
                         n = n.wrapping_add(1);
                     }
-                    if self.print_line(m, name, text, st.line_no, line_offset, SEP_SELECTED, terminated)? {
+                    if self.print_line(
+                        m,
+                        name,
+                        text,
+                        st.line_no,
+                        line_offset,
+                        SEP_SELECTED,
+                        terminated,
+                    )? {
                         st.last_out = Some(base + next as u64);
                     }
                     // (As in GNU grep, a line that could not be printed starts its trailing context
@@ -799,7 +955,8 @@ impl<'a> Printer<'a> {
                     self.print_sep(SEP_SELECTED);
                 }
             }
-            self.out.extend_from_slice(format!("{}\n", found.count).as_bytes());
+            self.out
+                .extend_from_slice(format!("{}\n", found.count).as_bytes());
         }
         let status_nonmatch = found.count == 0;
         let wanted = match o.list_files {

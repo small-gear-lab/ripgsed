@@ -39,7 +39,15 @@ impl<R: Read> ChunkReader<R> {
     /// `block` is the size of one read; a chunk is at least one read and at most a read plus
     /// the unfinished record it completes. A record longer than a block is never split.
     pub fn new(reader: R, separator: u8, block: usize) -> Self {
-        ChunkReader { reader, separator, block: block.max(1), carry: Vec::new(), seq: 0, records: 0, eof: false }
+        ChunkReader {
+            reader,
+            separator,
+            block: block.max(1),
+            carry: Vec::new(),
+            seq: 0,
+            records: 0,
+            eof: false,
+        }
     }
 
     pub fn get_mut(&mut self) -> &mut R {
@@ -90,7 +98,13 @@ impl<R: Read> ChunkReader<R> {
         if unterminated_tail {
             records += 1;
         }
-        let chunk = Chunk { seq: self.seq, first_record: self.records, records, data, last: unterminated_tail };
+        let chunk = Chunk {
+            seq: self.seq,
+            first_record: self.records,
+            records,
+            data,
+            last: unterminated_tail,
+        };
         self.seq += 1;
         self.records += records;
         chunk
@@ -109,7 +123,10 @@ pub struct OrderedMerger<T> {
 
 impl<T> Default for OrderedMerger<T> {
     fn default() -> Self {
-        OrderedMerger { next: 0, waiting: BTreeMap::new() }
+        OrderedMerger {
+            next: 0,
+            waiting: BTreeMap::new(),
+        }
     }
 }
 
@@ -185,7 +202,10 @@ mod tests {
                     assert_eq!(c.first_record, expected_first);
                     expected_first += c.records;
                 }
-                assert!(got.last().unwrap().last, "the unterminated tail ends the input");
+                assert!(
+                    got.last().unwrap().last,
+                    "the unterminated tail ends the input"
+                );
             }
         }
     }
@@ -214,10 +234,20 @@ mod tests {
 
     #[test]
     fn an_interrupted_read_is_retried_and_other_errors_are_reported() {
-        let mut reader = ChunkReader::new(Flaky { data: b"a\nb\n", calls: 0 }, b'\n', 16);
+        let mut reader = ChunkReader::new(
+            Flaky {
+                data: b"a\nb\n",
+                calls: 0,
+            },
+            b'\n',
+            16,
+        );
         let first = reader.next_chunk().unwrap().unwrap();
         assert_eq!(first.data, b"a\nb\n");
-        assert_eq!(reader.next_chunk().unwrap_err().kind(), io::ErrorKind::PermissionDenied);
+        assert_eq!(
+            reader.next_chunk().unwrap_err().kind(),
+            io::ErrorKind::PermissionDenied
+        );
     }
 
     #[test]

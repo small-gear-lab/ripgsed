@@ -47,9 +47,13 @@ impl PcreError {
             code => {
                 let mut buffer = [0u8; 256];
                 // SAFETY: the buffer is as long as it is declared to be.
-                let n = unsafe { sys::pcre2_get_error_message_8(code, buffer.as_mut_ptr(), buffer.len()) };
+                let n = unsafe {
+                    sys::pcre2_get_error_message_8(code, buffer.as_mut_ptr(), buffer.len())
+                };
                 match usize::try_from(n) {
-                    Ok(n) if n > 0 => String::from_utf8_lossy(&buffer[..n.min(buffer.len())]).into_owned(),
+                    Ok(n) if n > 0 => {
+                        String::from_utf8_lossy(&buffer[..n.min(buffer.len())]).into_owned()
+                    }
                     _ => format!("internal PCRE error: {code}"),
                 }
             }
@@ -82,11 +86,22 @@ impl Pcre {
         let mut code_error: c_int = 0;
         let mut offset: usize = 0;
         // SAFETY: the pointers are valid for the call; `pattern` is read for its length only.
-        let code = unsafe { sys::pcre2_compile_8(pattern.as_ptr(), pattern.len(), options, &mut code_error, &mut offset, std::ptr::null_mut()) };
+        let code = unsafe {
+            sys::pcre2_compile_8(
+                pattern.as_ptr(),
+                pattern.len(),
+                options,
+                &mut code_error,
+                &mut offset,
+                std::ptr::null_mut(),
+            )
+        };
         if code.is_null() {
             let mut buffer = [0u8; 256];
             // SAFETY: the buffer is as long as it is declared to be.
-            let n = unsafe { sys::pcre2_get_error_message_8(code_error, buffer.as_mut_ptr(), buffer.len()) };
+            let n = unsafe {
+                sys::pcre2_get_error_message_8(code_error, buffer.as_mut_ptr(), buffer.len())
+            };
             let n = usize::try_from(n).unwrap_or(0).min(buffer.len());
             return Err(String::from_utf8_lossy(&buffer[..n]).into_owned());
         }
@@ -94,7 +109,8 @@ impl Pcre {
         // SAFETY: `code` is a compiled pattern.
         unsafe { sys::pcre2_jit_compile_8(code, 1) };
         // SAFETY: `code` is a compiled pattern.
-        let data = unsafe { sys::pcre2_match_data_create_from_pattern_8(code, std::ptr::null_mut()) };
+        let data =
+            unsafe { sys::pcre2_match_data_create_from_pattern_8(code, std::ptr::null_mut()) };
         if data.is_null() {
             // SAFETY: `code` was made above and is not used again.
             unsafe { sys::pcre2_code_free_8(code) };
@@ -102,8 +118,18 @@ impl Pcre {
         }
         let mut groups: u32 = 0;
         // SAFETY: `code` is a compiled pattern and the answer for this item is one `u32`.
-        unsafe { sys::pcre2_pattern_info_8(code, INFO_CAPTURECOUNT, (&mut groups as *mut u32).cast::<c_void>()) };
-        Ok(Pcre { code, data, groups: groups as usize })
+        unsafe {
+            sys::pcre2_pattern_info_8(
+                code,
+                INFO_CAPTURECOUNT,
+                (&mut groups as *mut u32).cast::<c_void>(),
+            )
+        };
+        Ok(Pcre {
+            code,
+            data,
+            groups: groups as usize,
+        })
     }
 
     /// The number of parenthesized groups of the pattern.
@@ -115,7 +141,17 @@ impl Pcre {
     /// the library gives up on is an error, not `None`.
     pub fn find(&self, subject: &[u8], start: usize) -> Result<Option<(usize, usize)>, PcreError> {
         // SAFETY: the subject is valid for its length; `data` belongs to `code`.
-        let rc = unsafe { sys::pcre2_match_8(self.code, subject.as_ptr(), subject.len(), start, 0, self.data, std::ptr::null_mut()) };
+        let rc = unsafe {
+            sys::pcre2_match_8(
+                self.code,
+                subject.as_ptr(),
+                subject.len(),
+                start,
+                0,
+                self.data,
+                std::ptr::null_mut(),
+            )
+        };
         if rc == sys::PCRE2_ERROR_NOMATCH {
             return Ok(None);
         }
@@ -131,7 +167,12 @@ impl Pcre {
     }
 
     /// Like `find`, with the offsets of every group (`None` for a group that took no part).
-    pub fn captures(&self, subject: &[u8], start: usize, out: &mut Vec<Option<(usize, usize)>>) -> Result<bool, PcreError> {
+    pub fn captures(
+        &self,
+        subject: &[u8],
+        start: usize,
+        out: &mut Vec<Option<(usize, usize)>>,
+    ) -> Result<bool, PcreError> {
         let Some((s, e)) = self.find(subject, start)? else {
             return Ok(false);
         };

@@ -13,8 +13,8 @@
 //! others pile up in memory: the reader takes a credit before it reads a chunk and the writer
 //! gives it back after the chunk is written.
 
-use std::fs::File;
 use std::collections::VecDeque;
+use std::fs::File;
 use std::io::{Seek, SeekFrom};
 use std::mem::ManuallyDrop;
 use std::os::fd::FromRawFd;
@@ -22,11 +22,11 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::mpsc::{channel, sync_channel};
 use std::sync::{Arc, Mutex};
 
-use crate::io::{strerror, Outputs};
-use crate::runtime::{run_chunk, uses_ranges, Carry, ChunkInput, ChunkOutput, Options};
-use crate::stream::{ChunkReader, OrderedMerger};
-use crate::syntax::{parse, Chunk, ParseOptions, Script};
 use crate::Fatal;
+use crate::io::{Outputs, strerror};
+use crate::runtime::{Carry, ChunkInput, ChunkOutput, Options, run_chunk, uses_ranges};
+use crate::stream::{ChunkReader, OrderedMerger};
+use crate::syntax::{Chunk, ParseOptions, Script, parse};
 
 /// A chunk and where standard input stands after it, when the chunk comes from it and it can seek.
 struct Job {
@@ -36,9 +36,15 @@ struct Job {
 
 /// A piece of work for a worker.
 enum Work {
-    Chunk { seq: u64, job: Job },
+    Chunk {
+        seq: u64,
+        job: Job,
+    },
     /// The reader failed after the chunks before `seq`.
-    Failed { seq: u64, error: Fatal },
+    Failed {
+        seq: u64,
+        error: Fatal,
+    },
 }
 
 /// What running a chunk gave: the output and, when the run quit in the chunk, where standard input
@@ -60,7 +66,12 @@ struct Done {
     redo: Option<Job>,
 }
 
-fn run_job(script: &Script, options: &Options, job: &Job, carry: Option<&Carry>) -> Result<Ran, Fatal> {
+fn run_job(
+    script: &Script,
+    options: &Options,
+    job: &Job,
+    carry: Option<&Carry>,
+) -> Result<Ran, Fatal> {
     let output = run_chunk(script, options, &job.input, carry)?;
     // The end of the chunk, less what the run did not read of it.
     let stdin_offset = match (&output.quit, job.stdin_end) {
@@ -68,7 +79,11 @@ fn run_job(script: &Script, options: &Options, job: &Job, carry: Option<&Carry>)
         _ => None,
     };
     let new_file = job.input.first_of_file.then(|| Arc::clone(&job.input.name));
-    Ok(Ran { output, stdin_offset, new_file })
+    Ok(Ran {
+        output,
+        stdin_offset,
+        new_file,
+    })
 }
 
 /// Where the output of a chunk goes.
@@ -123,7 +138,12 @@ pub fn run(
     block: usize,
     outputs: &mut Outputs,
 ) -> Result<i32, Fatal> {
-    let mut names = if files.is_empty() { vec!["-".to_string()] } else { files.to_vec() }.into_iter();
+    let mut names = if files.is_empty() {
+        vec!["-".to_string()]
+    } else {
+        files.to_vec()
+    }
+    .into_iter();
     let open: Open<'static> = Box::new(move || {
         let name = names.next()?;
         let mut stdin_start = None;
@@ -138,35 +158,53 @@ pub fn run(
         } else {
             match File::open(&name) {
                 Ok(f) => Box::new(f),
-                Err(e) => return Some(Err(Fatal::new(format!("can't read {name}: {}", strerror(&e)), 2))),
+                Err(e) => {
+                    return Some(Err(Fatal::new(
+                        format!("can't read {name}: {}", strerror(&e)),
+                        2,
+                    )));
+                }
             }
         };
-        Some(Ok(Input { name, reader, stdin_start }))
+        Some(Ok(Input {
+            name,
+            reader,
+            stdin_start,
+        }))
     });
     // (`-i`: the writer begins and finishes the file that replaces each input, as the sequential run does.)
     let backup = options.in_place.clone();
     let follow_symlinks = options.follow_symlinks;
-    let finish = run_inputs(script_chunks, options, open, jobs, block, &mut |target: Target, bytes: &[u8], unterminated: bool| {
-        let output = match target {
-            Target::Main => outputs.main(),
-            Target::File(name) => {
-                outputs.open(name)?;
-                outputs.get(name)
-            }
-            Target::NewFile(name) => {
-                outputs.finish_in_place(backup.as_deref())?;
-                return outputs.begin_in_place(name, follow_symlinks);
-            }
-            Target::EndFile => return outputs.finish_in_place(backup.as_deref()),
-            Target::Abort => {
-                outputs.abort_in_place();
-                return Ok(());
-            }
-        };
-        output.write_raw(bytes).map_err(|e| crate::io::write_error("stdout", &e))?;
-        output.set_unterminated(unterminated);
-        Ok(())
-    })?;
+    let finish = run_inputs(
+        script_chunks,
+        options,
+        open,
+        jobs,
+        block,
+        &mut |target: Target, bytes: &[u8], unterminated: bool| {
+            let output = match target {
+                Target::Main => outputs.main(),
+                Target::File(name) => {
+                    outputs.open(name)?;
+                    outputs.get(name)
+                }
+                Target::NewFile(name) => {
+                    outputs.finish_in_place(backup.as_deref())?;
+                    return outputs.begin_in_place(name, follow_symlinks);
+                }
+                Target::EndFile => return outputs.finish_in_place(backup.as_deref()),
+                Target::Abort => {
+                    outputs.abort_in_place();
+                    return Ok(());
+                }
+            };
+            output
+                .write_raw(bytes)
+                .map_err(|e| crate::io::write_error("stdout", &e))?;
+            output.set_unterminated(unterminated);
+            Ok(())
+        },
+    )?;
     if let Some(offset) = finish.stdin_offset {
         // The reader has stopped: nothing moves descriptor 0 any more.
         // SAFETY: as above.
@@ -187,13 +225,22 @@ pub fn run_reader<'a>(
     write: &mut MainSink<'_>,
 ) -> Result<i32, Fatal> {
     let mut reader = Some(reader);
-    let open: Open<'a> = Box::new(move || reader.take().map(|reader| Ok(Input { name: "-".to_string(), reader, stdin_start: None })));
+    let open: Open<'a> = Box::new(move || {
+        reader.take().map(|reader| {
+            Ok(Input {
+                name: "-".to_string(),
+                reader,
+                stdin_start: None,
+            })
+        })
+    });
     // (A script that writes files does not come here: see `Run::run_parallel`.)
     let mut write_main = |target: Target, bytes: &[u8], unterminated: bool| match target {
         Target::Main => write(bytes, unterminated),
         Target::File(_) | Target::NewFile(_) | Target::EndFile | Target::Abort => Ok(()),
     };
-    run_inputs(script_chunks, options, open, jobs, block, &mut write_main).map(|finish| finish.status)
+    run_inputs(script_chunks, options, open, jobs, block, &mut write_main)
+        .map(|finish| finish.status)
 }
 
 fn run_inputs<'a>(
@@ -226,7 +273,10 @@ fn run_inputs<'a>(
     let in_place = options.in_place.is_some();
     // How many records after a chunk the script has to see before the chunk is run (at least one, for `$`).
     let needed = parse(&script_chunks).map_or(1, |script| crate::analysis::lookahead(&script));
-    let mut result = Ok(Finish { status: 0, stdin_offset: None });
+    let mut result = Ok(Finish {
+        status: 0,
+        stdin_offset: None,
+    });
     std::thread::scope(|scope| {
         // The reader: inputs in order, chunks in order.
         scope.spawn({
@@ -264,7 +314,11 @@ fn run_inputs<'a>(
                     true
                 };
                 while let Some(next) = open() {
-                    let Input { name, reader, stdin_start: start } = match next {
+                    let Input {
+                        name,
+                        reader,
+                        stdin_start: start,
+                    } = match next {
                         Ok(input) => input,
                         Err(error) => {
                             if release(&mut held, &mut behind, true) {
@@ -274,7 +328,10 @@ fn run_inputs<'a>(
                         }
                     };
                     if let Some(start) = start {
-                        stdin_start.lock().expect("stdin start").get_or_insert(start);
+                        stdin_start
+                            .lock()
+                            .expect("stdin start")
+                            .get_or_insert(start);
                     }
                     // Each file is a stream of its own with `-s` and `-i`: the chunks held from the one before know
                     // all that follows them, and the numbers of the lines start again.
@@ -296,21 +353,38 @@ fn run_inputs<'a>(
                         match chunks.next_chunk() {
                             Ok(Some(chunk)) => {
                                 stdin_end = stdin_end.map(|end| end + chunk.data.len() as u64);
-                                let input = ChunkInput { data: chunk.data, first_line, first_of_file, records: chunk.records, after: 0, name: Arc::clone(&name) };
+                                let input = ChunkInput {
+                                    data: chunk.data,
+                                    first_line,
+                                    first_of_file,
+                                    records: chunk.records,
+                                    after: 0,
+                                    name: Arc::clone(&name),
+                                };
                                 first_of_file = false;
                                 first_line += chunk.records;
                                 seq += 1;
                                 if !held.is_empty() {
                                     behind += chunk.records;
                                 }
-                                held.push_back(Work::Chunk { seq: seq - 1, job: Job { input, stdin_end } });
+                                held.push_back(Work::Chunk {
+                                    seq: seq - 1,
+                                    job: Job { input, stdin_end },
+                                });
                                 if !release(&mut held, &mut behind, false) {
                                     return;
                                 }
                             }
                             Ok(None) => break,
                             Err(e) => {
-                                let error = Fatal::new(format!("read error on {}: {}", crate::io::display_name(&name), strerror(&e)), 4);
+                                let error = Fatal::new(
+                                    format!(
+                                        "read error on {}: {}",
+                                        crate::io::display_name(&name),
+                                        strerror(&e)
+                                    ),
+                                    4,
+                                );
                                 if release(&mut held, &mut behind, true) {
                                     let _ = work_tx.send(Work::Failed { seq, error });
                                 }
@@ -333,7 +407,9 @@ fn run_inputs<'a>(
             let options = options.clone();
             scope.spawn(move || {
                 // The script holds shared pointers, so each worker parses its own copy.
-                let Ok(script) = parse(&script_chunks) else { return };
+                let Ok(script) = parse(&script_chunks) else {
+                    return;
+                };
                 let spread_ranges = uses_ranges(&script);
                 loop {
                     let work = work_rx.lock().expect("work queue").recv();
@@ -341,20 +417,51 @@ fn run_inputs<'a>(
                     let done = match work {
                         // The writer never gets to a chunk after a quit: leave it empty.
                         Work::Chunk { seq, .. } if quit_seq.load(Ordering::Relaxed) < seq => {
-                            let output = ChunkOutput { bytes: Vec::new(), unterminated: false, quit: None, carry: None, files: Vec::new() };
-                            Done { seq, ran: Ok(Ran { output, stdin_offset: None, new_file: None }), guess: None, redo: None }
+                            let output = ChunkOutput {
+                                bytes: Vec::new(),
+                                unterminated: false,
+                                quit: None,
+                                carry: None,
+                                files: Vec::new(),
+                            };
+                            Done {
+                                seq,
+                                ran: Ok(Ran {
+                                    output,
+                                    stdin_offset: None,
+                                    new_file: None,
+                                }),
+                                guess: None,
+                                redo: None,
+                            }
                         }
                         Work::Chunk { seq, job } => {
                             // The state the chunk before it ended in, as far as anyone knows.
-                            let guess = if spread_ranges && !job.input.first_of_file { hint.lock().expect("carry hint").clone() } else { None };
+                            let guess = if spread_ranges && !job.input.first_of_file {
+                                hint.lock().expect("carry hint").clone()
+                            } else {
+                                None
+                            };
                             let ran = run_job(&script, &options, &job, guess.as_ref());
                             // (A quit under a wrong guess is not one: only the writer knows.)
-                            if !spread_ranges && ran.as_ref().is_ok_and(|ran| ran.output.quit.is_some()) {
+                            if !spread_ranges
+                                && ran.as_ref().is_ok_and(|ran| ran.output.quit.is_some())
+                            {
                                 quit_seq.fetch_min(seq, Ordering::Relaxed);
                             }
-                            Done { seq, ran, guess, redo: spread_ranges.then_some(job) }
+                            Done {
+                                seq,
+                                ran,
+                                guess,
+                                redo: spread_ranges.then_some(job),
+                            }
                         }
-                        Work::Failed { seq, error } => Done { seq, ran: Err(error), guess: None, redo: None },
+                        Work::Failed { seq, error } => Done {
+                            seq,
+                            ran: Err(error),
+                            guess: None,
+                            redo: None,
+                        },
                     };
                     if done_tx.send(done).is_err() {
                         return;
@@ -372,7 +479,9 @@ fn run_inputs<'a>(
         'receive: for done in done_rx.iter() {
             merger.push(done.seq, done);
             while let Some(done) = merger.next_ready() {
-                let Done { ran, guess, redo, .. } = done;
+                let Done {
+                    ran, guess, redo, ..
+                } = done;
                 let mut ran = match ran {
                     Ok(ran) => ran,
                     Err(error) => {
@@ -391,7 +500,10 @@ fn run_inputs<'a>(
                             None => match parse(&script_chunks) {
                                 Ok(script) => own_script.insert(script),
                                 Err(_) => {
-                                    result = Err(Fatal::new("internal error: the script does not parse again", 4));
+                                    result = Err(Fatal::new(
+                                        "internal error: the script does not parse again",
+                                        4,
+                                    ));
                                     break 'receive;
                                 }
                             },
@@ -407,7 +519,11 @@ fn run_inputs<'a>(
                     carry = ran.output.carry.clone();
                     *hint.lock().expect("carry hint") = carry.clone();
                 }
-                let Ran { output: chunk, stdin_offset, new_file } = ran;
+                let Ran {
+                    output: chunk,
+                    stdin_offset,
+                    new_file,
+                } = ran;
                 if let (Some(name), true) = (&new_file, in_place) {
                     if let Err(e) = write(Target::NewFile(name), &[], false) {
                         result = Err(e);
@@ -430,7 +546,10 @@ fn run_inputs<'a>(
                     // What the reader opened after a quit in an earlier input is not used: standard input
                     // goes back to where it was when it was opened.
                     let offset = stdin_offset.or(*stdin_start.lock().expect("stdin start"));
-                    result = Ok(Finish { status: quit.code, stdin_offset: offset });
+                    result = Ok(Finish {
+                        status: quit.code,
+                        stdin_offset: offset,
+                    });
                     break 'receive;
                 }
                 let _ = credit_tx.send(());
@@ -438,7 +557,15 @@ fn run_inputs<'a>(
         }
         // The file edited in place is finished, or left as it was if the run failed.
         if in_place {
-            let end = write(if result.is_ok() { Target::EndFile } else { Target::Abort }, &[], false);
+            let end = write(
+                if result.is_ok() {
+                    Target::EndFile
+                } else {
+                    Target::Abort
+                },
+                &[],
+                false,
+            );
             if let (Ok(_), Err(e)) = (&result, end) {
                 result = Err(e);
             }
@@ -466,7 +593,13 @@ mod tests {
     use std::io::Write;
 
     fn script(text: &str) -> Vec<(Chunk, ParseOptions)> {
-        vec![(Chunk { source: ChunkSource::Expression(1), text: text.as_bytes().to_vec() }, ParseOptions::default())]
+        vec![(
+            Chunk {
+                source: ChunkSource::Expression(1),
+                text: text.as_bytes().to_vec(),
+            },
+            ParseOptions::default(),
+        )]
     }
 
     /// A file that cannot be opened (the caller has checked it earlier, but it may have gone away).
@@ -474,9 +607,20 @@ mod tests {
     fn a_file_that_cannot_be_read_ends_the_run() {
         let mut outputs = Outputs::new(Box::new(std::io::sink()), b'\n');
         let files = vec!["/nonexistent-directory/input".to_string()];
-        let error = run(script("s/a/b/"), &Options::default(), &files, 2, 64, &mut outputs).unwrap_err();
+        let error = run(
+            script("s/a/b/"),
+            &Options::default(),
+            &files,
+            2,
+            64,
+            &mut outputs,
+        )
+        .unwrap_err();
         assert_eq!(error.status, 2);
-        assert_eq!(error.message, "can't read /nonexistent-directory/input: No such file or directory");
+        assert_eq!(
+            error.message,
+            "can't read /nonexistent-directory/input: No such file or directory"
+        );
     }
 
     struct Failing;
@@ -493,14 +637,22 @@ mod tests {
     /// When the writer stops on an error, the reader waiting for a credit stops too.
     #[test]
     fn the_reader_stops_when_the_writer_does() {
-        let dir = std::env::temp_dir().join(format!("ripgsed-parallel-unit-{}", std::process::id()));
+        let dir =
+            std::env::temp_dir().join(format!("ripgsed-parallel-unit-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
         let path = dir.join("many-lines");
         std::fs::write(&path, "some text\n".repeat(5000)).unwrap();
         let mut outputs = Outputs::new(Box::new(Failing), b'\n');
         outputs.unbuffered = true;
         let files = vec![path.to_string_lossy().into_owned()];
-        let result = run(script("s/some/any/"), &Options::default(), &files, 1, 16, &mut outputs);
+        let result = run(
+            script("s/some/any/"),
+            &Options::default(),
+            &files,
+            1,
+            16,
+            &mut outputs,
+        );
         assert!(result.is_err());
         assert!(Failing.flush().is_ok());
         let _ = std::fs::remove_dir_all(&dir);

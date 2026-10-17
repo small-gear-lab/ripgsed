@@ -7,11 +7,13 @@ use std::collections::HashMap;
 use std::process::{Command as Process, Stdio};
 use std::rc::Rc;
 
-use crate::debug;
-use crate::io::{write_error, Fetched, Outputs, RecordSource};
-use crate::regex::{Captures, Locale, Regex};
-use crate::syntax::{Addr, Addr2, BranchWhen, Kind, Pattern, ReplacementPart, Script, Selector, Substitute};
 use crate::Fatal;
+use crate::debug;
+use crate::io::{Fetched, Outputs, RecordSource, write_error};
+use crate::regex::{Captures, Locale, Regex};
+use crate::syntax::{
+    Addr, Addr2, BranchWhen, Kind, Pattern, ReplacementPart, Script, Selector, Substitute,
+};
 
 /// Options that change how a script runs.
 #[derive(Debug, Clone)]
@@ -62,7 +64,12 @@ enum Flow {
     /// `D` with a newline: restart without reading a new line.
     Restart,
     /// Stop: print the pattern space if asked, flush appends, exit.
-    Quit { code: i32, print: bool, finish_line: bool, trace_end: bool },
+    Quit {
+        code: i32,
+        print: bool,
+        finish_line: bool,
+        trace_end: bool,
+    },
     /// `Q`: stop immediately.
     QuitNow { code: i32 },
 }
@@ -75,7 +82,10 @@ enum RangeState {
     /// Active until this line (inclusive), or until a regexp matches. For `addr,+N` a line
     /// past the end (the end line was skipped) still belongs to the range; for `addr,N` it
     /// does not (`overshoot`).
-    Active { until: Option<u64>, overshoot: bool },
+    Active {
+        until: Option<u64>,
+        overshoot: bool,
+    },
 }
 
 enum Pending {
@@ -144,13 +154,19 @@ pub struct Carry {
 
 impl Carry {
     fn initial(script: &Script) -> Carry {
-        Carry { ranges: vec![RangeState::Inactive; script.commands.len()], zero_finished: Vec::new() }
+        Carry {
+            ranges: vec![RangeState::Inactive; script.commands.len()],
+            zero_finished: Vec::new(),
+        }
     }
 }
 
 /// Whether a script has ranges, that is, whether what a chunk ends in is something the next one needs.
 pub fn uses_ranges(script: &Script) -> bool {
-    script.commands.iter().any(|c| matches!(c.selector, Selector::Range(..)))
+    script
+        .commands
+        .iter()
+        .any(|c| matches!(c.selector, Selector::Range(..)))
 }
 
 /// A run of whole records for [`run_chunk`].
@@ -210,7 +226,11 @@ impl RecordSource for ChunkRecords<'_> {
         body.extend_from_slice(&rest[..len]);
         self.pos += used;
         self.consumed += 1;
-        Ok(Some(Fetched { record: crate::io::Record { body, terminated }, new_file: false, file_name: self.name.clone() }))
+        Ok(Some(Fetched {
+            record: crate::io::Record { body, terminated },
+            new_file: false,
+            file_name: self.name.clone(),
+        }))
     }
 
     fn recycle(&mut self, buf: Vec<u8>) {
@@ -229,19 +249,54 @@ impl RecordSource for ChunkRecords<'_> {
 /// `carry` (`None`: that of the start of the input), and returns what it printed, whether and where it
 /// quit, the state it ends in, and what it wrote to files. The script must not read other records, use the hold space, or
 /// touch files.
-pub fn run_chunk(script: &Script, options: &Options, input: &ChunkInput, carry: Option<&Carry>) -> Result<ChunkOutput, Fatal> {
+pub fn run_chunk(
+    script: &Script,
+    options: &Options,
+    input: &ChunkInput,
+    carry: Option<&Carry>,
+) -> Result<ChunkOutput, Fatal> {
     let data = &input.data;
-    let sink = Rc::new(std::cell::RefCell::new(Vec::with_capacity(data.len() + data.len() / 8)));
-    let mut outputs = Outputs::capturing(Box::new(crate::io::SharedBuffer(sink.clone())), options.separator);
-    let mut source = ChunkRecords { data, pos: 0, separator: options.separator, name: Rc::from(&*input.name), spare: Vec::new(), records: input.records, consumed: 0, after: input.after };
-    let ended = run_from(script, options.clone(), &mut source, &mut outputs, input.first_line.saturating_sub(1), carry)?;
+    let sink = Rc::new(std::cell::RefCell::new(Vec::with_capacity(
+        data.len() + data.len() / 8,
+    )));
+    let mut outputs = Outputs::capturing(
+        Box::new(crate::io::SharedBuffer(sink.clone())),
+        options.separator,
+    );
+    let mut source = ChunkRecords {
+        data,
+        pos: 0,
+        separator: options.separator,
+        name: Rc::from(&*input.name),
+        spare: Vec::new(),
+        records: input.records,
+        consumed: 0,
+        after: input.after,
+    };
+    let ended = run_from(
+        script,
+        options.clone(),
+        &mut source,
+        &mut outputs,
+        input.first_line.saturating_sub(1),
+        carry,
+    )?;
     let unterminated = outputs.stdout.ends_unterminated();
     outputs.flush_all()?;
     let files = outputs.take_captured();
     drop(outputs);
     let bytes = std::mem::take(&mut *sink.borrow_mut());
-    let quit = ended.quit.then_some(ChunkQuit { code: ended.code, consumed: source.pos });
-    Ok(ChunkOutput { bytes, unterminated, quit, carry: ended.carry, files })
+    let quit = ended.quit.then_some(ChunkQuit {
+        code: ended.code,
+        consumed: source.pos,
+    });
+    Ok(ChunkOutput {
+        bytes,
+        unterminated,
+        quit,
+        carry: ended.carry,
+        files,
+    })
 }
 
 /// How a run ended.
@@ -306,7 +361,10 @@ fn run_from<S: RecordSource + ?Sized>(
     let code = machine.cycles()?;
     let quit = machine.quit;
     let carry = uses_ranges(script)
-        .then(|| Carry { ranges: std::mem::take(&mut machine.ranges), zero_finished: std::mem::take(&mut machine.zero_finished) })
+        .then(|| Carry {
+            ranges: std::mem::take(&mut machine.ranges),
+            zero_finished: std::mem::take(&mut machine.zero_finished),
+        })
         .filter(|carry| *carry != Carry::initial(script));
     Ok(Ended { code, quit, carry })
 }
@@ -330,12 +388,18 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
             // (which may fail, or be the same file again).
             self.out.finish_in_place(self.options.in_place.as_deref())?;
         }
-        let Some(Fetched { record, new_file, file_name }) = self.input.next_record()? else {
+        let Some(Fetched {
+            record,
+            new_file,
+            file_name,
+        }) = self.input.next_record()?
+        else {
             return Ok(false);
         };
         if new_file && self.options.in_place.is_some() {
             self.out.finish_in_place(self.options.in_place.as_deref())?;
-            self.out.begin_in_place(&file_name, self.options.follow_symlinks)?;
+            self.out
+                .begin_in_place(&file_name, self.options.follow_symlinks)?;
         }
         if new_file && self.options.separate {
             self.line = 0;
@@ -380,7 +444,12 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
     /// When no command can act on the next lines (every command is guarded by a line number that
     /// is still ahead, and nothing is printed by default), skips them without running cycles.
     fn skip_ahead(&mut self) -> Result<(), Fatal> {
-        if !self.quiet() || self.options.debug || self.options.separate || self.options.in_place.is_some() || self.line == 0 {
+        if !self.quiet()
+            || self.options.debug
+            || self.options.separate
+            || self.options.in_place.is_some()
+            || self.line == 0
+        {
             return Ok(());
         }
         let script = self.script;
@@ -428,8 +497,14 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                     break;
                 }
                 if self.options.debug {
-                    let name = if &*self.file_name == "-" { "STDIN".to_string() } else { self.file_name.to_string() };
-                    self.debug_write(format!("INPUT:   '{}' line {}\n", name, self.line).as_bytes())?;
+                    let name = if &*self.file_name == "-" {
+                        "STDIN".to_string()
+                    } else {
+                        self.file_name.to_string()
+                    };
+                    self.debug_write(
+                        format!("INPUT:   '{}' line {}\n", name, self.line).as_bytes(),
+                    )?;
                     self.debug_pattern()?;
                 }
             } else if self.options.debug {
@@ -449,7 +524,12 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                     restart = true;
                     continue;
                 }
-                Flow::Quit { code, print, finish_line, trace_end } => {
+                Flow::Quit {
+                    code,
+                    print,
+                    finish_line,
+                    trace_end,
+                } => {
                     if print {
                         self.autoprint()?;
                     }
@@ -458,7 +538,10 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                     }
                     self.flush_pending()?;
                     if finish_line {
-                        self.out.main().finish_line().map_err(|e| write_error("stdout", &e))?;
+                        self.out
+                            .main()
+                            .finish_line()
+                            .map_err(|e| write_error("stdout", &e))?;
                     }
                     self.quit = true;
                     return Ok(code);
@@ -482,7 +565,10 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
         if !self.options.debug {
             return Ok(());
         }
-        self.out.stdout.write_unchecked(bytes).map_err(|e| write_error("stdout", &e))
+        self.out
+            .stdout
+            .write_unchecked(bytes)
+            .map_err(|e| write_error("stdout", &e))
     }
 
     fn debug_pattern(&mut self) -> Result<(), Fatal> {
@@ -506,7 +592,9 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
         let mut line = b"COMMAND: ".to_vec();
         line.extend(std::iter::repeat_n(b' ', self.debug_depth * 2));
         line.extend(debug::command_text(command, self.options.locale.is_chars()));
-        if matches!(&command.kind, Kind::Execute(c) if !c.is_empty()) && self.executed_e.contains(&pc) {
+        if matches!(&command.kind, Kind::Execute(c) if !c.is_empty())
+            && self.executed_e.contains(&pc)
+        {
             // GNU sed overwrote the newline that ends the text of the command when it ran it.
             let last = line.len() - 1;
             line[last] = 0;
@@ -525,7 +613,9 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                 self.debug_pattern()?;
                 self.debug_hold()
             }
-            Kind::GetAppend | Kind::Translate(_) | Kind::Next | Kind::NextAppend | Kind::Zap => self.debug_pattern(),
+            Kind::GetAppend | Kind::Translate(_) | Kind::Next | Kind::NextAppend | Kind::Zap => {
+                self.debug_pattern()
+            }
             // GNU sed shows the hold space after `g` too.
             Kind::Get | Kind::Hold | Kind::HoldAppend => self.debug_hold(),
             Kind::Substitute(_) => {
@@ -554,11 +644,17 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
 
     fn print_pattern(&mut self) -> Result<(), Fatal> {
         let (pattern, terminated) = (&self.pattern, self.terminated);
-        self.out.main().write_record(pattern, terminated).map_err(|e| write_error("stdout", &e))
+        self.out
+            .main()
+            .write_record(pattern, terminated)
+            .map_err(|e| write_error("stdout", &e))
     }
 
     fn write_raw(&mut self, bytes: &[u8]) -> Result<(), Fatal> {
-        self.out.main().write_raw(bytes).map_err(|e| write_error("stdout", &e))
+        self.out
+            .main()
+            .write_raw(bytes)
+            .map_err(|e| write_error("stdout", &e))
     }
 
     fn flush_pending(&mut self) -> Result<(), Fatal> {
@@ -580,7 +676,9 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
         use std::io::Read;
         // Even a missing file ends an unterminated last line.
         self.write_raw(&[])?;
-        let Ok(mut file) = std::fs::File::open(crate::io::bytes_path(name)) else { return Ok(()) };
+        let Ok(mut file) = std::fs::File::open(crate::io::bytes_path(name)) else {
+            return Ok(());
+        };
         let mut buffer = vec![0u8; 1 << 16];
         loop {
             match file.read(&mut buffer) {
@@ -589,7 +687,10 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                 Err(e) if e.kind() == std::io::ErrorKind::Interrupted => {}
                 Err(e) => {
                     let path = String::from_utf8_lossy(name).into_owned();
-                    return Err(Fatal::new(format!("read error on {path}: {}", crate::io::strerror(&e)), 4));
+                    return Err(Fatal::new(
+                        format!("read error on {path}: {}", crate::io::strerror(&e)),
+                        4,
+                    ));
                 }
             }
         }
@@ -614,10 +715,12 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                 self.last_regex_from_address = from_address;
                 Ok(re.clone())
             }
-            None => self
-                .last_regex
-                .clone()
-                .ok_or_else(|| Fatal::new("-e expression #1, char 0: no previous regular expression", 1)),
+            None => self.last_regex.clone().ok_or_else(|| {
+                Fatal::new(
+                    "-e expression #1, char 0: no previous regular expression",
+                    1,
+                )
+            }),
         }
     }
 
@@ -661,7 +764,11 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
     /// What a range becomes once it has ended: a numeric start never matches again, while a
     /// regexp start can begin a new range.
     fn ended(a1: &Addr) -> RangeState {
-        if matches!(a1, Addr::Line(_) | Addr::FromEnd(_)) { RangeState::Closed } else { RangeState::Inactive }
+        if matches!(a1, Addr::Line(_) | Addr::FromEnd(_)) {
+            RangeState::Closed
+        } else {
+            RangeState::Inactive
+        }
     }
 
     fn range_matches(&mut self, index: usize, a1: &Addr, a2: &Addr2) -> Result<bool, Fatal> {
@@ -673,7 +780,10 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                 Addr::Line(0) => {
                     // It is active from the first time it is looked at, even if that is not line 1.
                     if !self.range_zero_done(index) {
-                        state = RangeState::Active { until: None, overshoot: false };
+                        state = RangeState::Active {
+                            until: None,
+                            overshoot: false,
+                        };
                         true
                     } else {
                         false
@@ -691,7 +801,10 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                 }
                 // `$-N` starts the range on the line with N lines after it, or on the first line that has fewer (the
                 // line it names was skipped, or there are not that many lines), but only once.
-                Addr::FromEnd(n) => !matches!(state, RangeState::Closed) && self.records_after(n.saturating_add(1))? <= *n,
+                Addr::FromEnd(n) => {
+                    !matches!(state, RangeState::Closed)
+                        && self.records_after(n.saturating_add(1))? <= *n
+                }
                 other => self.addr_matches(other)?,
             };
             if !starts {
@@ -704,14 +817,20 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                             self.ranges[index] = Self::ended(a1);
                             return Ok(true);
                         }
-                        state = RangeState::Active { until: Some(*n), overshoot: false };
+                        state = RangeState::Active {
+                            until: Some(*n),
+                            overshoot: false,
+                        };
                     }
                     Addr2::Plus(n) => {
                         if *n == 0 {
                             self.ranges[index] = Self::ended(a1);
                             return Ok(true);
                         }
-                        state = RangeState::Active { until: Some(line + n), overshoot: true };
+                        state = RangeState::Active {
+                            until: Some(line + n),
+                            overshoot: true,
+                        };
                     }
                     Addr2::Multiple(n) => {
                         // It ends at the next multiple of N after this line (a line past it, if
@@ -720,31 +839,52 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                             self.ranges[index] = Self::ended(a1);
                             return Ok(true);
                         }
-                        state = RangeState::Active { until: Some((line / n + 1) * n), overshoot: true };
+                        state = RangeState::Active {
+                            until: Some((line / n + 1) * n),
+                            overshoot: true,
+                        };
                     }
-                    Addr2::Step { .. } => state = RangeState::Active { until: None, overshoot: false },
+                    Addr2::Step { .. } => {
+                        state = RangeState::Active {
+                            until: None,
+                            overshoot: false,
+                        }
+                    }
                     Addr2::Last => {
                         if self.is_last()? {
                             self.ranges[index] = Self::ended(a1);
                             return Ok(true);
                         }
-                        state = RangeState::Active { until: None, overshoot: false };
+                        state = RangeState::Active {
+                            until: None,
+                            overshoot: false,
+                        };
                     }
                     Addr2::FromEnd(n) => {
                         if self.records_after(n.saturating_add(1))? <= *n {
                             self.ranges[index] = Self::ended(a1);
                             return Ok(true);
                         }
-                        state = RangeState::Active { until: None, overshoot: false };
+                        state = RangeState::Active {
+                            until: None,
+                            overshoot: false,
+                        };
                     }
-                    Addr2::Regex(_) => state = RangeState::Active { until: None, overshoot: false },
+                    Addr2::Regex(_) => {
+                        state = RangeState::Active {
+                            until: None,
+                            overshoot: false,
+                        }
+                    }
                 }
                 self.ranges[index] = state;
                 return Ok(true);
             }
         }
         // The range is active: does it end on this line?
-        let RangeState::Active { until, overshoot } = state else { unreachable!() };
+        let RangeState::Active { until, overshoot } = state else {
+            unreachable!()
+        };
         let ends = match (until, a2) {
             (Some(n), _) => {
                 if line > n && !overshoot {
@@ -766,12 +906,23 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
             }
             (None, Addr2::Regex(p)) => self.regex_matches(p)?,
             (None, Addr2::Step { first, step }) => {
-                line >= *first && if *step == 0 { line == *first } else { (line - *first) % *step == 0 }
+                line >= *first
+                    && if *step == 0 {
+                        line == *first
+                    } else {
+                        (line - *first) % *step == 0
+                    }
             }
             // Line-number ends always carry their line in `until`.
-            (None, Addr2::Line(_) | Addr2::Plus(_) | Addr2::Multiple(_)) => unreachable!("an end line number is kept in `until`"),
+            (None, Addr2::Line(_) | Addr2::Plus(_) | Addr2::Multiple(_)) => {
+                unreachable!("an end line number is kept in `until`")
+            }
         };
-        self.ranges[index] = if ends { Self::ended(a1) } else { RangeState::Active { until, overshoot } };
+        self.ranges[index] = if ends {
+            Self::ended(a1)
+        } else {
+            RangeState::Active { until, overshoot }
+        };
         if matches!(a1, Addr::Line(0)) && ends {
             self.zero_done(index);
         }
@@ -813,8 +964,12 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                 Kind::Branch { when, target, .. } => {
                     let take = match when {
                         BranchWhen::Always => true,
-                        BranchWhen::IfSubstituted => std::mem::replace(&mut self.substituted, false),
-                        BranchWhen::IfNotSubstituted => !std::mem::replace(&mut self.substituted, false),
+                        BranchWhen::IfSubstituted => {
+                            std::mem::replace(&mut self.substituted, false)
+                        }
+                        BranchWhen::IfNotSubstituted => {
+                            !std::mem::replace(&mut self.substituted, false)
+                        }
                     };
                     if take {
                         match target {
@@ -842,13 +997,15 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                     return Ok(Flow::Discard);
                 }
                 Kind::Delete => return Ok(Flow::Discard),
-                Kind::DeleteFirst => match crate::search::memchr(self.options.separator, &self.pattern) {
-                    None => return Ok(Flow::DiscardQuietly),
-                    Some(i) => {
-                        self.pattern.drain(..=i);
-                        return Ok(Flow::Restart);
+                Kind::DeleteFirst => {
+                    match crate::search::memchr(self.options.separator, &self.pattern) {
+                        None => return Ok(Flow::DiscardQuietly),
+                        Some(i) => {
+                            self.pattern.drain(..=i);
+                            return Ok(Flow::Restart);
+                        }
                     }
-                },
+                }
                 Kind::Next => {
                     if self.is_last()? {
                         return self.no_next_line(true);
@@ -866,11 +1023,15 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                 }
                 Kind::Print => self.print_pattern()?,
                 Kind::PrintFirst => {
-                    let (end, terminated) = match crate::search::memchr(self.options.separator, &self.pattern) {
-                        Some(end) => (end, true),
-                        None => (self.pattern.len(), self.terminated),
-                    };
-                    self.out.main().write_record(&self.pattern[..end], terminated).map_err(|e| write_error("stdout", &e))?;
+                    let (end, terminated) =
+                        match crate::search::memchr(self.options.separator, &self.pattern) {
+                            Some(end) => (end, true),
+                            None => (self.pattern.len(), self.terminated),
+                        };
+                    self.out
+                        .main()
+                        .write_record(&self.pattern[..end], terminated)
+                        .map_err(|e| write_error("stdout", &e))?;
                 }
                 Kind::Get => {
                     self.pattern = self.hold.clone();
@@ -908,8 +1069,19 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                     let text = list::list(&self.pattern, width, self.options.separator);
                     self.write_raw(&text)?;
                 }
-                Kind::Quit(code) => return Ok(Flow::Quit { code: code.unwrap_or(0), print: true, finish_line: true, trace_end: false }),
-                Kind::QuitSilent(code) => return Ok(Flow::QuitNow { code: code.unwrap_or(0) }),
+                Kind::Quit(code) => {
+                    return Ok(Flow::Quit {
+                        code: code.unwrap_or(0),
+                        print: true,
+                        finish_line: true,
+                        trace_end: false,
+                    });
+                }
+                Kind::QuitSilent(code) => {
+                    return Ok(Flow::QuitNow {
+                        code: code.unwrap_or(0),
+                    });
+                }
                 Kind::FileName => {
                     let mut text = self.file_name.as_bytes().to_vec();
                     text.push(self.options.separator);
@@ -924,11 +1096,17 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                 }
                 Kind::WriteFile(name) => {
                     let (pattern, terminated) = (self.pattern.clone(), self.terminated);
-                    self.out.get(name).write_record(&pattern, terminated).map_err(|e| write_error("file", &e))?;
+                    self.out
+                        .get(name)
+                        .write_record(&pattern, terminated)
+                        .map_err(|e| write_error("file", &e))?;
                 }
                 Kind::WriteFirstLine(name) => {
                     let (first, terminated) = self.first_line();
-                    self.out.get(name).write_record(&first, terminated).map_err(|e| write_error("file", &e))?;
+                    self.out
+                        .get(name)
+                        .write_record(&first, terminated)
+                        .map_err(|e| write_error("file", &e))?;
                 }
                 Kind::Execute(command) => {
                     self.execute_command(command)?;
@@ -950,7 +1128,11 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
     /// The pattern space up to the first separator, and whether it ends with one: a
     /// pattern space without a separator keeps the missing-newline state of its line.
     fn first_line(&self) -> (Vec<u8>, bool) {
-        match self.pattern.iter().position(|&b| b == self.options.separator) {
+        match self
+            .pattern
+            .iter()
+            .position(|&b| b == self.options.separator)
+        {
             Some(end) => (self.pattern[..end].to_vec(), true),
             None => (self.pattern.clone(), self.terminated),
         }
@@ -966,13 +1148,22 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
             self.debug_write(b"END-OF-CYCLE:\n")?;
         }
         if self.input.is_last(false)? {
-            return Ok(Flow::Quit { code: 0, print, finish_line: false, trace_end: print && always_print });
+            return Ok(Flow::Quit {
+                code: 0,
+                print,
+                finish_line: false,
+                trace_end: print && always_print,
+            });
         }
         if print {
             self.autoprint()?;
         }
         // For `N` the trace has ended the cycle already.
-        Ok(if always_print { Flow::Discard } else { Flow::DiscardQuietly })
+        Ok(if always_print {
+            Flow::Discard
+        } else {
+            Flow::DiscardQuietly
+        })
     }
 
     /// One line of the file named by an `R` command; the file stays open between calls.
@@ -980,7 +1171,12 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
         use std::io::BufRead;
         if name == b"/dev/stdin" {
             let record = crate::io::stdin_record(self.options.separator, self.options.unbuffered)
-                .map_err(|e| Fatal::new(format!("read error on stdin: {}", crate::io::strerror(&e)), 4))?;
+                .map_err(|e| {
+                Fatal::new(
+                    format!("read error on stdin: {}", crate::io::strerror(&e)),
+                    4,
+                )
+            })?;
             return Ok(record.map(|r| {
                 let mut line = r.body;
                 if r.terminated {
@@ -992,16 +1188,23 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
         let reader = self.read_files.entry(name.to_vec()).or_insert_with(|| {
             let path = String::from_utf8_lossy(name).into_owned();
             let _ = path;
-            std::fs::File::open(crate::io::bytes_path(name)).ok().map(std::io::BufReader::new)
+            std::fs::File::open(crate::io::bytes_path(name))
+                .ok()
+                .map(std::io::BufReader::new)
         });
-        let Some(reader) = reader.as_mut() else { return Ok(None) };
+        let Some(reader) = reader.as_mut() else {
+            return Ok(None);
+        };
         let mut line = Vec::new();
         match reader.read_until(self.options.separator, &mut line) {
             Ok(0) => Ok(None),
             Ok(_) => Ok(Some(line)),
             Err(e) => {
                 let path = String::from_utf8_lossy(name).into_owned();
-                Err(Fatal::new(format!("read error on {path}: {}", crate::io::strerror(&e)), 4))
+                Err(Fatal::new(
+                    format!("read error on {path}: {}", crate::io::strerror(&e)),
+                    4,
+                ))
             }
         }
     }
@@ -1070,7 +1273,9 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
                 if let ReplacementPart::Group(g) = part {
                     if *g > re.group_count() {
                         return Err(Fatal::new(
-                            format!("-e expression #1, char 0: invalid reference \\{g} on `s' command's RHS"),
+                            format!(
+                                "-e expression #1, char 0: invalid reference \\{g} on `s' command's RHS"
+                            ),
                             1,
                         ));
                     }
@@ -1080,7 +1285,13 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
         let locale = self.options.locale;
         // After an empty match the search goes on one character further (one byte in UTF-8,
         // where GNU sed's matcher starts inside characters too).
-        let step = |text: &[u8], at: usize| if locale == crate::regex::Locale::Mb { locale.char_len(&text[at..]) } else { 1 };
+        let step = |text: &[u8], at: usize| {
+            if locale == crate::regex::Locale::Mb {
+                locale.char_len(&text[at..])
+            } else {
+                1
+            }
+        };
         let mut caps = Captures::default();
         let mut result = Vec::with_capacity(self.pattern.len());
         let mut copied = 0;
@@ -1106,7 +1317,13 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
             count += 1;
             if count >= wanted {
                 result.extend_from_slice(&self.pattern[copied..start]);
-                case::append_replacement(&mut result, &sub.replacement, &self.pattern, &caps, locale);
+                case::append_replacement(
+                    &mut result,
+                    &sub.replacement,
+                    &self.pattern,
+                    &caps,
+                    locale,
+                );
                 copied = end;
                 replaced = true;
                 if !sub.global {
@@ -1145,7 +1362,10 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
         }
         if let Some(name) = &sub.write {
             let (pattern, terminated) = (self.pattern.clone(), self.terminated);
-            self.out.get(name).write_record(&pattern, terminated).map_err(|e| write_error("file", &e))?;
+            self.out
+                .get(name)
+                .write_record(&pattern, terminated)
+                .map_err(|e| write_error("file", &e))?;
         }
         Ok(())
     }
@@ -1176,7 +1396,9 @@ fn run_shell(command: &[u8]) -> Result<Vec<u8>, Fatal> {
         .stdin(Stdio::inherit())
         .stderr(Stdio::inherit())
         .output();
-    output.map(|o| o.stdout).map_err(|_| Fatal::new("error in subprocess", 4))
+    output
+        .map(|o| o.stdout)
+        .map_err(|_| Fatal::new("error in subprocess", 4))
 }
 
 /// Length in bytes of the character at the start of `bytes` (UTF-8), or 1 for an invalid sequence.
@@ -1187,5 +1409,9 @@ pub(crate) fn char_len(bytes: &[u8]) -> usize {
         Some(0xF0..=0xF4) => 4,
         _ => return 1,
     };
-    if bytes.len() >= want && std::str::from_utf8(&bytes[..want]).is_ok() { want } else { 1 }
+    if bytes.len() >= want && std::str::from_utf8(&bytes[..want]).is_ok() {
+        want
+    } else {
+        1
+    }
 }

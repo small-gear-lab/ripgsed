@@ -18,7 +18,7 @@ use matcher::Matcher;
 pub use options::Kind;
 use options::{Devices, Directories, ListFiles, Options, Parsed};
 use search::{Event, Printer};
-use std::sync::mpsc::{channel, sync_channel, Receiver, Sender, SyncSender};
+use std::sync::mpsc::{Receiver, Sender, SyncSender, channel, sync_channel};
 use std::sync::{Arc, Mutex};
 
 /// The release of GNU grep that the grep mode follows where releases differ: `false` for 3.11 (the
@@ -131,12 +131,20 @@ pub fn main(program: &str, args: Vec<Vec<u8>>, kind: Kind) -> i32 {
     // Nothing can be selected: no line may be (`-m 0`), or `-v` with the one empty pattern, which
     // every line matches. Only `-L` still has something to say.
     let nothing_selected = options.max_count == Some(0)
-        || (options.invert && !options.line && !options.word && options.patterns.len() == 1 && options.patterns[0].is_empty());
+        || (options.invert
+            && !options.line
+            && !options.word
+            && options.patterns.len() == 1
+            && options.patterns[0].is_empty());
     if nothing_selected && options.list_files != ListFiles::NonMatching {
         return 1;
     }
 
-    let colors = if options.color { Colors::from_env(program) } else { Colors::default() };
+    let colors = if options.color {
+        Colors::from_env(program)
+    } else {
+        Colors::default()
+    };
 
     let mut operands: Vec<Vec<u8>> = options.files.clone();
     let mut omit_dot_slash = false;
@@ -176,7 +184,10 @@ pub fn main(program: &str, args: Vec<Vec<u8>>, kind: Kind) -> i32 {
         error_seen: false,
         fatal: false,
         matched: false,
-        stdin_name: options.label.clone().unwrap_or_else(|| b"(standard input)".to_vec()),
+        stdin_name: options
+            .label
+            .clone()
+            .unwrap_or_else(|| b"(standard input)".to_vec()),
         omit_dot_slash,
         stdout_id: stdout_identity(),
         dir_stack: Vec::new(),
@@ -212,7 +223,9 @@ fn configure(printer: &mut Printer<'_>, options: &Options, operands: usize) {
         Some(w) => w,
         None => operands > 1,
     };
-    printer.filenames_in_directories = options.with_filename.is_none() && operands <= 1 && options.directories == Directories::Recurse;
+    printer.filenames_in_directories = options.with_filename.is_none()
+        && operands <= 1
+        && options.directories == Directories::Recurse;
     printer.default_with_filename = printer.with_filename;
 }
 
@@ -221,12 +234,19 @@ fn configure(printer: &mut Printer<'_>, options: &Options, operands: usize) {
 /// thread. Not with context (the separator between groups depends on the files before),
 /// `--line-buffered`, or standard input among the operands. `RIPGSED_JOBS=1` is one thread.
 fn search_threads(options: &Options, operands: &[Vec<u8>]) -> usize {
-    let forced: Option<usize> = std::env::var("RIPGSED_JOBS").ok().and_then(|v| v.parse().ok());
+    let forced: Option<usize> = std::env::var("RIPGSED_JOBS")
+        .ok()
+        .and_then(|v| v.parse().ok());
     if forced.is_some_and(|n| n < 2) {
         return 1;
     }
     let several = operands.len() > 1 || options.directories == Directories::Recurse;
-    if !several || options.before.is_some() || options.after.is_some() || options.line_buffered || operands.iter().any(|o| o == b"-") {
+    if !several
+        || options.before.is_some()
+        || options.after.is_some()
+        || options.line_buffered
+        || operands.iter().any(|o| o == b"-")
+    {
         return 1;
     }
     let cores = std::thread::available_parallelism().map_or(1, |n| n.get());
@@ -235,10 +255,21 @@ fn search_threads(options: &Options, operands: &[Vec<u8>]) -> usize {
 
 /// The walk on this thread, the searches on `jobs` others, and what they print put in order on
 /// one more.
-fn run_in_threads(mut run: Run<'_>, operands: &[Vec<u8>], jobs: usize, program: &str, locale: crate::regex::Locale, colors: &Colors) -> i32 {
+fn run_in_threads(
+    mut run: Run<'_>,
+    operands: &[Vec<u8>],
+    jobs: usize,
+    program: &str,
+    locale: crate::regex::Locale,
+    colors: &Colors,
+) -> i32 {
     let options = run.options;
     let exit_on_match = run.printer.exit_on_match;
-    let with_filename = (run.printer.with_filename, run.printer.filenames_in_directories, run.printer.default_with_filename);
+    let with_filename = (
+        run.printer.with_filename,
+        run.printer.filenames_in_directories,
+        run.printer.default_with_filename,
+    );
     let stdout_id = run.stdout_id;
     let (job_tx, job_rx) = sync_channel::<Job>(jobs * 4);
     let job_rx = Arc::new(Mutex::new(job_rx));
@@ -251,7 +282,9 @@ fn run_in_threads(mut run: Run<'_>, operands: &[Vec<u8>], jobs: usize, program: 
             let colors = colors.clone();
             scope.spawn(move || {
                 // Each thread has its own compiled patterns (they are not shared).
-                let Ok(matcher) = Matcher::new(options, locale) else { return };
+                let Ok(matcher) = Matcher::new(options, locale) else {
+                    return;
+                };
                 let mut printer = Printer::capturing(options, colors, locale);
                 printer.with_filename = with_filename.0;
                 printer.filenames_in_directories = with_filename.1;
@@ -280,7 +313,13 @@ fn run_in_threads(mut run: Run<'_>, operands: &[Vec<u8>], jobs: usize, program: 
                     worker.fatal = false;
                     worker.matched = false;
                     let _ = worker.file(&job.path, &job.name, job.in_directory);
-                    let done = Done { seq: job.seq, events: worker.printer.take_events(), matched: worker.matched, error: worker.error_seen, fatal: worker.fatal };
+                    let done = Done {
+                        seq: job.seq,
+                        events: worker.printer.take_events(),
+                        matched: worker.matched,
+                        error: worker.error_seen,
+                        fatal: worker.fatal,
+                    };
                     if done_tx.send(done).is_err() {
                         return;
                     }
@@ -288,7 +327,11 @@ fn run_in_threads(mut run: Run<'_>, operands: &[Vec<u8>], jobs: usize, program: 
             });
         }
         let merger = scope.spawn(move || merge_results(done_rx, exit_on_match));
-        run.pool = Some(Pool { jobs: job_tx, done: done_tx, next_seq: 0 });
+        run.pool = Some(Pool {
+            jobs: job_tx,
+            done: done_tx,
+            next_seq: 0,
+        });
         for operand in operands {
             if run.operand(operand).is_err() {
                 break;
@@ -368,10 +411,16 @@ impl Run<'_> {
     fn is_the_output(&self, meta: &std::fs::Metadata) -> bool {
         use std::os::unix::fs::MetadataExt;
         let o = self.options;
-        if o.quiet || o.count || o.list_files != ListFiles::No || o.max_count.is_some_and(|m| m <= 1) || !meta.is_file() {
+        if o.quiet
+            || o.count
+            || o.list_files != ListFiles::No
+            || o.max_count.is_some_and(|m| m <= 1)
+            || !meta.is_file()
+        {
             return false;
         }
-        self.stdout_id.is_some_and(|(dev, ino)| dev == meta.dev() && ino == meta.ino())
+        self.stdout_id
+            .is_some_and(|(dev, ino)| dev == meta.dev() && ino == meta.ino())
     }
 
     /// Reports an error about `name` (`program: name: message`), unless `-s`.
@@ -404,7 +453,13 @@ impl Run<'_> {
         }
         let seq = pool.next_seq;
         pool.next_seq += 1;
-        let _ = pool.done.send(Done { seq, events, matched: false, error: false, fatal: false });
+        let _ = pool.done.send(Done {
+            seq,
+            events,
+            matched: false,
+            error: false,
+            fatal: false,
+        });
     }
 
     /// Searches a file found by the walk: here, or on another thread.
@@ -416,7 +471,12 @@ impl Run<'_> {
         let pool = self.pool.as_mut().expect("checked above");
         let seq = pool.next_seq;
         pool.next_seq += 1;
-        let _ = pool.jobs.send(Job { seq, path: path.to_path_buf(), name: name.to_vec(), in_directory });
+        let _ = pool.jobs.send(Job {
+            seq,
+            path: path.to_path_buf(),
+            name: name.to_vec(),
+            in_directory,
+        });
         Ok(())
     }
 
@@ -443,7 +503,13 @@ impl Run<'_> {
                 Directories::Read => {
                     // The directory is opened and fails when it is read: it has no selected line.
                     self.report(operand, "Is a directory");
-                    let found = search::Found { count: 0, binary_matches: false, last_selected_end: None, ended_early: false, max_reached: false };
+                    let found = search::Found {
+                        count: 0,
+                        binary_matches: false,
+                        last_selected_end: None,
+                        ended_early: false,
+                        max_reached: false,
+                    };
                     self.printer.with_filename = self.printer.default_with_filename;
                     self.printer.summary(operand, &found)?;
                     return Ok(());
@@ -479,7 +545,13 @@ impl Run<'_> {
         if crate::io::STDIN_WAS_CLOSED.load(std::sync::atomic::Ordering::Relaxed) {
             // (Rust's start-up has put /dev/null in the place of a closed standard input.)
             self.report(name, "Bad file descriptor");
-            let found = search::Found { count: 0, binary_matches: false, last_selected_end: None, ended_early: false, max_reached: false };
+            let found = search::Found {
+                count: 0,
+                binary_matches: false,
+                last_selected_end: None,
+                ended_early: false,
+                max_reached: false,
+            };
             self.printer.with_filename = self.printer.default_with_filename;
             return self.printer.summary(name, &found);
         }
@@ -491,8 +563,14 @@ impl Run<'_> {
             self.report(name, "input file is also the output");
             return Ok(());
         }
-        let start = if regular { file.stream_position().ok() } else { None };
-        let size = meta.filter(|m| m.is_file()).map(|m| m.len().saturating_sub(start.unwrap_or(0)));
+        let start = if regular {
+            file.stream_position().ok()
+        } else {
+            None
+        };
+        let size = meta
+            .filter(|m| m.is_file())
+            .map(|m| m.len().saturating_sub(start.unwrap_or(0)));
         let found = self.search_reader(name, &mut *file, regular, size, false)?;
         if let (Some(start), Some(found)) = (start, found.as_ref()) {
             // The input is left where GNU grep leaves it: just after the last selected line when
@@ -501,7 +579,10 @@ impl Run<'_> {
                 let target = if found.max_reached {
                     found.last_selected_end
                 } else {
-                    found.last_selected_end.map(|end| (((end.saturating_sub(1)) / 98304 + 1) * 98304).min(size.unwrap_or(u64::MAX)))
+                    found.last_selected_end.map(|end| {
+                        (((end.saturating_sub(1)) / 98304 + 1) * 98304)
+                            .min(size.unwrap_or(u64::MAX))
+                    })
                 };
                 if let Some(t) = target {
                     let _ = file.seek(SeekFrom::Start(start + t));
@@ -558,7 +639,9 @@ impl Run<'_> {
                 shown.clear();
             }
             shown.extend_from_slice(base_bytes);
-            let Ok(link_meta) = std::fs::symlink_metadata(&path) else { continue };
+            let Ok(link_meta) = std::fs::symlink_metadata(&path) else {
+                continue;
+            };
             let meta = if link_meta.file_type().is_symlink() {
                 if !self.options.dereference_recursive {
                     continue;
@@ -616,9 +699,17 @@ impl Run<'_> {
     }
 
     /// Searches an input. `None` when it could not be read at all.
-    fn search_reader(&mut self, name: &[u8], input: &mut dyn Read, regular: bool, size: Option<u64>, in_directory: bool) -> io::Result<Option<search::Found>> {
+    fn search_reader(
+        &mut self,
+        name: &[u8],
+        input: &mut dyn Read,
+        regular: bool,
+        size: Option<u64>,
+        in_directory: bool,
+    ) -> io::Result<Option<search::Found>> {
         // With -r and one operand, the files found in directories carry their names.
-        self.printer.with_filename = self.printer.default_with_filename || (in_directory && self.printer.filenames_in_directories);
+        self.printer.with_filename = self.printer.default_with_filename
+            || (in_directory && self.printer.filenames_in_directories);
         // With -T the numbers are as wide as the largest offset the input can have.
         self.printer.offset_width = if self.options.initial_tab {
             match size {
@@ -628,7 +719,10 @@ impl Run<'_> {
         } else {
             0
         };
-        let found = match self.printer.search_stream(&self.matcher, name, input, regular) {
+        let found = match self
+            .printer
+            .search_stream(&self.matcher, name, input, regular)
+        {
             Ok(f) => f,
             Err(e) if search::MatchFailure::message(&e).is_some() => {
                 // (No summary: GNU grep does not print the count of the file it gave up on.)
@@ -645,7 +739,13 @@ impl Run<'_> {
             }
             Err(e) if self.printer.is_read_error(&e) => {
                 self.report(name, &crate::io::strerror(&e));
-                let found = search::Found { count: 0, binary_matches: false, last_selected_end: None, ended_early: false, max_reached: false };
+                let found = search::Found {
+                    count: 0,
+                    binary_matches: false,
+                    last_selected_end: None,
+                    ended_early: false,
+                    max_reached: false,
+                };
                 self.printer.summary(name, &found)?;
                 return Ok(None);
             }

@@ -52,7 +52,12 @@ pub fn lookahead(script: &Script) -> u64 {
     most
 }
 
-fn command_local(commands: &[Command], index: usize, command: &Command, options: &Options) -> Result<(), Reason> {
+fn command_local(
+    commands: &[Command],
+    index: usize,
+    command: &Command,
+    options: &Options,
+) -> Result<(), Reason> {
     // `F` names the file as the sequential run opens it, which is the resolved path under `--follow-symlinks`.
     if matches!(command.kind, Kind::FileName) && options.follow_symlinks {
         return Err(Reason::Construct("F with --follow-symlinks"));
@@ -77,7 +82,9 @@ fn empty_regexp_is_known(commands: &[Command], index: usize) -> bool {
     if !matches!(command.selector, Selector::All) || command.negate {
         return false;
     }
-    let Some(before) = index.checked_sub(1).map(|i| &commands[i]) else { return false };
+    let Some(before) = index.checked_sub(1).map(|i| &commands[i]) else {
+        return false;
+    };
     matches!(before.selector, Selector::All)
         && !before.negate
         && matches!(&before.kind, Kind::Substitute(sub) if sub.pattern.regex.is_some())
@@ -86,40 +93,125 @@ fn empty_regexp_is_known(commands: &[Command], index: usize) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::syntax::{parse, Chunk, ChunkSource, ParseOptions};
+    use crate::syntax::{Chunk, ChunkSource, ParseOptions, parse};
 
     fn local(script: &str) -> bool {
-        let chunk = Chunk { source: ChunkSource::Expression(1), text: script.as_bytes().to_vec() };
+        let chunk = Chunk {
+            source: ChunkSource::Expression(1),
+            text: script.as_bytes().to_vec(),
+        };
         let script = parse(&[(chunk, ParseOptions::default())]).expect("parses");
         record_local(&script, &Options::default()).is_ok()
     }
 
     #[test]
     fn record_local_scripts() {
-        for s in ["s/a/b/g", "/x/d", "y/abc/xyz/", "2~3p", "5s/a/b/", "s/a/b/;ta;s/c/d/;:a", "=", "/a/{s/a/b/;p}", "a text", "l", "q", "5q3", "/a/Q", "/a/{s/a/b/;q}", "$p", "$!d", "$s/a/b/", "$!{s/a/b/;p}", "$q", "$-2p", "$-1,$d", "2,$-3p", "$-2,$-1s/a/b/", "F", "3{F;d}", "1,3p", "/a/,/b/d", "/a/,$d", "0,/a/d", "2,+3s/a/b/", "/a/,~4p", "2~3,5p", "/a/,/b/!d", "/a/,/b/c\\text", "/a/s//b/", "/a/!s//b/", "s/a/b/;s//c/", "$!{s/a/b/;s//c/}", "/a/w out", "/a/W out", "s/a/b/w out", "/a/{s/b/c/w out\n}"] {
+        for s in [
+            "s/a/b/g",
+            "/x/d",
+            "y/abc/xyz/",
+            "2~3p",
+            "5s/a/b/",
+            "s/a/b/;ta;s/c/d/;:a",
+            "=",
+            "/a/{s/a/b/;p}",
+            "a text",
+            "l",
+            "q",
+            "5q3",
+            "/a/Q",
+            "/a/{s/a/b/;q}",
+            "$p",
+            "$!d",
+            "$s/a/b/",
+            "$!{s/a/b/;p}",
+            "$q",
+            "$-2p",
+            "$-1,$d",
+            "2,$-3p",
+            "$-2,$-1s/a/b/",
+            "F",
+            "3{F;d}",
+            "1,3p",
+            "/a/,/b/d",
+            "/a/,$d",
+            "0,/a/d",
+            "2,+3s/a/b/",
+            "/a/,~4p",
+            "2~3,5p",
+            "/a/,/b/!d",
+            "/a/,/b/c\\text",
+            "/a/s//b/",
+            "/a/!s//b/",
+            "s/a/b/;s//c/",
+            "$!{s/a/b/;s//c/}",
+            "/a/w out",
+            "/a/W out",
+            "s/a/b/w out",
+            "/a/{s/b/c/w out\n}",
+        ] {
             assert!(local(s), "{s} should be record-local");
         }
     }
 
     #[test]
     fn scripts_with_cross_record_state_are_not() {
-        for s in ["N", "x", "G", "h", "n", "D", "s//x/", "/a/{s//x/}", "1s/a/b/;s//c/", "/a/,/b/s//x/", "//,/b/p", "/a/,//p", ":a;s//x/", "//p", "$!N", "w /dev/stdout", "/a/w /dev/stderr", "s/a/b/w /dev/stdout", "R f", "r f", "0r f", "$r f", "/a/r f", "r /dev/stdin", "e", "s/a/b/e"] {
+        for s in [
+            "N",
+            "x",
+            "G",
+            "h",
+            "n",
+            "D",
+            "s//x/",
+            "/a/{s//x/}",
+            "1s/a/b/;s//c/",
+            "/a/,/b/s//x/",
+            "//,/b/p",
+            "/a/,//p",
+            ":a;s//x/",
+            "//p",
+            "$!N",
+            "w /dev/stdout",
+            "/a/w /dev/stderr",
+            "s/a/b/w /dev/stdout",
+            "R f",
+            "r f",
+            "0r f",
+            "$r f",
+            "/a/r f",
+            "r /dev/stdin",
+            "e",
+            "s/a/b/e",
+        ] {
             assert!(!local(s), "{s} must not be record-local");
         }
     }
 
     #[test]
     fn the_file_name_follows_the_symlinks_only_in_the_sequential_run() {
-        let chunk = Chunk { source: ChunkSource::Expression(1), text: b"F".to_vec() };
+        let chunk = Chunk {
+            source: ChunkSource::Expression(1),
+            text: b"F".to_vec(),
+        };
         let script = parse(&[(chunk, ParseOptions::default())]).expect("parses");
-        let options = Options { follow_symlinks: true, ..Options::default() };
-        assert_eq!(record_local(&script, &options), Err(Reason::Construct("F with --follow-symlinks")));
+        let options = Options {
+            follow_symlinks: true,
+            ..Options::default()
+        };
+        assert_eq!(
+            record_local(&script, &options),
+            Err(Reason::Construct("F with --follow-symlinks"))
+        );
     }
 
     #[test]
     fn the_script_asks_to_see_as_far_ahead_as_its_addresses_look() {
         let ahead = |text: &str| {
-            let chunk = Chunk { source: ChunkSource::Expression(1), text: text.as_bytes().to_vec() };
+            let chunk = Chunk {
+                source: ChunkSource::Expression(1),
+                text: text.as_bytes().to_vec(),
+            };
             lookahead(&parse(&[(chunk, ParseOptions::default())]).expect("parses"))
         };
         assert_eq!(ahead("p"), 1);
@@ -132,14 +224,30 @@ mod tests {
 
     #[test]
     fn files_that_are_separate_or_edited_in_place_run_chunk_by_chunk_too() {
-        let chunk = Chunk { source: ChunkSource::Expression(1), text: b"$!s/a/b/;2,4p".to_vec() };
+        let chunk = Chunk {
+            source: ChunkSource::Expression(1),
+            text: b"$!s/a/b/;2,4p".to_vec(),
+        };
         let script = parse(&[(chunk, ParseOptions::default())]).expect("parses");
-        let separate = Options { separate: true, ..Options::default() };
-        let in_place = Options { in_place: Some(String::new()), separate: true, ..Options::default() };
+        let separate = Options {
+            separate: true,
+            ..Options::default()
+        };
+        let in_place = Options {
+            in_place: Some(String::new()),
+            separate: true,
+            ..Options::default()
+        };
         assert_eq!(record_local(&script, &separate), Ok(()));
         assert_eq!(record_local(&script, &in_place), Ok(()));
         // What is written at once stays out.
-        let unbuffered = Options { unbuffered: true, ..Options::default() };
-        assert_eq!(record_local(&script, &unbuffered), Err(Reason::Construct("-u")));
+        let unbuffered = Options {
+            unbuffered: true,
+            ..Options::default()
+        };
+        assert_eq!(
+            record_local(&script, &unbuffered),
+            Err(Reason::Construct("-u"))
+        );
     }
 }
