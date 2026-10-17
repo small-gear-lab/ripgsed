@@ -573,31 +573,44 @@ fn run_on_the_tail(
     files: &[String],
     program: &str,
 ) -> Option<i32> {
+    use std::io::Seek;
     if std::env::var("RIPGSED_TAIL").is_ok_and(|v| v == "0") {
         return None;
     }
-    let [name] = files else { return None };
-    if name == "-" {
-        return None;
-    }
+    // One file named on the command line, or standard input when it is a file (not a pipe, a terminal or a socket).
+    let (mut file, name, stdin) = match files {
+        [name] if name != "-" => (
+            std::fs::File::open(crate::io::os_path(name)).ok()?,
+            name.as_str(),
+            false,
+        ),
+        [] => (duplicate_of_stdin()?, "-", true),
+        [name] if name == "-" => (duplicate_of_stdin()?, "-", true),
+        _ => return None,
+    };
+    // The records start where a run that reads them one by one would: after what was read from standard input
+    // before (the position is shared with the descriptor 0 that this one is a duplicate of).
+    let from = if stdin {
+        file.stream_position().ok()?
+    } else {
+        0
+    };
     let min_bytes: u64 = std::env::var("RIPGSED_TAIL_MIN_BYTES")
         .ok()
         .and_then(|v| v.parse().ok())
         .unwrap_or(1 << 20);
     let window = crate::analysis::tail_window(script, options)?;
     // (A file that cannot be read is the business of the run that reports it.)
-    let bytes = crate::io::read_tail(
-        &crate::io::os_path(name),
-        options.separator,
-        window,
-        min_bytes,
-    )
-    .ok()??;
+    let bytes = crate::io::read_tail(&file, options.separator, window, min_bytes, from).ok()??;
     let mut source = crate::io::TailSource::new(bytes, options.separator, name);
     let stdout = io::stdout().lock();
     let mut outputs = Outputs::new(Box::new(BufWriter::new(stdout)), options.separator);
     let result = runtime::run(script, options.clone(), &mut source, &mut outputs)
         .and_then(|code| outputs.flush_all().map(|()| code));
+    if stdin {
+        // A run that reads to the end leaves standard input at the end, for the command that follows.
+        let _ = file.seek(std::io::SeekFrom::End(0));
+    }
     Some(match result {
         Ok(code) => code,
         Err(Fatal { message, status }) => {
@@ -606,6 +619,14 @@ fn run_on_the_tail(
             status
         }
     })
+}
+
+/// A second descriptor for standard input, which shares its position and which can be closed without closing it.
+fn duplicate_of_stdin() -> Option<std::fs::File> {
+    use std::os::fd::BorrowedFd;
+    // SAFETY: descriptor 0 stays open for as long as the process lives (this only looks at it).
+    let stdin = unsafe { BorrowedFd::borrow_raw(0) };
+    stdin.try_clone_to_owned().ok().map(std::fs::File::from)
 }
 
 /// How many workers to use, or `None` to run sequentially.

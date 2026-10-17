@@ -620,19 +620,22 @@ impl<R: BufRead> RecordSource for ReaderSource<R> {
 }
 
 /// The last `records` records of a file that can be searched, read from its end: the bytes from the start of the
-/// first of them to the end of the file. `None` if the file is not a regular file, is smaller than `min_bytes`,
-/// or is empty; the whole file if it has fewer records. Nothing but the blocks at the end is read.
+/// first of them to the end of the file. The file is read from the offset `from` on (standard input may have been
+/// read from already), and the position of the file is not moved. `None` if the file is not a regular file, has
+/// less than `min_bytes` after `from`, or nothing; the whole of what is after `from` if it has fewer records.
+/// Nothing but the blocks at the end is read.
 pub fn read_tail(
-    path: &std::path::Path,
+    file: &File,
     separator: u8,
     records: u64,
     min_bytes: u64,
+    from: u64,
 ) -> io::Result<Option<Vec<u8>>> {
+    use std::os::unix::fs::FileExt;
     const BLOCK: u64 = 1 << 16;
-    let mut file = File::open(path)?;
     let meta = file.metadata()?;
     let len = meta.len();
-    if !meta.is_file() || len == 0 || len < min_bytes || records == 0 {
+    if !meta.is_file() || len <= from || len - from < min_bytes || records == 0 {
         return Ok(None);
     }
     // The blocks from the end of the file backwards, and where the window starts in the last one read.
@@ -640,12 +643,11 @@ pub fn read_tail(
     let mut pos = len;
     let mut found = 0u64;
     let mut start_in_block = 0usize;
-    'blocks: while pos > 0 {
-        let n = BLOCK.min(pos);
+    'blocks: while pos > from {
+        let n = BLOCK.min(pos - from);
         pos -= n;
         let mut block = vec![0u8; n as usize];
-        file.seek(SeekFrom::Start(pos))?;
-        file.read_exact(&mut block)?;
+        file.read_exact_at(&mut block, pos)?;
         let mut end = block.len();
         // The separator that ends the last record does not start another one.
         if blocks.is_empty() && block[end - 1] == separator {
