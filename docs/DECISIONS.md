@@ -135,7 +135,7 @@ Decisions that have been made, with their reasons. Proposals and open questions 
 - `$-N` is the line with N lines after it (`$-0` is `$`). It is an address and the end of a range (`addr,$-N`). With `-s` and `-i` it counts in its file.
 - `addr,-N` is `addr` and the N lines before it, as `addr,+N` is `addr` and the N lines after it: `10,-3` is `7,10`, and `-0` is one line, as `+0` is. `addr` has to be a line number, `$` or `$-N`: after a regexp or a step the lines before it have gone by, and it is an error.
 - A bare negative line number (`-3,$`) is not accepted: the command line would read it as options before the script is read.
-- `$,-9!d` keeps the last 10 lines, as `tail -10` does, with a lookahead of N records in the input (`RecordSource::records_after`). The chunk executor is told how many records follow a chunk, up to what the script asks to see (`analysis::lookahead`), so these scripts run in parallel too.
+- `$,-9!d` keeps the last 10 lines, as `tail -n10` does, with a lookahead of N records in the input (`RecordSource::records_after`). The chunk executor is told how many records follow a chunk, up to what the script asks to see (`analysis::lookahead`), so these scripts run in parallel too.
 - GNU sed has nothing to compare with, so `tests/from_end.rs` states the answers from a model of the lines, and not a fixture. The fixture `adr-019-invalid-address-forms` no longer has `2,-1p`, which GNU sed rejects and ripgsed accepts.
 
 ## D16. Shortcuts are plans that an analysis proves, and the sequential VM is what they must equal

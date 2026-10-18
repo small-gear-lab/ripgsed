@@ -92,10 +92,10 @@ msgstr "**sed での Perl 風のパターン。** `ripgsed -P 's/(\\d+)(?=px)/<$
 #: ../../../README.md:18
 msgid ""
 "**Addresses counted from the end**: `ripgsed '$,-9!d'` keeps the last 10 "
-"lines, as `tail -10` does, and `$-2,$p` prints the last three. GNU sed "
+"lines, as `tail -n10` does, and `$-2,$p` prints the last three. GNU sed "
 "rejects these spellings (D15)."
 msgstr ""
-"**最後から数えるアドレス**：`ripgsed '$,-9!d'` は `tail -10` と同じく最後の 10 行を残し、`$-2,$p` "
+"**最後から数えるアドレス**：`ripgsed '$,-9!d'` は `tail -n10` と同じく最後の 10 行を残し、`$-2,$p` "
 "は最後の 3 行を出力する。GNU sed はこれらの書き方を拒否する（D15）。"
 
 #: ../../../README.md:19

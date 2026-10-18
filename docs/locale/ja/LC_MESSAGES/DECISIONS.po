@@ -902,12 +902,12 @@ msgstr "マイナスの行番号そのもの（`-3,$`）は受け付けない。
 
 #: ../../DECISIONS.md:138
 msgid ""
-"`$,-9!d` keeps the last 10 lines, as `tail -10` does, with a lookahead of N "
+"`$,-9!d` keeps the last 10 lines, as `tail -n10` does, with a lookahead of N "
 "records in the input (`RecordSource::records_after`). The chunk executor is "
 "told how many records follow a chunk, up to what the script asks to see "
 "(`analysis::lookahead`), so these scripts run in parallel too."
 msgstr ""
-"`$,-9!d` は、`tail -10` と同じく最後の 10 行を残す。入力を N "
+"`$,-9!d` は、`tail -n10` と同じく最後の 10 行を残す。入力を N "
 "レコード先まで先読みして実現する。チャンクの実行器には、チャンクの後ろに何レコード続くかを（スクリプトが見たい数まで）伝えるので、これらのスクリプトも並列で動く。"
 
 #: ../../DECISIONS.md:139

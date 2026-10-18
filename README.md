@@ -14,7 +14,7 @@ The name says what it is: a fast gsed (GNU sed).
 - **Faster than GNU sed**, and much faster on large files, because scripts that are proven to work on one line at a time run on several threads (see Performance).
 - **A grep**, when it runs as `grep`, `egrep` or `fgrep` (or with `--grep`): GNU grep 3.x, including `-P` and a search of directory trees on several threads.
 - **Perl-style patterns in sed**: `ripgsed -P 's/(\d+)(?=px)/<$1>/g'` (PCRE2).
-- **Addresses counted from the end**: `ripgsed '$,-9!d'` keeps the last 10 lines, as `tail -10` does, and `$-2,$p` prints the last three. GNU sed rejects these spellings (D15).
+- **Addresses counted from the end**: `ripgsed '$,-9!d'` keeps the last 10 lines, as `tail -n10` does, and `$-2,$p` prints the last three. GNU sed rejects these spellings (D15).
 - **Reads only what a script needs**: `sed -n '$p' file` reads the end of the file, `sed -n '1,10p'` stops after ten lines, `sed -n '1p;$p'` reads the two ends, and `sed -n '0~1000p'` counts the lines between the thousandth ones, when the input is a file (D16).  GNU sed reads all of the input in each of these cases.
 - **A Rust library** with the same sed language, and a builder for scripts.
 
