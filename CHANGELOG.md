@@ -2,6 +2,16 @@
 
 The release notes of every version. The section of a version is the text of its GitHub release.
 
+## 0.2.1 - 2026-10-18
+
+### Fixed
+
+- `--posix` accepted `-P` and read the script as PCRE2, which GNU sed does not have. The two together are now a usage error (exit status 1), in whichever order they come; `--posix` already refused the other extensions of ripgsed (`$-N`, `addr,-N`). The last of `-P` and `-E` still counts, so `--posix -P -E` is ERE. The library is not affected: it has no `--posix`.
+
+### Development
+
+- The tests of the reading of the end and of the two ends of a file now compare the files that `w` writes: they ran in the wrong directory and compared nothing (and left an `out.txt` in the working tree).
+
 ## 0.2.0 - 2026-10-18
 
 More of the scripts run in parallel, a script that needs only part of the input reads only that part, and there are two new addresses. The output, the files that `w` and `-i` write, and the exit status are the ones of the sequential run, which is what the tests compare (D16).
