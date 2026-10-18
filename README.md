@@ -106,6 +106,7 @@ It is developed and tested on Linux (Ubuntu, glibc), where the compatibility wit
 
 - The regular expressions of the script, in addresses and in `s`, are PCRE2 ones. The library is built with the program, through the crate `pcre2-sys`, so a C compiler is needed to build it.
 - The commands, the flags `I` and `M`, the replacement (`\1`, `&`, `\U`) and the empty regexp are sed's. Only what the pattern means is PCRE2's.
+- `--posix` turns the GNU extensions off, and `-P` is one that GNU sed does not have at all: `--posix` with `-P` is a usage error (`-P -E`, the last one counts, is ERE).
 - The library has it too (`Pattern::perl`, `Script::parse_perl`).
 - There is no GNU sed to compare with, so the results are those of the library, tested in `tests/cli.rs` (D14).
 

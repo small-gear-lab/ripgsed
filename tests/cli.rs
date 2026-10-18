@@ -260,3 +260,67 @@ mod sed_pcre {
         );
     }
 }
+
+/// `--posix` turns off the GNU extensions, and `-P` (PCRE2 regular expressions) is one that GNU sed does not even
+/// have: the two together are a usage error, in whichever order they come, and the last of `-P` and `-E` wins as it
+/// always did.
+mod posix_and_perl {
+    use std::io::Write;
+    use std::process::{Command, Stdio};
+
+    const BIN: &str = env!("CARGO_BIN_EXE_ripgsed");
+
+    fn run(args: &[&str], input: &str) -> (String, String, Option<i32>) {
+        let mut child = Command::new(BIN)
+            .args(args)
+            .env("LC_ALL", "C")
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .expect("run ripgsed");
+        // (A run that is refused at once does not read its input: the pipe may be closed by then.)
+        let _ = child.stdin.take().unwrap().write_all(input.as_bytes());
+        let out = child.wait_with_output().unwrap();
+        (
+            String::from_utf8_lossy(&out.stdout).into_owned(),
+            String::from_utf8_lossy(&out.stderr).into_owned(),
+            out.status.code(),
+        )
+    }
+
+    #[test]
+    fn posix_with_perl_is_a_usage_error_in_either_order() {
+        for args in [
+            &["--posix", "-P", "s/\\d/X/"][..],
+            &["-P", "--posix", "s/\\d/X/"],
+            &["--posix", "-P", "-e", "s/\\d/X/"],
+            &["--posix", "--perl-regexp", "-e", "s/\\d/X/"],
+            &["-Pn", "--posix", "-e", "/\\d/p"],
+            &["-P", "-e", "s/\\d/X/", "--posix"],
+        ] {
+            let (out, err, code) = run(args, "a1\n");
+            assert_eq!(
+                (out.as_str(), code),
+                ("", Some(1)),
+                "{args:?}: stderr {err:?}"
+            );
+            assert!(
+                err.contains("-P") && err.contains("--posix"),
+                "{args:?}: stderr {err:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn perl_and_posix_each_alone_and_with_extended_still_work() {
+        assert_eq!(run(&["-P", "s/\\d/X/"], "a1\n").0, "aX\n");
+        assert_eq!(run(&["--posix", "s/[0-9]/X/"], "a1\n").0, "aX\n");
+        assert_eq!(run(&["--posix", "-E", "s/[0-9]+/X/"], "a12\n").0, "aX\n");
+        // The last of -P and -E is the one that counts, so `-P -E` is ERE and `--posix -P -E` is allowed.
+        assert_eq!(
+            run(&["--posix", "-P", "-E", "s/[0-9]+/X/"], "a12\n").0,
+            "aX\n"
+        );
+    }
+}

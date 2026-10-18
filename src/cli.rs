@@ -455,6 +455,14 @@ fn parse_args(args: Vec<String>, program: &str) -> Result<Result<Invocation, ()>
             state.parse_base,
         ));
     }
+    // `--posix` turns the GNU extensions off, and `-P` is one that GNU sed does not have at all. (What counts is the
+    // state when each script was read and at the end, so `-P -E` is ERE.)
+    let both = |o: &ParseOptions| o.posix && o.pcre;
+    if both(&state.parse_base) || state.chunks.iter().any(|(_, o)| both(o)) {
+        return Err(usage_error(format!(
+            "{program}: -P (--perl-regexp) cannot be used with --posix: it is not a POSIX feature"
+        )));
+    }
     Ok(Ok(Invocation {
         options: state.options,
         chunks: state.chunks,

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  ripgsed\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-18 16:51+0900\n"
+"POT-Creation-Date: 2026-10-18 18:29+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ja\n"
@@ -95,8 +95,8 @@ msgid ""
 "lines, as `tail -n10` does, and `$-2,$p` prints the last three. GNU sed "
 "rejects these spellings (D15)."
 msgstr ""
-"**最後から数えるアドレス**：`ripgsed '$,-9!d'` は `tail -n10` と同じく最後の 10 行を残し、`$-2,$p` "
-"は最後の 3 行を出力する。GNU sed はこれらの書き方を拒否する（D15）。"
+"**最後から数えるアドレス**：`ripgsed '$,-9!d'` は `tail -n10` と同じく最後の 10 行を残し、`$-2,$p`"
+" は最後の 3 行を出力する。GNU sed はこれらの書き方を拒否する（D15）。"
 
 #: ../../../README.md:19
 msgid ""
@@ -215,7 +215,9 @@ msgid ""
 "Times are medians of 5 runs (51 for the row `-s -n '$p'`, which was "
 "looked at again), in seconds, on an Intel Core i7-1260P (16 threads), "
 "Linux, release build."
-msgstr "時間は 5 回の中央値で、単位は秒です（`-s -n '$p'` の行は、測り直したので 51 回の中央値です）。Intel Core i7-1260P（16 スレッド）、Linux、リリースビルドで測りました。"
+msgstr ""
+"時間は 5 回の中央値で、単位は秒です（`-s -n '$p'` の行は、測り直したので 51 回の中央値です）。Intel Core "
+"i7-1260P（16 スレッド）、Linux、リリースビルドで測りました。"
 
 #: ../../../README.md:48
 msgid ""
@@ -673,7 +675,10 @@ msgid ""
 "ranges and `-i` take the most), and 175 MiB for the Japanese `\\w` "
 "workload (one 20 MB line takes about 60 MiB in both), because input is "
 "read in blocks."
-msgstr "**メモリ**の使用量は GNU sed より多く、2 MiB に対して 4〜170 MiB です（範囲と `-i` が最も多く使います）。日本語の `\\w` の処理では 175 MiB です（20 MB の 1 行は、どちらも約 60 MiB です）。入力をブロック単位で読むためです。"
+msgstr ""
+"**メモリ**の使用量は GNU sed より多く、2 MiB に対して 4〜170 MiB です（範囲と `-i` "
+"が最も多く使います）。日本語の `\\w` の処理では 175 MiB です（20 MB の 1 行は、どちらも約 60 MiB "
+"です）。入力をブロック単位で読むためです。"
 
 #: ../../../README.md:92
 msgid ""
@@ -685,7 +690,13 @@ msgid ""
 " over 51 runs now). A ratio of 0.00 means a time below 0.005 s: those "
 "scripts read only the head or the tail of the file. The output of every "
 "workload was checked equal to GNU sed's."
-msgstr "**逐次実行**: 他のレコードを読む（`n`、`N`、`D`）、ホールドスペースを使う、ファイルを読む・コマンドを実行する（`r`、`R`、`e`）スクリプトは逐次実行になります。1 スレッドでの逐次実行の経路は、上のどの処理でも GNU sed より速いです（2 ファイルの `-s -n '$p'` は、`$` のために先読みしたレコードをキューに通していたときは 51 回の測定で 1.33 倍でしたが、今は 0.83 倍です）。比が 0.00 というのは、時間が 0.005 秒より短いということで、ファイルの先頭か末尾だけを読むスクリプトです。どの処理でも、出力が GNU sed と一致することを確認しています。"
+msgstr ""
+"**逐次実行**: "
+"他のレコードを読む（`n`、`N`、`D`）、ホールドスペースを使う、ファイルを読む・コマンドを実行する（`r`、`R`、`e`）スクリプトは逐次実行になります。1"
+" スレッドでの逐次実行の経路は、上のどの処理でも GNU sed より速いです（2 ファイルの `-s -n '$p'` は、`$` "
+"のために先読みしたレコードをキューに通していたときは 51 回の測定で 1.33 倍でしたが、今は 0.83 倍です）。比が 0.00 "
+"というのは、時間が 0.005 秒より短いということで、ファイルの先頭か末尾だけを読むスクリプトです。どの処理でも、出力が GNU sed "
+"と一致することを確認しています。"
 
 #: ../../../README.md:94
 msgid "As a grep"
@@ -777,20 +788,30 @@ msgstr ""
 "PCRE2 のものです。"
 
 #: ../../../README.md:110
+msgid ""
+"`--posix` turns the GNU extensions off, and `-P` is one that GNU sed does"
+" not have at all: `--posix` with `-P` is a usage error (`-P -E`, the last"
+" one counts, is ERE)."
+msgstr ""
+"`--posix` は GNU の拡張を無効にするオプションで、`-P` は GNU sed にはそもそも"
+"ない拡張である。`--posix` と `-P` を一緒に指定すると使い方のエラーになる（`-P"
+" -E` は最後に指定したほうが有効になり、ERE として扱われる）。"
+
+#: ../../../README.md:111
 msgid "The library has it too (`Pattern::perl`, `Script::parse_perl`)."
 msgstr "ライブラリにも同じ機能があります（`Pattern::perl`、`Script::parse_perl`）。"
 
-#: ../../../README.md:111
+#: ../../../README.md:112
 msgid ""
 "There is no GNU sed to compare with, so the results are those of the "
 "library, tested in `tests/cli.rs` (D14)."
 msgstr "比べられる GNU sed がないので、結果はライブラリのものです。`tests/cli.rs` でテストしています（D14）。"
 
-#: ../../../README.md:113
+#: ../../../README.md:114
 msgid "As a library"
 msgstr "ライブラリとして"
 
-#: ../../../README.md:115
+#: ../../../README.md:116
 msgid ""
 "A script is a list of commands, each an address and an operation (no "
 "address means every line). Write it as sed text, or build it with "
@@ -801,7 +822,7 @@ msgstr ""
 "のテキストとして書くことも、メソッドで組み立てることもでき、どちらも同じ `Script` になります。`Run` "
 "が、それをリーダー、ライター、バイト列に適用します。"
 
-#: ../../../README.md:133
+#: ../../../README.md:134
 msgid ""
 "The commands without a method yet (the hold space, `n` `N` `D` `P`, `r` "
 "`w`, labels) go in with `Edit::raw(\"1!G;h;$!d\")`. `Run::jobs` spreads a"
@@ -814,13 +835,13 @@ msgstr ""
 "は、行が互いに独立しているスクリプトをスレッドに分け、出力はバイト単位で同じです。`Run::glibc_compat` は C "
 "ライブラリのマッチャーの癖を再現します。"
 
-#: ../../../README.md:135
+#: ../../../README.md:136
 msgid ""
 "Do not expect it to beat plain Rust on a trivial job. Measured on 55.6 MB"
 " of log-like lines:"
 msgstr "単純な仕事では、素の Rust には勝てません。55.6 MB のログ風の行で測ると、次のとおりです。"
 
-#: ../../../README.md:137
+#: ../../../README.md:138
 msgid ""
 "`str::replace` for a literal is about 2.7 times faster than the same "
 "`s/alpha/X/g` through ripgsed on one thread."
@@ -828,13 +849,13 @@ msgstr ""
 "リテラルの `str::replace` は、同じ `s/alpha/X/g` を 1 スレッドで ripgsed に通すより、約 2.7 "
 "倍速いです。"
 
-#: ../../../README.md:138
+#: ../../../README.md:139
 msgid ""
 "`regex::Regex::replace_all` is about 1.7 to 2.3 times faster than "
 "`s/[0-9]+/N/g`."
 msgstr "`regex::Regex::replace_all` は、`s/[0-9]+/N/g` より約 1.7〜2.3 倍速いです。"
 
-#: ../../../README.md:139
+#: ../../../README.md:140
 msgid ""
 "A small input (100 lines) through a script that is already built takes "
 "about twice as long as the same work with a built `regex::Regex`."
@@ -842,7 +863,7 @@ msgstr ""
 "小さな入力（100 行）を、組み立て済みのスクリプトに通すと、組み立て済みの `regex::Regex` で同じことをするより、約 2 "
 "倍の時間がかかります。"
 
-#: ../../../README.md:141
+#: ../../../README.md:142
 msgid ""
 "What the library gives is what GNU sed means by a script (the addresses "
 "and ranges, the `s` flags, the case conversions, the locale rules), "
@@ -853,11 +874,11 @@ msgstr ""
 "のフラグ、大文字小文字の変換、ロケールの規則）で、GNU sed 4.9 "
 "と照らして確かめてあり、スクリプトが許すときにはスレッドも使います。リテラル 1 つの置換なら、`str::replace` を使ってください。"
 
-#: ../../../README.md:143
+#: ../../../README.md:144
 msgid "Method and what is next"
 msgstr "方法と、この先"
 
-#: ../../../README.md:145
+#: ../../../README.md:146
 msgid ""
 "Full GNU sed 4.9 compatibility, verified by differential tests (D4 in "
 "[docs/DECISIONS.md](docs/DECISIONS.md)); the grep mode (D12), `-P` (D14) "
@@ -873,25 +894,25 @@ msgstr ""
 "による正規表現の検索は sed モードにあり、grep モードではツリーのファイルを並列に検索します。この先は、エディタとの連携、grep "
 "の遅いケースの高速化、そして、C のビルドが重荷になるなら、`src/pcre.rs` の裏にある純 Rust の PCRE2 エンジンです。"
 
-#: ../../../README.md:147
+#: ../../../README.md:148
 msgid "[docs/DESIGN.md](docs/DESIGN.md): goals, semantics, open decisions"
 msgstr "[docs/ja/DESIGN.md](docs/DESIGN.md)：目標、意味、未決の事項"
 
-#: ../../../README.md:148
+#: ../../../README.md:149
 msgid ""
 "[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): current module layout and "
 "policies"
 msgstr "[docs/ja/ARCHITECTURE.md](docs/ARCHITECTURE.md)：現在のモジュール構成と方針"
 
-#: ../../../README.md:149
+#: ../../../README.md:150
 msgid "[tests/README.md](tests/README.md): how fixtures are generated"
 msgstr "[tests/README.md](tests/README.md)：fixture の作り方"
 
-#: ../../../README.md:151
+#: ../../../README.md:152
 msgid "Documentation"
 msgstr "ドキュメント"
 
-#: ../../../README.md:153
+#: ../../../README.md:154
 msgid ""
 "Docs are written in English and built with Sphinx in English and "
 "Japanese. The HTML is built by CI and published to GitHub Pages; it is "
@@ -909,15 +930,15 @@ msgstr ""
 "も同じ方法で、`docs/locale/ja/LC_MESSAGES/readme.po`（コードブロックは `docs/locale/ja"
 "/readme-code.json`）から作ります。"
 
-#: ../../../README.md:160
+#: ../../../README.md:161
 msgid "Development"
 msgstr "開発"
 
-#: ../../../README.md:168
+#: ../../../README.md:169
 msgid "License"
 msgstr "ライセンス"
 
-#: ../../../README.md:170
+#: ../../../README.md:171
 msgid ""
 "Licensed under either of [MIT](LICENSE-MIT) or [Apache-2.0](LICENSE-"
 "APACHE), at your option. Unless you state otherwise, any contribution you"
