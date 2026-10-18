@@ -2,6 +2,44 @@
 
 The release notes of every version. The section of a version is the text of its GitHub release.
 
+## 0.2.0 - 2026-10-18
+
+More of the scripts run in parallel, a script that needs only part of the input reads only that part, and there are two new addresses. The output, the files that `w` and `-i` write, and the exit status are the ones of the sequential run, which is what the tests compare (D16).
+
+### Added
+
+- Addresses counted from the end of the input (an extension: GNU sed 4.9 rejects them; D15):
+  - `$-N` is the line with N lines after it (`$-0` is `$`), so `$-9,$p` is the last ten lines and `$,-9!d` is `tail -n10`.
+  - `addr,-N` is a range of N lines before `addr`, the mirror of `addr,+N`: `10,-3` is `7,10`. (`addr,~N`, to a multiple of N, is as it was.)
+- aarch64: `memchr`, `memrchr`, counting and `memmem` use NEON. The tests run on Linux ARM in CI as well.
+- macOS (Apple Silicon) builds, and the fixtures that apply there pass in CI. The README says what is verified.
+- `RIPGSED_TAIL=0` and `RIPGSED_HEAD=0` turn off the shortcuts that read the end of the input and stop at the last line number, and `RIPGSED_TAIL_MIN_BYTES=N` is the size under which a file is read whole (0: every file is read from its end), to compare them with the sequential run.
+
+### Faster
+
+- More scripts run in parallel on large regular files: those with `q` and `Q`, `$`, `F`, ranges, and files written by `w`. `-s` and `-i` run in parallel too: each file is a stream of its own, and the files are edited on several threads.
+- A script that needs only part of the input reads only that part:
+
+  - the end (on a regular file, and on standard input when it is one): `-n '$p'`, `$!d`, `-n '$-9,$p'` read from the end of the file, as `tail` does;
+  - the beginning: `-n 1,10p`, `-n 500000p` stop reading after the last line number they name;
+  - both: `-n '1p;$p'`;
+  - `first~step`: `-n 0~1000p`, `-n 2~7p` skip to the next line of a step, which costs what is skipped.
+
+  The end, the beginning and both take less than 0.005 s on 1,000,000 lines, where GNU sed takes 0.02 to 0.03 s; the steps take 0.33 to 0.5 of its time. A script that cannot be proven to do nothing in between runs as before.
+- `y` is a table lookup where the characters are bytes (the C locale, and the ASCII text of UTF-8): `y/abc/xyz/` takes 0.09 s against 1.02 s for GNU sed, and `y` of the 26 letters 0.09 s against 2.77 s.
+- The sequential path costs less for every record: `-n '$p'` takes 376 instructions a line, from 579 (GNU sed: 410), and `-s -n '$p'` on one thread takes 0.83 of the time of GNU sed, from 1.33. The reader reuses its buffers instead of allocating one for every chunk (9,150 page faults on two files of 2,000,000 lines, against 637), and the record read ahead for `$` is held where it was read.
+- On one thread no row of `tools/bench.sh` is slower than GNU sed, and none of the 38 rows differs in output. The table of the README is measured again.
+
+### Changed
+
+- Library: `Run::run_parallel` spreads a script with `q` or `Q` too (the output stops at the first record that reaches it, and the exit status is the one it asked for). A script that writes files with `w` is still run as `Run::run` does.
+
+### Development
+
+- `tools/bench.sh`: rows for the new shortcuts, for `-s` and `-i`, and for `y` of 26 letters; `ONLY=text` runs some rows only; `GNU_SED=path` names the sed to compare with, and the script stops when it is not GNU sed.
+- Code formatted with rustfmt (the standard settings); CI checks rustfmt and `clippy -D warnings` on the latest stable toolchain, and runs the fixtures and the random scripts with the shortcuts forced on every file. `.githooks/pre-commit` does the same checks before a commit.
+- `AGENTS.md` for coding agents; `RIPGSED_BIN` and `RIPGSED_EXTRA_PATH` for the fixture harness.
+
 ## 0.1.3 - 2026-10-16
 
 ### Fixed
