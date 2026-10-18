@@ -43,28 +43,52 @@ It is developed and tested on Linux (Ubuntu, glibc), where the compatibility wit
 
 `tools/bench.sh` compares ripgsed with GNU sed 4.9 on deterministic workloads (1,000,000 log-like lines, output equality checked by hash).
 
-- Times are medians of 7 runs, in seconds, on an Intel Core i7-1260P (16 threads), Linux, release build.
+- Times are medians of 5 runs (51 for the row `-s -n '$p'`, which was looked at again), in seconds, on an Intel Core i7-1260P (16 threads), Linux, release build.
 - The locale is `LC_ALL=C.UTF-8`, a UTF-8 locale and the harder case. `BENCH_LOCALE=ja_JP.UTF-8 tools/bench.sh` measures a locale that goes through the C library: the Japanese workloads that use `\w` take about twice as long there and are still faster than GNU sed.
 - "Auto" is the default mode: scripts proven record-local by static analysis run in parallel on large regular files, with `-s` and `-i` too (each file is a stream of its own, and the files are edited on several threads).
 
 | workload | GNU sed | ripgsed, 1 thread | ratio | ripgsed, auto | ratio |
 |---|---:|---:|---:|---:|---:|
-| `s/alpha/X/g` | 0.42 | 0.27 | 0.64 | 0.05 | 0.12 |
-| `-E s/[0-9]+/N/g` | 1.39 | 0.85 | 0.61 | 0.16 | 0.12 |
-| `s/[a-z]*a$/END/` | 1.94 | 1.25 | 0.64 | 0.23 | 0.12 |
-| `/ERROR/d` | 0.18 | 0.13 | 0.72 | 0.04 | 0.22 |
-| `-n /user=beta.*id=1/p` | 0.16 | 0.13 | 0.81 | 0.03 | 0.19 |
-| `y/abc/xyz/` | 1.88 | 1.52 | 0.81 | 0.26 | 0.14 |
-| `s/\(a\)\(l\)/\2\1/g` | 0.46 | 0.28 | 0.61 | 0.06 | 0.13 |
-| `$!N;P;D` (not parallelizable) | 0.23 | 0.21 | 0.91 | 0.21 | 0.91 |
-| `-n 1000000p` (2,000,000 lines) | 0.06 | 0.05 | 0.83 | 0.02 | 0.33 |
-| one 20 MB line, `s/alpha/X/g` | 0.13 | 0.06 | 0.46 | 0.08 | 0.62 |
-| Japanese text (500,000 lines), `s/ユーザー/U/g` | 0.22 | 0.14 | 0.64 | 0.03 | 0.14 |
-| Japanese text, `-E s/[0-9]+/N/g` | 1.30 | 0.53 | 0.41 | 0.10 | 0.08 |
-| Japanese text, `s/\w\+/<&>/g` | 2.65 | 0.79 | 0.30 | 0.25 | 0.09 |
+| `s/alpha/X/g` | 0.21 | 0.16 | 0.76 | 0.03 | 0.14 |
+| `-E s/[0-9]+/N/g` | 0.83 | 0.49 | 0.59 | 0.11 | 0.13 |
+| `s/[a-z]*a$/END/` | 1.16 | 0.72 | 0.62 | 0.16 | 0.14 |
+| `/ERROR/d` | 0.12 | 0.08 | 0.67 | 0.02 | 0.17 |
+| `-n /user=beta.*id=1/p` | 0.10 | 0.07 | 0.70 | 0.02 | 0.20 |
+| `y/abc/xyz/` | 1.02 | 0.09 | 0.09 | 0.02 | 0.02 |
+| `y/a-z/A-Z/` (26 letters) | 2.77 | 0.09 | 0.03 | 0.02 | 0.01 |
+| `s/\(a\)\(l\)/\2\1/g` | 0.28 | 0.16 | 0.57 | 0.03 | 0.11 |
+| `$!N;P;D` (not parallelizable) | 0.15 | 0.12 | 0.80 | 0.12 | 0.80 |
+| `-n 1000000p` (2,000,000 lines) | 0.04 | 0.00 | 0.00 | 0.00 | 0.00 |
+| one 20 MB line, `s/alpha/X/g` | 0.08 | 0.04 | 0.50 | 0.05 | 0.62 |
+| Japanese text (500,000 lines), `s/ユーザー/U/g` | 0.13 | 0.08 | 0.62 | 0.02 | 0.15 |
+| Japanese text, `-E s/[0-9]+/N/g` | 0.78 | 0.30 | 0.38 | 0.06 | 0.08 |
+| Japanese text, `s/\w\+/<&>/g` | 1.60 | 0.49 | 0.31 | 0.16 | 0.10 |
+| `500000q` (quits half way) | 0.04 | 0.03 | 0.75 | 0.01 | 0.25 |
+| `/NEVERMATCH/q` (never quits) | 0.11 | 0.08 | 0.73 | 0.02 | 0.18 |
+| `$!s/alpha/X/` | 0.18 | 0.14 | 0.78 | 0.03 | 0.17 |
+| `/ERROR/,/WARN/s/alpha/X/` (short ranges) | 0.19 | 0.15 | 0.79 | 0.10 | 0.53 |
+| `/id=1234[0-9] /,/id=5678[0-9] /s/alpha/X/` (long ranges) | 0.18 | 0.14 | 0.78 | 0.10 | 0.56 |
+| `0~1000F` | 0.07 | 0.06 | 0.86 | 0.02 | 0.29 |
+| `/ERROR/w file` | 0.13 | 0.10 | 0.77 | 0.03 | 0.23 |
+| `s/alpha/X/w file` | 0.19 | 0.17 | 0.89 | 0.04 | 0.21 |
+| `-s '$!s/alpha/X/'` (2 files) | 0.36 | 0.28 | 0.78 | 0.06 | 0.17 |
+| `-s -n '$p'` (2 files) | 0.06 | 0.05 | 0.83 | 0.03 | 0.50 |
+| `-s /ERROR/,/WARN/s/alpha/X/` (2 files) | 0.37 | 0.31 | 0.84 | 0.21 | 0.57 |
+| `-i s/alpha/X/g` (4 files) | 0.87 | 0.62 | 0.71 | 0.16 | 0.18 |
+| `-i '$!s/alpha/X/'` (4 files) | 0.73 | 0.59 | 0.81 | 0.15 | 0.21 |
+| `-i /ERROR/,/WARN/s/alpha/X/` (4 files) | 0.76 | 0.62 | 0.82 | 0.48 | 0.63 |
+| `-i.bak '1d;$d'` (4 files) | 0.30 | 0.24 | 0.80 | 0.09 | 0.30 |
+| `-n '$p'` (last line) | 0.03 | 0.00 | 0.00 | 0.00 | 0.00 |
+| `$!d` (last line) | 0.03 | 0.00 | 0.00 | 0.00 | 0.00 |
+| `-n 1,10p` (first lines) | 0.02 | 0.00 | 0.00 | 0.00 | 0.00 |
+| `-n 500000p` (half way) | 0.02 | 0.00 | 0.00 | 0.00 | 0.00 |
+| `-n '1p;$p'` (both ends) | 0.03 | 0.00 | 0.00 | 0.00 | 0.00 |
+| `10q` (quits at once) | 0.00 | 0.00 | - | 0.00 | - |
+| `-n 0~1000p` (every 1000th line) | 0.03 | 0.01 | 0.33 | 0.01 | 0.33 |
+| `-n 2~7p` (every 7th line) | 0.04 | 0.02 | 0.50 | 0.01 | 0.25 |
 
-- **Memory** use is higher than GNU sed's: 4 to 70 MiB against 2 MiB, and 172 MiB for the Japanese `\w` workload (one 20 MB line takes about 60 MiB in both), because input is read in blocks.
-- **Sequential runs**: a script that reads other records (`n`, `N`, `D`), uses the hold space, or reads files or runs commands (`r`, `R`, `e`) runs sequentially. The sequential path is faster than GNU sed on every workload above.
+- **Memory** use is higher than GNU sed's: 4 to 170 MiB against 2 MiB (the ranges and `-i` take the most), and 175 MiB for the Japanese `\w` workload (one 20 MB line takes about 60 MiB in both), because input is read in blocks.
+- **Sequential runs**: a script that reads other records (`n`, `N`, `D`), uses the hold space, or reads files or runs commands (`r`, `R`, `e`) runs sequentially. On one thread the sequential path is faster than GNU sed on every workload above (`-s -n '$p'` on two files, which was 1.33 over 51 runs while the record read ahead for `$` went through a queue, is 0.83 over 51 runs now). A ratio of 0.00 means a time below 0.005 s: those scripts read only the head or the tail of the file. The output of every workload was checked equal to GNU sed's.
 
 ## As a grep
 
