@@ -202,6 +202,16 @@ impl<R: Read> ChunkedSource<R> {
 
     /// The next record, stored in `body` (cleared first, its capacity reused).
     pub fn next_record_into(&mut self, mut body: Vec<u8>) -> io::Result<Option<Record>> {
+        Ok(self
+            .next_into(&mut body)?
+            .map(|terminated| Record { body, terminated }))
+    }
+
+    /// The next record, stored in `body` (cleared first, its capacity reused): `None` at the end of the input, and
+    /// otherwise whether the record ends with a terminator. Nothing but that is returned, so a record that is held
+    /// where it was read is not moved.
+    #[inline]
+    pub fn next_into(&mut self, body: &mut Vec<u8>) -> io::Result<Option<bool>> {
         body.clear();
         loop {
             if self.pos < self.chunk.len() {
@@ -218,7 +228,7 @@ impl<R: Read> ChunkedSource<R> {
                 };
                 self.pos += used;
                 self.consumed += used as u64;
-                return Ok(Some(Record { body, terminated }));
+                return Ok(Some(terminated));
             }
             match self.reader.next_chunk()? {
                 Some(chunk) => {
@@ -308,6 +318,14 @@ pub struct FileInputs {
     current: Option<(Source, Rc<str>)>,
     /// The records read ahead of time (one for `$`, more for `$-N`), and whether each starts a new file.
     peeked: std::collections::VecDeque<Fetched>,
+    /// The one record that was read ahead for `$` and is held where it was read, without going through `peeked`: its body,
+    /// whether it ends with a terminator, and whether it starts a file (it is of the file being read). Moving a
+    /// whole `Fetched` into the queue and out of it at every line costs more than the work on the record. Only
+    /// held when `peeked` is empty; `unhold` puts it at the front of `peeked`.
+    held: bool,
+    held_body: Vec<u8>,
+    held_terminated: bool,
+    held_new_file: bool,
     /// A buffer for the next record (see `RecordSource::recycle`).
     spare: Vec<u8>,
     started_file: bool,
@@ -336,6 +354,10 @@ impl FileInputs {
             names: names.into_iter(),
             current: None,
             peeked: std::collections::VecDeque::new(),
+            held: false,
+            held_body: Vec::new(),
+            held_terminated: false,
+            held_new_file: false,
             spare: Vec::new(),
             started_file: false,
             separator,
@@ -353,6 +375,7 @@ impl FileInputs {
     /// Call when the run is over: gives back a record that was only looked at, so that the
     /// offset left on standard input is exact.
     pub fn finish(&mut self) {
+        self.unhold();
         for p in self.peeked.drain(..) {
             if &*p.file_name == "-" {
                 stdin_unconsume((p.record.body.len() + usize::from(p.record.terminated)) as u64);
@@ -493,6 +516,72 @@ impl FileInputs {
         }
     }
 
+    /// The name of the file that the held record is of: the one being read.
+    #[inline(always)]
+    fn held_name(&self) -> Rc<str> {
+        self.current
+            .as_ref()
+            .map_or_else(|| Rc::from("-"), |(_, name)| name.clone())
+    }
+
+    /// Puts the held record, if there is one, in front of the queue.
+    fn unhold(&mut self) {
+        if self.held {
+            self.held = false;
+            let file_name = self.held_name();
+            self.peeked.push_front(Fetched {
+                record: Record {
+                    body: std::mem::take(&mut self.held_body),
+                    terminated: self.held_terminated,
+                },
+                new_file: self.held_new_file,
+                file_name,
+            });
+        }
+    }
+
+    /// The one record of lookahead of `$`: reads the next record of the file being read, if there is one, and holds it
+    /// where it is (nothing is held or queued when this is called). Gives whether it starts a file; at the end of the
+    /// file, or at an error (which only shows once sed reads on), the file is left and `None` is given.
+    #[inline(always)]
+    fn hold_one(&mut self) -> Option<bool> {
+        let (source, _) = self.current.as_mut()?;
+        if self.held_body.capacity() == 0 {
+            std::mem::swap(&mut self.held_body, &mut self.spare);
+        }
+        let read = match source {
+            Source::Chunked(source) => source.next_into(&mut self.held_body),
+            Source::Stdin => {
+                match stdin_record_into(
+                    std::mem::take(&mut self.held_body),
+                    self.separator,
+                    self.unbuffered,
+                ) {
+                    Ok(Some(record)) => {
+                        self.held_body = record.body;
+                        Ok(Some(record.terminated))
+                    }
+                    Ok(None) => Ok(None),
+                    Err(e) => Err(e),
+                }
+            }
+        };
+        match read {
+            Ok(Some(terminated)) => {
+                let new_file = !self.started_file;
+                self.started_file = true;
+                self.held_terminated = terminated;
+                self.held_new_file = new_file;
+                self.held = true;
+                Some(new_file)
+            }
+            Ok(None) | Err(_) => {
+                self.current = None;
+                None
+            }
+        }
+    }
+
     /// Reads the next record of the file being read, if there is one, and holds it; gives whether it starts a file.
     /// At the end of the file, or at an error (which only shows once sed reads on), the file is left and `None` is
     /// given: the next file is not opened.
@@ -538,7 +627,20 @@ impl FileInputs {
 }
 
 impl RecordSource for FileInputs {
+    #[inline]
     fn next_record(&mut self) -> Result<Option<Fetched>, Fatal> {
+        if self.held {
+            self.held = false;
+            let file_name = self.held_name();
+            return Ok(Some(Fetched {
+                record: Record {
+                    body: std::mem::take(&mut self.held_body),
+                    terminated: self.held_terminated,
+                },
+                new_file: self.held_new_file,
+                file_name,
+            }));
+        }
         if let Some(fetched) = self.peeked.pop_front() {
             return Ok(Some(fetched));
         }
@@ -546,6 +648,7 @@ impl RecordSource for FileInputs {
     }
 
     fn skip_records(&mut self, mut n: u64) -> Result<u64, Fatal> {
+        self.unhold();
         let mut done = 0;
         while n > 0 && self.peeked.pop_front().is_some() {
             done += 1;
@@ -596,11 +699,17 @@ impl RecordSource for FileInputs {
     }
 
     fn records_after(&mut self, separate: bool, cap: usize) -> Result<usize, Fatal> {
+        if cap != 1 {
+            self.unhold();
+        }
         if !separate {
+            if self.held {
+                return Ok(1);
+            }
             if self.peeked.len() < cap {
                 // One record of lookahead (`$`) is read from the file being read; only when it has no more is the
                 // next file opened, which `fill_to` does.
-                if cap == 1 && self.hold_from_current().is_some() {
+                if cap == 1 && self.peeked.is_empty() && self.hold_one().is_some() {
                     return Ok(1);
                 }
                 self.fill_to(cap, true)?;
@@ -609,12 +718,15 @@ impl RecordSource for FileInputs {
         }
         // (`$` with `-s`: one record is held, and it is of this file unless it starts the next one.)
         if cap == 1 {
+            if self.held {
+                return Ok(usize::from(!self.held_new_file));
+            }
             if let Some(front) = self.peeked.front() {
                 return Ok(usize::from(!front.new_file));
             }
             // Nothing is held: the next record of this file, if there is one, is read and held now. (The next file is not
             // opened: only the current one matters.)
-            return Ok(match self.hold_from_current() {
+            return Ok(match self.hold_one() {
                 Some(new_file) => usize::from(!new_file),
                 None => 0,
             });
