@@ -388,6 +388,7 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
 
     /// Reads the next record into the pattern space (replacing it or appending).
     /// Returns `false` at the end of the input. Pending output is flushed first.
+    #[inline(always)]
     fn read_line(&mut self, append: bool) -> Result<bool, Fatal> {
         self.flush_pending()?;
         if self.options.in_place.is_some() && self.out.is_in_place() && self.input.is_last(true)? {
@@ -700,10 +701,16 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
             .map_err(|e| write_error("stdout", &e))
     }
 
+    #[inline(always)]
     fn flush_pending(&mut self) -> Result<(), Fatal> {
         if self.pending.is_empty() {
             return Ok(());
         }
+        self.write_pending()
+    }
+
+    #[cold]
+    fn write_pending(&mut self) -> Result<(), Fatal> {
         for item in std::mem::take(&mut self.pending) {
             match item {
                 Pending::Text(text) => self.write_raw(&text)?,
@@ -776,6 +783,7 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
         }
     }
 
+    #[inline(always)]
     fn addr_matches(&mut self, addr: &Addr) -> Result<bool, Fatal> {
         Ok(match addr {
             Addr::Line(n) => self.line == *n,
@@ -793,6 +801,7 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
         })
     }
 
+    #[inline(always)]
     fn selected(&mut self, index: usize) -> Result<bool, Fatal> {
         let script = self.script;
         let command = &script.commands[index];
@@ -984,9 +993,47 @@ impl<S: RecordSource + ?Sized> Machine<'_, S> {
 
 impl<S: RecordSource + ?Sized> Machine<'_, S> {
     /// Runs the script once over the current pattern space.
+    ///
+    /// The commands that most scripts that are quick to run are made of (`p`, `d`, blocks and labels, and what
+    /// selects them) are run here, in a function that is small. The first command that is anything else, and what
+    /// follows it, is run by `execute_from`, which is large and slow to enter. (No command is looked at twice:
+    /// selecting one can change the state of a range.)
     fn execute(&mut self) -> Result<Flow, Fatal> {
+        if self.options.debug {
+            return self.execute_from(0);
+        }
         let script = self.script;
         let mut pc = 0;
+        while pc < script.commands.len() {
+            let command = &script.commands[pc];
+            if !matches!(
+                command.kind,
+                Kind::Print | Kind::Delete | Kind::BlockStart(_) | Kind::BlockEnd | Kind::Label(_)
+            ) {
+                return self.execute_from(pc);
+            }
+            if !self.selected(pc)? {
+                pc = match command.kind {
+                    // Skip the block but still visit its `}`.
+                    Kind::BlockStart(end) => end,
+                    _ => pc + 1,
+                };
+                continue;
+            }
+            match command.kind {
+                Kind::Print => self.print_pattern()?,
+                Kind::Delete => return Ok(Flow::Discard),
+                _ => {}
+            }
+            pc += 1;
+        }
+        Ok(Flow::End)
+    }
+
+    /// Runs the script from the command `pc` (see `execute`).
+    #[inline(never)]
+    fn execute_from(&mut self, mut pc: usize) -> Result<Flow, Fatal> {
+        let script = self.script;
         while pc < script.commands.len() {
             let command = &script.commands[pc];
             if self.options.debug && !matches!(command.kind, Kind::Version) {

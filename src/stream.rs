@@ -33,6 +33,8 @@ pub struct ChunkReader<R: Read> {
     seq: u64,
     records: u64,
     eof: bool,
+    /// A buffer that a consumer is done with (see `recycle`), to hold the next chunk instead of a new one.
+    spare: Vec<u8>,
     /// The reader is a regular file: a block is read in one go without first being filled with zeros.
     regular: bool,
 }
@@ -49,12 +51,22 @@ impl<R: Read> ChunkReader<R> {
             seq: 0,
             records: 0,
             eof: false,
+            spare: Vec::new(),
             regular: false,
         }
     }
 
     pub fn get_mut(&mut self) -> &mut R {
         &mut self.reader
+    }
+
+    /// Hands back the data of a chunk that is done with: its buffer holds the unfinished record and the read that
+    /// follow, which saves a block of memory that is new (and touched for the first time) at every chunk.
+    pub fn recycle(&mut self, mut data: Vec<u8>) {
+        if data.capacity() > self.spare.capacity() {
+            data.clear();
+            self.spare = data;
+        }
     }
 
     /// Says that the reader is a regular file. A read of a block then gives a whole block (or what is left of the
@@ -108,8 +120,11 @@ impl<R: Read> ChunkReader<R> {
             // Cut after the last separator, keep the unfinished record for the next read.
             if let Some(at) = crate::search::memrchr(self.separator, &self.carry[old..]) {
                 let cut = old + at + 1;
-                let rest = self.carry.split_off(cut);
-                let data = std::mem::replace(&mut self.carry, rest);
+                let mut rest = std::mem::take(&mut self.spare);
+                rest.clear();
+                rest.extend_from_slice(&self.carry[cut..]);
+                let mut data = std::mem::replace(&mut self.carry, rest);
+                data.truncate(cut);
                 return Ok(Some(self.emit(data, false)));
             }
         }
@@ -274,6 +289,46 @@ mod tests {
                         separators + unterminated,
                         "block {block} sizes {sizes:?}"
                     );
+                }
+            }
+        }
+    }
+
+    /// A consumer that hands each chunk's buffer back gets the same chunks: the buffer is reused for the unfinished
+    /// record and the next read, and nothing of the earlier chunk may stay in it.
+    #[test]
+    fn chunks_are_the_same_when_their_buffers_are_handed_back() {
+        for data in [
+            &b"one\ntwo\n\nthree\nfour"[..],
+            b"a\nb\nc\nd\ne\nf\n",
+            b"a longer record than the block\nx\nanother long record that is longer\n",
+            b"no separator at all",
+        ] {
+            for block in [1, 2, 3, 5, 8, 64] {
+                for regular in [false, true] {
+                    let plain = chunks(data, block, vec![100]);
+                    let mut reader = ChunkReader::new(
+                        Pieces {
+                            data,
+                            sizes: vec![100],
+                            at: 0,
+                        },
+                        b'\n',
+                        block,
+                    );
+                    if regular {
+                        reader.set_regular();
+                    }
+                    let mut got = Vec::new();
+                    while let Some(mut chunk) = reader.next_chunk().unwrap() {
+                        let copy = Chunk {
+                            data: chunk.data.clone(),
+                            ..chunk
+                        };
+                        reader.recycle(std::mem::take(&mut chunk.data));
+                        got.push(copy);
+                    }
+                    assert_eq!(got, plain, "block {block} regular {regular}");
                 }
             }
         }
