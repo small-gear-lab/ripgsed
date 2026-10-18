@@ -18,6 +18,8 @@ fn run(plan: bool, args: &[&str], file: &std::path::Path) -> Run {
     command
         .args(args)
         .arg(file)
+        // (a file that `w` writes is made next to the input, where the test reads it)
+        .current_dir(file.parent().expect("a file in a directory"))
         .env("LC_ALL", "C")
         .env("RIPGSED_JOBS", "1");
     if plan {
