@@ -8,7 +8,7 @@ layout in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). This file only says how 
 
 ripgsed is a GNU sed 4.9 compatible stream editor in Rust (a command and a library). The same binary is a GNU grep
 (mode chosen by the program name `grep`, `egrep`, `fgrep`, `rgrep`, or by `--grep` as the first argument), and `-P`
-reads the regular expressions with PCRE2 (`pcre2-sys`). It is experimental (0.1.x), published on crates.io.
+reads the regular expressions with PCRE2 (`pcre2-sys`). It is experimental (0.x), published on crates.io.
 
 ## Rules that must not be broken
 
