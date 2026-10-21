@@ -282,7 +282,9 @@ pub struct Regex {
     /// cannot decide (a range, a class, a negated set, `\\w`, a back-reference) replaced by any
     /// bytes (see `reads_beyond_unicode`). `None` when no unit changes.
     relaxed: Option<Box<Regex>>,
-    /// `filter` is the pattern with its back-references loosened (see `loose_filter`).
+    /// `filter` is the pattern with its back-references loosened (see `loose_filter`). It is not asked
+    /// before every search (its automata would be made for a short line too): the walk with
+    /// back-references asks it once it has become costly (see `Searcher::loose`).
     filter_is_loose: bool,
     /// Off to test the DFA against the simulation.
     use_dfa: bool,
@@ -537,6 +539,7 @@ impl Regex {
         if self
             .filter
             .as_ref()
+            .filter(|_| !self.filter_is_loose)
             .is_some_and(|f| !f.is_match_once(haystack))
         {
             return false;
@@ -602,7 +605,8 @@ impl Regex {
             boundary: if self.syntax.glibc_compat { 0 } else { start },
             seen: &self.boundaries,
             tails: self.tails,
-            loose: self.loose_search(),
+            loose: self.loose_search().0,
+            loose_full: self.loose_search().1,
         };
         match searcher.search(start) {
             Some((_, groups)) => {
@@ -613,18 +617,18 @@ impl Regex {
         }
     }
 
-    /// The pattern that bounds the search with back-references (see `exec::Searcher::loose`), when
-    /// that search is one the bound is safe for: the paths of the glibc quirks and the characters of
-    /// a multibyte set are left to the search alone.
-    fn loose_search(&self) -> Option<&Regex> {
-        if self.filter_is_loose
-            && !self.prog.quirks
-            && !self.syntax.glibc_compat
-            && self.syntax.locale != Locale::Mb
-        {
-            self.filter.as_deref()
+    /// The pattern that bounds the search with back-references (see `exec::Searcher::loose`), and
+    /// whether the search may also start where it matches and stop at the end it gives. Where the
+    /// walk keeps more than the path (the registers of the glibc quirks, `--glibc-compat`, the
+    /// characters of a multibyte set) it may only be told that nothing matches: every string that a
+    /// back-reference takes is one that its group took, quirks or not, so that answer holds.
+    fn loose_search(&self) -> (Option<&Regex>, bool) {
+        let full =
+            !self.prog.quirks && !self.syntax.glibc_compat && self.syntax.locale != Locale::Mb;
+        if self.filter_is_loose {
+            (self.filter.as_deref(), full)
         } else {
-            None
+            (None, false)
         }
     }
 
@@ -657,6 +661,7 @@ impl Regex {
             seen: &self.boundaries,
             tails: self.tails,
             loose: None,
+            loose_full: false,
         };
         searcher.loose_span(from)
     }
@@ -702,6 +707,7 @@ impl Regex {
             seen: &exec::BoundaryCache::default().into(),
             tails: false,
             loose: None,
+            loose_full: false,
         };
         (searcher.word_before(pos), searcher.word_after(pos))
     }
@@ -731,6 +737,7 @@ impl Regex {
         if self
             .filter
             .as_ref()
+            .filter(|_| !self.filter_is_loose)
             .is_some_and(|f| !f.is_match_once(haystack))
         {
             return false;
@@ -768,7 +775,8 @@ impl Regex {
             boundary: 0,
             seen: &exec::BoundaryCache::default().into(),
             tails: false,
-            loose: self.loose_search(),
+            loose: self.loose_search().0,
+            loose_full: self.loose_search().1,
         };
         searcher.exists()
     }

@@ -220,6 +220,9 @@ pub struct Searcher<'a> {
     /// original's, and it is searched in linear time, so the search with back-references starts
     /// where it matches and stops at the longest end it gives.
     pub loose: Option<&'a super::Regex>,
+    /// The search may also start where `loose` matches and stop at the end it gives (else it is only
+    /// asked whether anything matches).
+    pub loose_full: bool,
 }
 
 /// `Mb`: positions of one line that are character boundaries, each with the valid character that
@@ -652,15 +655,6 @@ impl<'a> Searcher<'a> {
                 let mut s = from;
                 loop {
                     bt.ceiling = None;
-                    if let Some(loose) = self.loose {
-                        match loose.leftmost_longest(self.hay, s, self.address) {
-                            None => return None,
-                            Some((ls, le)) => {
-                                s = ls;
-                                bt.ceiling = Some(le);
-                            }
-                        }
-                    }
                     if self.may_start(s) {
                         if let Some(e) = bt.run(s, None) {
                             // With an assertion in the pattern glibc loses the whole search when
@@ -679,6 +673,15 @@ impl<'a> Searcher<'a> {
                         // fails because it refuses an empty group there (`(a?){2}\1` on `baaa`).
                         if s == start && bt.hit {
                             return None;
+                        }
+                        // The walk was costly and the loosened pattern said where a match can
+                        // start next, or that none can (see `Backtracker::run`).
+                        if bt.none_after {
+                            return None;
+                        }
+                        if let Some(next) = bt.skip_to.take() {
+                            s = next;
+                            continue;
                         }
                     }
                     if s >= len {
@@ -953,6 +956,12 @@ struct Backtracker<'s, 'a> {
     over: bool,
     /// `steps` when the current walk began.
     run_steps0: u64,
+    /// The loosened pattern (see `Searcher::loose`) found no match from the start of the walk on.
+    none_after: bool,
+    /// It found that no match starts before this position.
+    skip_to: Option<usize>,
+    /// What it found last: from where it looked, and the leftmost start and the longest end there.
+    known: Option<(usize, usize, usize)>,
 }
 
 /// `copy_ok` looks at matches that are not longer than this many bytes, and at groups with at
@@ -1053,6 +1062,9 @@ impl<'s, 'a> Backtracker<'s, 'a> {
             budget: 0,
             over: false,
             run_steps0: 0,
+            none_after: false,
+            skip_to: None,
+            known: None,
             unset_path: false,
             no_empty: false,
             refused: false,
@@ -1567,7 +1579,32 @@ impl<'s, 'a> Backtracker<'s, 'a> {
         if !self.over {
             return found;
         }
-        // Over the budget: the same walk again, now with the memo.
+        // Over the budget: the walk is costly, so it is worth asking the loosened pattern (it takes time
+        // linear in the text, and its automata are not built before): where can a match start, and
+        // how far can it reach? A match of the original starts no earlier and ends no later.
+        if let (Some(loose), None) = (self.s.loose, target) {
+            let (ls, le) = match self.known {
+                Some((from, ls, le)) if from <= start && start <= ls => (ls, le),
+                _ => match loose.leftmost_longest(self.s.hay, start, self.s.address) {
+                    None => {
+                        self.none_after = true;
+                        return None;
+                    }
+                    Some((ls, le)) => {
+                        self.known = Some((start, ls, le));
+                        (ls, le)
+                    }
+                },
+            };
+            if self.s.loose_full {
+                if ls > start {
+                    self.skip_to = Some(ls);
+                    return None;
+                }
+                self.ceiling = Some(le);
+            }
+        }
+        // The same walk again, now with the memo.
         self.lazy = false;
         self.over = false;
         self.refused = before.0;
