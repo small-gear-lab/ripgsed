@@ -46,6 +46,19 @@ pub struct Program {
     pub char_starts: bool,
     /// The instruction index of every unit (units and `Inst::Unit` correspond one to one).
     pub unit_pcs: Vec<u32>,
+    /// `split_target[pc]`: the instruction is an alternative of some `Split`. The walk with back-references
+    /// marks the instructions it passes since the last consumed unit to see that it does not go round a
+    /// loop that consumes nothing, and it asks about these only.
+    pub split_target: Vec<bool>,
+    /// Some group close reads the snapshot of the registers that the walk keeps at the last non-empty
+    /// close of a group (one that is the whole body of an optional repetition, or the group of a loop of a
+    /// loop): without one the walk need not take the snapshot.
+    pub needs_snap: bool,
+    /// Groups with this property: they are in no loop, and every path from the end of the group to a match
+    /// goes through a back-reference to the group. A path that is inside such a group at `pos`, which began at
+    /// `a`, can only match if the text holds the `pos - a` units that the back-reference will take again after
+    /// `pos` (the walk keeps to paths that can).
+    pub prune_groups: Vec<usize>,
     /// For every group a back-reference names that has more than one copy in the program (it
     /// lies in a repetition that was expanded): its copies, in program order. Empty for every
     /// other group. See `Backtracker::copy_ok`.
@@ -124,6 +137,18 @@ pub fn compile(
             unit_pcs[k as usize] = pc as u32;
         }
     }
+    let mut split_target = vec![false; c.insts.len()];
+    for inst in &c.insts {
+        if let Inst::Split(a, b) = *inst {
+            split_target[a as usize] = true;
+            split_target[b as usize] = true;
+        }
+    }
+    let needs_snap = c
+        .insts
+        .iter()
+        .any(|i| matches!(*i, Inst::Close(_, opt, _, lk) if opt || lk == 3));
+    let prune_groups = prune_groups(&c.insts, ngroups, &referenced);
     let mut copies = vec![Vec::new(); ngroups + 1];
     for (g, slot) in copies.iter_mut().enumerate().skip(1) {
         if !referenced.get(g).copied().unwrap_or(false) {
@@ -157,9 +182,67 @@ pub fn compile(
         preds,
         char_starts,
         unit_pcs,
+        split_target,
+        needs_snap,
+        prune_groups,
     };
     prog.first_bytes = first_bytes(&prog);
     Ok(prog)
+}
+
+/// The groups that `Program::prune_groups` describes.
+fn prune_groups(insts: &[Inst], ngroups: usize, referenced: &[bool]) -> Vec<usize> {
+    // Where each instruction can go next (a unit goes on to the next instruction once it has a unit).
+    let next = |pc: usize| -> Vec<usize> {
+        match insts[pc] {
+            Inst::Split(a, b) => vec![a as usize, b as usize],
+            Inst::Jmp(a) => vec![a as usize],
+            Inst::Match => vec![],
+            _ => vec![pc + 1],
+        }
+    };
+    // Whether `target` can be reached from `from` (not counting `from` itself unless it is on a
+    // cycle), without going through the instructions for which `blocked` is true.
+    let reaches = |from: usize, target: &dyn Fn(usize) -> bool, blocked: &dyn Fn(usize) -> bool| {
+        let mut seen = vec![false; insts.len()];
+        let mut stack = next(from);
+        while let Some(pc) = stack.pop() {
+            if seen[pc] || blocked(pc) {
+                continue;
+            }
+            seen[pc] = true;
+            if target(pc) {
+                return true;
+            }
+            stack.extend(next(pc));
+        }
+        false
+    };
+    let mut out = Vec::new();
+    for g in 1..=ngroups {
+        if !referenced.get(g).copied().unwrap_or(false) {
+            continue;
+        }
+        let opens: Vec<usize> = (0..insts.len())
+            .filter(|&pc| matches!(insts[pc], Inst::Open(k) if k as usize == g))
+            .collect();
+        let closes: Vec<usize> = (0..insts.len())
+            .filter(|&pc| matches!(insts[pc], Inst::Close(k, ..) if k as usize == g))
+            .collect();
+        if opens.len() != 1 || closes.len() != 1 {
+            continue;
+        }
+        let is_backref = |pc: usize| matches!(insts[pc], Inst::Backref(k) if k as usize == g);
+        let is_match = |pc: usize| matches!(insts[pc], Inst::Match);
+        // In no loop: the open is not reachable from itself.
+        let looped = reaches(opens[0], &|pc| pc == opens[0], &|_| false);
+        // Every path from the close to a match goes through a back-reference to the group.
+        let avoidable = reaches(closes[0], &is_match, &is_backref);
+        if !looped && !avoidable {
+            out.push(g);
+        }
+    }
+    out
 }
 
 struct Compiler {

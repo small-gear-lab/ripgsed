@@ -20,6 +20,22 @@ use super::compile::{GroupCopy, Inst, Program};
 
 const NONE: usize = usize::MAX;
 
+#[cfg(test)]
+thread_local! {
+    /// Lets a test run the walks without the pruning of `Backtracker::prune`, to compare.
+    pub static PRUNE_OFF: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+
+#[cfg(test)]
+fn prune_disabled_by_test() -> bool {
+    PRUNE_OFF.with(|c| c.get())
+}
+
+#[cfg(not(test))]
+fn prune_disabled_by_test() -> bool {
+    false
+}
+
 /// A walk with back-references runs without its memo for this many steps for each unit of the text it
 /// may cover and each instruction of the program, and then again with it.
 const LAZY_FACTOR: u64 = 8;
@@ -377,6 +393,10 @@ impl<'a> Searcher<'a> {
         match &self.prog.units[u as usize] {
             Unit::Byte(set) => set.contains(b).then_some(1),
             Unit::Any { exclude } => {
+                // (An ASCII byte is a character of its own, whatever the text around it.)
+                if b < 0x80 && !self.mb {
+                    return exclude.is_none_or(|e| b != e && b != b'\n').then_some(1);
+                }
                 let Some((c, len)) = self.dec(pos) else {
                     // (At level 2 of `with_ext`: `.` takes an encoded surrogate whole.)
                     return if self.utf8 && !self.mb && exclude.is_none_or(|e| e != b) {
@@ -954,6 +974,10 @@ struct Backtracker<'s, 'a> {
     budget: u64,
     /// The walk stopped because it used its budget.
     over: bool,
+    /// Paths that cannot hold the back-reference after the group they are in are dropped (see
+    /// `Program::prune_groups`); not under `I`, where the back-reference may take other bytes, nor with the
+    /// glibc quirks, whose walk goes on past a refused back-reference.
+    prune: bool,
     /// `steps` when the current walk began.
     run_steps0: u64,
     /// The loosened pattern (see `Searcher::loose`) found no match from the start of the walk on.
@@ -1061,6 +1085,11 @@ impl<'s, 'a> Backtracker<'s, 'a> {
             lazy: false,
             budget: 0,
             over: false,
+            prune: !s.icase
+                && !s.glibc
+                && !s.prog.quirks
+                && !s.prog.prune_groups.is_empty()
+                && !prune_disabled_by_test(),
             run_steps0: 0,
             none_after: false,
             skip_to: None,
@@ -1254,6 +1283,7 @@ impl<'s, 'a> Backtracker<'s, 'a> {
 
     /// Marks a state reached right after consuming input; false if it was
     /// reached before.
+    #[inline(always)]
     fn memo(&mut self, pc: u32, pos: usize) -> bool {
         if self.lazy {
             return true;
@@ -1486,6 +1516,16 @@ impl<'s, 'a> Backtracker<'s, 'a> {
         5 * (self.s.prog.ngroups + 1) + g
     }
 
+    /// Whether, inside a group that its back-reference will take again after it, `pos` is so far from the
+    /// start of the group that the text that is left cannot hold what it has taken.
+    #[inline(always)]
+    fn cannot_hold_backref(&self, pos: usize) -> bool {
+        self.s.prog.prune_groups.iter().any(|&g| {
+            let (a, b) = (self.caps[2 * g], self.caps[2 * g + 1]);
+            a != NONE && b == NONE && pos * 2 > a + self.s.hay.len()
+        })
+    }
+
     fn backref_len(&self, g: usize, pos: usize) -> Option<usize> {
         let (a, b) = (self.caps[2 * g], self.caps[2 * g + 1]);
         if a == NONE || b == NONE || self.caps[self.mid_slot(g)] == 1 {
@@ -1663,7 +1703,9 @@ impl<'s, 'a> Backtracker<'s, 'a> {
                     self.over = true;
                     return None;
                 }
-                self.mark(pc);
+                if prog.split_target[pc as usize] {
+                    self.mark(pc);
+                }
                 match prog.insts[pc as usize] {
                     Inst::Unit(u) => match self.s.unit_len(u, pos) {
                         Some(l) => {
@@ -1671,6 +1713,9 @@ impl<'s, 'a> Backtracker<'s, 'a> {
                             pc += 1;
                             nl = false;
                             c = false;
+                            if self.prune && self.cannot_hold_backref(pos) {
+                                break;
+                            }
                             self.new_segment();
                             if !self.memo(pc, pos) {
                                 break;
@@ -1738,9 +1783,11 @@ impl<'s, 'a> Backtracker<'s, 'a> {
                             }
                             self.set_cap(slot, mid as usize);
                             self.set_cap(self.closer_slot(g), pc as usize);
-                            for i in 0..self.caps.len() {
-                                let v = self.caps[i];
-                                self.set_snap(i, v);
+                            if prog.needs_snap {
+                                for i in 0..self.caps.len() {
+                                    let v = self.caps[i];
+                                    self.set_snap(i, v);
+                                }
                             }
                         }
                         pc += 1;

@@ -908,3 +908,69 @@ fn a_walk_over_its_budget_is_run_again_with_the_memo() {
     assert_eq!(run(text(40, 41)), None);
     assert_eq!(run(text(40, 42)), Some((0, 40 + 1 + 42 + 1)));
 }
+
+/// The walk drops a path that cannot hold the back-reference after the group it is in (see
+/// `Program::prune_groups`): the result must be what the walk gives without that, for patterns of every
+/// shape that the analysis meets (groups in loops, in bounded copies, in alternations, several groups,
+/// back-references that can be empty or that a branch skips).
+#[test]
+fn pruning_a_path_that_cannot_hold_its_back_reference_changes_no_result() {
+    use super::exec::PRUNE_OFF;
+    struct Rng(u64);
+    impl Rng {
+        fn below(&mut self, n: u64) -> u64 {
+            self.0 ^= self.0 << 13;
+            self.0 ^= self.0 >> 7;
+            self.0 ^= self.0 << 17;
+            self.0 % n
+        }
+    }
+    const ATOMS: [&str; 10] = ["a", "b", ".", "[ab]", "a*", "b*", "[ab]+", "a?", "ab", ".*"];
+    let mut rng = Rng(0x9e37_79b9_7f4a_7c15);
+    let mut compared = 0u32;
+    for _ in 0..3000 {
+        let pick = |rng: &mut Rng| ATOMS[rng.below(ATOMS.len() as u64) as usize];
+        let mut body = String::new();
+        for _ in 0..1 + rng.below(2) {
+            body.push_str(pick(&mut rng));
+        }
+        let (pre, mid, post) = (pick(&mut rng), pick(&mut rng), pick(&mut rng));
+        let pattern = match rng.below(8) {
+            0 => format!("{pre}({body}){mid}\\1{post}"),
+            1 => format!("{pre}({body})*{mid}\\1{post}"),
+            2 => format!("{pre}({body}){{2}}{mid}\\1{post}"),
+            3 => format!("{pre}({body}|{mid}){post}\\1"),
+            4 => format!("{pre}({body})({mid})\\2\\1{post}"),
+            5 => format!("{pre}({body}){mid}(\\1|{post})"),
+            6 => format!("^({body}){mid}\\1$"),
+            _ => format!("({body}){pre}\\1{mid}\\1"),
+        };
+        let syntax = Syntax {
+            extended: true,
+            ..Syntax::default()
+        };
+        let Ok(re) = Regex::compile(pattern.as_bytes(), &syntax) else {
+            continue;
+        };
+        for _ in 0..25 {
+            let len = rng.below(13) as usize;
+            let text: Vec<u8> = (0..len).map(|_| b"ab"[rng.below(2) as usize]).collect();
+            let run = |off: bool| {
+                PRUNE_OFF.with(|c| c.set(off));
+                let mut caps = Captures::default();
+                let found = re.captures_at(&text, 0, &mut caps);
+                (found, caps.groups.clone())
+            };
+            let (with, without) = (run(false), run(true));
+            PRUNE_OFF.with(|c| c.set(false));
+            assert_eq!(
+                with,
+                without,
+                "{pattern} on {:?}",
+                String::from_utf8_lossy(&text)
+            );
+            compared += 1;
+        }
+    }
+    assert!(compared > 20_000, "{compared}");
+}
