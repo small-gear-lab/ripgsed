@@ -367,6 +367,10 @@ impl Regex {
             None
         };
         let mut re = Regex::from_parsed(parsed, syntax, delim, filter)?;
+        if re.prog.has_backrefs && re.filter.is_none() {
+            // (A pattern that does not fit as a whole just goes without the filter.)
+            re.filter = loose_filter(pattern, syntax, delim).map(Box::new);
+        }
         re.warnings = warnings;
         re.regex_selects = syntax.grep
             && (re.prog.has_backrefs || (syntax.locale.is_chars() && has_multibyte_set(&re.node)));
@@ -713,6 +717,63 @@ impl Regex {
         };
         searcher.exists()
     }
+}
+
+/// For a pattern with back-references, the pattern with each of them replaced by a copy of the group
+/// it names, and no groups left. What `\1` matches is something the group matched, so the language of
+/// this pattern contains the original's: a text it does not match cannot match the original. It has no
+/// back-references, so a search takes time linear in the text, where the search for the original may
+/// try every way to split the text between the repetitions (`(\.+)+\1b$` on a line of dots).
+fn loose_filter(pattern: &[u8], syntax: &Syntax, delim: u8) -> Option<Regex> {
+    use ast::Node;
+    // The copies are charged to this budget, so that nested back-references (`(a)(\1\1)(\2\2)...`)
+    // cannot make the tree grow exponentially.
+    fn size(node: &Node) -> usize {
+        match node {
+            Node::Group(_, inner) | Node::Repeat(inner, _, _) => 1 + size(inner),
+            Node::Concat(items) | Node::Alt(items) => 1 + items.iter().map(size).sum::<usize>(),
+            _ => 1,
+        }
+    }
+    fn walk(node: &Node, bodies: &mut Vec<Option<Node>>, budget: &mut usize) -> Option<Node> {
+        *budget = budget.checked_sub(1)?;
+        Some(match node {
+            Node::Group(n, inner) => {
+                let body = walk(inner, bodies, budget)?;
+                if bodies.len() <= *n {
+                    bodies.resize(*n + 1, None);
+                }
+                bodies[*n] = Some(body.clone());
+                body
+            }
+            Node::Backref(n) => {
+                let body = bodies.get(*n)?.clone()?;
+                *budget = budget.checked_sub(size(&body))?;
+                body
+            }
+            Node::Repeat(inner, min, max) => {
+                Node::Repeat(Box::new(walk(inner, bodies, budget)?), *min, *max)
+            }
+            Node::Concat(items) => Node::Concat(
+                items
+                    .iter()
+                    .map(|n| walk(n, bodies, budget))
+                    .collect::<Option<_>>()?,
+            ),
+            Node::Alt(items) => Node::Alt(
+                items
+                    .iter()
+                    .map(|n| walk(n, bodies, budget))
+                    .collect::<Option<_>>()?,
+            ),
+            other => other.clone(),
+        })
+    }
+    let mut parsed = parse::parse(pattern, syntax, delim).ok()?;
+    parsed.node = walk(&parsed.node, &mut Vec::new(), &mut 10_000)?;
+    parsed.ngroups = 0;
+    parsed.referenced = Vec::new();
+    Regex::from_parsed(parsed, syntax, delim, None).ok()
 }
 
 /// Whether the pattern has a set that GNU sed takes as multibyte-aware (a range written between ends,

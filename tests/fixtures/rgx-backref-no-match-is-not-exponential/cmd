@@ -1,0 +1,8 @@
+# A back-reference to a repeated group on a long line that cannot match: GNU sed rejects the line at once,
+# so the search must not try every way of splitting the dots between the repetitions.
+{ head -c 4096 /dev/zero | tr '\0' .; echo; } > no-b
+timeout 20 sed -E '/(\.+)+\1b$/p' no-b | wc -c
+timeout 20 sed -E 's/(\.+)+\1b$/X/' no-b | wc -c
+timeout 20 sed -E 's/(\.+)+\1b$/X/3' no-b | wc -c
+timeout 20 sed -nE '/(\.+)+\1b$/p' no-b | wc -c
+timeout 20 sed -E 's/(\.+)+\1b$/X/;s/(a|b)+\1c/Y/' no-b | wc -c
