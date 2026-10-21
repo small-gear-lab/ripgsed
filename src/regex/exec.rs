@@ -411,6 +411,12 @@ impl<'a> Searcher<'a> {
                 (exclude.is_none_or(|b| c as u32 != b as u32 && c != '\n')).then_some(len)
             }
             Unit::Chars(cs) => {
+                // (An ASCII byte is a character of its own, and the set was asked about it beforehand.)
+                if b < 0x80 && !self.mb && !self.sb {
+                    if let Some(t) = &self.prog.ascii[u as usize] {
+                        return (t[(b >> 6) as usize] >> (b & 63) & 1 == 1).then_some(1);
+                    }
+                }
                 // An invalid byte matches no set (`--glibc-compat`: but a negated set under `I`
                 // takes some pairs of bytes that the library reads as one character).
                 let Some((c, len)) = self.dec(pos) else {

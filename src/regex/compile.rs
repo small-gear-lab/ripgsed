@@ -54,6 +54,9 @@ pub struct Program {
     /// close of a group (one that is the whole body of an optional repetition, or the group of a loop of a
     /// loop): without one the walk need not take the snapshot.
     pub needs_snap: bool,
+    /// For a unit that matches characters: which of the 128 ASCII characters it accepts (bit `b` of
+    /// the two words), so that a walk over text of ASCII bytes need not decode and look up each one.
+    pub ascii: Vec<Option<[u64; 2]>>,
     /// Groups with this property: they are in no loop, and every path from the end of the group to a match
     /// goes through a back-reference to the group. A path that is inside such a group at `pos`, which began at
     /// `a`, can only match if the text holds the `pos - a` units that the back-reference will take again after
@@ -148,6 +151,22 @@ pub fn compile(
         .insts
         .iter()
         .any(|i| matches!(*i, Inst::Close(_, opt, _, lk) if opt || lk == 3));
+    let ascii = c
+        .units
+        .iter()
+        .map(|u| match u {
+            Unit::Chars(cs) => {
+                let mut t = [0u64; 2];
+                for b in 0..128u8 {
+                    if cs.matches_char(b as char) {
+                        t[(b >> 6) as usize] |= 1 << (b & 63);
+                    }
+                }
+                Some(t)
+            }
+            _ => None,
+        })
+        .collect();
     let prune_groups = prune_groups(&c.insts, ngroups, &referenced);
     let mut copies = vec![Vec::new(); ngroups + 1];
     for (g, slot) in copies.iter_mut().enumerate().skip(1) {
@@ -184,6 +203,7 @@ pub fn compile(
         unit_pcs,
         split_target,
         needs_snap,
+        ascii,
         prune_groups,
     };
     prog.first_bytes = first_bytes(&prog);
