@@ -282,6 +282,8 @@ pub struct Regex {
     /// cannot decide (a range, a class, a negated set, `\\w`, a back-reference) replaced by any
     /// bytes (see `reads_beyond_unicode`). `None` when no unit changes.
     relaxed: Option<Box<Regex>>,
+    /// `filter` is the pattern with its back-references loosened (see `loose_filter`).
+    filter_is_loose: bool,
     /// Off to test the DFA against the simulation.
     use_dfa: bool,
     /// What GNU grep warns about in the pattern (`Syntax::grep`).
@@ -370,6 +372,7 @@ impl Regex {
         if re.prog.has_backrefs && re.filter.is_none() {
             // (A pattern that does not fit as a whole just goes without the filter.)
             re.filter = loose_filter(pattern, syntax, delim).map(Box::new);
+            re.filter_is_loose = re.filter.is_some();
         }
         re.warnings = warnings;
         re.regex_selects = syntax.grep
@@ -436,6 +439,7 @@ impl Regex {
             boundaries: Default::default(),
             tails: syntax.locale == Locale::Mb && (syntax.glibc_compat || prog_has_lone_high_byte),
             relaxed: None,
+            filter_is_loose: false,
             warnings: Vec::new(),
             regex_alt: None,
             regex_selects: false,
@@ -598,6 +602,7 @@ impl Regex {
             boundary: if self.syntax.glibc_compat { 0 } else { start },
             seen: &self.boundaries,
             tails: self.tails,
+            loose: self.loose_search(),
         };
         match searcher.search(start) {
             Some((_, groups)) => {
@@ -606,6 +611,54 @@ impl Regex {
             }
             None => false,
         }
+    }
+
+    /// The pattern that bounds the search with back-references (see `exec::Searcher::loose`), when
+    /// that search is one the bound is safe for: the paths of the glibc quirks and the characters of
+    /// a multibyte set are left to the search alone.
+    fn loose_search(&self) -> Option<&Regex> {
+        if self.filter_is_loose
+            && !self.prog.quirks
+            && !self.syntax.glibc_compat
+            && self.syntax.locale != Locale::Mb
+        {
+            self.filter.as_deref()
+        } else {
+            None
+        }
+    }
+
+    /// The leftmost-longest match span from `from`; for a pattern with no back-references.
+    fn leftmost_longest(
+        &self,
+        haystack: &[u8],
+        from: usize,
+        address: bool,
+    ) -> Option<(usize, usize)> {
+        let searcher = exec::Searcher {
+            scratch: &self.scratch,
+            dfa: &self.dfa,
+            node: &self.node,
+            fixed: self.fixed.as_ref(),
+            quirk_stars: self.quirk_stars,
+            glibc: self.syntax.glibc_compat,
+            use_dfa: self.use_dfa,
+            prog: &self.prog,
+            hay: haystack,
+            multiline: self.syntax.multiline,
+            delim: self.delim,
+            address,
+            utf8: self.syntax.locale.is_chars(),
+            libc: matches!(self.syntax.locale, Locale::Libc | Locale::Mb),
+            mb: self.syntax.locale == Locale::Mb,
+            sb: self.syntax.locale == Locale::Sb,
+            icase: self.syntax.icase,
+            boundary: from,
+            seen: &self.boundaries,
+            tails: self.tails,
+            loose: None,
+        };
+        searcher.loose_span(from)
     }
 
     /// A literal that every match contains, if the pattern has one: a text without it has no
@@ -648,6 +701,7 @@ impl Regex {
             boundary: 0,
             seen: &exec::BoundaryCache::default().into(),
             tails: false,
+            loose: None,
         };
         (searcher.word_before(pos), searcher.word_after(pos))
     }
@@ -714,6 +768,7 @@ impl Regex {
             boundary: 0,
             seen: &exec::BoundaryCache::default().into(),
             tails: false,
+            loose: self.loose_search(),
         };
         searcher.exists()
     }

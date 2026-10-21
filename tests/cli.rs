@@ -324,3 +324,23 @@ mod posix_and_perl {
         );
     }
 }
+
+/// A line that does match a pattern with a back-reference to a repeated group is found at once:
+/// the walk starts where the pattern with the back-references loosened first matches and stops at the
+/// longest end that one gives. (GNU sed takes minutes on these lines, and its result differs because
+/// of a glibc quirk, so this is not a fixture.)
+#[test]
+fn back_reference_to_a_repeated_group_is_found_without_trying_every_split() {
+    // The shell bounds the time and the size: a run that does not stop is killed after 20 s.
+    let script = r#"
+        dots() { head -c "$1" /dev/zero | tr '\0' .; }
+        { dots 4096; echo b; echo a$(dots 4096)b; } | timeout 20 "$0" -E 's/(\.+)+\1b$/X/'
+    "#;
+    let out = Command::new("sh")
+        .args(["-c", script, BIN])
+        .env("LC_ALL", "C")
+        .output()
+        .expect("run sh");
+    assert_eq!(String::from_utf8_lossy(&out.stdout), "X\naX\n");
+    assert_eq!(out.status.code(), Some(0));
+}

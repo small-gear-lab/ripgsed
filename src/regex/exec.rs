@@ -127,6 +127,11 @@ pub struct Searcher<'a> {
     pub seen: &'a std::cell::RefCell<BoundaryCache>,
     /// `Mb`: a position can be inside a character (see `Regex::tails`).
     pub tails: bool,
+    /// For a pattern with back-references: the pattern with each of them replaced by a copy of the
+    /// group it names (see `loose_filter`). Its matches start no later and end no earlier than the
+    /// original's, and it is searched in linear time, so the search with back-references starts
+    /// where it matches and stops at the longest end it gives.
+    pub loose: Option<&'a super::Regex>,
 }
 
 /// `Mb`: positions of one line that are character boundaries, each with the valid character that
@@ -530,6 +535,14 @@ impl<'a> Searcher<'a> {
         (s + l, s + l)
     }
 
+    /// The leftmost-longest match span from `from`, for a pattern with no back-references.
+    pub fn loose_span(&self, from: usize) -> Option<(usize, usize)> {
+        match self.dfa_span(from) {
+            Some(span) => span,
+            None => self.longest(from),
+        }
+    }
+
     /// Finds the leftmost-longest match starting at or after `start`.
     pub fn search(&self, start: usize) -> Option<(usize, Groups)> {
         let len = self.hay.len();
@@ -550,6 +563,16 @@ impl<'a> Searcher<'a> {
                 let mut bt = Backtracker::new(self, false);
                 let mut s = from;
                 loop {
+                    bt.ceiling = None;
+                    if let Some(loose) = self.loose {
+                        match loose.leftmost_longest(self.hay, s, self.address) {
+                            None => return None,
+                            Some((ls, le)) => {
+                                s = ls;
+                                bt.ceiling = Some(le);
+                            }
+                        }
+                    }
                     if self.may_start(s) {
                         if let Some(e) = bt.run(s, None) {
                             // With an assertion in the pattern glibc loses the whole search when
@@ -826,6 +849,9 @@ struct Backtracker<'s, 'a> {
     hit_unset: bool,
     /// The path being followed is of that kind.
     unset_path: bool,
+    /// The longest end any match from the current start can have (see `Searcher::loose`): a path
+    /// that reaches it ends the walk. `None` for no bound.
+    ceiling: Option<usize>,
 }
 
 /// `copy_ok` looks at matches that are not longer than this many bytes, and at groups with at
@@ -919,6 +945,7 @@ impl<'s, 'a> Backtracker<'s, 'a> {
             body_closes: HashMap::new(),
             hit: false,
             hit_unset: false,
+            ceiling: None,
             unset_path: false,
             no_empty: false,
             refused: false,
@@ -1606,6 +1633,9 @@ impl<'s, 'a> Backtracker<'s, 'a> {
                             None => {
                                 if best.is_none_or(|b| pos > b) {
                                     best = Some(pos);
+                                }
+                                if self.ceiling == Some(pos) {
+                                    return best;
                                 }
                             }
                         }
