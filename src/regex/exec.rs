@@ -22,6 +22,22 @@ const NONE: usize = usize::MAX;
 
 #[cfg(test)]
 thread_local! {
+    /// Lets a test run `inside_char` without its quick answer for a byte after an ASCII byte, to compare.
+    pub static INSIDE_FAST_OFF: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+
+#[cfg(test)]
+fn inside_fast_off_by_test() -> bool {
+    INSIDE_FAST_OFF.with(|c| c.get())
+}
+
+#[cfg(not(test))]
+fn inside_fast_off_by_test() -> bool {
+    false
+}
+
+#[cfg(test)]
+thread_local! {
     /// Lets a test run the walks without the pruning of `Backtracker::prune`, to compare.
     pub static PRUNE_OFF: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
 }
@@ -174,6 +190,9 @@ pub struct Scratch {
     bt_stack: Vec<Choice>,
     /// The steps that the walks with back-references have done since the pattern was compiled.
     pub bt_work: u64,
+    /// The next mark of the walks: it only grows, so that the marks that an earlier walk left in
+    /// `bt_stamp` are old to every later one and the array is not cleared for each search.
+    bt_seg: u64,
 }
 
 impl Scratch {
@@ -563,6 +582,11 @@ impl<'a> Searcher<'a> {
         if self.mb {
             return self.mb_scan(pos).0;
         }
+        // A character that holds `pos` and began before it has a byte before `pos` that is not ASCII
+        // (a lead or a continuation byte), whether the text is valid or not.
+        if self.hay[pos - 1] < 0x80 && !inside_fast_off_by_test() {
+            return false;
+        }
         (1..=if ext_level() > 0 { 5 } else { 3 }).any(|back| {
             pos >= back && decode_utf8(self.hay, pos - back).is_some_and(|(_, l)| l > back)
         })
@@ -946,7 +970,7 @@ struct Backtracker<'s, 'a> {
     memo_set: KeySet,
     /// The key being built (kept to avoid allocating one for every state).
     key_buf: Vec<usize>,
-    keyed: Vec<usize>,
+    keyed: &'s [usize],
     /// `$` only matches at a real line end (no newline consumed later).
     strict: bool,
     /// The match is too long for the bit tables (see `run`).
@@ -1029,6 +1053,7 @@ impl Drop for Backtracker<'_, '_> {
             sc.bt_trail = std::mem::take(&mut self.trail);
             sc.bt_stack = std::mem::take(&mut self.stack);
             sc.bt_work += self.steps;
+            sc.bt_seg = self.next_seg;
         }
     }
 }
@@ -1044,24 +1069,24 @@ impl<'s, 'a> Backtracker<'s, 'a> {
         } else {
             4 * (s.prog.ngroups + 1)
         };
-        let keyed = (1..=s.prog.ngroups)
-            .filter(|&g| s.prog.referenced[g])
-            .collect();
-        let (mut caps, mut snap, mut stamp, mut trail, mut stack) = {
+        let keyed = &s.prog.keyed[..];
+        let (mut caps, mut snap, mut stamp, mut trail, mut stack, seg) = {
             let mut sc = s.scratch.borrow_mut();
+            let seg = sc.bt_seg.max(1);
             (
                 std::mem::take(&mut sc.bt_caps),
                 std::mem::take(&mut sc.bt_snap),
                 std::mem::take(&mut sc.bt_stamp),
                 std::mem::take(&mut sc.bt_trail),
                 std::mem::take(&mut sc.bt_stack),
+                seg,
             )
         };
         caps.clear();
         caps.resize(n, NONE);
         snap.clear();
         snap.resize(n, NONE);
-        stamp.clear();
+        // (Zeros only for a program that has none yet: older marks are below `seg`.)
         stamp.resize(s.prog.insts.len(), 0);
         trail.clear();
         stack.clear();
@@ -1072,8 +1097,8 @@ impl<'s, 'a> Backtracker<'s, 'a> {
             trail,
             stack,
             stamp,
-            seg: 1,
-            next_seg: 2,
+            seg,
+            next_seg: seg + 1,
             viable: Vec::new(),
             free_a: Vec::new(),
             free_b: Vec::new(),
@@ -1309,7 +1334,7 @@ impl<'s, 'a> Backtracker<'s, 'a> {
             key.clear();
             key.push(pc as usize);
             key.push(pos);
-            for &g in &self.keyed {
+            for &g in self.keyed {
                 key.extend_from_slice(&self.caps[2 * g..2 * g + 2]);
                 key.extend_from_slice(&self.snap[2 * g..2 * g + 2]);
                 key.push(self.caps[self.mid_slot(g)]);

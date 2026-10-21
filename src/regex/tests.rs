@@ -974,3 +974,77 @@ fn pruning_a_path_that_cannot_hold_its_back_reference_changes_no_result() {
     }
     assert!(compared > 20_000, "{compared}");
 }
+
+/// `inside_char` answers at once for a byte that follows an ASCII byte: the matches must be those that the
+/// full check gives, for text of valid and invalid UTF-8 and for patterns that start only at character
+/// boundaries.
+#[test]
+fn a_byte_after_an_ascii_byte_is_never_inside_a_character() {
+    use super::exec::INSIDE_FAST_OFF;
+    struct Rng(u64);
+    impl Rng {
+        fn below(&mut self, n: u64) -> u64 {
+            self.0 ^= self.0 << 13;
+            self.0 ^= self.0 >> 7;
+            self.0 ^= self.0 << 17;
+            self.0 % n
+        }
+    }
+    // Characters of every length, and bytes that start or continue nothing.
+    const PIECES: [&[u8]; 14] = [
+        b"a",
+        b"b",
+        b" ",
+        b"\xc3\xa9",
+        b"\xe6\x97\xa5",
+        b"\xf0\x9f\x98\x80",
+        b"\x80",
+        b"\xc3",
+        b"\xe6\x97",
+        b"\xff",
+        b"\xed\xa0\x80",
+        b"\xf4\x90\x80\x80",
+        b"x",
+        b"\xe6",
+    ];
+    let syntax = Syntax {
+        extended: true,
+        locale: Locale::Utf8,
+        ..Syntax::default()
+    };
+    let mut rng = Rng(0x5151_7777_0abc_d123);
+    let mut compared = 0;
+    for pat in [
+        "\\w+",
+        "[[:alpha:]]b*",
+        "é",
+        ".",
+        "\\w\\s\\w",
+        "[^a]+",
+        // (These can match empty, at a byte inside a character if the search may start there.)
+        "\\w*",
+        "[[:alpha:]]*",
+        "b*\\w*",
+    ] {
+        let re = Regex::compile(pat.as_bytes(), &syntax).expect("pattern");
+        for _ in 0..3000 {
+            let mut text = Vec::new();
+            for _ in 0..rng.below(9) {
+                text.extend_from_slice(PIECES[rng.below(PIECES.len() as u64) as usize]);
+            }
+            for start in 0..=text.len() {
+                let run = |off: bool| {
+                    INSIDE_FAST_OFF.with(|c| c.set(off));
+                    let mut caps = Captures::default();
+                    let found = re.captures_at(&text, start, &mut caps);
+                    (found, caps.groups.clone())
+                };
+                let (with, without) = (run(false), run(true));
+                INSIDE_FAST_OFF.with(|c| c.set(false));
+                assert_eq!(with, without, "{pat} on {text:?} from {start}");
+                compared += 1;
+            }
+        }
+    }
+    assert!(compared > 50_000, "{compared}");
+}

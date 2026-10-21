@@ -32,9 +32,6 @@ pub struct Program {
     pub insts: Vec<Inst>,
     pub units: Vec<Unit>,
     pub ngroups: usize,
-    /// Groups whose contents can change the course of a match: those named by
-    /// a back-reference.
-    pub referenced: Vec<bool>,
     pub has_backrefs: bool,
     /// Bytes that can start a match, when no match can be empty.
     pub first_bytes: Option<ByteSet>,
@@ -54,6 +51,8 @@ pub struct Program {
     /// close of a group (one that is the whole body of an optional repetition, or the group of a loop of a
     /// loop): without one the walk need not take the snapshot.
     pub needs_snap: bool,
+    /// The groups that a back-reference names (the walk keeps their registers in the key of its memo).
+    pub keyed: Vec<usize>,
     /// For a unit that matches characters: which of the 128 ASCII characters it accepts (bit `b` of
     /// the two words), so that a walk over text of ASCII bytes need not decode and look up each one.
     pub ascii: Vec<Option<[u64; 2]>>,
@@ -167,6 +166,9 @@ pub fn compile(
             _ => None,
         })
         .collect();
+    let keyed: Vec<usize> = (1..=ngroups)
+        .filter(|&g| referenced.get(g).copied().unwrap_or(false))
+        .collect();
     let prune_groups = prune_groups(&c.insts, ngroups, &referenced);
     let mut copies = vec![Vec::new(); ngroups + 1];
     for (g, slot) in copies.iter_mut().enumerate().skip(1) {
@@ -195,7 +197,6 @@ pub fn compile(
         insts: c.insts,
         units: c.units,
         ngroups,
-        referenced,
         has_backrefs,
         first_bytes: None,
         preds,
@@ -203,6 +204,7 @@ pub fn compile(
         unit_pcs,
         split_target,
         needs_snap,
+        keyed,
         ascii,
         prune_groups,
     };
