@@ -543,7 +543,7 @@ impl Regex {
         if self
             .filter
             .as_ref()
-            .filter(|_| !self.filter_is_loose || self.loose_is_eager())
+            .filter(|_| !self.filter_is_loose || self.loose_is_eager(haystack.len()))
             .is_some_and(|f| !f.is_match_once(haystack))
         {
             return false;
@@ -623,10 +623,13 @@ impl Regex {
 
     /// Whether the pattern with its back-references loosened is asked before every search. Not at first
     /// (its automata would be made for a short line too, which is most of the time of a short run), but
-    /// once the walks have done enough steps to show that a lot of text goes through the pattern: then
-    /// most lines that do not match are turned away by a scan, without the setup of a walk.
-    fn loose_is_eager(&self) -> bool {
-        self.scratch.borrow().bt_work > LOOSE_EAGER_STEPS
+    /// once the walks have done enough steps to show that a lot of text has gone through the pattern: then
+    /// most lines that do not match are turned away by a scan, without the setup of a walk. Nor for a line
+    /// so long that one walk over it could cost as much as that (a worker of a parallel run may meet such a
+    /// line before it has done any steps of its own).
+    fn loose_is_eager(&self, haystack_len: usize) -> bool {
+        haystack_len.saturating_mul(self.prog.insts.len()) as u64 > LOOSE_EAGER_STEPS
+            || self.scratch.borrow().bt_work > LOOSE_EAGER_STEPS
     }
 
     /// The pattern that bounds the search with back-references (see `exec::Searcher::loose`), and
@@ -749,7 +752,7 @@ impl Regex {
         if self
             .filter
             .as_ref()
-            .filter(|_| !self.filter_is_loose || self.loose_is_eager())
+            .filter(|_| !self.filter_is_loose || self.loose_is_eager(haystack.len()))
             .is_some_and(|f| !f.is_match_once(haystack))
         {
             return false;
