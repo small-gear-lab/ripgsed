@@ -1,0 +1,91 @@
+1
+1
+1
+1
+x
+0
+x
+0
+1
+x
+
+0
+1
+
+0
+1
+
+x
+0
+n=1 opt=
+x
+
+0
+x
+
+0
+n=1 opt=--posix
+1
+x
+
+0
+n=2 opt=
+x
+\
+0
+x
+\
+0
+n=2 opt=--posix
+x
+\
+0
+1
+n=3 opt=
+x
+\\
+0
+x
+\
+0
+n=3 opt=--posix
+1
+x
+\
+0
+n=4 opt=
+x
+\\
+0
+x
+\\\
+0
+n=4 opt=--posix
+x
+\\
+0
+1
+n=5 opt=
+x
+\\\\
+0
+x
+\\
+0
+n=5 opt=--posix
+1
+x
+\\
+0
+n=6 opt=
+x
+\\\
+0
+x
+\\\\\
+0
+n=6 opt=--posix
+x
+\\\
+0
+1

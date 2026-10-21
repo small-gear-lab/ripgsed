@@ -942,21 +942,37 @@ impl Parser {
             self.pos += 1;
             return Err(self.error("expected \\ after `a', `c' or `i'"));
         }
+        let mut after_newline = false;
         if first == b'\\' {
             self.pos += 1;
             match self.peek() {
+                None if self.options().posix => return Err(self.error("incomplete command")),
                 None => return Ok(Vec::new()),
-                Some(b'\n') => self.pos += 1,
+                Some(b'\n') => {
+                    self.pos += 1;
+                    after_newline = true;
+                }
                 Some(_) => {}
             }
         }
-        // A text of backslashes only, up to the end of the script (`a\` and then `\\\`): GNU sed
-        // keeps `t - 1` of the `t` backslashes when `t` is even and `(t - 1) / 2` when it is odd.
+        // A text of backslashes only, up to the end of the script. After `a\` and a newline, GNU sed
+        // keeps `t / 2` of the `t` backslashes when `t` is even and `t - 1` when it is odd. Directly after
+        // `a\` (`a\\\\`) it keeps `t - 1` when `t` is even and `(t - 1) / 2` when it is odd. --posix
+        // refuses the cases in which the last backslash is left open: `t` odd after a newline, even
+        // otherwise.
         let rest = &self.src[self.pos..];
         if first == b'\\' && !rest.is_empty() && rest.iter().all(|&b| b == b'\\') {
             let t = rest.len();
-            let kept = if t % 2 == 0 { t - 1 } else { (t - 1) / 2 };
+            let kept = match (after_newline, t % 2 == 0) {
+                (true, true) => t / 2,
+                (true, false) => t - 1,
+                (false, true) => t - 1,
+                (false, false) => (t - 1) / 2,
+            };
             self.pos = self.src.len();
+            if self.options().posix && (t % 2 == 1) == after_newline {
+                return Err(self.error("incomplete command"));
+            }
             let mut text = vec![b'\\'; kept];
             text.push(b'\n');
             return Ok(text);

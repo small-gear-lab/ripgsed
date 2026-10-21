@@ -1,0 +1,22 @@
+echo x | sed --posix 'i\'; echo $?
+echo x | sed --posix 'a\'; echo $?
+echo x | sed --posix 'c\'; echo $?
+echo x | sed --posix '$!{i\'; echo $?
+echo x | sed 'i\'; echo $?
+echo x | sed 'a\'; echo $?
+for c in a c i; do
+  echo x | sed --posix "$c\\
+\\"; echo $?
+  echo x | sed "$c\\
+\\"; echo $?
+done
+# the number of backslashes that are kept, after a newline and directly after `a\`
+for n in 1 2 3 4 5 6; do
+  bs=$(printf '\\%.0s' $(seq $n))
+  for opt in '' --posix; do
+    echo "n=$n opt=$opt"
+    echo x | sed $opt "a\\
+$bs"; echo $?
+    echo x | sed $opt "a\\$bs"; echo $?
+  done
+done
