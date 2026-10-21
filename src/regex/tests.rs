@@ -873,3 +873,38 @@ fn the_dfa_leaves_unspellable_sets_to_the_simulation() {
         assert_dfa_agrees(pat.as_bytes(), &f, b"a\xff");
     }
 }
+
+/// A walk with back-references runs without its memo for a budget of steps and then again with it: a
+/// pattern whose paths split the text in exponentially many ways (`(a+)+`) must still end at once.
+#[test]
+fn a_walk_over_its_budget_is_run_again_with_the_memo() {
+    let run = |text: Vec<u8>| {
+        // (A run that does not end must not hang the test: it is left behind after 20 s.)
+        let (tx, rx) = std::sync::mpsc::channel();
+        std::thread::spawn(move || {
+            let re = Regex::compile(
+                b"^(a+)+b\\1\\1c$",
+                &Syntax {
+                    extended: true,
+                    ..Syntax::default()
+                },
+            )
+            .expect("pattern");
+            let mut caps = Captures::default();
+            let found = re.captures_at(&text, 0, &mut caps).then(|| caps.whole());
+            let _ = tx.send(found);
+        });
+        rx.recv_timeout(std::time::Duration::from_secs(20))
+            .expect("the walk ended")
+    };
+    let text = |before: usize, after: usize| {
+        let mut t = vec![b'a'; before];
+        t.push(b'b');
+        t.extend(std::iter::repeat_n(b'a', after));
+        t.push(b'c');
+        t
+    };
+    // \1\1 has an even length: 42 a's after the b can be matched, 41 cannot.
+    assert_eq!(run(text(40, 41)), None);
+    assert_eq!(run(text(40, 42)), Some((0, 40 + 1 + 42 + 1)));
+}

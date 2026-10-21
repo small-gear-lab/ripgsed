@@ -9,7 +9,7 @@
 //!   back-references, also the longest end. It memoizes visited states, so
 //!   it never takes exponential time.
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use super::ast::{Assert, Unit};
 use super::charset::{
@@ -19,6 +19,94 @@ use super::charset::{
 use super::compile::{GroupCopy, Inst, Program};
 
 const NONE: usize = usize::MAX;
+
+/// A walk with back-references runs without its memo for this many steps for each unit of the text it
+/// may cover and each instruction of the program, and then again with it.
+const LAZY_FACTOR: u64 = 8;
+
+/// The set of the keys of the memo: arrays of positions of one length, chosen by the program itself.
+/// They are kept side by side in one vector and found by open addressing with a multiplicative hash
+/// (the protection of the default hasher against chosen keys is of no use here, and a collision only
+/// slows the search), so that entering a state allocates nothing.
+#[derive(Default)]
+struct KeySet {
+    /// The length of every key (set by the first one after a `clear`).
+    stride: usize,
+    arena: Vec<usize>,
+    /// Slots, a power of two of them: the generation in the high half and the index of the key in the
+    /// low half; a slot of another generation is free, so `clear` takes no time.
+    table: Vec<u64>,
+    generation: u32,
+    count: usize,
+}
+
+impl KeySet {
+    fn hash(key: &[usize]) -> usize {
+        let mut h = 0u64;
+        for &w in key {
+            h = (h.rotate_left(5) ^ w as u64).wrapping_mul(0x517c_c1b7_2722_0a95);
+        }
+        (h ^ (h >> 29)) as usize
+    }
+
+    fn clear(&mut self) {
+        self.arena.clear();
+        self.count = 0;
+        self.stride = 0;
+        self.generation = self.generation.wrapping_add(1);
+        if self.generation == 0 {
+            self.table.fill(0);
+            self.generation = 1;
+        }
+    }
+
+    fn grow(&mut self) {
+        let size = (self.table.len() * 2).max(1024);
+        self.table.clear();
+        self.table.resize(size, 0);
+        let mask = size - 1;
+        for index in 0..self.count {
+            let key = &self.arena[index * self.stride..(index + 1) * self.stride];
+            let mut i = Self::hash(key) & mask;
+            while self.table[i] >> 32 == u64::from(self.generation) {
+                i = (i + 1) & mask;
+            }
+            self.table[i] = u64::from(self.generation) << 32 | index as u64;
+        }
+    }
+
+    /// Adds a key; false if it was there.
+    fn insert(&mut self, key: &[usize]) -> bool {
+        if self.count == 0 {
+            self.stride = key.len();
+            if self.generation == 0 {
+                self.generation = 1;
+            }
+        }
+        debug_assert_eq!(key.len(), self.stride);
+        if (self.count + 1) * 2 > self.table.len() {
+            self.grow();
+        }
+        let mask = self.table.len() - 1;
+        let mut i = Self::hash(key) & mask;
+        loop {
+            let slot = self.table[i];
+            if slot >> 32 != u64::from(self.generation) {
+                break;
+            }
+            let at = (slot & 0xffff_ffff) as usize * self.stride;
+            if self.arena[at..at + self.stride] == *key {
+                return false;
+            }
+            i = (i + 1) & mask;
+        }
+        assert!(self.count < u32::MAX as usize, "the memo is full");
+        self.table[i] = u64::from(self.generation) << 32 | self.count as u64;
+        self.arena.extend_from_slice(key);
+        self.count += 1;
+        true
+    }
+}
 
 /// Group spans of a match (group 0 is the whole match).
 pub type Groups = Vec<Option<(usize, usize)>>;
@@ -824,7 +912,9 @@ struct Backtracker<'s, 'a> {
     halt_free: bool,
     base: usize,
     memo_bits: Vec<u64>,
-    memo_set: HashSet<Vec<usize>>,
+    memo_set: KeySet,
+    /// The key being built (kept to avoid allocating one for every state).
+    key_buf: Vec<usize>,
     keyed: Vec<usize>,
     /// `$` only matches at a real line end (no newline consumed later).
     strict: bool,
@@ -852,6 +942,17 @@ struct Backtracker<'s, 'a> {
     /// The longest end any match from the current start can have (see `Searcher::loose`): a path
     /// that reaches it ends the walk. `None` for no bound.
     ceiling: Option<usize>,
+    /// Instructions executed by the walks of this value (the budget of `lazy` counts them).
+    steps: u64,
+    /// The walk does not memoize yet: it runs free until it has done `budget` steps, and then again
+    /// with the memo (a path that is found twice is walked twice, which a memo only prevents, so the
+    /// result is the same; and most walks end well within the budget, with no memo to build).
+    lazy: bool,
+    budget: u64,
+    /// The walk stopped because it used its budget.
+    over: bool,
+    /// `steps` when the current walk began.
+    run_steps0: u64,
 }
 
 /// `copy_ok` looks at matches that are not longer than this many bytes, and at groups with at
@@ -937,7 +1038,8 @@ impl<'s, 'a> Backtracker<'s, 'a> {
             halt_free: false,
             base: 0,
             memo_bits: Vec::new(),
-            memo_set: HashSet::new(),
+            memo_set: KeySet::default(),
+            key_buf: Vec::new(),
             keyed,
             strict,
             big: false,
@@ -946,6 +1048,11 @@ impl<'s, 'a> Backtracker<'s, 'a> {
             hit: false,
             hit_unset: false,
             ceiling: None,
+            steps: 0,
+            lazy: false,
+            budget: 0,
+            over: false,
+            run_steps0: 0,
             unset_path: false,
             no_empty: false,
             refused: false,
@@ -1136,11 +1243,19 @@ impl<'s, 'a> Backtracker<'s, 'a> {
     /// Marks a state reached right after consuming input; false if it was
     /// reached before.
     fn memo(&mut self, pc: u32, pos: usize) -> bool {
+        if self.lazy {
+            return true;
+        }
+        self.memo_new(pc, pos)
+    }
+
+    fn memo_new(&mut self, pc: u32, pos: usize) -> bool {
         if self.big {
-            return self.memo_set.insert(vec![pc as usize, pos]);
+            return self.memo_set.insert(&[pc as usize, pos]);
         }
         if self.s.prog.has_backrefs {
-            let mut key = Vec::with_capacity(4 + 10 * self.keyed.len());
+            let mut key = std::mem::take(&mut self.key_buf);
+            key.clear();
             key.push(pc as usize);
             key.push(pos);
             for &g in &self.keyed {
@@ -1165,7 +1280,9 @@ impl<'s, 'a> Backtracker<'s, 'a> {
                 }
             }
             key.push(bitsv);
-            return self.memo_set.insert(key);
+            let new = self.memo_set.insert(&key);
+            self.key_buf = key;
+            return new;
         }
         let m = self.s.prog.insts.len();
         let k = (pos - self.base) * m + pc as usize;
@@ -1436,6 +1553,29 @@ impl<'s, 'a> Backtracker<'s, 'a> {
     /// registers in `caps`. With `None`, explores every path and returns the
     /// longest end.
     fn run(&mut self, start: usize, target: Option<usize>) -> Option<usize> {
+        if !self.s.prog.has_backrefs {
+            self.lazy = false;
+            return self.run_once(start, target);
+        }
+        let span = target.unwrap_or(self.s.hay.len()).saturating_sub(start) + 1;
+        self.lazy = true;
+        self.over = false;
+        self.budget = LAZY_FACTOR * span as u64 * self.s.prog.insts.len() as u64;
+        let before = (self.refused, self.steps);
+        self.run_steps0 = self.steps;
+        let found = self.run_once(start, target);
+        if !self.over {
+            return found;
+        }
+        // Over the budget: the same walk again, now with the memo.
+        self.lazy = false;
+        self.over = false;
+        self.refused = before.0;
+        self.run_steps0 = self.steps;
+        self.run_once(start, target)
+    }
+
+    fn run_once(&mut self, start: usize, target: Option<usize>) -> Option<usize> {
         let prog = self.s.prog;
         self.caps.fill(NONE);
         self.snap.fill(NONE);
@@ -1480,6 +1620,11 @@ impl<'s, 'a> Backtracker<'s, 'a> {
             loop {
                 if pos > limit || !self.is_viable(pc, pos, c) {
                     break;
+                }
+                self.steps += 1;
+                if self.lazy && self.steps - self.run_steps0 > self.budget {
+                    self.over = true;
+                    return None;
                 }
                 self.mark(pc);
                 match prog.insts[pc as usize] {
@@ -1645,5 +1790,48 @@ impl<'s, 'a> Backtracker<'s, 'a> {
             }
         }
         best
+    }
+}
+
+#[cfg(test)]
+mod key_set_tests {
+    use super::KeySet;
+    use std::collections::HashSet;
+
+    #[test]
+    fn agrees_with_a_hash_set_across_growth_and_clears() {
+        let mut state = 0x2545_f491_4f6c_dd1du64;
+        let mut next = move || {
+            state ^= state << 13;
+            state ^= state >> 7;
+            state ^= state << 17;
+            state
+        };
+        let mut set = KeySet::default();
+        for round in 0..40 {
+            // Keys of one length per round (what the walk makes), with many repeats.
+            let stride = 1 + round % 5;
+            let range = [3u64, 40, 3000][round % 3];
+            let mut reference: HashSet<Vec<usize>> = HashSet::new();
+            set.clear();
+            for _ in 0..5000 {
+                let key: Vec<usize> = (0..stride).map(|_| (next() % range) as usize).collect();
+                assert_eq!(set.insert(&key), reference.insert(key.clone()), "{key:?}");
+            }
+        }
+    }
+
+    #[test]
+    fn a_cleared_set_forgets_its_keys_without_touching_the_table() {
+        let mut set = KeySet::default();
+        assert!(set.insert(&[1, 2]));
+        assert!(!set.insert(&[1, 2]));
+        set.clear();
+        assert!(set.insert(&[1, 2]));
+        // The generation wraps after 2^32 clears: simulate the last step.
+        set.generation = u32::MAX;
+        set.clear();
+        assert!(set.insert(&[1, 2]));
+        assert!(!set.insert(&[1, 2]));
     }
 }
