@@ -67,8 +67,6 @@ pub struct Dfa {
     delim: u8,
     utf8: bool,
     prog: Program,
-    /// For every unit, which bytes it accepts.
-    tables: Vec<[bool; 256]>,
     /// Add the start of the program at every position (a search that may begin anywhere).
     unanchored: bool,
     states: Vec<State>,
@@ -85,15 +83,13 @@ pub struct Dfa {
 }
 
 impl Dfa {
-    /// `utf8`: units that match characters are tabulated on ASCII bytes only.
+    /// `utf8`: units that match characters accept ASCII bytes only.
     pub fn new(prog: Program, utf8: bool, delim: u8, unanchored: bool) -> Dfa {
-        let tables = prog.units.iter().map(|u| table(u, utf8)).collect();
         let n = prog.insts.len();
         Dfa {
             delim,
             utf8,
             prog,
-            tables,
             unanchored,
             states: Vec::new(),
             index: HashMap::new(),
@@ -214,7 +210,7 @@ impl Dfa {
         let matched = self.closure(state, ctx, &mut units);
         let mut kernel: Vec<u32> = units
             .iter()
-            .filter(|&&u| self.tables[u as usize][b as usize])
+            .filter(|&&u| accepts(&self.prog.units[u as usize], b))
             .map(|&u| self.unit_pc(u) + 1)
             .collect();
         kernel.sort_unstable();
@@ -353,19 +349,15 @@ impl Dfa {
     }
 }
 
-/// The bytes a unit accepts. Characters are only tabulated for ASCII: in UTF-8 the DFA runs on
-/// ASCII haystacks only.
-fn table(unit: &Unit, utf8: bool) -> [bool; 256] {
-    let mut t = [false; 256];
-    for b in 0..=255u8 {
-        t[b as usize] = match unit {
-            Unit::Byte(set) => set.contains(b),
-            Unit::Any { exclude } => b < 0x80 && exclude.is_none_or(|e| b != e && b != b'\n'),
-            Unit::Chars(cs) => b < 0x80 && cs.matches_char(b as char),
-        };
+/// Whether a unit accepts a byte. Characters are only decided for ASCII: in UTF-8 the DFA runs on
+/// ASCII haystacks only. (Decided when a transition is first built, not for every unit beforehand: a
+/// pattern with `\w` has ten thousand units once its characters are spelled out as bytes.)
+fn accepts(unit: &Unit, b: u8) -> bool {
+    match unit {
+        Unit::Byte(set) => set.contains(b),
+        Unit::Any { exclude } => b < 0x80 && exclude.is_none_or(|e| b != e && b != b'\n'),
+        Unit::Chars(cs) => b < 0x80 && cs.matches_char(b as char),
     }
-    let _ = utf8;
-    t
 }
 
 /// The pattern read backwards: concatenations reversed, assertions mirrored (what is before
