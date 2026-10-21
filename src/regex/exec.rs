@@ -22,6 +22,22 @@ const NONE: usize = usize::MAX;
 
 #[cfg(test)]
 thread_local! {
+    /// Lets a test run the walks without the look at the byte before an alternative of a `Split`, to compare.
+    pub static LOOK_OFF: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+
+#[cfg(test)]
+fn look_disabled_by_test() -> bool {
+    LOOK_OFF.with(|c| c.get())
+}
+
+#[cfg(not(test))]
+fn look_disabled_by_test() -> bool {
+    false
+}
+
+#[cfg(test)]
+thread_local! {
     /// Lets a test run `inside_char` without its quick answer for a byte after an ASCII byte, to compare.
     pub static INSIDE_FAST_OFF: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
 }
@@ -1006,6 +1022,9 @@ struct Backtracker<'s, 'a> {
     budget: u64,
     /// The walk stopped because it used its budget.
     over: bool,
+    /// Alternatives that cannot begin with the byte at hand are not followed (see `Program::lookahead`); not
+    /// in a locale where the bytes of a character are not those of UTF-8 or ASCII.
+    look: bool,
     /// Paths that cannot hold the back-reference after the group they are in are dropped (see
     /// `Program::prune_groups`); not under `I`, where the back-reference may take other bytes, nor with the
     /// glibc quirks, whose walk goes on past a refused back-reference.
@@ -1119,6 +1138,7 @@ impl<'s, 'a> Backtracker<'s, 'a> {
             lazy: false,
             budget: 0,
             over: false,
+            look: !s.mb && !s.sb && !look_disabled_by_test(),
             prune: !s.icase
                 && !s.glibc
                 && !s.prog.quirks
@@ -1758,20 +1778,39 @@ impl<'s, 'a> Backtracker<'s, 'a> {
                         None => break,
                     },
                     Inst::Split(a, b) => {
+                        // An alternative that cannot begin with the byte at hand ends at its first step:
+                        // it is not followed, nor kept to come back to.
+                        let (ok_a, ok_b) = if self.look {
+                            let byte = self.s.hay.get(pos).copied();
+                            let ok = |t: u32| match &prog.lookahead[t as usize] {
+                                None => true,
+                                Some(set) => byte.is_some_and(|x| set.contains(x)),
+                            };
+                            (ok(a), ok(b))
+                        } else {
+                            (true, true)
+                        };
                         if self.seen(a) {
-                            if self.seen(b) {
+                            if self.seen(b) || !ok_b {
+                                break;
+                            }
+                            pc = b;
+                        } else if !ok_a {
+                            if !ok_b {
                                 break;
                             }
                             pc = b;
                         } else {
-                            self.stack.push(Choice {
-                                pc: b,
-                                pos,
-                                trail: self.trail.len(),
-                                seg: self.seg,
-                                nl,
-                                c,
-                            });
+                            if ok_b {
+                                self.stack.push(Choice {
+                                    pc: b,
+                                    pos,
+                                    trail: self.trail.len(),
+                                    seg: self.seg,
+                                    nl,
+                                    c,
+                                });
+                            }
                             pc = a;
                         }
                     }

@@ -51,6 +51,11 @@ pub struct Program {
     /// close of a group (one that is the whole body of an optional repetition, or the group of a loop of a
     /// loop): without one the walk need not take the snapshot.
     pub needs_snap: bool,
+    /// For an instruction that a `Split` leads to: the bytes that a path from it can begin with, when every
+    /// path has to consume one first (`None`: some path can match without consuming, or begins with
+    /// something not listed, or the set is every byte). The walk does not follow an alternative of a
+    /// `Split` whose set does not hold the byte at hand: it would end at its first step.
+    pub lookahead: Vec<Option<ByteSet>>,
     /// The groups that a back-reference names (the walk keeps their registers in the key of its memo).
     pub keyed: Vec<usize>,
     /// For a unit that matches characters: which of the 128 ASCII characters it accepts (bit `b` of
@@ -150,7 +155,7 @@ pub fn compile(
         .insts
         .iter()
         .any(|i| matches!(*i, Inst::Close(_, opt, _, lk) if opt || lk == 3));
-    let ascii = c
+    let ascii: Vec<Option<[u64; 2]>> = c
         .units
         .iter()
         .map(|u| match u {
@@ -169,6 +174,7 @@ pub fn compile(
     let keyed: Vec<usize> = (1..=ngroups)
         .filter(|&g| referenced.get(g).copied().unwrap_or(false))
         .collect();
+    let lookahead = lookahead(&c.insts, &c.units, &ascii, &split_target);
     let prune_groups = prune_groups(&c.insts, ngroups, &referenced);
     let mut copies = vec![Vec::new(); ngroups + 1];
     for (g, slot) in copies.iter_mut().enumerate().skip(1) {
@@ -204,12 +210,67 @@ pub fn compile(
         unit_pcs,
         split_target,
         needs_snap,
+        lookahead,
         keyed,
         ascii,
         prune_groups,
     };
     prog.first_bytes = first_bytes(&prog);
     Ok(prog)
+}
+
+/// `Program::lookahead`.
+fn lookahead(
+    insts: &[Inst],
+    units: &[Unit],
+    ascii: &[Option<[u64; 2]>],
+    split_target: &[bool],
+) -> Vec<Option<ByteSet>> {
+    // (A large program would cost more to look through than the walk saves.)
+    if insts.len() > 2048 {
+        return vec![None; insts.len()];
+    }
+    (0..insts.len())
+        .map(|t| {
+            if !split_target[t] {
+                return None;
+            }
+            let mut set = ByteSet::empty();
+            let mut seen = vec![false; insts.len()];
+            let mut stack = vec![t];
+            while let Some(pc) = stack.pop() {
+                if seen[pc] {
+                    continue;
+                }
+                seen[pc] = true;
+                match insts[pc] {
+                    Inst::Unit(u) => match &units[u as usize] {
+                        Unit::Byte(b) => set.union_with(b),
+                        // A character: the ASCII ones the set holds, and any byte that is not ASCII (a
+                        // character may begin with any of them, or the byte may be invalid).
+                        Unit::Chars(_) => {
+                            let table = ascii[u as usize]?;
+                            for b in 0..128u8 {
+                                if table[(b >> 6) as usize] >> (b & 63) & 1 == 1 {
+                                    set.insert(b);
+                                }
+                            }
+                            set.insert_range(0x80, 0xff);
+                        }
+                        Unit::Any { .. } => return None,
+                    },
+                    Inst::Split(a, b) => {
+                        stack.push(a as usize);
+                        stack.push(b as usize);
+                    }
+                    Inst::Jmp(a) => stack.push(a as usize),
+                    Inst::Open(_) | Inst::Close(..) | Inst::Assert(_) => stack.push(pc + 1),
+                    Inst::Backref(_) | Inst::Match => return None,
+                }
+            }
+            if set.is_full() { None } else { Some(set) }
+        })
+        .collect()
 }
 
 /// The groups that `Program::prune_groups` describes.

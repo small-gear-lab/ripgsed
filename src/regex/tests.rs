@@ -1048,3 +1048,90 @@ fn a_byte_after_an_ascii_byte_is_never_inside_a_character() {
     }
     assert!(compared > 50_000, "{compared}");
 }
+
+/// The walk does not follow an alternative of a `Split` that cannot begin with the byte at hand (see
+/// `Program::lookahead`): the matches, with their groups, must be what the walk gives without that, for
+/// patterns of every shape (loops, optional parts, alternations, back-references, classes that match
+/// characters) in the `C` locale and in UTF-8 over text of valid and invalid bytes.
+#[test]
+fn not_following_an_alternative_that_dies_at_once_changes_no_result() {
+    use super::exec::LOOK_OFF;
+    struct Rng(u64);
+    impl Rng {
+        fn below(&mut self, n: u64) -> u64 {
+            self.0 ^= self.0 << 13;
+            self.0 ^= self.0 >> 7;
+            self.0 ^= self.0 << 17;
+            self.0 % n
+        }
+    }
+    const ATOMS: [&str; 14] = [
+        "a", "b", ".", "[ab]", "a*", "b*", "[ab]+", "a?", "ab", ".*", "\\w", "\\w*", "[^b]",
+        "(a|ab)",
+    ];
+    const PIECES: [&[u8]; 12] = [
+        b"a",
+        b"b",
+        b" ",
+        b"\xc3\xa9",
+        b"\xe6\x97\xa5",
+        b"\xf0\x9f\x98\x80",
+        b"\x80",
+        b"\xc3",
+        b"\xff",
+        b"x",
+        b"ab",
+        b"\n",
+    ];
+    let mut rng = Rng(0x7a7a_1357_9bdf_2468);
+    let mut compared = 0u32;
+    for locale in [Locale::C, Locale::Utf8] {
+        for _ in 0..2500 {
+            let atom = |rng: &mut Rng| ATOMS[rng.below(ATOMS.len() as u64) as usize];
+            let (p, q, r, t) = (
+                atom(&mut rng),
+                atom(&mut rng),
+                atom(&mut rng),
+                atom(&mut rng),
+            );
+            let pattern = match rng.below(9) {
+                0 => format!("{p}{q}{r}"),
+                1 => format!("{p}*{q}{r}"),
+                2 => format!("({p}){q}\\1{r}"),
+                3 => format!("({p}|{q}){r}\\1"),
+                4 => format!("{p}({q}*){r}\\1{t}"),
+                5 => format!("(({p})|{q})+{r}"),
+                6 => format!("{p}.*{q}{r}"),
+                7 => format!("({p}+)({q}?){r}\\2\\1"),
+                _ => format!("^{p}({q}){r}*\\1$"),
+            };
+            let syntax = Syntax {
+                extended: true,
+                locale,
+                ..Syntax::default()
+            };
+            let Ok(re) = Regex::compile(pattern.as_bytes(), &syntax) else {
+                continue;
+            };
+            for _ in 0..15 {
+                let mut text = Vec::new();
+                for _ in 0..rng.below(10) {
+                    let piece = PIECES[rng.below(PIECES.len() as u64) as usize];
+                    // (The C locale reads every byte as a character: the pieces are bytes of text.)
+                    text.extend_from_slice(piece);
+                }
+                let run = |off: bool| {
+                    LOOK_OFF.with(|c| c.set(off));
+                    let mut caps = Captures::default();
+                    let found = re.captures_at(&text, 0, &mut caps);
+                    (found, caps.groups.clone())
+                };
+                let (with, without) = (run(false), run(true));
+                LOOK_OFF.with(|c| c.set(false));
+                assert_eq!(with, without, "{pattern} ({locale:?}) on {text:?}");
+                compared += 1;
+            }
+        }
+    }
+    assert!(compared > 40_000, "{compared}");
+}
