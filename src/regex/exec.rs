@@ -172,6 +172,8 @@ pub struct Scratch {
     bt_stamp: Vec<u64>,
     bt_trail: Vec<Undo>,
     bt_stack: Vec<Choice>,
+    /// The steps that the walks with back-references have done since the pattern was compiled.
+    pub bt_work: u64,
 }
 
 impl Scratch {
@@ -1020,6 +1022,7 @@ impl Drop for Backtracker<'_, '_> {
             sc.bt_stamp = std::mem::take(&mut self.stamp);
             sc.bt_trail = std::mem::take(&mut self.trail);
             sc.bt_stack = std::mem::take(&mut self.stack);
+            sc.bt_work += self.steps;
         }
     }
 }

@@ -101,6 +101,10 @@ mod classes_table;
 mod compile;
 mod dfa;
 mod exec;
+
+/// The steps of the walks with back-references after which the loosened pattern is asked before every
+/// search (about 10 ms of walking: the automata it makes cost less than that).
+const LOOSE_EAGER_STEPS: u64 = 1_000_000;
 mod literal;
 mod parse;
 
@@ -539,7 +543,7 @@ impl Regex {
         if self
             .filter
             .as_ref()
-            .filter(|_| !self.filter_is_loose)
+            .filter(|_| !self.filter_is_loose || self.loose_is_eager())
             .is_some_and(|f| !f.is_match_once(haystack))
         {
             return false;
@@ -615,6 +619,14 @@ impl Regex {
             }
             None => false,
         }
+    }
+
+    /// Whether the pattern with its back-references loosened is asked before every search. Not at first
+    /// (its automata would be made for a short line too, which is most of the time of a short run), but
+    /// once the walks have done enough steps to show that a lot of text goes through the pattern: then
+    /// most lines that do not match are turned away by a scan, without the setup of a walk.
+    fn loose_is_eager(&self) -> bool {
+        self.scratch.borrow().bt_work > LOOSE_EAGER_STEPS
     }
 
     /// The pattern that bounds the search with back-references (see `exec::Searcher::loose`), and
@@ -737,7 +749,7 @@ impl Regex {
         if self
             .filter
             .as_ref()
-            .filter(|_| !self.filter_is_loose)
+            .filter(|_| !self.filter_is_loose || self.loose_is_eager())
             .is_some_and(|f| !f.is_match_once(haystack))
         {
             return false;
