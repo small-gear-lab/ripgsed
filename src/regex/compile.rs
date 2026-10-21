@@ -51,6 +51,9 @@ pub struct Program {
     /// close of a group (one that is the whole body of an optional repetition, or the group of a loop of a
     /// loop): without one the walk need not take the snapshot.
     pub needs_snap: bool,
+    /// For the `Split` of a loop that repeats one unit (`x*`: `Split(l + 1, l + 3)`, the unit, `Jmp(l)`) that no
+    /// other `Split` leads to: the unit. The walk takes the whole run of such a loop in one go.
+    pub star_unit: Vec<Option<u32>>,
     /// For an instruction that a `Split` leads to: the bytes that a path from it can begin with, when every
     /// path has to consume one first (`None`: some path can match without consuming, or begins with
     /// something not listed, or the set is every byte). The walk does not follow an alternative of a
@@ -174,6 +177,21 @@ pub fn compile(
     let keyed: Vec<usize> = (1..=ngroups)
         .filter(|&g| referenced.get(g).copied().unwrap_or(false))
         .collect();
+    let star_unit: Vec<Option<u32>> = (0..c.insts.len())
+        .map(
+            |l| match (c.insts[l], c.insts.get(l + 1), c.insts.get(l + 2)) {
+                (Inst::Split(a, b), Some(&Inst::Unit(u)), Some(&Inst::Jmp(back)))
+                    if a as usize == l + 1
+                        && b as usize == l + 3
+                        && back as usize == l
+                        && !split_target[l] =>
+                {
+                    Some(u)
+                }
+                _ => None,
+            },
+        )
+        .collect();
     let lookahead = lookahead(&c.insts, &c.units, &ascii, &split_target);
     let prune_groups = prune_groups(&c.insts, ngroups, &referenced);
     let mut copies = vec![Vec::new(); ngroups + 1];
@@ -210,6 +228,7 @@ pub fn compile(
         unit_pcs,
         split_target,
         needs_snap,
+        star_unit,
         lookahead,
         keyed,
         ascii,

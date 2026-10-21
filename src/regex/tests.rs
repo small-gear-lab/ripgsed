@@ -1135,3 +1135,86 @@ fn not_following_an_alternative_that_dies_at_once_changes_no_result() {
     }
     assert!(compared > 40_000, "{compared}");
 }
+
+/// The walk takes a loop of one unit (`x*`) in one go (see `Program::star_unit`): the matches, with their
+/// groups, must be what the walk gives step by step, for patterns that nest loops, repeat groups that hold
+/// loops, and follow them with back-references, in the `C` locale and in UTF-8.
+#[test]
+fn taking_a_loop_of_one_unit_in_one_go_changes_no_result() {
+    use super::exec::STAR_OFF;
+    struct Rng(u64);
+    impl Rng {
+        fn below(&mut self, n: u64) -> u64 {
+            self.0 ^= self.0 << 13;
+            self.0 ^= self.0 >> 7;
+            self.0 ^= self.0 << 17;
+            self.0 % n
+        }
+    }
+    const ATOMS: [&str; 12] = [
+        "a*", "b*", ".*", "[ab]*", "a+", "[^b]*", "\\w*", "x*", "a", "b", ".", "(a*b*)",
+    ];
+    const PIECES: [&[u8]; 10] = [
+        b"a",
+        b"b",
+        b"aa",
+        b"ab",
+        b"\xc3\xa9",
+        b"\xe6\x97\xa5",
+        b"\xff",
+        b"x",
+        b" ",
+        b"\n",
+    ];
+    let mut rng = Rng(0x1357_2468_ace0_bdf9);
+    let mut compared = 0u32;
+    for locale in [Locale::C, Locale::Utf8] {
+        for _ in 0..3000 {
+            let atom = |rng: &mut Rng| ATOMS[rng.below(ATOMS.len() as u64) as usize];
+            let (p, q, r, t) = (
+                atom(&mut rng),
+                atom(&mut rng),
+                atom(&mut rng),
+                atom(&mut rng),
+            );
+            let pattern = match rng.below(11) {
+                0 => format!("({p}){q}\\1{r}"),
+                1 => format!("({p}{q})*{r}\\1"),
+                2 => format!("(({p})*{q})+{r}\\1"),
+                3 => format!("{p}({q}|{r})*{t}\\1"),
+                4 => format!("({p}*)*{q}\\1"),
+                5 => format!("({p}){q}*({r}){t}\\2\\1"),
+                6 => format!("^({p}+){q}\\1$"),
+                7 => format!("({p}){q}.*{r}\\1"),
+                8 => format!("(({p}){q})*\\2{r}"),
+                9 => format!("({p})({q}*)\\1\\2{r}"),
+                _ => format!("{p}({q}){r}*\\1{t}*"),
+            };
+            let syntax = Syntax {
+                extended: true,
+                locale,
+                ..Syntax::default()
+            };
+            let Ok(re) = Regex::compile(pattern.as_bytes(), &syntax) else {
+                continue;
+            };
+            for _ in 0..12 {
+                let mut text = Vec::new();
+                for _ in 0..rng.below(9) {
+                    text.extend_from_slice(PIECES[rng.below(PIECES.len() as u64) as usize]);
+                }
+                let run = |off: bool| {
+                    STAR_OFF.with(|c| c.set(off));
+                    let mut caps = Captures::default();
+                    let found = re.captures_at(&text, 0, &mut caps);
+                    (found, caps.groups.clone())
+                };
+                let (with, without) = (run(false), run(true));
+                STAR_OFF.with(|c| c.set(false));
+                assert_eq!(with, without, "{pattern} ({locale:?}) on {text:?}");
+                compared += 1;
+            }
+        }
+    }
+    assert!(compared > 40_000, "{compared}");
+}

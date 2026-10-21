@@ -22,6 +22,22 @@ const NONE: usize = usize::MAX;
 
 #[cfg(test)]
 thread_local! {
+    /// Lets a test run the walks without taking a loop of one unit in one go, to compare.
+    pub static STAR_OFF: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+
+#[cfg(test)]
+fn star_disabled_by_test() -> bool {
+    STAR_OFF.with(|c| c.get())
+}
+
+#[cfg(not(test))]
+fn star_disabled_by_test() -> bool {
+    false
+}
+
+#[cfg(test)]
+thread_local! {
     /// Lets a test run the walks without the look at the byte before an alternative of a `Split`, to compare.
     pub static LOOK_OFF: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
 }
@@ -1022,6 +1038,8 @@ struct Backtracker<'s, 'a> {
     budget: u64,
     /// The walk stopped because it used its budget.
     over: bool,
+    /// A loop of one unit is taken in one go (see `Program::star_unit`); under the same conditions as `look`.
+    star: bool,
     /// Alternatives that cannot begin with the byte at hand are not followed (see `Program::lookahead`); not
     /// in a locale where the bytes of a character are not those of UTF-8 or ASCII.
     look: bool,
@@ -1139,6 +1157,7 @@ impl<'s, 'a> Backtracker<'s, 'a> {
             budget: 0,
             over: false,
             look: !s.mb && !s.sb && !look_disabled_by_test(),
+            star: s.prog.has_backrefs && !s.mb && !s.sb && !star_disabled_by_test(),
             prune: !s.icase
                 && !s.glibc
                 && !s.prog.quirks
@@ -1777,6 +1796,69 @@ impl<'s, 'a> Backtracker<'s, 'a> {
                         }
                         None => break,
                     },
+                    Inst::Split(a, b)
+                        if self.star && prog.star_unit[pc as usize].is_some() && !self.seen(a) =>
+                    {
+                        // A loop of one unit: the same steps as below for each unit it takes (the split,
+                        // the unit, the jump back), without the marks (nothing asks about this split or its
+                        // first alternative again before another unit is taken) and the dispatch.
+                        let u = prog.star_unit[pc as usize].expect("a loop of one unit");
+                        let after = pc + 2;
+                        let ended = loop {
+                            if pos > limit {
+                                break true;
+                            }
+                            self.steps += 3;
+                            if self.lazy && self.steps - self.run_steps0 > self.budget {
+                                self.over = true;
+                                return None;
+                            }
+                            // (The alternative to leave the loop is kept to come back to, unless it cannot begin
+                            // with the byte at hand.)
+                            let ok_b = !self.look
+                                || match &prog.lookahead[b as usize] {
+                                    None => true,
+                                    Some(set) => self
+                                        .s
+                                        .hay
+                                        .get(pos)
+                                        .copied()
+                                        .is_some_and(|x| set.contains(x)),
+                                };
+                            match self.s.unit_len(u, pos) {
+                                None => {
+                                    // The unit does not match here: the loop is left at this position.
+                                    break !ok_b;
+                                }
+                                Some(len) => {
+                                    if ok_b {
+                                        self.stack.push(Choice {
+                                            pc: b,
+                                            pos,
+                                            trail: self.trail.len(),
+                                            seg: self.seg,
+                                            nl,
+                                            c,
+                                        });
+                                    }
+                                    pos += len;
+                                    nl = false;
+                                    c = false;
+                                    if self.prune && self.cannot_hold_backref(pos) {
+                                        break true;
+                                    }
+                                    self.new_segment();
+                                    if !self.memo(after, pos) {
+                                        break true;
+                                    }
+                                }
+                            }
+                        };
+                        if ended {
+                            break;
+                        }
+                        pc = b;
+                    }
                     Inst::Split(a, b) => {
                         // An alternative that cannot begin with the byte at hand ends at its first step:
                         // it is not followed, nor kept to come back to.
