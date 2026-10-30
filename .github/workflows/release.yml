@@ -36,7 +36,7 @@ jobs:
           test -s "$RUNNER_TEMP/notes.md"
       - name: Toolchain
         run: rustup toolchain install 1.85 --profile minimal && rustup default 1.85
-      - uses: rust-lang/crates-io-auth-action@v1.0.5
+      - uses: rust-lang/crates-io-auth-action@v1.0.6
         id: auth
       - name: Publish
         run: cargo publish
