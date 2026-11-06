@@ -2,6 +2,42 @@
 
 The release notes of every version. The section of a version is the text of its GitHub release.
 
+## 0.2.2 - 2026-11-06
+
+Scripts with back-references are much faster and no longer take minutes on a line that cannot match, and the grep mode now follows GNU grep 3.12 (the CI runner moved to Ubuntu 26.04).
+
+### Changed
+
+- The grep mode follows GNU grep 3.12 and PCRE2 10.46, the releases of Ubuntu 26.04, which the CI runner has now. Four things differ from 3.11 (and from ripgsed 0.2.1 and before):
+  - `-u` and `--unix-byte-offsets` are invalid options; they warned in 3.11.
+  - `-P` in a UTF-8 locale reads `\w`, `[[:alpha:]]` and `\b` as Unicode (`PCRE2_UCP`); it read ASCII in 3.11.
+  - `-q -m N` goes on after the first selected line, so a later error makes the exit status 2; it stopped there, with status 0, in 3.11.
+  - `-l` or `-L` with `-m N` read the whole input and print `binary file matches` for a binary file; they stopped at the first selected line and printed nothing in 3.11.
+
+  The tag `grep-3.11` is the last release that follows 3.11 (v0.2.1). The sed mode is not affected.
+
+### Fixed
+
+- `a\`, `c\` and `i\` with a text of backslashes that ends the script: under `--posix`, `a\` at the end of the script, and a text whose last backslash is left open, give "incomplete command" as GNU sed 4.9 does. Without `--posix`, the number of backslashes kept after `a\` and a newline follows GNU (t / 2 when t is even, t - 1 when it is odd).
+- A pattern with back-references no longer takes minutes on a line that cannot match it: `(\.+)+\1b$` on a line of 4096 dots without a `b` took minutes and now takes 15 ms (GNU sed: 0.01 s); with a `b` it now takes 15 ms too (GNU sed: minutes). Each back-reference is also replaced by a copy of its group, and that looser pattern, which a linear search decides, rejects the line, or tells the walk where a match can start and how far it can reach.
+
+### Faster
+
+- The walk with back-references costs less in time and memory (one thread, against GNU sed where it is measured):
+  - The memo keys are in one vector, and the memo is used only after the walk has spent a budget of steps without it: a template pattern on a line of 3 MB takes 0.2 s and 254 MB instead of 1.1 s and 577 MB (GNU sed: 0.4 s, 93 MB).
+  - Fewer steps: a path that cannot hold its back-reference is dropped; an alternative that cannot begin with the byte at hand is not followed; `.*`, `[^>]*`, `\w*` and the like are taken in one go. `<([a-z0-9]+)[^>]*>.*</\1>` over 16 MB of scripts is about 3 times faster than in 0.2.1 (a template pattern twice).
+  - ASCII bytes are looked up in a table, and the automata of a pattern with `\w` in a UTF-8 locale are made when a byte first needs them: `echo abc | sed -n -E '/\w+/p'` takes 5 ms instead of 10 ms (GNU sed: 2 ms).
+  - Over the benchmark corpora ripgsed is faster than GNU sed in 79 of the 97 pairs of back-reference pattern and corpus; the rest are under 0.05 s.
+
+### Documentation
+
+- The status is "experimental (0.x)" in the README and the documents, as it was no longer 0.1.
+
+### Development
+
+- The fixture timeout of the macOS job in CI is 120 seconds, as the other jobs have it (the default of 15 seconds is too short for the debug build).
+- The `fixtures` job of CI passes again with the grep of the runner; `docs/GREP.md` has the steps for the next time the runner moves.
+
 ## 0.2.1 - 2026-10-18
 
 ### Fixed
