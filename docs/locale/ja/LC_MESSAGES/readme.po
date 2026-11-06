@@ -35,12 +35,12 @@ msgstr "Rust で書いた、高速な GNU sed 4.9。コマンドとしても、�
 
 #: ../../../README.md:8
 msgid ""
-"**Status: experimental (0.1).** The aim is a drop-in replacement for GNU "
+"**Status: experimental (0.x).** The aim is a drop-in replacement for GNU "
 "sed (and a grep). What is claimed below is what the tests verify. The "
 "library interface may change before 1.0, and the program is only tested "
 "on Linux."
 msgstr ""
-"**状態: 実験的（0.1）。** 目標は、GNU sed（と "
+"**状態: 実験的（0.x）。** 目標は、GNU sed（と "
 "grep）をそのまま置き換えられることです。以下に書くことは、テストで確かめられている範囲のものです。ライブラリのインターフェースは 1.0 "
 "までに変わるかもしれません。また、動作確認は Linux だけです。"
 

@@ -4,7 +4,7 @@
 
 A fast GNU sed 4.9 in Rust, as a command and as a library. The same program is also a grep.
 
-> **Status: experimental (0.1).** The aim is a drop-in replacement for GNU sed (and a grep). What is claimed below is what the tests verify. The library interface may change before 1.0, and the program is only tested on Linux.
+> **Status: experimental (0.x).** The aim is a drop-in replacement for GNU sed (and a grep). What is claimed below is what the tests verify. The library interface may change before 1.0, and the program is only tested on Linux.
 
 The name says what it is: a fast gsed (GNU sed).
 

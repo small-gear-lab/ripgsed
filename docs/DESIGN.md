@@ -1,6 +1,6 @@
 # ripgsed design notes
 
-**Status: design document; the sed-compatible core, the grep mode, `-P` (PCRE2) and the Rust library are implemented and published as an experimental 0.1.** The sequential VM, the regex engine, and automatic parallel execution exist (see [ARCHITECTURE.md](ARCHITECTURE.md) and the README for measured results); editor integration, `--explain` and the choice of the regular expression engine described below do not. Module names, CLI options, types, and extension syntax for the parts not yet built are proposals and may change. Statements marked "recommended" are current leanings, not settled decisions.
+**Status: design document; the sed-compatible core, the grep mode, `-P` (PCRE2) and the Rust library are implemented and published as an experimental 0.x.** The sequential VM, the regex engine, and automatic parallel execution exist (see [ARCHITECTURE.md](ARCHITECTURE.md) and the README for measured results); editor integration, `--explain` and the choice of the regular expression engine described below do not. Module names, CLI options, types, and extension syntax for the parts not yet built are proposals and may change. Statements marked "recommended" are current leanings, not settled decisions.
 
 ## How to read this
 
@@ -451,7 +451,7 @@ This document contains no GNU sed implementation code.
 | explain | plan-only, fixed output stream | machine-readable schema |
 | workers / chunks | built: record-local scripts run in parallel over ordered chunks (D9) | thresholds, auto-tuning |
 | Named hold | specify grammar and initial state separately | the full extension commands |
-| API stability | published as an experimental 0.1: the interface may change before 1.0 | compatibility guarantees |
+| API stability | published as an experimental 0.x: the interface may change before 1.0 | compatibility guarantees |
 | Editor | subprocess plus preview | FFI or a custom UI |
 
 ## References
