@@ -78,10 +78,9 @@ msgstr ""
 
 #: ../../GREP.md:12
 msgid ""
-"The reference is GNU grep 3.11 with PCRE2 10.42, the releases of Ubuntu "
-"24.04, which is what the CI runner has (D12)."
+"The reference is GNU grep 3.12 with PCRE2 10.46, the releases of Ubuntu 26.04, which is what the CI runner has (D12). The last commit that follows GNU grep 3.11 and PCRE2 10.42 (Ubuntu 24.04) is the tag `grep-3.11`."
 msgstr ""
-"基準は GNU grep 3.11 と PCRE2 10.42 です。Ubuntu 24.04 のリリースで、CI のランナーが持つものです（D12）。"
+"基準は GNU grep 3.12 と PCRE2 10.46 です。Ubuntu 26.04 のリリースで、CI のランナーが持つものです（D12）。GNU grep 3.11 と PCRE2 10.42（Ubuntu 24.04）に従う最後のコミットは、タグ `grep-3.11` です。"
 
 #: ../../GREP.md:13
 msgid ""
@@ -93,26 +92,15 @@ msgstr ""
 
 #: ../../GREP.md:14
 msgid ""
-"The expected results of the fixtures were made with those releases "
-"(`tools/ref-grep.sh` unpacks them, checking their hash against the signed "
-"archive index, and `GREP_DIR=target/reference/grep/bin tools/gen-"
-"fixtures.sh` records what they print), so a machine with other releases "
-"still passes the fixtures, as long as ripgsed follows the release the "
-"fixtures were made with."
+"The expected results of the fixtures were made with those releases, so a machine with other releases still passes the fixtures, as long as ripgsed follows the release the fixtures were made with. `tools/ref-grep.sh` unpacks the other one, GNU grep 3.11 and PCRE2 10.42 (checking their hash against the signed archive index), and `GREP_DIR=target/reference/grep/bin tools/gen-fixtures.sh` records what they print."
 msgstr ""
-"fixture の期待結果は、そのリリースで作りました（`tools/ref-grep.sh` "
-"がそれを取り出し、署名つきのアーカイブ索引でハッシュを確かめます。`GREP_DIR=target/reference/grep/bin "
-"tools/gen-fixtures.sh` が、それの出力を記録します）。そのため、別のリリースを持つマシンでも、ripgsed が fixture "
-"を作ったリリースに従っている限り、fixture は通ります。"
+"fixture の期待結果はこれらのリリースで作ってあるので、別のリリースのマシンでも、ripgsed が fixture を作ったリリースに従っている限り、fixture は通ります。`tools/ref-grep.sh` がもう一方の GNU grep 3.11 と PCRE2 10.42 を取り出し（署名つきのアーカイブ索引でハッシュを確かめます）、`GREP_DIR=target/reference/grep/bin tools/gen-fixtures.sh` がそれらの出力を記録します。"
 
 #: ../../GREP.md:15
 msgid ""
-"GNU grep 3.12 (Ubuntu 26.04) differs from 3.11 in four things, which the "
-"fixtures cover (they are in `GNU_GREP_3_12` of `src/grep/mod.rs`). ripgsed "
-"follows 3.11 now."
+"GNU grep 3.12 (Ubuntu 26.04) differs from 3.11 in four things, which the fixtures cover (they are in `GNU_GREP_3_12` of `src/grep/mod.rs`). ripgsed follows 3.12 now; setting the constant to `false` gives 3.11 back."
 msgstr ""
-"GNU grep 3.12（Ubuntu 26.04）は 3.11 と 4 点で違い、fixture "
-"はそれを扱っています（`src/grep/mod.rs` の `GNU_GREP_3_12`）。いまの ripgsed は 3.11 に従います。"
+"GNU grep 3.12（Ubuntu 26.04）は 3.11 と 4 点で違い、fixture はそれを扱っています（`src/grep/mod.rs` の `GNU_GREP_3_12`）。いまの ripgsed は 3.12 に従います。定数を `false` にすると 3.11 に戻ります。"
 
 #: ../../GREP.md:16
 msgid ""
@@ -166,37 +154,34 @@ msgstr ""
 " 500 件に 1 件ほどで、それは `docs/KNOWN-DIFFERENCES.md` の場合です。"
 
 #: ../../GREP.md:23
-msgid "When the runner brings GNU grep 3.12"
-msgstr "ランナーが GNU grep 3.12 になったとき"
+msgid ""
+"When the runner moves to another release of GNU grep"
+msgstr ""
+"ランナーが別のリリースの GNU grep に移ったとき"
 
 #: ../../GREP.md:25
 msgid ""
-"The `fixtures` job of CI makes the expected results again with the grep of "
-"the runner and fails when they differ from the files that are checked in. "
-"When the image moves to Ubuntu 26.04 (grep 3.12, PCRE2 10.46) the job will "
-"fail on `tests/reference-grep.json` and on the commands of the four "
-"differences above, and nothing else should change. To follow 3.12:"
+"The `fixtures` job of CI makes the expected results again with the grep of the runner and fails when they differ from the files that are checked in. The runner moved from Ubuntu 24.04 (grep 3.11, PCRE2 10.42) to Ubuntu 26.04 (grep 3.12, PCRE2 10.46) in November 2026 and the job failed on `tests/reference-grep.json` and on the commands of the four differences above, as this page said it would. What was done, and what to do the next time:"
 msgstr ""
-"CI の `fixtures` ジョブは、ランナーの grep で期待結果を作り直し、コミット済みのファイルと違えば失敗します。イメージが Ubuntu"
-" 26.04（grep 3.12、PCRE2 10.46）に移ると、このジョブは `tests/reference-grep.json` と、上の 4 "
-"つの違いのコマンドで失敗し、ほかは変わらないはずです。3.12 に従うには:"
+"CI の `fixtures` ジョブは、ランナーの grep で期待結果を作り直し、コミット済みのファイルと違えば失敗します。ランナーは 2026 年 11 月に Ubuntu 24.04（grep 3.11、PCRE2 10.42）から Ubuntu 26.04（grep 3.12、PCRE2 10.46）に移り、このページが予告したとおり、ジョブは `tests/reference-grep.json` と上の 4 つの違いのコマンドで失敗しました。やったことと、次のときにやることは:"
 
 #: ../../GREP.md:27
 msgid ""
-"Set `GNU_GREP_3_12` to `true` in `src/grep/mod.rs` (it changes the four "
-"behaviors above and nothing else)."
-msgstr "`src/grep/mod.rs` の `GNU_GREP_3_12` を `true` にします（上の 4 つの挙動だけが変わります）。"
+"Leave a tag on the last commit that follows the old release (`grep-3.11`), so that it can be found and built again."
+msgstr ""
+"古いリリースに従う最後のコミットにタグ（`grep-3.11`）を残し、あとで見つけて作り直せるようにします。"
+
+#: ../../GREP.md:27
+msgid ""
+"Switch `GNU_GREP_3_12` in `src/grep/mod.rs` (it changes the four behaviors above and nothing else)."
+msgstr ""
+"`src/grep/mod.rs` の `GNU_GREP_3_12` を切り替えます（上の 4 つの挙動だけが変わります）。"
 
 #: ../../GREP.md:28
 msgid ""
-"On a machine with grep 3.12 and PCRE2 10.46, or from the log of the failed "
-"job, run `tools/gen-fixtures.sh $(ls tests/fixtures | rg '^(grep|pcre)-')` "
-"(without `GREP_DIR`) and commit the changed expected results and "
-"`tests/reference-grep.json`."
+"On a machine with the new releases, or from the log of the failed job, run `tools/gen-fixtures.sh $(ls tests/fixtures | rg '^(grep|pcre)-')` (without `GREP_DIR`) and commit the changed expected results and `tests/reference-grep.json`."
 msgstr ""
-"grep 3.12 と PCRE2 10.46 のあるマシンで、または失敗したジョブのログをもとに、`tools/gen-fixtures.sh "
-"$(ls tests/fixtures | rg '^(grep|pcre)-')` を（`GREP_DIR` なしで）実行し、変わった期待結果と "
-"`tests/reference-grep.json` をコミットします。"
+"新しいリリースのあるマシンで、または失敗したジョブのログをもとに、`tools/gen-fixtures.sh $(ls tests/fixtures | rg '^(grep|pcre)-')` を（`GREP_DIR` なしで）実行し、変わった期待結果と `tests/reference-grep.json` をコミットします。"
 
 #: ../../GREP.md:29
 msgid ""
@@ -211,11 +196,9 @@ msgstr ""
 
 #: ../../GREP.md:30
 msgid ""
-"Update the sentences of this page and of `docs/KNOWN-DIFFERENCES.md` that "
-"name 3.11, and the Japanese translation (`tools/build-docs.sh update`)."
+"Update the sentences of this page and of `docs/KNOWN-DIFFERENCES.md` that name the release, and the Japanese translation (`tools/build-docs.sh update`)."
 msgstr ""
-"このページと `docs/KNOWN-DIFFERENCES.md` にある、3.11 を名指しした文と、日本語訳（`tools/build-"
-"docs.sh update`）を直します。"
+"このページと `docs/KNOWN-DIFFERENCES.md` にある、リリースを名指しした文と、日本語訳（`tools/build-docs.sh update`）を直します。"
 
 #: ../../GREP.md:32
 msgid "Patterns"

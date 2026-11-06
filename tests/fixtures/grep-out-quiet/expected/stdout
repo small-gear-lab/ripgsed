@@ -35,7 +35,7 @@
 0
 [0]
 === grep -q -m5 alpha d a.txt; echo $?
-0
+2
 [0]
 === grep -q alpha bin.dat; echo $?
 0

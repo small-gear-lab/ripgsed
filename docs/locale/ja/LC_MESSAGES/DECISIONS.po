@@ -631,11 +631,9 @@ msgstr ""
 
 #: ../../DECISIONS.md:102
 msgid ""
-"The reference is GNU grep 3.11 with PCRE2 10.42, the releases that the CI "
-"runner has, as the sed mode's is GNU sed 4.9 (D6)."
+"The reference is GNU grep 3.12 with PCRE2 10.46, the releases that the CI runner has (it had 3.11 and 10.42 until the runner moved to Ubuntu 26.04: the tag `grep-3.11` is the last commit that follows those), as the sed mode's is GNU sed 4.9 (D6)."
 msgstr ""
-"基準は GNU grep 3.11 と PCRE2 10.42 です。CI のランナーが持つリリースで、sed モードの基準が GNU sed 4.9 "
-"であるのと同じ位置づけです（D6）。"
+"基準は GNU grep 3.12 と PCRE2 10.46 です。CI のランナーが持つリリースで（ランナーが Ubuntu 26.04 に移るまでは 3.11 と 10.42 でした。それに従う最後のコミットがタグ `grep-3.11` です）、sed モードの基準が GNU sed 4.9 であるのと同じ位置づけです（D6）。"
 
 #: ../../DECISIONS.md:103
 msgid ""
@@ -650,22 +648,15 @@ msgstr ""
 
 #: ../../DECISIONS.md:104
 msgid ""
-"`tools/ref-grep.sh` unpacks the grep and PCRE2 of a release (checked against "
-"the signed archive index) and `GREP_DIR=... tools/gen-fixtures.sh` records "
-"the expected results with it, so the fixtures do not depend on the machine's "
-"grep."
+"`tools/ref-grep.sh` unpacks the grep and PCRE2 of another release (3.11 and 10.42, checked against the signed archive index) and `GREP_DIR=... tools/gen-fixtures.sh` records the expected results with it, so the fixtures do not depend on the machine's grep."
 msgstr ""
-"`tools/ref-grep.sh` が、あるリリースの grep と PCRE2 "
-"を取り出し（署名つきのアーカイブ索引で確かめます）、`GREP_DIR=... tools/gen-fixtures.sh` "
-"がそれで期待結果を記録するので、fixture はそのマシンの grep に依存しません。"
+"`tools/ref-grep.sh` が、別のリリース（3.11 と 10.42）の grep と PCRE2 を取り出し（署名つきのアーカイブ索引で確かめます）、`GREP_DIR=... tools/gen-fixtures.sh` がそれで期待結果を記録するので、fixture はそのマシンの grep に依存しません。"
 
 #: ../../DECISIONS.md:105
 msgid ""
-"Where 3.12 differs, `GNU_GREP_3_12` in `src/grep/mod.rs` chooses; "
-"docs/GREP.md has the steps for the day the runner has 3.12."
+"Where 3.12 differs, `GNU_GREP_3_12` in `src/grep/mod.rs` chooses; docs/GREP.md has the steps for the day the runner moves again."
 msgstr ""
-"3.12 で違う点は、`src/grep/mod.rs` の `GNU_GREP_3_12` が選びます。ランナーが 3.12 になる日の手順は "
-"docs/GREP.md にあります。"
+"3.12 で違う点は、`src/grep/mod.rs` の `GNU_GREP_3_12` が選びます。ランナーがまた移る日の手順は docs/GREP.md にあります。"
 
 #: ../../DECISIONS.md:106
 msgid ""

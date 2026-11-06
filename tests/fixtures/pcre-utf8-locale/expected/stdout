@@ -1,14 +1,14 @@
 === grep -oP '\w+' utf8.txt
-caf
-na
-ve
+café
+naïve
 alpha
+あいう
 [0]
 === grep -oP '[[:alpha:]]+' utf8.txt
-caf
-na
-ve
+café
+naïve
 alpha
+あいう
 [0]
 === grep -oP '.' utf8.txt
 c

@@ -8,7 +8,7 @@ ripgsed は GNU sed 4.9 と同じように動きます。出力が同じで、C 
 
 ## 意図的な差分
 
-- `--version` と `--help` は ripgsed 独自の文面を出します。usage の先頭行とオプションエラーの `sed:` の行は GNU sed と同じです。
+- `--version` と `--help` は ripgsed 自身の文面を出力します（使い方のメッセージとオプションの一覧は同じで、最後の行が違います）。`-u` と `--unix-byte-offsets` は、3.12 と同じく無効なオプションです（3.11 では警告でした）。
 - C ライブラリが持つすべての文字集合に従います。UTF-8、マルチバイト集合の EUC-JP、Shift_JIS、GBK、GB18030、Big5、EUC-KR、EUC-TW（文字は `mbrtowc` で読みます）、ISO-8859-x、KOI8-R、Windows-125x などの 1 バイト集合です（D11）。
   - クラス、大文字小文字の規則、範囲の順序は、GNU sed と同じくロケールのものです。
   - バイトとして読むのは、インストールされていないロケールと、`C` と `POSIX` だけです。
@@ -19,9 +19,9 @@ ripgsed は GNU sed 4.9 と同じように動きます。出力が同じで、C 
 
 ## grep モード
 
-grep モードは GNU grep 3.11 と PCRE2 10.42 と比べています（D12）。3.12 で違う 4 つの点は、`src/grep/mod.rs` の `GNU_GREP_3_12` を切り替えて従います（docs/GREP.md に一覧と手順があります）。
+grep モードは GNU grep 3.12 と PCRE2 10.46 と比べています（D12）。3.11 で違う 4 つの点は、`src/grep/mod.rs` の `GNU_GREP_3_12` を切り替えて従います（docs/GREP.md に一覧と手順があります）。
 
-- `--version` と `--help` は ripgsed 自身の文面を出力します（使い方のメッセージとオプションの一覧は同じで、最後の行が違います）。`-u` と `--unix-byte-offsets` は、3.11 と同じく警告を出します（3.12 からはエラーです）。
+- `--version` and `--help` print ripgsed's own text (the usage message and the option list are the same, the closing lines are not). `-u` and `--unix-byte-offsets` are invalid options, as in 3.12 (they warned in 3.11).
 - GNU grep の翻訳済みメッセージ（`LANGUAGE=ja`）は使えません。そのカタログは GPL の下にあり、GNU sed のものと同じです（英語のメッセージは同じです）。PCRE2 ライブラリのメッセージはライブラリのものです。
 - `-P` はプログラムと一緒にビルドする PCRE2 ライブラリ（この文を書いた時点で 10.46）を使うので、結果とメッセージはその版のものになり、GNU grep がビルドされた版とは違うことがあります。
 - GNU grep の DFA と C ライブラリのマッチャーで違うパターンは、行にもマッチにも、両方の読み方で読みます。再現しないもの：

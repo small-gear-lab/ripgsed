@@ -38,7 +38,7 @@ printf '{"reference": "%s"}\n' "$version" > "$root/tests/reference.json"
 # fails and says so, and the expected results are made again (tools/ref-grep.sh unpacks another
 # release of grep to see what its version changes).
 # GREP_DIR=target/reference/grep/bin (made by tools/ref-grep.sh) records the results of that
-# release instead: GNU grep 3.11 and PCRE2 10.42, which are what the CI runner has.
+# release instead: GNU grep 3.11 and PCRE2 10.42 (the CI runner has 3.12 and 10.46).
 real_grep=${GREP:-$(command -v grep)}
 # The reference must be GNU grep: a link named grep that leads to ripgsed (on the PATH of the person
 # who installed it) must not become the reference of its own fixtures.

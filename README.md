@@ -94,7 +94,7 @@ It is developed and tested on Linux (Ubuntu, glibc), where the compatibility wit
 
 `ln -s ripgsed grep` (also `egrep`, `fgrep`), or `ripgsed --grep ...`: the same options, output, messages and exit status as GNU grep, in the C locale and in the locales of the C library.
 
-- **Checked**: 83 items of [compat/grep.tsv](compat/grep.tsv) are verified by 89 fixtures made with GNU grep 3.11 and PCRE2 10.42 (what the CI runner has). The four things that 3.12 changes are one switch in the source, see [docs/GREP.md](docs/GREP.md). Random patterns and random option combinations agree with GNU grep in all but about one case in five hundred.
+- **Checked**: 83 items of [compat/grep.tsv](compat/grep.tsv) are verified by 89 fixtures made with GNU grep 3.12 and PCRE2 10.46 (what the CI runner has). The four things that 3.12 changes are one switch in the source, see [docs/GREP.md](docs/GREP.md). Random patterns and random option combinations agree with GNU grep in all but about one case in five hundred.
 - **Input** is searched as it is read: a pipe as it arrives, and a file larger than memory is fine.
 - **Directory trees** are searched on several threads, with the output in the order of one thread. A tree of 1,000 files (71 MB): `-rc ERROR` in 0.023 s against GNU grep's 0.103 s.
 - **One thread, 57 MB of log lines**, ripgsed against the machine's GNU grep (3.12), as a ratio of the time (above 1 is slower): a literal 1.0 to 1.2 (`-c` and `-F` the same; `-i` faster, a rare literal 0.7), `-o` 0.7, `-w` 0.4, `\w` in Japanese text 0.2. Slower: an alternation with a repetition about 1.9, a back-reference 2.4. The table and the differences are in [docs/GREP.md](docs/GREP.md).

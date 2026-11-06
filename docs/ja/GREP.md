@@ -9,10 +9,10 @@ ripgsed は GNU grep としても振る舞います。モードはプログラ�
 - `compat/grep.tsv` は、grep の挙動を領域ごとに並べたものです。起動、パターン、出力、コンテキスト、ファイル、バイナリファイル、色、`-P` があります。
   - 83 項目のすべてが `verified` です。これは、その項目を扱う fixture が、GNU grep と同じ標準出力・標準エラー出力・終了状態・ファイルを与えるという意味です（`tests/README.md`）。
   - grep モードの fixture は 89 個あります（`tests/fixtures/grep-*` と `pcre-*`）。`tools/gen-grep-fixtures.py` が書き、`tools/gen-fixtures.sh` がそのマシンの grep の出力を記録します。
-- 基準は GNU grep 3.11 と PCRE2 10.42 です。Ubuntu 24.04 のリリースで、CI のランナーが持つものです（D12）。
+- 基準は GNU grep 3.12 と PCRE2 10.46 です。Ubuntu 26.04 のリリースで、CI のランナーが持つものです（D12）。GNU grep 3.11 と PCRE2 10.42（Ubuntu 24.04）に従う最後のコミットは、タグ `grep-3.11` です。
   - その版は `tests/reference-grep.json` にあり、CI の `fixtures` ジョブもこれを調べます。ランナーが別のリリースを持ち込めば、ジョブがそれを知らせます。
-  - fixture の期待結果は、そのリリースで作りました（`tools/ref-grep.sh` がそれを取り出し、署名つきのアーカイブ索引でハッシュを確かめます。`GREP_DIR=target/reference/grep/bin tools/gen-fixtures.sh` が、それの出力を記録します）。そのため、別のリリースを持つマシンでも、ripgsed が fixture を作ったリリースに従っている限り、fixture は通ります。
-- GNU grep 3.12（Ubuntu 26.04）は 3.11 と 4 点で違い、fixture はそれを扱っています（`src/grep/mod.rs` の `GNU_GREP_3_12`）。いまの ripgsed は 3.11 に従います。
+  - fixture の期待結果はこれらのリリースで作ってあるので、別のリリースのマシンでも、ripgsed が fixture を作ったリリースに従っている限り、fixture は通ります。`tools/ref-grep.sh` がもう一方の GNU grep 3.11 と PCRE2 10.42 を取り出し（署名つきのアーカイブ索引でハッシュを確かめます）、`GREP_DIR=target/reference/grep/bin tools/gen-fixtures.sh` がそれらの出力を記録します。
+- GNU grep 3.12（Ubuntu 26.04）は 3.11 と 4 点で違い、fixture はそれを扱っています（`src/grep/mod.rs` の `GNU_GREP_3_12`）。いまの ripgsed は 3.12 に従います。定数を `false` にすると 3.11 に戻ります。
   - `-u` と `--unix-byte-offsets` は、3.11 では警告を出し、3.12 では不正なオプションです。
   - UTF-8 ロケールの `-P` で、`\w`、`[[:alpha:]]`、`\b` は、3.11 では ASCII、3.12 では Unicode と読みます（`PCRE2_UCP`）。
   - `-q -m N` は、3.11 では最初に選んだ行で終了します（エラーのあとでも状態は 0）。3.12 では続けるので、あとのエラーで状態が 2 になります。
@@ -20,14 +20,15 @@ ripgsed は GNU grep としても振る舞います。モードはプログラ�
 - PCRE2 のメッセージも版によって違うので、fixture はそれを含めていません。
 - 細部の多くは、`cargo test` に含まれないランダムテストが見つけました。ランダムなパターン（基本、拡張、固定。`-i` `-w` `-x` `-v` つき、C ロケールと UTF-8 ロケール）と、サンプルファイルへのランダムなオプションの組み合わせを、両方のプログラムで実行し、出力、メッセージ、終了状態を比べます。数千件ずつの直近の実行で、食い違うのは 500 件に 1 件ほどで、それは `docs/KNOWN-DIFFERENCES.md` の場合です。
 
-## ランナーが GNU grep 3.12 になったとき
+## ランナーが別のリリースの GNU grep に移ったとき
 
-CI の `fixtures` ジョブは、ランナーの grep で期待結果を作り直し、コミット済みのファイルと違えば失敗します。イメージが Ubuntu 26.04（grep 3.12、PCRE2 10.46）に移ると、このジョブは `tests/reference-grep.json` と、上の 4 つの違いのコマンドで失敗し、ほかは変わらないはずです。3.12 に従うには:
+CI の `fixtures` ジョブは、ランナーの grep で期待結果を作り直し、コミット済みのファイルと違えば失敗します。ランナーは 2026 年 11 月に Ubuntu 24.04（grep 3.11、PCRE2 10.42）から Ubuntu 26.04（grep 3.12、PCRE2 10.46）に移り、このページが予告したとおり、ジョブは `tests/reference-grep.json` と上の 4 つの違いのコマンドで失敗しました。やったことと、次のときにやることは:
 
-1. `src/grep/mod.rs` の `GNU_GREP_3_12` を `true` にします（上の 4 つの挙動だけが変わります）。
-2. grep 3.12 と PCRE2 10.46 のあるマシンで、または失敗したジョブのログをもとに、`tools/gen-fixtures.sh $(ls tests/fixtures | rg '^(grep|pcre)-')` を（`GREP_DIR` なしで）実行し、変わった期待結果と `tests/reference-grep.json` をコミットします。
-3. デバッグビルドとリリースビルドで `cargo test` を実行します。まだ失敗する fixture は、この一覧にない違いを示しています。`tools/ref-grep.sh` と `GREP_DIR` で（別のリリースで fixture を動かせます）見つけ、定数とこの一覧に加えます。
-4. このページと `docs/KNOWN-DIFFERENCES.md` にある、3.11 を名指しした文と、日本語訳（`tools/build-docs.sh update`）を直します。
+1. 古いリリースに従う最後のコミットにタグ（`grep-3.11`）を残し、あとで見つけて作り直せるようにします。
+2. `src/grep/mod.rs` の `GNU_GREP_3_12` を切り替えます（上の 4 つの挙動だけが変わります）。
+3. 新しいリリースのあるマシンで、または失敗したジョブのログをもとに、`tools/gen-fixtures.sh $(ls tests/fixtures | rg '^(grep|pcre)-')` を（`GREP_DIR` なしで）実行し、変わった期待結果と `tests/reference-grep.json` をコミットします。
+4. デバッグビルドとリリースビルドで `cargo test` を実行します。まだ失敗する fixture は、この一覧にない違いを示しています。`tools/ref-grep.sh` と `GREP_DIR` で（別のリリースで fixture を動かせます）見つけ、定数とこの一覧に加えます。
+5. このページと `docs/KNOWN-DIFFERENCES.md` にある、リリースを名指しした文と、日本語訳（`tools/build-docs.sh update`）を直します。
 
 ## パターン
 

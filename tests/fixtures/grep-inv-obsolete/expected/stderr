@@ -1,3 +1,7 @@
-grep: warning: --unix-byte-offsets (-u) is obsolete
-grep: warning: --unix-byte-offsets (-u) is obsolete
-grep: warning: --unix-byte-offsets (-u) is obsolete
+Usage: grep [OPTION]... PATTERNS [FILE]...
+Try 'grep --help' for more information.
+Usage: grep [OPTION]... PATTERNS [FILE]...
+Try 'grep --help' for more information.
+grep: unrecognized option '--unix-byte-offsets'
+Usage: grep [OPTION]... PATTERNS [FILE]...
+Try 'grep --help' for more information.

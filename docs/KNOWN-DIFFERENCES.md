@@ -19,9 +19,9 @@ ripgsed behaves like GNU sed 4.9: same output, same error messages in the C loca
 
 ## The grep mode
 
-The grep mode is compared with GNU grep 3.11 and PCRE2 10.42 (D12). Four things differ in 3.12 and are followed by switching `GNU_GREP_3_12` in `src/grep/mod.rs` (docs/GREP.md lists them and the steps).
+The grep mode is compared with GNU grep 3.12 and PCRE2 10.46 (D12). Four things differ in 3.11 and are followed by switching `GNU_GREP_3_12` in `src/grep/mod.rs` (docs/GREP.md lists them and the steps).
 
-- `--version` and `--help` print ripgsed's own text (the usage message and the option list are the same, the closing lines are not). `-u` and `--unix-byte-offsets` warn, as in 3.11 (they are errors from 3.12 on).
+- `--version` and `--help` print ripgsed's own text (the usage message and the option list are the same, the closing lines are not). `-u` and `--unix-byte-offsets` are invalid options, as in 3.12 (they warned in 3.11).
 - The translated messages of GNU grep (`LANGUAGE=ja`) are not available: their catalogs are under the GPL, as the ones of GNU sed (the English messages are the same). The messages of the PCRE2 library are the library's.
 - `-P` uses the PCRE2 library that is built with the program (10.46 at this writing), so its results and its messages are those of that version, which can differ from the version GNU grep was built with.
 - A pattern in which GNU grep's DFA and the C library's matcher differ is read both ways, for the lines and for the matches. Not reproduced:

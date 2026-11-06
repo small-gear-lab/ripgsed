@@ -64,13 +64,13 @@ links named `sed` or `grep` that lead to it, those links shadow GNU's on the `PA
 
 ```sh
 SED=/usr/bin/sed GREP=/usr/bin/grep tools/gen-fixtures.sh name ...        # the tools of this machine
-SED=/usr/bin/sed GREP_DIR=$PWD/target/reference/grep/bin tools/gen-fixtures.sh name ...   # GNU grep 3.11 (what CI has)
+SED=/usr/bin/sed GREP_DIR=$PWD/target/reference/grep/bin tools/gen-fixtures.sh name ...   # GNU grep 3.11 (the other release; CI has 3.12)
 ```
 
-The grep fixtures follow the grep and PCRE2 of the CI runner (3.11 / 10.42 on Ubuntu 24.04), and `GNU_GREP_3_12` in
-`src/grep/mod.rs` switches the four things that 3.12 changes. `tools/ref-grep.sh` unpacks the reference (checked against
-the signed archive index) into `target/reference/`. When `ubuntu-latest` becomes 26.04 the `fixtures` job fails: see
-"The day the runner has 3.12" in `docs/GREP.md`. A command whose result differs between releases stays out of the
+The grep fixtures follow the grep and PCRE2 of the CI runner (3.12 / 10.46 on Ubuntu 26.04; the tag `grep-3.11` is the
+last commit that follows 3.11 / 10.42), and `GNU_GREP_3_12` in `src/grep/mod.rs` switches the four things that 3.12 changes. `tools/ref-grep.sh` unpacks 3.11 (checked against
+the signed archive index) into `target/reference/`. When the runner moves to another release the `fixtures` job fails: see
+"When the runner moves to another release of GNU grep" in `docs/GREP.md`. A command whose result differs between releases stays out of the
 fixtures. The files `tests/fixtures/*/files/` are inputs; `expected/` is generated, never edited.
 
 ## Documentation

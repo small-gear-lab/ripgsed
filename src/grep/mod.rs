@@ -21,8 +21,9 @@ use search::{Event, Printer};
 use std::sync::mpsc::{Receiver, Sender, SyncSender, channel, sync_channel};
 use std::sync::{Arc, Mutex};
 
-/// The release of GNU grep that the grep mode follows where releases differ: `false` for 3.11 (the
-/// grep of Ubuntu 24.04, what CI has), `true` for 3.12 (Ubuntu 26.04). Four things depend on it:
+/// The release of GNU grep that the grep mode follows where releases differ: `true` for 3.12 (the
+/// grep of Ubuntu 26.04, what CI has), `false` for 3.11 (Ubuntu 24.04; the tag `grep-3.11` is the last
+/// commit that follows it). Four things depend on it:
 ///
 /// - `-u` and `--unix-byte-offsets`: a warning in 3.11, an invalid option in 3.12;
 /// - `-P` in a UTF-8 locale: `\w`, `[[:alpha:]]`, `\b` see ASCII only in 3.11, Unicode in 3.12
@@ -32,10 +33,9 @@ use std::sync::{Arc, Mutex};
 /// - `-l` and `-L` with `-m N`: 3.12 reads the whole input and prints `binary file matches` for a
 ///   binary file, 3.11 stops at the first selected line and prints nothing.
 ///
-/// To follow 3.12: set this to `true`, run `tools/gen-fixtures.sh` on a machine with 3.12 and PCRE2
-/// 10.46, and put back the commands that `tools/gen-grep-fixtures.py` keeps in `ONLY_312`
-/// (`GREP_FIXTURES=312 tools/gen-grep-fixtures.py`). docs/GREP.md has the list.
-pub const GNU_GREP_3_12: bool = false;
+/// To follow 3.11 again: set this to `false` and run `tools/gen-fixtures.sh` with GNU grep 3.11 and
+/// PCRE2 10.42 (`tools/ref-grep.sh` unpacks them). docs/GREP.md has the list.
+pub const GNU_GREP_3_12: bool = true;
 
 /// The kind of patterns a program name stands for.
 pub fn kind_for_name(name: &str) -> Option<Kind> {

@@ -57,12 +57,9 @@ msgstr "意図的な差分"
 
 #: ../../KNOWN-DIFFERENCES.md:11
 msgid ""
-"`--version` and `--help` print ripgsed's own text. The first line of the "
-"usage message and the `sed:` lines of option errors are the same as GNU "
-"sed's."
+"`--version` and `--help` print ripgsed's own text. The first line of the usage message and the `sed:` lines of option errors are the same as GNU sed's."
 msgstr ""
-"`--version` と `--help` は ripgsed 独自の文面を出します。usage の先頭行とオプションエラーの `sed:` の行は "
-"GNU sed と同じです。"
+"`--version` と `--help` は ripgsed 自身の文面を出力します（使い方のメッセージとオプションの一覧は同じで、最後の行が違います）。`-u` と `--unix-byte-offsets` は、3.12 と同じく無効なオプションです（3.11 では警告でした）。"
 
 #: ../../KNOWN-DIFFERENCES.md:12
 msgid ""
@@ -130,13 +127,9 @@ msgstr "grep モード"
 
 #: ../../KNOWN-DIFFERENCES.md:22
 msgid ""
-"The grep mode is compared with GNU grep 3.11 and PCRE2 10.42 (D12). Four "
-"things differ in 3.12 and are followed by switching `GNU_GREP_3_12` in "
-"`src/grep/mod.rs` (docs/GREP.md lists them and the steps)."
+"The grep mode is compared with GNU grep 3.12 and PCRE2 10.46 (D12). Four things differ in 3.11 and are followed by switching `GNU_GREP_3_12` in `src/grep/mod.rs` (docs/GREP.md lists them and the steps)."
 msgstr ""
-"grep モードは GNU grep 3.11 と PCRE2 10.42 と比べています（D12）。3.12 で違う 4 "
-"つの点は、`src/grep/mod.rs` の `GNU_GREP_3_12` を切り替えて従います（docs/GREP.md "
-"に一覧と手順があります）。"
+"grep モードは GNU grep 3.12 と PCRE2 10.46 と比べています（D12）。3.11 で違う 4 つの点は、`src/grep/mod.rs` の `GNU_GREP_3_12` を切り替えて従います（docs/GREP.md に一覧と手順があります）。"
 
 #: ../../KNOWN-DIFFERENCES.md:24
 msgid ""

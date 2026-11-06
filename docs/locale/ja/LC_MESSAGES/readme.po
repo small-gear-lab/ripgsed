@@ -713,17 +713,9 @@ msgstr ""
 
 #: ../../../README.md:98
 msgid ""
-"**Checked**: 83 items of [compat/grep.tsv](compat/grep.tsv) are verified "
-"by 89 fixtures made with GNU grep 3.11 and PCRE2 10.42 (what the CI "
-"runner has). The four things that 3.12 changes are one switch in the "
-"source, see [docs/GREP.md](docs/GREP.md). Random patterns and random "
-"option combinations agree with GNU grep in all but about one case in five"
-" hundred."
+"**Checked**: 83 items of [compat/grep.tsv](compat/grep.tsv) are verified by 89 fixtures made with GNU grep 3.12 and PCRE2 10.46 (what the CI runner has). The four things that 3.12 changes are one switch in the source, see [docs/GREP.md](docs/GREP.md). Random patterns and random option combinations agree with GNU grep in all but about one case in five hundred."
 msgstr ""
-"**確かめ方**：[compat/grep.tsv](compat/grep.tsv) の 83 項目を、GNU grep 3.11 と "
-"PCRE2 10.42（CI のランナーが持つもの）で作った 89 個の fixture で確かめています。3.12 で変わる 4 点は、ソースの"
-" 1 つのスイッチです（[docs/ja/GREP.md](docs/GREP.md) "
-"を参照）。ランダムなパターンとランダムなオプションの組み合わせは、約 500 件に 1 件を除いて GNU grep と一致します。"
+"**確かめ方**：[compat/grep.tsv](compat/grep.tsv) の 83 項目を、GNU grep 3.12 と PCRE2 10.46（CI のランナーが持つもの）で作った 89 個の fixture で確かめています。3.12 で変わる 4 点は、ソースの 1 つのスイッチです（[docs/ja/GREP.md](docs/GREP.md) を参照）。ランダムなパターンとランダムなオプションの組み合わせは、約 500 件に 1 件を除いて GNU grep と一致します。"
 
 #: ../../../README.md:99
 msgid ""

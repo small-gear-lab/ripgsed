@@ -99,10 +99,10 @@ Decisions that have been made, with their reasons. Proposals and open questions 
 ## D12. The grep mode follows GNU grep 3.x
 
 - The project also behaves like GNU grep: the same output, messages and status for the same command line (D4 and D5 for grep). The mode is chosen by the name the program runs under (`grep`, `egrep`, `fgrep`, `rgrep`) or by a first argument `--grep`. The sed mode is unchanged.
-- The reference is GNU grep 3.11 with PCRE2 10.42, the releases that the CI runner has, as the sed mode's is GNU sed 4.9 (D6).
+- The reference is GNU grep 3.12 with PCRE2 10.46, the releases that the CI runner has (it had 3.11 and 10.42 until the runner moved to Ubuntu 26.04: the tag `grep-3.11` is the last commit that follows those), as the sed mode's is GNU sed 4.9 (D6).
   - Their versions are recorded in `tests/reference-grep.json`, and CI follows the latest runner image (`ubuntu-latest`) and compares that record: a runner that brings other releases makes the `fixtures` job fail, and that is a change to look at, not to hide.
-  - `tools/ref-grep.sh` unpacks the grep and PCRE2 of a release (checked against the signed archive index) and `GREP_DIR=... tools/gen-fixtures.sh` records the expected results with it, so the fixtures do not depend on the machine's grep.
-  - Where 3.12 differs, `GNU_GREP_3_12` in `src/grep/mod.rs` chooses; docs/GREP.md has the steps for the day the runner has 3.12.
+  - `tools/ref-grep.sh` unpacks the grep and PCRE2 of another release (3.11 and 10.42, checked against the signed archive index) and `GREP_DIR=... tools/gen-fixtures.sh` records the expected results with it, so the fixtures do not depend on the machine's grep.
+  - Where 3.12 differs, `GNU_GREP_3_12` in `src/grep/mod.rs` chooses; docs/GREP.md has the steps for the day the runner moves again.
 - The regular expression engine is the same engine (D7), asked to read the syntax of GNU grep (`Syntax::grep`) and, where GNU grep's DFA and the C library's matcher differ, both readings (`Syntax::regex_semantic`). The locale rules are the sed mode's (D11).
 - `-P` is the PCRE2 library. It was first opened with `dlopen`, so that the crate had no dependency and no build requirement (D1, D8); D14 replaced that with the crate `pcre2-sys`. The sources of GNU grep were not read, as those of GNU sed were not: the behavior was learned by running it, and the code that implements it is written here.
 - GNU grep's behavior that is plainly a bug follows the same rule as GNU sed's (D10): the shorter-match search of `-w -o` that measures from where the search began is reproduced because the fixtures and the random tests show it as the result of GNU grep and nothing in the manual contradicts it.
